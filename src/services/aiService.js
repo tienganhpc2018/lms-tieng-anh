@@ -1,11 +1,14 @@
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+function getApiKey() {
+  return import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('VITE_GEMINI_API_KEY') || '';
+}
 
 /**
  * Call Gemini REST API directly using standard fetch
  */
 async function callGemini(prompt, systemInstruction = '') {
+  const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error('VITE_GEMINI_API_KEY chưa được cấu hình trong file .env');
+    throw new Error('Vui lòng nhấp nút "Cấu Hình AI Key" trên thanh công cụ góc trên để nhập Gemini API Key.');
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;

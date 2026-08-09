@@ -1,12 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Badge } from './Badge';
-import { LogOut, User, Sparkles, BookOpen } from 'lucide-react';
+import { Modal } from './Modal';
+import { Button } from './Button';
+import { LogOut, User, Sparkles, BookOpen, Key } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const Navbar = () => {
   const { user, profile, role, signOut, isConfigured } = useAuth();
   const navigate = useNavigate();
+
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [geminiKey, setGeminiKey] = useState('');
+  const [hasSavedKey, setHasSavedKey] = useState(false);
+
+  useEffect(() => {
+    const existing = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('VITE_GEMINI_API_KEY') || '';
+    setGeminiKey(existing);
+    setHasSavedKey(Boolean(existing));
+  }, []);
+
+  const handleSaveGeminiKey = (e) => {
+    e.preventDefault();
+    localStorage.setItem('VITE_GEMINI_API_KEY', geminiKey.trim());
+    setHasSavedKey(Boolean(geminiKey.trim()));
+    alert('Đã lưu Gemini API Key thành công trên trình duyệt!');
+    setShowKeyModal(false);
+  };
 
   const getRoleBadge = (r) => {
     switch (r) {
@@ -39,12 +59,18 @@ export const Navbar = () => {
       </div>
 
       <div className="flex items-center gap-4">
-        {!isConfigured && (
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            Cần file .env (Supabase)
-          </span>
-        )}
+        {/* AI Key Configuration Button */}
+        <button
+          onClick={() => setShowKeyModal(true)}
+          className={`text-xs font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition-all ${
+            hasSavedKey
+              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
+              : 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20 animate-pulse'
+          }`}
+        >
+          <Key className="w-3.5 h-3.5" />
+          <span>{hasSavedKey ? 'AI Key: Đã Kích Hoạt' : 'Cấu Hình AI Key'}</span>
+        </button>
 
         {user ? (
           <div className="flex items-center gap-3 bg-slate-900/80 border border-slate-800 rounded-2xl px-3 py-1.5">
@@ -85,6 +111,36 @@ export const Navbar = () => {
           </div>
         )}
       </div>
+
+      {/* Gemini Key Config Modal */}
+      <Modal isOpen={showKeyModal} onClose={() => setShowKeyModal(false)} title="Cấu Hình Google Gemini API Key">
+        <form onSubmit={handleSaveGeminiKey} className="space-y-4">
+          <p className="text-xs text-slate-300">
+            Dán mã API Key của bạn vào ô bên dưới để kích hoạt các tính năng AI Chấm bài Writing, Speaking & Sinh đề tự động ngay trên trình duyệt mà không phụ thuộc vào cấu hình server:
+          </p>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-300 mb-1">Mã Gemini API Key</label>
+            <input
+              type="text"
+              required
+              placeholder="Dán mã API Key (ví dụ: AIzaSy...)"
+              value={geminiKey}
+              onChange={(e) => setGeminiKey(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-brand-500"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <Button type="button" variant="ghost" onClick={() => setShowKeyModal(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" variant="emerald">
+              Lưu Key Vào Trình Duyệt
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </header>
   );
 };
