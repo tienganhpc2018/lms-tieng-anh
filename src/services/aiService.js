@@ -11,22 +11,41 @@ async function callGemini(prompt, systemInstruction = '') {
     throw new Error('Vui lòng nhấp nút "Cấu Hình AI Key" trên thanh công cụ góc trên để nhập Gemini API Key.');
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: (systemInstruction ? systemInstruction + '\n\n' : '') + prompt }] }]
-    })
-  });
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+  let lastError = null;
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `Gemini API Error (${response.status})`);
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: (systemInstruction ? systemInstruction + '\n\n' : '') + prompt }] }]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      }
+
+      const errorData = await response.json().catch(() => ({}));
+      lastError = new Error(errorData.error?.message || `Gemini API Error (${response.status})`);
+
+      // If error is not model name issue, don't try other models
+      if (!errorData.error?.message?.includes('not found') && !errorData.error?.message?.includes('not supported')) {
+        throw lastError;
+      }
+    } catch (err) {
+      lastError = err;
+      if (!err.message?.includes('not found') && !err.message?.includes('not supported')) {
+        throw err;
+      }
+    }
   }
 
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  throw lastError || new Error('Không thể kết nối dịch vụ Gemini AI.');
 }
 
 /**
