@@ -84,6 +84,9 @@ dist/
 dist-ssr/
 *.local
 
+# Agent internals
+agent/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
