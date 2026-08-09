@@ -1,11 +1,11 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 /**
- * Call Gemini REST directly as fallback or using SDK
+ * Call Gemini REST directly or using SDK
  */
 async function callGemini(prompt, systemInstruction = '') {
   if (!apiKey) {
@@ -13,20 +13,21 @@ async function callGemini(prompt, systemInstruction = '') {
   }
 
   try {
-    if (ai) {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: systemInstruction ? { systemInstruction } : undefined
+    if (genAI) {
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash',
+        systemInstruction: systemInstruction || undefined,
       });
-      return response.text;
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
     }
   } catch (err) {
     console.warn('GenAI SDK call failed, falling back to REST API...', err);
   }
 
   // Fallback REST call
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
