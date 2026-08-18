@@ -1,11 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Database, ArrowLeft, Search, Filter, BookOpen, Layers, Volume2, CheckCircle, Eye, AlertCircle, RefreshCw, FileText } from 'lucide-react';
+import { Database, ArrowLeft, Search, Filter, BookOpen, Layers, Volume2, CheckCircle, Eye, AlertCircle, RefreshCw, FileText, Headphones, Type, Edit3, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { exportQuizToWord } from '../utils/exportQuizWord';
 
-// DỮ LIỆU ĐỀ THI NGUỒN MẪU CHUẨN (GLOBAL SUCCESS & PRACTICE TESTS)
-const SAMPLE_QUESTIONS_DATA = [
+// DỮ LIỆU NGUỒN MẪU GLOBAL SUCCESS THEO KHỐI
+const GLOBAL_SUCCESS_DATA = {
+  'Khối 6': [
+    { q: 'My home town is famous for its silk _______ village.', opts: ['weaving', 'pottery', 'carving'], ans: 'A', cat: 'Vocabulary' },
+    { q: 'Look! The students _______ badminton in the schoolyard.', opts: ['play', 'are playing', 'played'], ans: 'B', cat: 'Grammar' },
+  ],
+  'Khối 7': [
+    { q: 'You should eat more vegetables because they provide a lot of _______.', opts: ['vitamins', 'calories', 'junk food'], ans: 'A', cat: 'Vocabulary' },
+    { q: 'We _______ to the cinema last Sunday.', opts: ['go', 'went', 'have gone'], ans: 'B', cat: 'Grammar' },
+  ],
+  'Khối 8': [
+    { q: 'The children in my home village used to go _______, even in winter.', opts: ['on foot', 'bare-footed', 'playing around'], ans: 'B', cat: 'Vocabulary' },
+    { q: 'Giving lucky money to the young and the old at Tet is a common _______ in many Asian countries.', opts: ['behavior', 'practice', 'tradition'], ans: 'B', cat: 'Culture & Tradition' },
+    { q: 'In Viet Nam, _______ often refers to age and social position, not to wealth.', opts: ['seniority', 'tradition', 'generation'], ans: 'A', cat: 'Vocabulary' },
+  ],
+  'Khối 9': [
+    { q: 'Artisan Phong is the third _______ of his family keeping up with conical hat making.', opts: ['generation', 'tradition', 'seniority'], ans: 'A', cat: 'Local Community' },
+    { q: 'If we reduce air pollution, our city _______ a better place to live.', opts: ['will become', 'became', 'becomes'], ans: 'A', cat: 'Grammar' },
+  ],
+};
+
+// DỮ LIỆU ĐỀ THI VỪA SOẠN CHUẨN
+const SAMPLE_MY_QUESTIONS = [
   {
     id: 'sample_01',
     type: 'reading_section',
@@ -29,18 +50,6 @@ const SAMPLE_QUESTIONS_DATA = [
                 { text: 'Carving wood', isCorrect: false }
               ],
               explanation: '💡 Evidence: Chuong village in Hanoi is famous for making conical hats.'
-            }
-          ]
-        },
-        {
-          part_type: 'true_false',
-          part_title: 'PART 2: Read the second text and decide whether the statements are True (T) or False (F).',
-          passage: 'Visitors come to Chuong village to learn how to make conical hats themselves...',
-          questions: [
-            {
-              question: '2. Fewer young people want to learn the craft because they do not know how to make a living from it.',
-              correctAnswer: 'T',
-              explanation: '💡 Evidence: Fewer young people want to learn the craft.'
             }
           ]
         }
@@ -72,17 +81,6 @@ const SAMPLE_QUESTIONS_DATA = [
               explanation: '💡 Evidence: Phong is the third generation of artisan in his family.'
             }
           ]
-        },
-        {
-          part_type: 'true_false',
-          part_title: 'PART 2: Listen again and decide whether the statements are True (T) or False (F).',
-          questions: [
-            {
-              question: '2. Young people in the community often ask Phong how to keep up with modern trends.',
-              correctAnswer: 'T',
-              explanation: '💡 Evidence: Young people often ask how to keep up with modern trends.'
-            }
-          ]
         }
       ]
     }
@@ -100,7 +98,7 @@ const SAMPLE_QUESTIONS_DATA = [
           task_sub: 'Read the following blog post about a local community and choose the best option (A, B, C, or D) for each blank.',
           badge_label: 'BLOG',
           passage_title: 'Our Beautiful Suburb Blog',
-          passage: 'Hi everyone! Welcome back to my blog. Today, I want to talk about my local community. Two years ago, my family decided to move to this (16) _______ of the city...',
+          passage: 'Hi everyone! Welcome back to my blog. Today, I want to talk about my local community...',
           questions: [
             {
               question_number: '16',
@@ -109,25 +107,6 @@ const SAMPLE_QUESTIONS_DATA = [
                 { id: 'B', text: 'B. suitcase' },
                 { id: 'C', text: 'C. seagull' },
                 { id: 'D', text: 'D. fragrance' }
-              ],
-              correct_option: 'A'
-            }
-          ]
-        },
-        {
-          task_title: 'PART 2: READ THE SECOND TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.',
-          task_sub: 'Read the following email invitation and choose the best option (A, B, C, or D) for each blank.',
-          badge_label: 'EMAIL',
-          passage_title: 'Invitation to a House-Warming Party',
-          passage: 'Dear Vy,\nHow are you? I am writing to invite you to our (21) _______ party next Saturday...',
-          questions: [
-            {
-              question_number: '21',
-              options: [
-                { id: 'A', text: 'A. house-warming' },
-                { id: 'B', text: 'B. hard-working' },
-                { id: 'C', text: 'C. worldwide' },
-                { id: 'D', text: 'D. responsible' }
               ],
               correct_option: 'A'
             }
@@ -142,7 +121,7 @@ export default function QuestionBankView() {
   const navigate = useNavigate();
   const [selectedGrade, setSelectedGrade] = useState('Khối 8');
   const [activeTab, setActiveTab] = useState('my_questions');
-  const [questions, setQuestions] = useState(SAMPLE_QUESTIONS_DATA);
+  const [questions, setQuestions] = useState(SAMPLE_MY_QUESTIONS);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -175,10 +154,10 @@ export default function QuestionBankView() {
             content: cObj || {},
           };
         });
-        setQuestions([...dbLoaded, ...SAMPLE_QUESTIONS_DATA]);
+        setQuestions([...dbLoaded, ...SAMPLE_MY_QUESTIONS]);
       }
     } catch (err) {
-      console.warn('Supabase fetch query notice:', err);
+      console.warn('Background fetch notice:', err);
     } finally {
       setIsRefreshing(false);
     }
@@ -188,7 +167,7 @@ export default function QuestionBankView() {
     fetchAllQuestions();
   }, []);
 
-  const safeQuestions = (Array.isArray(questions) ? questions : SAMPLE_QUESTIONS_DATA) || [];
+  const safeQuestions = (Array.isArray(questions) ? questions : SAMPLE_MY_QUESTIONS) || [];
   const filteredQuestions = safeQuestions.filter((q) => {
     if (!q || !q.content) return true;
     try {
@@ -206,44 +185,59 @@ export default function QuestionBankView() {
     }
   });
 
+  const gradeQuestions = GLOBAL_SUCCESS_DATA[selectedGrade] || GLOBAL_SUCCESS_DATA['Khối 8'];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans select-none">
       {/* THANH THÊU VÀ ĐIỀU HƯỚNG TRÊN CÙNG */}
-      <div className="flex items-center space-x-3">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-xl transition flex items-center space-x-1 font-bold text-xs"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Về Khóa Học</span>
-        </button>
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 flex items-center space-x-2">
-            <Database className="w-6 h-6 text-sky-500" />
-            <span>Ngân Hàng Câu Hỏi Nguồn Mẫu & Đề Thi Đã Soạn</span>
-          </h1>
-          <p className="text-xs text-slate-500">
-            Kho lưu trữ câu hỏi trắc nghiệm, bài đọc hiểu READING SECTION và bài nghe LISTENING SECTION của Giáo Viên.
-          </p>
+      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-2xl transition flex items-center space-x-1.5 font-bold text-xs bg-white border border-slate-200 shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4 text-slate-500" />
+            <span>Về Khóa Học</span>
+          </button>
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 flex items-center space-x-2">
+              <Database className="w-7 h-7 text-sky-500" />
+              <span>Ngân Hàng Câu Hỏi Nguồn Mẫu & Đề Thi Đã Soạn</span>
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Kho lưu trữ câu hỏi trắc nghiệm, bài đọc hiểu READING SECTION và bài nghe LISTENING SECTION của Giáo Viên.
+            </p>
+          </div>
         </div>
+
+        <button
+          onClick={fetchAllQuestions}
+          disabled={isRefreshing}
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center space-x-1.5"
+        >
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span>{isRefreshing ? 'Đang Cập Nhật...' : 'Làm Mới Dữ Liệu'}</span>
+        </button>
       </div>
 
-      {/* TAB CHỌN XEM */}
-      <div className="flex border-b border-slate-200 space-x-4">
+      {/* TAB CHỌN XEM CHI TIẾT */}
+      <div className="flex border-b border-slate-200 space-x-6">
         <button
+          type="button"
           onClick={() => setActiveTab('my_questions')}
           className={`pb-3 text-sm font-extrabold transition border-b-2 flex items-center space-x-2 ${
             activeTab === 'my_questions' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           <BookOpen className="w-4 h-4 text-emerald-600" />
-          <span>📚 Đề Thi Vừa Soạn Trong Bài Học ({(filteredQuestions || []).length} đề)</span>
+          <span>📚 Đề Thi Vừa Soạn Trong Bài Học ({(filteredQuestions || []).length} bộ đề mẫu)</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('global_success')}
           className={`pb-3 text-sm font-extrabold transition border-b-2 flex items-center space-x-2 ${
-            activeTab === 'global_success' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+            activeTab === 'global_success' ? 'border-sky-600 text-sky-700' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           <Layers className="w-4 h-4 text-sky-600" />
@@ -252,7 +246,7 @@ export default function QuestionBankView() {
       </div>
 
       {/* TÌM KIẾM */}
-      <div className="flex items-center space-x-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex items-center space-x-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
         <Search className="w-5 h-5 text-slate-400 ml-2" />
         <input
           type="text"
@@ -270,14 +264,6 @@ export default function QuestionBankView() {
             <h3 className="font-extrabold text-base text-slate-900">
               Danh Sách Đề Thi Giáo Viên Vừa Soạn ({(filteredQuestions || []).length} bộ đề mẫu & bài soạn)
             </h3>
-            <button
-              onClick={fetchAllQuestions}
-              disabled={isRefreshing}
-              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-600' : ''}`} />
-              <span>{isRefreshing ? 'Đang cập nhật...' : 'Tải lại'}</span>
-            </button>
           </div>
 
           <div className="space-y-4">
@@ -328,47 +314,23 @@ export default function QuestionBankView() {
                       </audio>
                     </div>
                   )}
-
-                  {/* DANH SÁCH CÁC CÂU HỎI CON */}
-                  {(childs || []).length > 0 && (
-                    <div className="space-y-2 pt-1">
-                      <span className="text-[11px] font-extrabold text-slate-600 block">
-                        Chứa {childs.length} câu hỏi trắc nghiệm con:
-                      </span>
-                      {(childs || []).map((c, cIdx) => (
-                        <div key={cIdx} className="p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold space-y-1">
-                          <p className="text-slate-800 font-extrabold">{c?.question || ''}</p>
-                          <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
-                            {(c?.options || []).map((opt, oIdx) => (
-                              <span
-                                key={oIdx}
-                                className={`px-2 py-0.5 rounded border ${
-                                  opt?.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold' : 'bg-slate-50 border-slate-200'
-                                }`}
-                              >
-                                {String.fromCharCode(65 + oIdx)}. {opt?.text || opt}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
         </div>
       ) : (
+        /* TAB GLOBAL SUCCESS CHỌN THEO KHỐI */
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
             {['Khối 6', 'Khối 7', 'Khối 8', 'Khối 9'].map((g) => (
               <button
                 key={g}
+                type="button"
                 onClick={() => setSelectedGrade(g)}
                 className={`p-4 rounded-2xl border text-center font-extrabold text-sm transition ${
                   selectedGrade === g
-                    ? 'border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm'
+                    ? 'border-sky-600 bg-sky-50 text-sky-900 shadow-sm ring-2 ring-sky-500/20'
                     : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
@@ -378,24 +340,31 @@ export default function QuestionBankView() {
           </div>
 
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <h3 className="font-extrabold text-base text-slate-900">
-              Danh Sách Câu Hỏi Nguồn Mẫu - {selectedGrade}
+            <h3 className="font-extrabold text-base text-slate-900 flex items-center space-x-2">
+              <Globe className="w-5 h-5 text-sky-600" />
+              <span>Danh Sách Câu Hỏi Nguồn Mẫu - {selectedGrade} ({gradeQuestions.length} câu)</span>
             </h3>
 
             <div className="space-y-3">
-              {[
-                { q: 'The children in my home village used to go _______, even in winter.', opts: ['on foot', 'bare-footed', 'playing around'], ans: 'B' },
-                { q: 'Giving lucky money to the young and the old at Tet is a common _______ in many Asian countries.', opts: ['behavior', 'practice', 'tradition'], ans: 'B' },
-                { q: 'In Viet Nam, _______ often refers to age and social position, not to wealth.', opts: ['seniority', 'tradition', 'generation'], ans: 'A' },
-              ].map((item, idx) => (
+              {gradeQuestions.map((item, idx) => (
                 <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <span className="text-[10px] font-extrabold bg-sky-100 text-sky-800 px-2 py-0.5 rounded uppercase">
-                    Categories: Knowledge of English (Vocab & Grammar)
-                  </span>
-                  <h4 className="font-extrabold text-sm text-slate-900">Câu {idx + 1}: {item?.q}</h4>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-extrabold bg-sky-100 text-sky-800 px-2 py-0.5 rounded uppercase">
+                      Categories: {item.cat}
+                    </span>
+                    <span className="text-xs font-bold text-emerald-600">Đáp án đúng: {item.ans}</span>
+                  </div>
+                  <h4 className="font-extrabold text-sm text-slate-900">Câu {idx + 1}: {item.q}</h4>
                   <div className="flex flex-wrap gap-2 pt-1 text-xs font-semibold">
-                    {(item?.opts || []).map((o, i) => (
-                      <span key={i} className="px-3 py-1 bg-white border border-slate-200 rounded-xl text-slate-700">
+                    {(item.opts || []).map((o, i) => (
+                      <span
+                        key={i}
+                        className={`px-3 py-1 rounded-xl border ${
+                          String.fromCharCode(65 + i) === item.ans
+                            ? 'bg-emerald-100 border-emerald-400 text-emerald-950 font-extrabold'
+                            : 'bg-white border-slate-200 text-slate-700'
+                        }`}
+                      >
                         {String.fromCharCode(65 + i)}. {o}
                       </span>
                     ))}
