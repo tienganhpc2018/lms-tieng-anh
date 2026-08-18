@@ -7,6 +7,8 @@ import CommunityExamBankModal from './CommunityExamBankModal';
 import { exportQuizToWord } from '../../utils/exportQuizWord';
 import { exportMultiCodeWord } from '../../utils/exportMultiCodeWord';
 import ExamMatrixModal from './ExamMatrixModal';
+import ExamPaperTimerModal from './ExamPaperTimerModal';
+import { exportOmrSheet } from '../../utils/exportOmrSheet';
 
 export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
@@ -51,6 +53,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [isAiGenModalOpen, setIsAiGenModalOpen] = useState(false);
   const [isCommunityBankOpen, setIsCommunityBankOpen] = useState(false);
   const [isMatrixModalOpen, setIsMatrixModalOpen] = useState(false);
+  const [isExamTimerOpen, setIsExamTimerOpen] = useState(false);
+  const [passcode, setPasscode] = useState('');
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
@@ -185,6 +189,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setTimeLimitMinutes(q.content?.timeLimit || 0);
       setMaxTabSwitches(q.content?.maxTabSwitches !== undefined ? q.content.maxTabSwitches : 3);
       setIsRandomized(q.content?.isRandomized || false);
+      setPasscode(q.content?.passcode || '');
     setMarks(q.marks || 1.0);
     setMcOptions(
       q.content?.options && q.content?.options.length > 0
@@ -573,6 +578,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         timeLimit: Number(timeLimitMinutes) || 0,
         maxTabSwitches: Number(maxTabSwitches) || 3,
         isRandomized: isRandomized,
+        passcode: passcode.trim(),
         categories: selectedCategories,
       };
 
@@ -692,6 +698,20 @@ export default function QuizBuilder({ activityId, onSaved }) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setIsExamTimerOpen(true)}
+                className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
+              >
+                <span>⏱️ Đồng Hồ Giám Thị Tivi</span>
+              </button>
+
+              <button
+                onClick={() => exportOmrSheet(questionTitle || 'BÀI THI TRẮC NGHIỆM', 40)}
+                className="px-3 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
+              >
+                <span>📄 In Phiếu Tô OMR</span>
+              </button>
+
               <button
                 onClick={() => setIsMatrixModalOpen(true)}
                 className="px-3 py-2 bg-purple-700 hover:bg-purple-800 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
@@ -870,6 +890,19 @@ export default function QuizBuilder({ activityId, onSaved }) {
                   >
                     <span>{isRandomized ? '🔀 Đã bật trộn ngẫu nhiên' : 'Tắt trộn đề'}</span>
                   </button>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold text-amber-900 uppercase mb-1">
+                    🔒 MẬT KHẨU MÃ KHÓA
+                  </label>
+                  <input
+                    type="text"
+                    value={passcode}
+                    onChange={(e) => setPasscode(e.target.value)}
+                    placeholder="Mã khóa (VD: 123456)"
+                    className="w-full px-3 py-2 border border-amber-300 rounded-xl text-xs font-bold bg-white"
+                  />
                 </div>
 
                 <div>
