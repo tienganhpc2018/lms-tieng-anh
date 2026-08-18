@@ -295,7 +295,7 @@ export default function QuizEngine({ activity }) {
     }
 
     return (
-      <div className="mt-1.5 p-2.5 bg-emerald-50/90 border border-emerald-300 rounded-xl text-[11px] space-y-0.5 text-slate-800">
+      <div className="mt-1 p-2 bg-emerald-50/90 border border-emerald-300 rounded-xl text-[11px] space-y-0.5 text-slate-800">
         <span className="font-extrabold text-emerald-950 block border-b border-emerald-200 pb-0.5">
           ➔ ĐÁP ÁN ĐÚNG: {correctText}
         </span>
@@ -315,7 +315,7 @@ export default function QuizEngine({ activity }) {
   const isTimeWarning = isCountdownMode && secondsRemaining < 120;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* THÔNG BÁO TỔNG KẾT BÀI THI SAU KHU NỘP */}
       {submitted ? (
         <div className="p-5 bg-gradient-to-br from-slate-900 to-navy-900 text-white rounded-3xl shadow-xl space-y-5 border border-slate-700 animate-scale-up">
@@ -366,7 +366,7 @@ export default function QuizEngine({ activity }) {
         </div>
       ) : (
         /* THANH ĐỒNG HỒ THỜI GIAN LÀM BÀI */
-        <div className="bg-slate-900 text-white p-3.5 rounded-2xl flex justify-between items-center shadow-md">
+        <div className="bg-slate-900 text-white p-3 rounded-2xl flex justify-between items-center shadow-md">
           <div className="flex items-center space-x-2">
             <User className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold">Học sinh: {profile?.full_name || 'Học Viên'}</span>
@@ -391,7 +391,7 @@ export default function QuizEngine({ activity }) {
       )}
 
       {/* DANH SÁCH CÂU HỎI */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {questions.map((q, qIdx) => {
           const sectionType = (q.content?.sectionType || q.type || 'multiple_choice').toLowerCase();
           const isReading = sectionType === 'reading_section';
@@ -413,7 +413,7 @@ export default function QuizEngine({ activity }) {
           // DẠNG 3: READING (True/False)
           if (isReadingTF) {
             return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-500 rounded-3xl p-5 shadow-xs border-y border-r border-slate-200 space-y-4">
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-500 rounded-3xl p-4 shadow-xs border-y border-r border-slate-200 space-y-3">
                 <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
                   <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
                     {qIdx + 1}
@@ -423,21 +423,21 @@ export default function QuizEngine({ activity }) {
                   </span>
                 </div>
 
-                <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content?.question || 'Read the passage and decide whether the statements are True (T) or False (F).'}
                 </div>
 
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4 text-slate-800 font-serif text-xs leading-relaxed text-justify shadow-2xs">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-3.5 text-slate-800 font-serif text-xs leading-relaxed text-justify shadow-2xs">
                   {renderPassageWithHighlights(q.content?.passage)}
                 </div>
 
-                <div className="space-y-2 pt-1">
+                <div className="space-y-1.5 pt-0.5">
                   {childQuestions.map((cQ, cIdx) => {
                     const childKey = `${q.id}_c${cIdx}`;
                     const selectedVal = userAnswers[childKey];
                     return (
                       <div key={cIdx} className="space-y-1">
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2 gap-3">
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-1.5 gap-3">
                           <span className="text-xs font-semibold text-slate-800 leading-relaxed">
                             {cQ.question}
                           </span>
@@ -478,7 +478,7 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test)
+          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test) - ÉP NẰM 1 HÀNG 4 CỘT FIT KHUNG 100%
           if (isClozeTest) {
             const tasksList = Array.isArray(q.content?.tasks) && q.content.tasks.length > 0
               ? q.content.tasks
@@ -499,8 +499,8 @@ export default function QuizEngine({ activity }) {
                 ];
 
             return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-5 shadow-xs border-y border-r border-slate-200 space-y-4">
-                <div className="bg-blue-50/70 rounded-xl p-3 flex justify-between items-center">
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-4 shadow-xs border-y border-r border-slate-200 space-y-3">
+                <div className="bg-blue-50/70 rounded-xl p-2.5 flex justify-between items-center">
                   <h3 className="font-extrabold text-xs text-blue-900 tracking-wide uppercase flex items-center space-x-2">
                     <span className="w-6 h-6 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
                       {qIdx + 1}
@@ -514,8 +514,8 @@ export default function QuizEngine({ activity }) {
                   const tQuestions = taskItem.questions || [];
 
                   return (
-                    <div key={tIdx} className="space-y-3 border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
-                      <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs space-y-0.5">
+                    <div key={tIdx} className="space-y-2.5 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
+                      <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs space-y-0.5">
                         <h4 className="uppercase tracking-tight text-purple-950">
                           {taskItem.task_title}
                         </h4>
@@ -526,7 +526,7 @@ export default function QuizEngine({ activity }) {
                         )}
                       </div>
 
-                      <div className="border border-slate-300 rounded-2xl bg-amber-50/20 p-4 relative space-y-1.5 mt-2">
+                      <div className="border border-slate-300 rounded-2xl bg-amber-50/20 p-3.5 relative space-y-1 mt-1.5">
                         <span className={`text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase absolute -top-2.5 left-3 shadow-xs ${
                           tIdx === 1 ? 'bg-teal-600' : 'bg-amber-500'
                         }`}>
@@ -544,7 +544,8 @@ export default function QuizEngine({ activity }) {
                         </p>
                       </div>
 
-                      <div className="space-y-2.5 pt-1">
+                      {/* ÉP 100% CÁC CÂU CLOZE TEST NẰM TRÊN 1 HÀNG 4 CỘT - THU NHỎ FONT VỪA KHUNG NẾU TỪ DÀI */}
+                      <div className="space-y-1.5 pt-0.5">
                         {tQuestions.map((cQ, cIdx) => {
                           const childKey = `${q.id}_t${tIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
@@ -553,21 +554,22 @@ export default function QuizEngine({ activity }) {
 
                           const maxOptLen = Math.max(...opts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
 
-                          let gridClass = 'grid-cols-2 sm:grid-cols-4 gap-2.5';
-                          if (maxOptLen > 45) {
-                            gridClass = 'grid-cols-1 space-y-1.5';
-                          } else if (maxOptLen > 16) {
-                            gridClass = 'grid-cols-1 sm:grid-cols-2 gap-2.5'; // 2 CỘT X 2 HÀNG CHUẨN ĐẸP Ý THẦY
+                          // Co cỡ chữ linh hoạt để ép vừa trọn vẹn 4 CỘT TRÊN 1 HÀNG FIT KHUNG
+                          let btnFontSize = 'text-xs px-2.5 py-1.5';
+                          if (maxOptLen > 22) {
+                            btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
+                          } else if (maxOptLen > 15) {
+                            btnFontSize = 'text-[11px] px-2 py-1 leading-snug';
                           }
 
                           return (
-                            <div key={cIdx} className="space-y-1">
-                              <div className="flex items-start gap-2.5 w-full">
-                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0 mt-1">
+                            <div key={cIdx} className="space-y-0.5">
+                              <div className="flex items-center gap-2 w-full">
+                                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-extrabold text-[11px] flex items-center justify-center flex-shrink-0">
                                   {cQ.question_number || (16 + cIdx)}
                                 </span>
 
-                                <div className={`grid ${gridClass} w-full items-stretch`}>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch">
                                   {opts.map((opt, oIdx) => {
                                     const optVal = opt.id || String.fromCharCode(65 + oIdx);
                                     const optText = opt.text || `${optVal}. ${opt.label || opt}`;
@@ -578,7 +580,7 @@ export default function QuizEngine({ activity }) {
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, optVal)}
-                                        className={`rounded-xl px-3 py-1.5 text-xs transition font-semibold text-left whitespace-normal break-words border flex items-center space-x-1.5 ${
+                                        className={`rounded-xl ${btnFontSize} transition font-semibold text-left whitespace-normal break-words border flex items-center space-x-1 ${
                                           isSelected
                                             ? `${tIdx === 1 ? 'bg-teal-600' : 'bg-blue-600'} text-white font-bold shadow-xs border-transparent`
                                             : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
@@ -606,7 +608,7 @@ export default function QuizEngine({ activity }) {
           // NẾU LÀ LISTENING_SECTION HOẶC READING_SECTION CÓ MULTI PARTS
           if ((isListening || isReading) && sectionParts.length > 0) {
             return (
-              <div key={q.id || qIdx} className="p-5 bg-slate-50 border border-slate-200 rounded-3xl space-y-3 shadow-xs">
+              <div key={q.id || qIdx} className="p-4 bg-slate-50 border border-slate-200 rounded-3xl space-y-2.5 shadow-xs">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
                     <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
@@ -631,12 +633,12 @@ export default function QuizEngine({ activity }) {
                   }
 
                   return (
-                    <div key={pIdx} className="space-y-3 border-b border-slate-200 pb-3.5 last:border-b-0 last:pb-0">
-                      <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                    <div key={pIdx} className="space-y-2 border-b border-slate-200 pb-2.5 last:border-b-0 last:pb-0">
+                      <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                         {pItem.part_title || `PART ${pIdx + 1}: Instruction`}
                       </div>
 
-                      {/* CHỈ HIỂN THỊ DUY NHẤT THANH TRÌNH PHÁT AUDIO CONTROL (BỎ HẲN CHỮ AUDIO PART 1/2) */}
+                      {/* CHỈ HIỂN THỊ DUY NHẤT THANH TRÌNH PHÁT AUDIO CONTROL */}
                       {isListening && (
                         <div className="bg-white p-2 rounded-xl border border-purple-200 shadow-2xs">
                           {pAudioSrc ? (
@@ -651,14 +653,15 @@ export default function QuizEngine({ activity }) {
                         </div>
                       )}
 
-                      {/* ĐOẠN VĂN PASSAGE CÓ HIGHLIGHT TỰ ĐỘNG CÁC TỪ TRONG NGOẶC 'facility' VÀ CĂN LỀ JUSTIFY */}
+                      {/* ĐOẠN VĂN PASSAGE */}
                       {isReading && pItem.passage && (
-                        <div className="p-4 bg-white border border-emerald-200 rounded-xl text-xs text-slate-800 leading-relaxed font-serif text-justify shadow-2xs">
+                        <div className="p-3.5 bg-white border border-emerald-200 rounded-xl text-xs text-slate-800 leading-relaxed font-serif text-justify shadow-2xs">
                           {renderPassageWithHighlights(pItem.passage)}
                         </div>
                       )}
 
-                      <div className="space-y-2.5 pt-0.5">
+                      {/* ÉP CÁC CÂU CỦA LISTENING NẰM TRÊN 1 HÀNG 4 CỘT FIT KHUNG */}
+                      <div className="space-y-1.5 pt-0.5">
                         {pQs.map((cQ, cIdx) => {
                           const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
@@ -666,7 +669,7 @@ export default function QuizEngine({ activity }) {
                           if (isTF) {
                             const correctAnsTF = cQ.correctAnswer || 'T';
                             return (
-                              <div key={cIdx} className="p-3 bg-white border border-emerald-200 rounded-xl space-y-1 shadow-2xs">
+                              <div key={cIdx} className="p-2.5 bg-white border border-emerald-200 rounded-xl space-y-1 shadow-2xs">
                                 <div className="flex justify-between items-center gap-3">
                                   <span className="text-xs font-semibold text-slate-800 leading-relaxed">
                                     {cQ.question}
@@ -712,17 +715,18 @@ export default function QuizEngine({ activity }) {
 
                           const maxOptLen = Math.max(...cOpts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
 
-                          let gridClass = 'grid-cols-2 sm:grid-cols-4 gap-2.5';
-                          if (maxOptLen > 45) {
-                            gridClass = 'grid-cols-1 space-y-1.5';
-                          } else if (maxOptLen > 16) {
-                            gridClass = 'grid-cols-1 sm:grid-cols-2 gap-2.5'; // 2 CỘT X 2 HÀNG CHUẨN Ý THẦY (Row 1: A,B; Row 2: C,D)
+                          // Co cỡ chữ linh hoạt để ép 4 đáp án nằm trọn vẹn 1 hàng 4 cột
+                          let btnFontSize = 'text-xs px-2.5 py-1.5';
+                          if (maxOptLen > 30) {
+                            btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
+                          } else if (maxOptLen > 18) {
+                            btnFontSize = 'text-[11px] px-2 py-1 leading-snug';
                           }
 
                           return (
                             <div
                               key={cIdx}
-                              className={`p-3.5 bg-white border rounded-xl space-y-2 transition shadow-2xs ${
+                              className={`p-2.5 bg-white border rounded-xl space-y-1.5 transition shadow-2xs ${
                                 submitted
                                   ? isCorrect
                                     ? 'border-emerald-400 bg-emerald-50/20'
@@ -753,7 +757,8 @@ export default function QuizEngine({ activity }) {
                                 )}
                               </div>
 
-                              <div className={`grid ${gridClass} w-full items-stretch pt-0.5`}>
+                              {/* ÉP NẰM 1 HÀNG 4 CỘT CHO MỌI CÂU LISTENING */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch pt-0.5">
                                 {cOpts.map((opt, oIdx) => {
                                   const isSelected = selectedVal === oIdx;
                                   const isThisCorrect = opt?.isCorrect;
@@ -775,7 +780,7 @@ export default function QuizEngine({ activity }) {
                                       key={oIdx}
                                       disabled={submitted}
                                       onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                      className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center space-x-1.5 whitespace-normal break-words ${btnStyle}`}
+                                      className={`w-full text-left rounded-xl ${btnFontSize} font-semibold border transition flex items-center space-x-1 whitespace-normal break-words ${btnStyle}`}
                                     >
                                       <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
                                         isSelected ? 'bg-white text-emerald-800' : 'bg-slate-200 text-slate-600'
@@ -802,7 +807,7 @@ export default function QuizEngine({ activity }) {
 
           // DẠNG TRẮC NGHIỆM ĐƠN LẺ KHÁC
           return (
-            <div key={q.id || qIdx} className="p-4 bg-slate-50 border border-slate-200 rounded-3xl space-y-2.5 shadow-xs">
+            <div key={q.id || qIdx} className="p-3.5 bg-slate-50 border border-slate-200 rounded-3xl space-y-2 shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
                   <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
@@ -815,12 +820,12 @@ export default function QuizEngine({ activity }) {
               </div>
 
               {(q.content?.question || q.content?.title) && (
-                <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content.question || q.content.title}
                 </div>
               )}
 
-              <div className="space-y-2.5 pt-0.5">
+              <div className="space-y-1.5 pt-0.5">
                 {(childQuestions.length > 0
                   ? childQuestions
                   : [
@@ -846,17 +851,17 @@ export default function QuizEngine({ activity }) {
 
                   const maxOptLen = Math.max(...cOpts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
 
-                  let gridClass = 'grid-cols-2 sm:grid-cols-4 gap-2.5';
-                  if (maxOptLen > 45) {
-                    gridClass = 'grid-cols-1 space-y-1.5';
-                  } else if (maxOptLen > 16) {
-                    gridClass = 'grid-cols-1 sm:grid-cols-2 gap-2.5';
+                  let btnFontSize = 'text-xs px-2.5 py-1.5';
+                  if (maxOptLen > 30) {
+                    btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
+                  } else if (maxOptLen > 18) {
+                    btnFontSize = 'text-[11px] px-2 py-1 leading-snug';
                   }
 
                   return (
                     <div
                       key={cIdx}
-                      className={`p-3.5 bg-white border rounded-xl space-y-2 transition ${
+                      className={`p-2.5 bg-white border rounded-xl space-y-1.5 transition ${
                         submitted
                           ? isCorrect
                             ? 'border-emerald-400 bg-emerald-50/20'
@@ -870,7 +875,7 @@ export default function QuizEngine({ activity }) {
                         </h4>
                       </div>
 
-                      <div className={`grid ${gridClass} w-full items-stretch pt-0.5`}>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch pt-0.5">
                         {cOpts.map((opt, oIdx) => {
                           const isSelected = selectedOptIndex === oIdx;
                           const isThisCorrect = opt?.isCorrect;
@@ -892,7 +897,7 @@ export default function QuizEngine({ activity }) {
                               key={oIdx}
                               disabled={submitted}
                               onClick={() => handleSelectAnswer(childKey, oIdx)}
-                              className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center space-x-1.5 whitespace-normal break-words ${btnStyle}`}
+                              className={`w-full text-left rounded-xl ${btnFontSize} font-semibold border transition flex items-center space-x-1 whitespace-normal break-words ${btnStyle}`}
                             >
                               <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
                                 isSelected ? 'bg-white text-emerald-800' : 'bg-slate-200 text-slate-600'
@@ -918,7 +923,7 @@ export default function QuizEngine({ activity }) {
       {!submitted && (
         <button
           onClick={() => handleSubmitQuiz(false)}
-          className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg transition"
+          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-lg transition"
         >
           Nộp Bài Thi Quiz Ngay
         </button>
