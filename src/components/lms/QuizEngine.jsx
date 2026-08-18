@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizEngine({ activity }) {
@@ -80,7 +80,6 @@ export default function QuizEngine({ activity }) {
                 cObj = { question: q.content };
               }
             }
-            // Cộng dồn tổng thời gian của tất cả các bài con trong đề thi
             if (cObj?.timeLimit && Number(cObj.timeLimit) > 0) {
               totalCustomMinutes += Number(cObj.timeLimit);
             }
@@ -112,9 +111,9 @@ export default function QuizEngine({ activity }) {
     fetchQuestions();
   }, [activity]);
 
-  const handleSelectAnswer = (questionKey, optionIndex) => {
+  const handleSelectAnswer = (questionKey, value) => {
     if (submitted) return;
-    setUserAnswers((prev) => ({ ...prev, [questionKey]: optionIndex }));
+    setUserAnswers((prev) => ({ ...prev, [questionKey]: value }));
   };
 
   const handleSubmitQuiz = async (isAutoSubmit = false) => {
@@ -126,17 +125,27 @@ export default function QuizEngine({ activity }) {
     const totalMarks = questions.reduce((acc, q) => acc + (Number(q.marks) || 1), 0);
 
     questions.forEach((q) => {
+      const sectionType = (q.content?.sectionType || q.type || '').toLowerCase();
       const childs = q.content?.childQuestions;
+
       if (Array.isArray(childs) && childs.length > 0) {
         childs.forEach((c, cIdx) => {
           totalQCount += 1;
           const key = `${q.id}_c${cIdx}`;
           const selected = userAnswers[key];
-          const opts = Array.isArray(c.options) ? c.options : [];
-          const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
-          if (selected === correctOptIndex && selected !== undefined) {
-            correctCount += 1;
-            totalScore += 1;
+
+          if (sectionType === 'reading_tf') {
+            if (selected === c.correctAnswer) {
+              correctCount += 1;
+              totalScore += 1;
+            }
+          } else {
+            const opts = Array.isArray(c.options) ? c.options : [];
+            const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
+            if (selected === correctOptIndex && selected !== undefined) {
+              correctCount += 1;
+              totalScore += 1;
+            }
           }
         });
       } else {
@@ -193,16 +202,11 @@ export default function QuizEngine({ activity }) {
   // HÀM ĐỊNH DẠNG VĂN BẢN XUỐNG DÒNG RÕ RÀNG + BÔI ĐẬM EVIDENCE / DẪN CHỨNG DỄ ĐỌC BÀI
   const renderFormattedParagraphs = (rawText) => {
     if (!rawText) return null;
-    
-    // Tách dòng theo ký tự xuồng dòng hoặc các biểu tượng phân đoạn
     const lines = rawText.split('\n').filter((l) => l.trim() !== '');
 
     return lines.map((line, idx) => {
-      // Tự động bôi đậm các từ khóa nổi bật như Evidence, Dẫn chứng, Đáp án đúng...
-      let styledLine = line;
-      const highlightKeywords = ['Evidence:', 'Dẫn chứng:', 'Phân tích:', 'Cấu trúc:', 'Đáp án đúng:', 'Loại trừ:', 'Bản dịch:'];
-      
       let isHeader = false;
+      const highlightKeywords = ['Evidence:', 'Dẫn chứng:', 'Phân tích:', 'Cấu trúc:', 'Đáp án đúng:', 'Loại trừ:', 'Bản dịch:'];
       highlightKeywords.forEach((kw) => {
         if (line.toLowerCase().includes(kw.toLowerCase())) {
           isHeader = true;
@@ -260,7 +264,6 @@ export default function QuizEngine({ activity }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          {/* KHỐI 1: PHÂN TÍCH NGỮ PHÁP */}
           <div className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2 shadow-2xs">
             <span className="font-extrabold text-emerald-950 flex items-center space-x-1.5 text-[11px] border-b border-emerald-100 pb-1">
               <Search className="w-3.5 h-3.5 text-sky-600" />
@@ -271,7 +274,6 @@ export default function QuizEngine({ activity }) {
             </div>
           </div>
 
-          {/* KHỐI 2: GIẢI THÍCH CHI TIẾT & EVIDENCE */}
           <div className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2 shadow-2xs">
             <span className="font-extrabold text-emerald-950 flex items-center space-x-1.5 text-[11px] border-b border-emerald-100 pb-1">
               <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
@@ -282,7 +284,6 @@ export default function QuizEngine({ activity }) {
             </div>
           </div>
 
-          {/* KHỐI 3: LOẠI TRỪ GÂY NHIỄU */}
           <div className="p-4 bg-white border border-rose-200 rounded-2xl space-y-2 shadow-2xs">
             <span className="font-extrabold text-rose-950 flex items-center space-x-1.5 text-[11px] border-b border-rose-100 pb-1">
               <XCircle className="w-3.5 h-3.5 text-rose-600" />
@@ -293,7 +294,6 @@ export default function QuizEngine({ activity }) {
             </div>
           </div>
 
-          {/* KHỐI 4: BẢN DỊCH SONG NGỮ */}
           <div className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2 shadow-2xs">
             <span className="font-extrabold text-emerald-950 flex items-center space-x-1.5 text-[11px] border-b border-emerald-100 pb-1">
               <span className="text-xs">🇻🇳</span>
@@ -367,7 +367,7 @@ export default function QuizEngine({ activity }) {
           </div>
         </div>
       ) : (
-        /* THANH ĐỒNG HỒ THỜI GIAN LÀM BÀI: ĐẾM TIẾN BÌNH THƯỜNG TRỪ KHỦ TRƯỜNG HỢP CÓ TỔNG THỜI GIAN CÁC BÀI > 0 */
+        /* THANH ĐỒNG HỒ THỜI GIAN LÀM BÀI */
         <div className="bg-slate-900 text-white p-4 rounded-2xl flex justify-between items-center shadow-md">
           <div className="flex items-center space-x-2">
             <User className="w-4 h-4 text-emerald-400" />
@@ -395,12 +395,14 @@ export default function QuizEngine({ activity }) {
       {/* DANH SÁCH CÂU HỎI */}
       <div className="space-y-6">
         {questions.map((q, qIdx) => {
-          const sectionType = q.content?.sectionType || q.type || 'multiple_choice';
-          const isReading = sectionType.toLowerCase() === 'reading_section';
-          const isListening = sectionType.toLowerCase() === 'listening_section';
+          const sectionType = (q.content?.sectionType || q.type || 'multiple_choice').toLowerCase();
+          const isReading = sectionType === 'reading_section';
+          const isListening = sectionType === 'listening_section';
+          const isReadingTF = sectionType === 'reading_tf';
+          const isClozeTest = sectionType === 'cloze_test';
           const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
 
-          // LẤY CHÍNH XÁC FILE AUDIO THẬT CỦA THẦY (ẨN HOÀN TOÀN TÊN FILE GÂY LỘ)
+          // Link Audio MP3
           let audioSrc = q.content?.audioUrl;
           if ((!audioSrc || audioSrc.startsWith('blob:')) && q.content?.audioFileName) {
             try {
@@ -409,6 +411,161 @@ export default function QuizEngine({ activity }) {
             } catch (errLocal) {}
           }
 
+          // DẠNG 3: READING (True/False) CHUẨN ĐÚNG 100% ẢNH 1
+          if (isReadingTF) {
+            return (
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-500 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
+                {/* Header & Instruction */}
+                <h3 className="font-extrabold text-sm text-teal-800 leading-relaxed">
+                  {q.content?.question || 'Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F).'}
+                </h3>
+
+                {/* Passage Box */}
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-6 text-slate-800 font-serif text-sm leading-relaxed text-justify shadow-2xs">
+                  {q.content?.passage}
+                </div>
+
+                {/* True/False Statements List */}
+                <div className="space-y-3 pt-2">
+                  {childQuestions.map((cQ, cIdx) => {
+                    const childKey = `${q.id}_c${cIdx}`;
+                    const selectedVal = userAnswers[childKey]; // 'T' hoặc 'F'
+                    const isCorrect = submitted && selectedVal === cQ.correctAnswer;
+                    const isWrong = submitted && selectedVal !== undefined && selectedVal !== cQ.correctAnswer;
+
+                    return (
+                      <div key={cIdx} className="space-y-2">
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-3 gap-4">
+                          <span className="text-xs font-semibold text-slate-800 leading-relaxed">
+                            {cQ.question}
+                          </span>
+
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            {/* Nút T */}
+                            <button
+                              disabled={submitted}
+                              onClick={() => handleSelectAnswer(childKey, 'T')}
+                              className={`w-8 h-8 rounded-md font-extrabold text-xs transition flex items-center justify-center ${
+                                selectedVal === 'T'
+                                  ? 'bg-emerald-100 border border-emerald-400 text-emerald-700 shadow-xs'
+                                  : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'
+                              }`}
+                            >
+                              T
+                            </button>
+
+                            {/* Nút F */}
+                            <button
+                              disabled={submitted}
+                              onClick={() => handleSelectAnswer(childKey, 'F')}
+                              className={`w-8 h-8 rounded-md font-extrabold text-xs transition flex items-center justify-center ${
+                                selectedVal === 'F'
+                                  ? 'bg-rose-100 border border-rose-400 text-rose-700 shadow-xs'
+                                  : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'
+                              }`}
+                            >
+                              F
+                            </button>
+                          </div>
+                        </div>
+
+                        {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, cQ.correctAnswer === 'T' ? 'True (T)' : 'False (F)')}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+
+          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test / Fill-in-the-blanks) CHUẨN ĐÚNG 100% ẢNH 3
+          if (isClozeTest) {
+            return (
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
+                {/* Header Bar */}
+                <div className="bg-blue-50/70 rounded-xl p-4 flex justify-between items-center">
+                  <h3 className="font-extrabold text-base text-blue-900 tracking-wide uppercase flex items-center space-x-2">
+                    <span className="w-7 h-7 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
+                      2
+                    </span>
+                    <span>{q.content?.title || 'KNOWLEDGE OF LANGUAGE'}</span>
+                  </h3>
+                  <Volume2 className="w-5 h-5 text-blue-600 cursor-pointer" />
+                </div>
+
+                {/* Sub-header instruction */}
+                <div className="space-y-1">
+                  <h4 className="text-xs font-extrabold text-blue-800 uppercase tracking-tight">
+                    {q.content?.question?.split('\n')[0] || 'PART 1: READ THE FOLLOWING POSTER AND CIRCLE THE LETTER A, B, C, OR D TO INDICATE THE CORRECT OPTION.'}
+                  </h4>
+                  <p className="text-xs italic text-slate-500">
+                    {q.content?.question?.split('\n')[1] || 'Choose the best answer to fill in each blank in the movie advertisement.'}
+                  </p>
+                </div>
+
+                {/* Passage Container với Floating Badge màu cam */}
+                <div className="border border-slate-400 rounded-2xl bg-amber-50/30 p-6 relative space-y-3 mt-4">
+                  <span className="bg-amber-500 text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase absolute -top-3.5 left-5 shadow-xs">
+                    {q.content?.badge || 'POSTER'}
+                  </span>
+
+                  <h4 className="text-center font-extrabold text-amber-950 text-sm pt-1">
+                    {q.content?.passageTitle || 'Harry Potter - A Magical Adventure'}
+                  </h4>
+
+                  <p className="text-slate-800 font-medium text-xs leading-relaxed text-justify">
+                    {q.content?.passage}
+                  </p>
+                </div>
+
+                {/* Multiple Choice Options List dạng Pill Buttons */}
+                <div className="space-y-3 pt-2">
+                  {childQuestions.map((cQ, cIdx) => {
+                    const childKey = `${q.id}_c${cIdx}`;
+                    const selectedOptIdx = userAnswers[childKey];
+                    const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                    const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
+                    const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
+
+                    return (
+                      <div key={cIdx} className="space-y-2">
+                        <div className="border border-slate-100 bg-white rounded-2xl p-3.5 flex items-center gap-4 shadow-2xs">
+                          <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
+                            {cQ.qNum || (16 + cIdx)}
+                          </span>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            {cOpts.map((opt, oIdx) => {
+                              const isSelected = selectedOptIdx === oIdx;
+
+                              return (
+                                <button
+                                  key={oIdx}
+                                  disabled={submitted}
+                                  onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                  className={`rounded-full px-4 py-1.5 text-xs transition font-semibold ${
+                                    isSelected
+                                      ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                      : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  {opt.text}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctText)}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+
+          // DẠNG CÂU HỎI BÌNH THƯỜNG / READING / LISTENING
           return (
             <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
@@ -422,14 +579,12 @@ export default function QuizEngine({ activity }) {
                 </div>
               </div>
 
-              {/* KHUNG YÊU CẦU ĐỀ BÀI (INSTRUCTION BOX CHUẨN ẢNH 1 THẦY YÊU CẦU) */}
               {(q.content?.question || q.content?.title) && (
                 <div className="p-3.5 bg-purple-50/70 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content.question || q.content.title}
                 </div>
               )}
 
-              {/* BÀI NGHE LISTENING PHÁT CHÍNH XÁC 100% FILE MP3 THẬT (ĐÃ ẨN HOÀN TOÀN TÊN FILE TỆP TRONG NGOẶC CHUẨN SANG TRỌNG) */}
               {isListening && (
                 <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200 shadow-2xs">
                   <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
@@ -448,7 +603,6 @@ export default function QuizEngine({ activity }) {
                 </div>
               )}
 
-              {/* BÀI ĐỌC READING SECTION CÓ ĐOẠN VĂN */}
               {isReading && (
                 <div className="p-5 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-medium space-y-3">
                   <p className="text-slate-700 leading-relaxed text-justify">
@@ -457,7 +611,6 @@ export default function QuizEngine({ activity }) {
                 </div>
               )}
 
-              {/* DANH SÁCH CÁC CÂU HỎI CON HOẶC CÂU TRẮC NGHIỆM ĐƠN LẺ */}
               <div className="space-y-4 pt-2">
                 {(childQuestions.length > 0
                   ? childQuestions
@@ -514,7 +667,6 @@ export default function QuizEngine({ activity }) {
                         )}
                       </div>
 
-                      {/* 4 LỰA CHỌN TRẮC NGHIỆM */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {cOpts.map((opt, oIdx) => {
                           const isSelected = selectedOptIndex === oIdx;
@@ -534,6 +686,7 @@ export default function QuizEngine({ activity }) {
                           return (
                             <button
                               key={oIdx}
+                              disabled={submitted}
                               onClick={() => handleSelectAnswer(childKey, oIdx)}
                               className={`p-3 rounded-xl text-xs font-semibold text-left border transition flex items-center space-x-2 ${btnStyle}`}
                             >
@@ -546,7 +699,6 @@ export default function QuizEngine({ activity }) {
                         })}
                       </div>
 
-                      {/* KHỐI AI GIẢI THÍCH 4 PHẦN TRÌNH BÀY XUỐNG DÒNG RÕ RÀNG & BÔI ĐẬM EVIDENCE / DẪN CHỨNG */}
                       {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctText)}
                     </div>
                   );
