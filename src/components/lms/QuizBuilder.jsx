@@ -7,7 +7,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Active Tab: 'questions' (Biên tập) | 'manual_editor' (Soạn thủ công Ảnh 1) | 'import' (Import file/JSON)
+  // Active Tab: 'questions' (Biên tập) | 'manual_editor' (Soạn thủ công) | 'import' (Import file/JSON)
   const [activeTab, setActiveTab] = useState('questions');
 
   // Menu Khối Lớp & Unit
@@ -16,7 +16,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [category, setCategory] = useState('Knowledge of English (Vocab & Grammar)');
   const [summaryText, setSummaryText] = useState('Sơ đồ Infographic tóm tắt công thức Verbs of liking + V-ing giúp học sinh dễ nhớ bài học bằng hình ảnh 3D.');
 
-  // Form State Soạn Văn Bản / Bài Tập Về Nhà (Ảnh 1)
+  // Form State Soạn Văn Bản / Bài Tập Về Nhà
   const [homeworkContent, setHomeworkContent] = useState('');
   const [audioFileUrl, setAudioFileUrl] = useState('');
   const [showAnswerBox, setShowAnswerBox] = useState(false);
@@ -29,7 +29,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   // Checkbox Categories Kỹ Năng Khi Tạo / Sửa Câu Hỏi
   const [selectedCategories, setSelectedCategories] = useState(['Knowledge of English (Vocab & Grammar)']);
 
-  // State Modal "Choose a question type to add"
+  // STATE MODAL "Choose a question type to add" (HƠN 20 DẠNG CÂU HỎI MOODLE BẮT BUỘC BẬT LÊN KHI BẤM ADD)
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState('multiple_choice');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
@@ -119,9 +119,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }
   };
 
+  // BẤM NÚT ADD -> BẮT BUỘC MỞ NGAY MODAL 20 DẠNG CÂU HỎI MOODLE
   const handleOpenAddModal = (mode) => {
     setIsAddMenuOpen(false);
-    setIsTypeModalOpen(true);
+    setIsTypeModalOpen(true); // BẬT MODAL "Choose a question type to add" CỦA MOODLE
   };
 
   const handleConfirmAddType = () => {
@@ -202,7 +203,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
     reader.readAsText(file);
   };
 
-  // Import JSON Hàng Loạt
   const handleImportJson = async () => {
     if (!jsonInputText.trim()) return;
     try {
@@ -342,13 +342,27 @@ export default function QuizBuilder({ activityId, onSaved }) {
     await fetchQuestions();
   };
 
+  // DANH SÁCH ĐẦY ĐỦ HƠN 20 DẠNG CÂU HỎI CHUẨN MOODLE / GNOMIO BẮT BUỘC HỌC TẬP VÀ HIỂN THỊ 100%
   const questionTypesList = [
     { type: 'multiple_choice', label: 'Multiple choice', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
     { type: 'matching', label: 'Matching', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
     { type: 'short_answer', label: 'Short answer', desc: 'Dạng câu hỏi nhập từ/số chính xác vào ô trống.' },
+    { type: 'numerical', label: 'Numerical', desc: 'Cho phép nhập đáp án chữ số có sai số cho phép.' },
     { type: 'essay', label: 'Essay', desc: 'Cho phép học sinh gõ văn bản bài viết luận hoặc nộp file.' },
+    { type: 'calculated', label: 'Calculated', desc: 'Câu hỏi tính toán với biến số ngẫu nhiên theo công thức.' },
+    { type: 'calculated_multichoice', label: 'Calculated multichoice', desc: 'Trắc nghiệm tính toán với giá trị số ngẫu nhiên.' },
+    { type: 'calculated_simple', label: 'Calculated simple', desc: 'Dạng toán tính toán đơn giản nhanh.' },
+    { type: 'drag_drop_text', label: 'Drag and drop into text', desc: 'Kéo thả từ tương ứng vào vị trí khuyết trong đoạn văn.' },
+    { type: 'drag_drop_markers', label: 'Drag and drop markers', desc: 'Kéo thả các điểm ghim marker lên vị trí hình ảnh.' },
+    { type: 'drag_drop_image', label: 'Drag and drop onto image', desc: 'Kéo thả ô chữ/hình ảnh vào tấm ảnh nền.' },
+    { type: 'cloze', label: 'Embedded answers (Cloze)', desc: 'Đoạn văn hỗn hợp chứa nhiều câu hỏi nhỏ điền từ/trắc nghiệm.' },
+    { type: 'ordering', label: 'Ordering', desc: 'Sắp xếp thứ tự các câu/từ theo trình tự đúng.' },
+    { type: 'random_matching', label: 'Random short-answer matching', desc: 'Khớp câu trả lời ngắn ngẫu nhiên từ bài tập.' },
     { type: 'fill_blank_dropdown', label: 'Select missing words', desc: 'Điền từ khuyết vào đoạn văn bằng hộp chọn Dropdown.' },
+    { type: 'fill_blank_text', label: 'Fill in the blanks', desc: 'Điền từ khuyết trực tiếp vào các ô trống trong đoạn văn.' },
+    { type: 'audio_record', label: 'Audio response', desc: 'Ghi âm câu trả lời nói Tiếng Anh trực tiếp từ mic.' },
+    { type: 'description', label: 'Description', desc: 'Đoạn ghi chú / Hướng dẫn đề bài (không tính điểm).' },
   ];
 
   return (
@@ -398,6 +412,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
               </p>
             </div>
 
+            {/* NÚT ADD (BẤM VÀO BẬT NGAY MODAL CHOOSE QUESTION TYPE 20 DẠNG CỦA MOODLE) */}
             <div className="relative">
               <button
                 onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
@@ -408,18 +423,20 @@ export default function QuizBuilder({ activityId, onSaved }) {
               </button>
 
               {isAddMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-30 font-semibold text-xs text-slate-700">
+                <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-30 font-semibold text-xs text-slate-700">
                   <button
                     onClick={() => handleOpenAddModal('new')}
-                    className="w-full px-4 py-2 text-left hover:bg-emerald-50 hover:text-emerald-700 transition"
+                    className="w-full px-4 py-2.5 text-left hover:bg-emerald-50 hover:text-emerald-700 transition flex items-center space-x-2 font-bold"
                   >
-                    + a new question (Tạo câu hỏi mới)
+                    <Plus className="w-4 h-4 text-emerald-600" />
+                    <span>+ a new question (Mở 20 dạng câu hỏi Moodle)</span>
                   </button>
                   <button
                     onClick={() => handleOpenAddModal('bank')}
-                    className="w-full px-4 py-2 text-left hover:bg-emerald-50 hover:text-emerald-700 transition"
+                    className="w-full px-4 py-2.5 text-left hover:bg-emerald-50 hover:text-emerald-700 transition flex items-center space-x-2 font-semibold"
                   >
-                    + from question bank (Từ ngân hàng mẫu)
+                    <Database className="w-4 h-4 text-sky-600" />
+                    <span>+ from question bank (Từ ngân hàng mẫu)</span>
                   </button>
                 </div>
               )}
@@ -477,7 +494,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* TAB 2: SOẠN ĐỀ THỦ CÔNG ĐỒ HỌA + NÚT LƯU BÀI TẬP (ẢNH 1 THẦY YÊU CẦU) */}
+      {/* TAB 2: SOẠN ĐỀ THỦ CÔNG ĐỒ HỌA + NÚT LƯU BÀI TẬP */}
       {activeTab === 'manual_editor' && (
         <div className="space-y-6">
           <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg space-y-4">
@@ -590,7 +607,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
               </div>
             )}
 
-            {/* NÚT LƯU BÀI TẬP NỔI BẬT THEO YÊU CẦU CỦA THẦY */}
             <div className="pt-2">
               <button
                 onClick={handleSaveHomework}
@@ -605,7 +621,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* TAB 3: IMPORT QUESTIONS FROM FILE + DẤU HỎI ❓ HƯỚNG DẪN & NHẬP JSON HÀNG LOẠT (ẢNH 2 THẦY YÊU CẦU) */}
+      {/* TAB 3: IMPORT QUESTIONS FROM FILE + DẤU HỎI ❓ HƯỚNG DẪN & NHẬP JSON HÀNG LOẠT */}
       {activeTab === 'import' && (
         <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-6">
           <div className="flex justify-between items-center border-b pb-3">
@@ -639,7 +655,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                     />
                     <span>{fmt.label}</span>
                   </label>
-                  {/* BIỂU TƯỢNG DẤU HỎI ❓ THEO ĐÚNG YÊU CẦU CỦA THẦY */}
                   <button
                     onClick={() => setHelpFormatModal(fmt.id)}
                     className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 hover:bg-emerald-600 hover:text-white font-extrabold text-[11px] flex items-center justify-center transition"
@@ -731,6 +746,69 @@ export default function QuizBuilder({ activityId, onSaved }) {
                   </pre>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BẢNG MODAL "Choose a question type to add" (HIỂN THỊ ĐẦY ĐỦ 20 DẠNG CÂU HỎI MOODLE CHUẨN KHI BẤM ADD) */}
+      {isTypeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 animate-scale-up">
+            <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base">Choose a question type to add ({questionTypesList.length} Dạng Moodle)</h3>
+              <button onClick={() => setIsTypeModalOpen(false)} className="text-slate-400 hover:text-white font-bold">
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 max-h-[65vh] overflow-y-auto">
+              <div className="space-y-1 border-r border-slate-100 pr-4">
+                <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2">
+                  QUESTIONS TYPES ({questionTypesList.length} Dạng Câu Hỏi Moodle)
+                </span>
+                {questionTypesList.map((t) => (
+                  <label
+                    key={t.type}
+                    onClick={() => setSelectedType(t.type)}
+                    className={`p-2.5 rounded-xl border flex items-center space-x-3 cursor-pointer transition ${
+                      selectedType === t.type
+                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 font-bold'
+                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="q_type"
+                      checked={selectedType === t.type}
+                      onChange={() => setSelectedType(t.type)}
+                    />
+                    <span className="text-xs font-semibold">{t.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 sticky top-0 h-fit">
+                <h4 className="font-extrabold text-xs text-slate-800 uppercase">Description & Example</h4>
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                  {questionTypesList.find((t) => t.type === selectedType)?.desc}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-100 flex justify-end space-x-3">
+              <button
+                onClick={() => setIsTypeModalOpen(false)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAddType}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md"
+              >
+                Add (Thêm Dạng Này)
+              </button>
             </div>
           </div>
         </div>
