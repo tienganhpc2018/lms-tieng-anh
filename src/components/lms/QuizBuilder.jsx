@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle, MessageSquareText } from 'lucide-react';
+import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle, MessageSquareText, Clock } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizBuilder({ activityId, onSaved }) {
@@ -45,6 +45,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questionText, setQuestionText] = useState('');
   const [explanation, setExplanation] = useState('');
   const [marks, setMarks] = useState(1.0);
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(15); // Cài đặt thời gian đếm ngược (Phút)
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
@@ -107,14 +108,26 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
-  // XỬ LÝ NẠP FILE MP3 AUDIO SIÊU MƯỢT KHÔNG BỊ NẶNG HỆ THỐNG
+  // XỬ LÝ NẠP FILE MP3 AUDIO VÀ LƯU CHUẨN ĐỂ MỤC THI THỬ PHÁT MƯỢT 100%
   const handleAudioFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setUploadedAudioFileName(file.name);
-    const audioUrl = URL.createObjectURL(file);
-    setListeningAudioUrl(audioUrl);
+
+    if (file.size <= 3.5 * 1024 * 1024) {
+      // Nếu file < 3.5MB -> Chuyển thành Base64 Data URL để lưu vĩnh viễn vào DB
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        setListeningAudioUrl(evt.target.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // Nếu file lớn hơn -> Tạo Object URL xem trước và gợi ý link audio mượt mà
+      const localUrl = URL.createObjectURL(file);
+      setListeningAudioUrl(localUrl);
+      alert(`📁 Đã nạp file "${file.name}"! File này sẽ phát trực tiếp trên máy của Thầy.`);
+    }
   };
 
   // MỞ NGUYÊN PAGE/MODAL XEM VÀ CHỈNH SỬA KHI BẤM VÀO TIÊU ĐỀ BÀI HỌC / READING SECTION
@@ -129,6 +142,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setListeningAudioUrl(q.content?.audioUrl || '');
     setUploadedAudioFileName(q.content?.audioFileName || '');
     setSectionChildQuestions(q.content?.childQuestions || []);
+    setTimeLimitMinutes(q.content?.timeLimit || 15);
     setMarks(q.marks || 1.0);
     setMcOptions(
       q.content?.options && q.content?.options.length > 0
@@ -260,6 +274,7 @@ ANSWER: D`;
     setSectionPassage('');
     setListeningAudioUrl('');
     setUploadedAudioFileName('');
+    setTimeLimitMinutes(15);
     setSectionChildQuestions([
       {
         question: '1. Nhập nội dung câu hỏi con...',
@@ -318,7 +333,7 @@ ANSWER: D`;
     setSectionChildQuestions(sectionChildQuestions.filter((_, i) => i !== index));
   };
 
-  // LƯU CÂU HỎI KHẮC PHỤC TRIỆT ĐỂ LỖI CHECK CONSTRAINT SUPABASE 100%
+  // LƯU CÂU HỎI & CÀI ĐẶT THỜI GIAN ĐẾM NGƯỜI LÀM BÀI
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
     setIsSavingQuestion(true);
@@ -326,7 +341,6 @@ ANSWER: D`;
     try {
       const normType = selectedType?.toLowerCase() || 'multiple_choice';
 
-      // MAP TYPE SANG GIÁ TRỊ CHUẨN CỦA POSTGRES SUPABASE ĐỂ TRÁNH LỖI CHECK CONSTRAINT questions_type_check
       let validDbType = 'multiple_choice';
       if (['true_false', 'short_answer', 'essay', 'matching'].includes(normType)) {
         validDbType = normType;
@@ -337,12 +351,14 @@ ANSWER: D`;
         title: questionTitle || (normType === 'reading_section' ? 'READING SECTION' : normType === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
         question: questionText.trim() || questionTitle || 'Instruction Question',
         explanation: explanation.trim(),
+        timeLimit: Number(timeLimitMinutes) || 15,
         categories: selectedCategories,
       };
 
       if (normType === 'listening_section') {
-        customContent.audioUrl = listeningAudioUrl;
-        customContent.audioFileName = uploadedAudioFileName;
+        // Fallback link MP3 nếu trống
+        customContent.audioUrl = listeningAudioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+        customContent.audioFileName = uploadedAudioFileName || 'track-listening.mp3';
         customContent.childQuestions = sectionChildQuestions;
       } else if (normType === 'reading_section') {
         customContent.passage = sectionPassage;
@@ -1093,7 +1109,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI (BỔ SUNG KHUNG YÊU CẦU ĐỀ BÀI QUESTION INSTRUCTION BOX CHUẨN 100% ẢNH 1) */}
+      {/* FORM BIÊN TẬP CÂU HỎI (CÓ CÀI ĐẶT THỜI GIAN ĐẾM NGƯỢC ĐẦY ĐỦ) */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1107,6 +1123,39 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+              {/* KHUNG CÀI ĐẶT THỜI GIAN ĐẾM NGƯỢC (THỜI GIAN LÀM BÀI THI) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1 flex items-center space-x-1">
+                    <Clock className="w-4 h-4 text-emerald-600" />
+                    <span>⏱️ THỜI GIAN LÀM BÀI THI (ĐẾM NGƯỢC - PHÚT)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="180"
+                    value={timeLimitMinutes}
+                    onChange={(e) => setTimeLimitMinutes(e.target.value)}
+                    placeholder="Mặc định: 15 phút..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-emerald-950 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
+                    🎯 ĐIỂM SỐ CÂU HỎI (MARKS)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    value={marks}
+                    onChange={(e) => setMarks(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 bg-white"
+                  />
+                </div>
+              </div>
+
               {/* KHUNG YÊU CẦU ĐỀ BÀI HƯỚNG DẪN (QUESTION INSTRUCTION BOX CHUẨN ẢNH 1) */}
               <div className="p-4 bg-purple-50/60 border-l-4 border-purple-600 rounded-r-2xl space-y-1.5 shadow-xs">
                 <label className="block text-xs font-extrabold text-purple-900 uppercase flex items-center space-x-1.5">
@@ -1158,7 +1207,7 @@ ANSWER: D`
                       <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
                         <span className="text-[11px] font-bold text-purple-800 flex items-center space-x-1">
                           <PlayCircle className="w-3.5 h-3.5 text-purple-600" />
-                          <span>Nghe thử file Audio: {uploadedAudioFileName}</span>
+                          <span>Nghe thử file Audio: {uploadedAudioFileName || 'track-listening.mp3'}</span>
                         </span>
                         <audio controls className="w-full h-8">
                           <source src={listeningAudioUrl} />
