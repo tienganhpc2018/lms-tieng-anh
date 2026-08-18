@@ -775,7 +775,7 @@ ANSWER: D`;
                               : 'bg-white text-blue-900 border border-blue-200 hover:bg-blue-100'
                           }`}
                         >
-                          <span>TASK #{tIdx + 1}: {t.badge_label || (tIdx === 1 ? 'EMAIL' : 'BLOG')}</span>
+                          <span>PART #{tIdx + 1}: {t.badge_label || (tIdx === 1 ? 'EMAIL' : 'BLOG')}</span>
                         </button>
                       ))}
                     </div>
