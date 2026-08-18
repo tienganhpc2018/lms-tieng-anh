@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { compressImage } from '../../utils/imageCompressor';
+import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
+import { exportStudentPdfReport } from '../../utils/exportQuizReport';
 
 export default function QuizEngine({ activity }) {
   const { profile } = useAuth();
@@ -11,6 +14,8 @@ export default function QuizEngine({ activity }) {
   const [userAnswers, setUserAnswers] = useState({});
   const [uploadedStudentImages, setUploadedStudentImages] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [aiGradingResult, setAiGradingResult] = useState(null);
+  const [isAiGradingLoading, setIsAiGradingLoading] = useState(false);
 
   // Bộ đếm thời gian
   const [isCountdownMode, setIsCountdownMode] = useState(false);
@@ -28,6 +33,7 @@ export default function QuizEngine({ activity }) {
     score: 0,
     totalMarks: 0,
     isPassed: false,
+    submittedAt: null,
   });
 
   // TIMER LOGIC
@@ -117,30 +123,48 @@ export default function QuizEngine({ activity }) {
     setUserAnswers((prev) => ({ ...prev, [questionKey]: value }));
   };
 
-  // HỌC SINH TẢI ẢNH BÀI LÀM TỰ LUẬN
-  const handleStudentImageUpload = (e, questionKey) => {
+  // HỌC SINH TẢI ẢNH BÀI LÀM TỰ LUẬN -> TỰ ĐỘNG NÉN ẢNH DƯỚI 1MB
+  const handleStudentImageUpload = async (e, questionKey) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const dataUrl = evt.target.result;
-      setUploadedStudentImages((prev) => ({ ...prev, [questionKey]: dataUrl }));
-      alert('📸 Đã tải ảnh bài làm thành công!');
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedBase64 = await compressImage(file, 1200, 1200, 0.75);
+      setUploadedStudentImages((prev) => ({ ...prev, [questionKey]: compressedBase64 }));
+      alert('📸 Đã nén & tải ảnh bài làm thành công (Tối ưu dung lượng < 1MB)!');
+    } catch (err) {
+      console.error('Error compressing image:', err);
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        setUploadedStudentImages((prev) => ({ ...prev, [questionKey]: evt.target.result }));
+        alert('📸 Đã tải ảnh bài làm thành công!');
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmitQuiz = async (isAutoSubmit = false) => {
     setTimerActive(false);
+    setIsAiGradingLoading(true);
 
     let correctCount = 0;
     let totalScore = 0;
     let totalQCount = 0;
     const totalMarks = questions.reduce((acc, q) => acc + (Number(q.marks) || 1), 0);
 
+    let writingQuestionInfo = null;
+
     questions.forEach((q) => {
       const sectionType = (q.content?.sectionType || q.type || '').toLowerCase();
+
+      if (sectionType === 'writing_section' && Array.isArray(q.content?.parts)) {
+        // Lưu câu hỏi tự luận để chấm bằng AI
+        writingQuestionInfo = {
+          title: q.content.title,
+          prompt: q.content.parts.map(p => p.part_title).join('\n'),
+          sampleAnswer: q.content.parts.map(p => p.questions?.map(cq => cq.sample_answer).join('\n')).join('\n'),
+        };
+      }
 
       if (sectionType === 'cloze_test' && Array.isArray(q.content?.tasks)) {
         q.content.tasks.forEach((t, tIdx) => {
@@ -222,6 +246,27 @@ export default function QuizEngine({ activity }) {
       }
     });
 
+    // 2. TỰ ĐỘNG CHẤM BÀI TỰ LUẬN VỚI AI VÀ OCR ÁNH
+    let aiGrading = null;
+    const firstImgUrl = Object.values(uploadedStudentImages)[0] || null;
+    const studentGotedText = Object.values(userAnswers).filter(v => typeof v === 'string' && isNaN(v)).join('\n');
+
+    if (writingQuestionInfo || firstImgUrl || studentGotedText) {
+      try {
+        aiGrading = await gradeWritingSubmissionWithAI({
+          questionTitle: writingQuestionInfo?.title || 'WRITING SECTION',
+          questionPrompt: writingQuestionInfo?.prompt || 'Bài làm tự luận Tiếng Anh',
+          sampleAnswer: writingQuestionInfo?.sampleAnswer || '',
+          studentText: studentGotedText,
+          studentImageUrl: firstImgUrl,
+        });
+        setAiGradingResult(aiGrading);
+      } catch (err) {
+        console.error('Error running AI writing grader:', err);
+      }
+    }
+    setIsAiGradingLoading(false);
+
     let elapsed = secondsElapsed;
     if (isCountdownMode) {
       elapsed = timeLimitSeconds - secondsRemaining;
@@ -230,6 +275,7 @@ export default function QuizEngine({ activity }) {
     const secs = elapsed % 60;
     const timeTakenStr = `${mins} phút ${secs} giây`;
     const isPassed = totalScore >= (totalMarks * 0.5);
+    const nowIso = new Date().toISOString();
 
     const res = {
       studentName: profile?.full_name || 'Học Viên',
@@ -239,6 +285,7 @@ export default function QuizEngine({ activity }) {
       score: totalScore,
       totalMarks,
       isPassed,
+      submittedAt: nowIso,
     };
 
     setResultData(res);
@@ -253,7 +300,7 @@ export default function QuizEngine({ activity }) {
         {
           activity_id: activity.id,
           student_id: profile.id,
-          answers_data: { userAnswers, uploadedStudentImages },
+          answers_data: { userAnswers, uploadedStudentImages, aiGrading },
           score: totalScore,
           status: 'graded',
         },
@@ -338,14 +385,37 @@ export default function QuizEngine({ activity }) {
       {/* THÔNG BÁO TỔNG KẾT BÀI THI SAU KHU NỘP */}
       {submitted ? (
         <div className="p-5 bg-gradient-to-br from-slate-900 to-navy-900 text-white rounded-3xl shadow-xl space-y-5 border border-slate-700 animate-scale-up">
-          <div className="flex items-center space-x-3 border-b border-slate-800 pb-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
-              <Award className="w-5 h-5 text-emerald-400" />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                <Award className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold tracking-tight">KẾT QUẢ BÀI KÍỂM TRA</h3>
+                <p className="text-[11px] text-slate-300">Học sinh: {resultData.studentName}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-extrabold tracking-tight">KẾT QUẢ BÀI KÍỂM TRA</h3>
-              <p className="text-[11px] text-slate-300">Học sinh: {resultData.studentName}</p>
-            </div>
+
+            {/* NÚT IN / TẢI BÁO CÁO FILE PDF */}
+            <button
+              onClick={() =>
+                exportStudentPdfReport({
+                  studentName: resultData.studentName,
+                  activityTitle: activity?.title || 'Bài Thi Quiz Online',
+                  score: resultData.score,
+                  totalMarks: resultData.totalMarks,
+                  correctCount: resultData.correctCount,
+                  totalQuestions: resultData.totalQuestions,
+                  timeTakenStr: resultData.timeTakenStr,
+                  submittedAt: resultData.submittedAt,
+                  aiGradingFeedback: aiGradingResult?.detailedFeedback,
+                })
+              }
+              className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+            >
+              <Printer className="w-4 h-4 text-sky-200" />
+              <span>🖨️ Tải Báo Cáo PDF Bài Thi</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
@@ -382,6 +452,48 @@ export default function QuizEngine({ activity }) {
               </span>
             </div>
           </div>
+
+          {/* ĐÁNH GIÁ VÀ NHẬN XẾT BÀI VIẾT TỪ AI AGENT (NẾU CÓ BÀI WRITING) */}
+          {aiGradingResult && (
+            <div className="p-4 bg-gradient-to-r from-purple-950 to-slate-900 border border-purple-800 rounded-2xl space-y-3 shadow-inner text-xs">
+              <div className="flex justify-between items-center border-b border-purple-800 pb-2">
+                <span className="font-extrabold text-purple-300 uppercase tracking-wide flex items-center space-x-1.5">
+                  <Bot className="w-4 h-4 text-purple-400" />
+                  <span>🤖 ĐÁNH GIÁ BÀI TỰ LUẬN TỰ ĐỘNG TỪ AI AGENT (GEMINI VISION OCR)</span>
+                </span>
+                <span className="px-2 py-0.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-extrabold rounded-md">
+                  Điểm AI: {aiGradingResult.overallScore} / 10
+                </span>
+              </div>
+
+              <div className="space-y-2 text-slate-200">
+                {aiGradingResult.ocrExtractedText && (
+                  <div className="p-2 bg-purple-900/40 rounded-xl border border-purple-800 text-[11px]">
+                    <span className="font-bold text-purple-300 block mb-0.5">🔍 Nhận diện chữ bài viết tay (OCR):</span>
+                    <p className="italic text-slate-300 font-serif">{aiGradingResult.ocrExtractedText}</p>
+                  </div>
+                )}
+
+                {aiGradingResult.grammarFixes && aiGradingResult.grammarFixes.length > 0 && (
+                  <div className="p-2 bg-rose-950/40 rounded-xl border border-rose-800/60 space-y-1">
+                    <span className="font-bold text-rose-300 block">⚠️ Các lỗi ngữ pháp & từ vựng cần khắc phục:</span>
+                    {aiGradingResult.grammarFixes.map((gf, idx) => (
+                      <div key={idx} className="text-[11px] space-x-1">
+                        <span className="line-through text-rose-300">{gf.original}</span>
+                        <span className="text-emerald-400 font-bold">➔ {gf.suggestion}</span>
+                        <span className="text-slate-400">({gf.explanation})</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="p-2.5 bg-slate-900/90 rounded-xl border border-purple-800 leading-relaxed text-slate-200">
+                  <span className="font-bold text-amber-400 block mb-1">💡 Nhận xét chi tiết:</span>
+                  {aiGradingResult.detailedFeedback}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* THANH ĐỒNG HỒ THỜI GIAN LÀM BÀI */
@@ -546,7 +658,7 @@ export default function QuizEngine({ activity }) {
                                 <div className="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl flex items-center justify-between">
                                   <div className="flex items-center space-x-2">
                                     <Camera className="w-4 h-4 text-indigo-600" />
-                                    <span className="text-xs font-extrabold text-indigo-950">Chụp ảnh / Tải ảnh bài làm từ máy:</span>
+                                    <span className="text-xs font-extrabold text-indigo-950">Chụp ảnh / Tải ảnh bài làm từ máy (Tự động nén):</span>
                                   </div>
                                   <input
                                     type="file"
@@ -559,7 +671,7 @@ export default function QuizEngine({ activity }) {
 
                                 {studentImgUrl && (
                                   <div className="p-2 bg-slate-100 border rounded-xl text-center">
-                                    <span className="text-[10px] font-bold text-slate-600 block mb-1">📷 Ảnh bài làm đã tải lên:</span>
+                                    <span className="text-[10px] font-bold text-slate-600 block mb-1">📷 Ảnh bài làm đã tải lên & nén (&lt; 1MB):</span>
                                     <img src={studentImgUrl} alt="Bài làm học sinh" className="max-h-48 mx-auto rounded-lg shadow-sm border" />
                                   </div>
                                 )}
@@ -1083,16 +1195,21 @@ export default function QuizEngine({ activity }) {
             </div>
           );
         })}
-
-        {!submitted && (
-          <button
-            onClick={() => handleSubmitQuiz(false)}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-lg transition"
-          >
-            Nộp Bài Thi Quiz Ngay
-          </button>
-        )}
       </div>
+
+      {!submitted && (
+        <button
+          onClick={() => handleSubmitQuiz(false)}
+          disabled={isAiGradingLoading}
+          className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-lg transition flex items-center justify-center space-x-2"
+        >
+          {isAiGradingLoading ? (
+            <span>🤖 AI đang chấm bài tự luận & tổng hợp kết quả...</span>
+          ) : (
+            <span>Nộp Bài Thi Quiz Ngay</span>
+          )}
+        </button>
+      )}
     </div>
   );
 }
