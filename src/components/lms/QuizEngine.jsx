@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizEngine({ activity }) {
@@ -161,7 +161,6 @@ export default function QuizEngine({ activity }) {
           </div>
         </div>
       ) : (
-        /* TIMER ĐẾM THỜI GIAN LÀM BÀI */
         <div className="bg-slate-900 text-white p-4 rounded-2xl flex justify-between items-center shadow-md">
           <div className="flex items-center space-x-2">
             <User className="w-4 h-4 text-emerald-400" />
@@ -176,12 +175,21 @@ export default function QuizEngine({ activity }) {
         </div>
       )}
 
-      {/* KHU VỰC BÀI TẬP LISTENING / READING & NÚT AUDIOSCRIPT */}
+      {/* RENDER LISTENING SECTION CHUẨN ẢNH 4 NẾU CÓ */}
       <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
-        <div className="flex items-center space-x-2 text-slate-800 font-extrabold text-base">
-          <Volume2 className="w-5 h-5 text-emerald-600" />
-          <span>Bài Nghe Listening Audio & Hướng Dẫn Làm Bài</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
+            <span className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center font-extrabold text-xs">1</span>
+            <span className="uppercase text-purple-900 tracking-tight">LISTENING SECTION</span>
+          </div>
+          <span className="text-[10px] font-extrabold bg-purple-100 text-purple-800 px-2.5 py-1 rounded-lg">
+            Student & School Supplies
+          </span>
         </div>
+
+        <p className="text-xs text-slate-600 italic">
+          Listen to the audio recordings carefully and complete the tasks below.
+        </p>
 
         <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
           <audio controls className="w-full">
@@ -190,27 +198,51 @@ export default function QuizEngine({ activity }) {
           </audio>
         </div>
 
-        {/* NÚT ẨN / HIỆN ĐÁP ÁN & AUDIOSCRIPT */}
-        <div className="pt-2">
-          <button
-            onClick={() => setShowAudioscript(!showAudioscript)}
-            className="w-full p-3 bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-between transition shadow-xs"
-          >
-            <div className="flex items-center space-x-2">
-              <FileText className="w-4 h-4 text-emerald-600" />
-              <span>Answer & Audioscript (Mã Ẩn / Hiện Đáp Án & Kịch Bản Bài Nghe)</span>
-            </div>
-            {showAudioscript ? <EyeOff className="w-4 h-4 text-slate-400" /> : <Eye className="w-4 h-4 text-slate-400" />}
-          </button>
+        {/* NÚT KỊCH BẢN HỘI THOẠI TASK 1 (READING SCRIPT) CHUẨN ẢNH 4 */}
+        <div className="p-4 bg-white border border-purple-200 rounded-2xl space-y-2">
+          <div className="flex items-center justify-between border-b pb-2">
+            <span className="text-xs font-extrabold text-purple-900 flex items-center space-x-1.5">
+              <Headphones className="w-4 h-4 text-purple-600" />
+              <span>KỊCH BẢN HỘI THOẠI TASK 1 (TEACHER'S READING SCRIPT)</span>
+            </span>
+            <button
+              onClick={() => setShowAudioscript(!showAudioscript)}
+              className="text-xs font-extrabold text-purple-700 hover:text-purple-900 px-2 py-0.5 bg-purple-50 rounded"
+            >
+              {showAudioscript ? 'Ẩn' : 'Hiện'}
+            </button>
+          </div>
 
           {showAudioscript && (
-            <div className="mt-2 p-4 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-xl text-xs space-y-2 animate-fade-in font-medium">
-              <h5 className="font-bold text-emerald-900">Audioscript Transcript:</h5>
-              <p className="leading-relaxed italic">
-                {activity?.settings?.audioscript || 'You will hear a radio presenter giving some information about a music festival. Starts on August...'}
-              </p>
-            </div>
+            <p className="text-xs text-slate-700 italic leading-relaxed pt-1">
+              {activity?.settings?.audioscript ||
+                'Hello everyone, my name is Phong, and I am a third-generation artisan in Bat Trang pottery village. Many young people in our local community often ask me how to keep up with modern trends while preserving our traditional crafts...'}
+            </p>
           )}
+        </div>
+      </div>
+
+      {/* RENDER READING SECTION CHUẨN ẢNH 5 NẾU CÓ */}
+      <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
+            <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">2</span>
+            <span className="uppercase text-emerald-900 tracking-tight">READING SECTION</span>
+          </div>
+          <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg">
+            Classroom & School Activity
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-600 italic">
+          Read the passages carefully and answer the questions that follow.
+        </p>
+
+        <div className="p-4 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-medium">
+          <h5 className="font-extrabold text-emerald-900 mb-2">Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D.</h5>
+          <p className="text-slate-700">
+            Chuong village in Hanoi is famous for its long history of making conical hats (non la). For centuries, local artisans have passed down the craft from generation to generation. However, in recent years, the village has faced up to many challenges...
+          </p>
         </div>
       </div>
 
@@ -259,37 +291,39 @@ export default function QuizEngine({ activity }) {
                 )}
               </div>
 
-              {/* HÀNG LỰA CHỌN */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                {q.content?.options?.map((opt, oIdx) => {
-                  const isSelected = selectedOptIndex === oIdx;
-                  const isThisCorrect = opt.isCorrect;
+              {/* HÀNG LỰA CHỌN TRẮC NGHIỆM */}
+              {q.content?.options && q.content?.options.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  {q.content?.options?.map((opt, oIdx) => {
+                    const isSelected = selectedOptIndex === oIdx;
+                    const isThisCorrect = opt.isCorrect;
 
-                  let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
-                  if (submitted) {
-                    if (isThisCorrect) {
-                      btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
-                    } else if (isSelected && !isThisCorrect) {
-                      btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
+                    let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
+                    if (submitted) {
+                      if (isThisCorrect) {
+                        btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
+                      } else if (isSelected && !isThisCorrect) {
+                        btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
+                      }
+                    } else if (isSelected) {
+                      btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-xs';
                     }
-                  } else if (isSelected) {
-                    btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-xs';
-                  }
 
-                  return (
-                    <button
-                      key={oIdx}
-                      onClick={() => handleSelectAnswer(q.id, oIdx)}
-                      className={`p-3 rounded-xl text-xs font-semibold text-left border transition ${btnStyle}`}
-                    >
-                      <span className="mr-2 font-bold text-slate-500">{String.fromCharCode(65 + oIdx)}.</span>
-                      {opt.text}
-                    </button>
-                  );
-                })}
-              </div>
+                    return (
+                      <button
+                        key={oIdx}
+                        onClick={() => handleSelectAnswer(q.id, oIdx)}
+                        className={`p-3 rounded-xl text-xs font-semibold text-left border transition ${btnStyle}`}
+                      >
+                        <span className="mr-2 font-bold text-slate-500">{String.fromCharCode(65 + oIdx)}.</span>
+                        {opt.text}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
-              {/* KHỐI AI GIẢI THÍCH CHI TIẾT KHI NỘP BÀI (EXPLANATION & FEEDBACK) */}
+              {/* KHỐI AI GIẢI THÍCH CHI TIẾT KHI NỘP BÀI */}
               {submitted && (
                 <div className="mt-3 p-4 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-2xl text-xs space-y-1.5 animate-fade-in">
                   <div className="flex items-center space-x-1.5 font-extrabold text-emerald-900">
