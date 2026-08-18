@@ -48,7 +48,6 @@ export default function CourseView() {
 
   const fetchCourseData = async () => {
     setLoading(true);
-    // Fetch Khóa học
     const { data: cData } = await supabase.from('courses').select('*').eq('id', courseId).single();
     if (!cData) {
       setLoading(false);
@@ -56,7 +55,6 @@ export default function CourseView() {
     }
     setCourse(cData);
 
-    // Fetch Các Sections (Units)
     const { data: sData } = await supabase.from('course_sections').select('*').eq('course_id', courseId).order('order_index', { ascending: true });
     setSections(sData || []);
 
@@ -64,7 +62,6 @@ export default function CourseView() {
       const defaultSecId = activeSectionId || sData[0].id;
       setActiveSectionId(defaultSecId);
 
-      // Fetch Tất cả Activities trong Khóa Học
       const secIds = sData.map((s) => s.id);
       const { data: aData } = await supabase.from('activities').select('*').in('section_id', secIds).order('order_index', { ascending: true });
       setActivities(aData || []);
@@ -77,7 +74,6 @@ export default function CourseView() {
     if (courseId) fetchCourseData();
   }, [courseId]);
 
-  // Tạo Bài Học Mới (Activity)
   const handleCreateActivity = async (e) => {
     e.preventDefault();
     if (!newActTitle.trim() || !activeSectionId) return;
@@ -101,7 +97,6 @@ export default function CourseView() {
     }
   };
 
-  // Xóa Bài Học
   const handleDeleteActivity = async (actId) => {
     if (!confirm('Bạn có chắc muốn xóa bài học này khỏi Unit?')) return;
     await supabase.from('activities').delete().eq('id', actId);
@@ -148,7 +143,7 @@ export default function CourseView() {
         </button>
       </div>
 
-      {/* BỐ CỤC CHÍNH (SIDEBAR NAVIGATION DỮ LIỆU ĐỘNG VÀ KHU VỰC NỘI DUNG) */}
+      {/* BỐ CỤC CHÍNH */}
       <div className="flex flex-col lg:flex-row gap-8">
         <CourseSidebar
           courseTitle={course?.title}
@@ -171,7 +166,7 @@ export default function CourseView() {
           onOpenEnrolledModal={() => setIsEnrolledModalOpen(true)}
         />
 
-        {/* KHU VỰC HIỂN THỊ DANH SÁCH BÀI HỌC TRONG UNIT */}
+        {/* KHU VỰC NỘI DUNG */}
         <main className="flex-1 space-y-6">
           <div className="flex justify-between items-center bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
             <div>
@@ -192,7 +187,6 @@ export default function CourseView() {
             )}
           </div>
 
-          {/* DANH SÁCH BÀI HỌC THỰC TẾ TRONG UNIT */}
           {currentSectionActivities.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-3xl border border-dashed border-slate-200 text-slate-400 text-xs">
               Chủ đề này chưa có bài học nào. Bấm nút "+ Thêm Bài Học Mới" ở trên để khởi tạo bài học đầu tiên!
@@ -220,7 +214,6 @@ export default function CourseView() {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    {/* GIÁO VIÊN BẤM SOẠN CÂU HỎI */}
                     {isTeacher && act.type === 'quiz' && (
                       <button
                         onClick={() => setEditingQuizActivityId(act.id)}
@@ -231,7 +224,6 @@ export default function CourseView() {
                       </button>
                     )}
 
-                    {/* GIÁO VIÊN BẤM BIÊN TẬP VIDEO H5P */}
                     {isTeacher && (act.type === 'video' || act.type === 'h5p') && (
                       <button
                         onClick={() => setH5pVideoActivityId(act.id)}
@@ -242,7 +234,6 @@ export default function CourseView() {
                       </button>
                     )}
 
-                    {/* HỌC SINH BẤM LÀM BÀI */}
                     {!isTeacher && act.type === 'quiz' && (
                       <button
                         onClick={() => setTakingQuizActivity(act)}
@@ -274,34 +265,34 @@ export default function CourseView() {
         <EnrolledUsersModal courseId={courseId} onClose={() => setIsEnrolledModalOpen(false)} />
       )}
 
-      {/* MODAL QUIZ BUILDER (GIÁO VIÊN SOẠN CÂU HỎI) */}
+      {/* MODAL QUIZ BUILDER (SỬA LỖI CHE THANH NAV BAR: CỐ ĐỊNH PHÍA DƯỚI MENU NGANG PT-16 Z-30) */}
       {editingQuizActivityId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
+        <div className="fixed inset-0 z-30 flex items-start justify-center bg-black/60 backdrop-blur-xs p-4 pt-20 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 mb-8 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base">Soạn Thảo Ngân Hàng Câu Hỏi Quiz</h3>
               <button onClick={() => setEditingQuizActivityId(null)} className="text-slate-400 hover:text-white font-bold">
                 ✕
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-6 max-h-[80vh] overflow-y-auto">
               <QuizBuilder activityId={editingQuizActivityId} onSaved={() => fetchCourseData()} />
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL QUIZ ENGINE (HỌC SINH LÀM BÀI THI) */}
+      {/* MODAL QUIZ ENGINE (LÀM BÀI THI) */}
       {takingQuizActivity && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
+        <div className="fixed inset-0 z-30 flex items-start justify-center bg-black/60 backdrop-blur-xs p-4 pt-20 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 mb-8 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base">Làm Bài Kiểm Tra Quiz: {takingQuizActivity.title}</h3>
               <button onClick={() => setTakingQuizActivity(null)} className="text-slate-400 hover:text-white font-bold">
                 ✕
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-6 max-h-[80vh] overflow-y-auto">
               <QuizEngine activity={takingQuizActivity} />
             </div>
           </div>
@@ -310,15 +301,15 @@ export default function CourseView() {
 
       {/* MODAL H5P INTERACTIVE VIDEO BUILDER */}
       {h5pVideoActivityId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
+        <div className="fixed inset-0 z-30 flex items-start justify-center bg-black/60 backdrop-blur-xs p-4 pt-20 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 mb-8 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base">Thiết Kế Video Tương Tác H5P</h3>
               <button onClick={() => setH5pVideoActivityId(null)} className="text-slate-400 hover:text-white font-bold">
                 ✕
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-6 max-h-[80vh] overflow-y-auto">
               <InteractiveVideoBuilder activityId={h5pVideoActivityId} onSaved={() => setH5pVideoActivityId(null)} />
             </div>
           </div>
@@ -327,7 +318,7 @@ export default function CourseView() {
 
       {/* MODAL TẠO BÀI HỌC MỚI */}
       {isAddActivityOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 pt-16">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base">Thêm Bài Học Mới Vào Unit</h3>
