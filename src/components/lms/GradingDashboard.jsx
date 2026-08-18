@@ -5,6 +5,8 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import { exportClassExcelReport } from '../../utils/exportQuizReport';
 import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
 import { sendQuizScoreEmail } from '../../services/emailNotificationService';
+import { sendWeeklyReportToZalo } from '../../services/zaloNotificationService';
+import ClassroomWhiteboardModal from './ClassroomWhiteboardModal';
 import ClassLeaderboard from './ClassLeaderboard';
 
 export default function GradingDashboard({ activityId, activityTitle }) {
@@ -17,6 +19,7 @@ export default function GradingDashboard({ activityId, activityTitle }) {
   const [feedback, setFeedback] = useState('');
   const [saving, setSaving] = useState(false);
   const [reGradingAll, setReGradingAll] = useState(false);
+  const [whiteboardModalOpen, setWhiteboardModalOpen] = useState(false);
 
   // Trình xem ảnh tự luận
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -153,6 +156,12 @@ export default function GradingDashboard({ activityId, activityTitle }) {
 
   return (
     <div className="space-y-4">
+      <ClassroomWhiteboardModal
+        isOpen={whiteboardModalOpen}
+        onClose={() => setWhiteboardModalOpen(false)}
+        questions={selectedSub?.answers_data?.questions || []}
+        activityTitle={activityTitle}
+      />
       {/* THANH THỦ THUẬT & XUẤT BÁO CÁO EXCEL & NÚT CHẤM LẠI CẢ LỚP BẰNG AI */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 text-white p-4 rounded-3xl shadow-md gap-3">
         <div>
@@ -179,6 +188,25 @@ export default function GradingDashboard({ activityId, activityTitle }) {
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
             <span>Xuất Bảng Điểm Cả Lớp (Excel/CSV)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (selectedSub?.profiles?.full_name) {
+                sendWeeklyReportToZalo({
+                  studentName: selectedSub.profiles.full_name,
+                  parentPhone: '0988888888',
+                  averageScore: selectedSub.score || 8.5,
+                  totalExams: 4,
+                  aiComment: selectedSub.feedback || 'Học sinh tiến bộ vượt bậc!',
+                }).then(res => alert(res.message));
+              } else {
+                alert('Vui lòng chọn học sinh để gửi báo cáo Zalo!');
+              }
+            }}
+            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+          >
+            <span>📱 Gửi Báo Cáo Tuần Zalo PHHS</span>
           </button>
         </div>
       </div>
