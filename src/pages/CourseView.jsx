@@ -10,8 +10,10 @@ import ScormPlayer from '../components/lms/ScormPlayer';
 import H5PViewer from '../components/lms/H5PViewer';
 import InteractiveVideo from '../components/lms/InteractiveVideo';
 import AssignmentGrade from '../components/lms/AssignmentGrade';
+import EnrolledUsersModal from '../components/lms/EnrolledUsersModal';
+import CenterToastModal from '../components/common/CenterToastModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { HelpCircle, Package, Layers, FileText, Video, BookOpen, Link as LinkIcon, Plus, Trash2, Edit3, ArrowLeft, Settings } from 'lucide-react';
+import { HelpCircle, Package, Layers, FileText, Video, BookOpen, Link as LinkIcon, Plus, Trash2, Edit3, ArrowLeft, Users, Key, Copy, Check } from 'lucide-react';
 
 export default function CourseView() {
   const { id: courseId } = useParams();
@@ -25,12 +27,17 @@ export default function CourseView() {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Toast Center Modal
+  const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
+  const showToast = (type, title, message) => setToast({ isOpen: true, type, title, message });
+
   // Modal State
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [isQuizBuilderOpen, setIsQuizBuilderOpen] = useState(false);
   const [activeQuizForBuilder, setActiveQuizForBuilder] = useState(null);
+  const [isEnrolledModalOpen, setIsEnrolledModalOpen] = useState(false);
 
-  // Tiến độ học tập %
+  const [copiedCode, setCopiedCode] = useState(false);
   const [progressPercentage, setProgressPercentage] = useState(0);
 
   const fetchCourseData = async () => {
@@ -43,7 +50,7 @@ export default function CourseView() {
       .single();
 
     if (cErr || !cData) {
-      alert('Không tìm thấy khóa học!');
+      showToast('error', 'Không Tìm Thấy Khóa Học', 'Khóa học không tồn tại hoặc bạn chưa có quyền truy cập!');
       navigate('/dashboard');
       return;
     }
@@ -108,6 +115,7 @@ export default function CourseView() {
     if (!error && data) {
       setSections([...sections, data]);
       setActiveSectionId(data.id);
+      showToast('success', 'Thành Công', `Đã thêm chủ đề "${title.trim()}"`);
     }
   };
 
@@ -122,8 +130,9 @@ export default function CourseView() {
       .eq('id', section.id);
 
     if (error) {
-      alert('Lỗi cập nhật tên chủ đề: ' + error.message);
+      showToast('error', 'Lỗi Cập Nhật', error.message);
     } else {
+      showToast('success', 'Đã Cập Nhật', 'Đã đổi tên chủ đề!');
       await fetchCourseData();
     }
   };
@@ -136,8 +145,9 @@ export default function CourseView() {
 
     const { error } = await supabase.from('course_sections').delete().eq('id', sectionId);
     if (error) {
-      alert('Lỗi xóa chủ đề: ' + error.message);
+      showToast('error', 'Lỗi Xóa Chủ Đề', error.message);
     } else {
+      showToast('success', 'Đã Xóa Chủ Đề', `Đã xóa chủ đề "${sectionTitle}".`);
       const remaining = sections.filter((s) => s.id !== sectionId);
       setSections(remaining);
       if (remaining.length > 0) {
@@ -152,8 +162,9 @@ export default function CourseView() {
   const handleAddActivity = async (activityData) => {
     const { error } = await supabase.from('activities').insert([activityData]);
     if (error) {
-      alert('Lỗi tạo hoạt động: ' + error.message);
+      showToast('error', 'Lỗi Tạo Bài Học', error.message);
     } else {
+      showToast('success', 'Đã Thêm Bài Học', `Đã thêm hoạt động "${activityData.title}" vào khóa học!`);
       await fetchActivities(activeSectionId);
     }
   };
@@ -170,8 +181,9 @@ export default function CourseView() {
       .eq('id', act.id);
 
     if (error) {
-      alert('Lỗi sửa tên bài học: ' + error.message);
+      showToast('error', 'Lỗi Cập Nhật', error.message);
     } else {
+      showToast('success', 'Đã Đổi Tên', 'Đã cập nhật tên bài học!');
       await fetchActivities(activeSectionId);
     }
   };
@@ -181,8 +193,16 @@ export default function CourseView() {
     e.stopPropagation();
     if (!confirm(`Bạn có chắc muốn xóa bài học "${actTitle}"?`)) return;
     await supabase.from('activities').delete().eq('id', actId);
+    showToast('success', 'Đã Xóa Bài Học', `Đã xóa bài học "${actTitle}".`);
     await fetchActivities(activeSectionId);
     if (selectedActivity?.id === actId) setSelectedActivity(null);
+  };
+
+  const copyJoinCode = () => {
+    if (!course?.join_code) return;
+    navigator.clipboard.writeText(course.join_code);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
   if (loading) return <LoadingSpinner text="Đang tải dữ liệu khóa học..." />;
@@ -201,8 +221,8 @@ export default function CourseView() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      {/* Subheader Title */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-16 z-30 shadow-sm">
+      {/* Subheader Title & Action Controls */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between sticky top-16 z-30 shadow-sm gap-4">
         <div className="flex items-center space-x-3">
           <button
             onClick={() => navigate('/dashboard')}
@@ -211,20 +231,43 @@ export default function CourseView() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg font-extrabold text-slate-900 leading-tight">{course?.title}</h1>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-lg font-extrabold text-slate-900 leading-tight">{course?.title}</h1>
+              {/* Badge Mã Lớp 6 Ký Tự */}
+              <button
+                onClick={copyJoinCode}
+                title="Bấm để sao chép Mã Gia Nhập Khóa Học"
+                className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-extrabold rounded-lg inline-flex items-center space-x-1 border border-emerald-300"
+              >
+                <Key className="w-3 h-3 text-emerald-700" />
+                <span>Mã Lớp: {course?.join_code}</span>
+                {copiedCode ? <Check className="w-3 h-3 text-emerald-700" /> : <Copy className="w-3 h-3 text-emerald-500" />}
+              </button>
+            </div>
             <p className="text-xs text-slate-500">Giáo viên phụ trách: {course?.teacher?.full_name}</p>
           </div>
         </div>
 
-        {isTeacher && activeSectionId && (
+        {/* Cụm Nút Action: Enrolled Users & Thêm Bài Học */}
+        <div className="flex items-center space-x-2">
           <button
-            onClick={() => setIsActivityModalOpen(true)}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center space-x-1.5"
+            onClick={() => setIsEnrolledModalOpen(true)}
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border border-slate-200"
           >
-            <Plus className="w-4 h-4" />
-            <span>Thêm Bài Học / Hoạt Động</span>
+            <Users className="w-4 h-4 text-emerald-600" />
+            <span>Enrolled Users (Người Học)</span>
           </button>
-        )}
+
+          {isTeacher && activeSectionId && (
+            <button
+              onClick={() => setIsActivityModalOpen(true)}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center space-x-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Thêm Bài Học / Hoạt Động</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Grid: Sidebar trái + Content phải */}
@@ -439,6 +482,14 @@ export default function CourseView() {
         sectionId={activeSectionId}
       />
 
+      {/* Modal Enrolled Users (Quản lý người học & Enrol thủ công) */}
+      <EnrolledUsersModal
+        isOpen={isEnrolledModalOpen}
+        onClose={() => setIsEnrolledModalOpen(false)}
+        courseId={courseId}
+        isTeacher={isTeacher}
+      />
+
       {/* Modal Quiz Builder cho Giáo viên */}
       {isQuizBuilderOpen && activeQuizForBuilder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
@@ -461,6 +512,15 @@ export default function CourseView() {
           </div>
         </div>
       )}
+
+      {/* TOAST CENTER MODAL THÔNG BÁO Ở GIỮA TRANG */}
+      <CenterToastModal
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+      />
     </div>
   );
 }
