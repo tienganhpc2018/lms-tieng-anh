@@ -7,6 +7,9 @@ import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
 import { sendQuizScoreEmail } from '../../services/emailNotificationService';
 import { sendWeeklyReportToZalo } from '../../services/zaloNotificationService';
 import ClassroomWhiteboardModal from './ClassroomWhiteboardModal';
+import ExamPaperTimerModal from './ExamPaperTimerModal';
+import AiOmrScannerModal from './AiOmrScannerModal';
+import { exportOmrSheet } from '../../utils/exportOmrSheet';
 import ClassLeaderboard from './ClassLeaderboard';
 
 export default function GradingDashboard({ activityId, activityTitle }) {
@@ -20,6 +23,8 @@ export default function GradingDashboard({ activityId, activityTitle }) {
   const [saving, setSaving] = useState(false);
   const [reGradingAll, setReGradingAll] = useState(false);
   const [whiteboardModalOpen, setWhiteboardModalOpen] = useState(false);
+  const [examTimerOpen, setExamTimerOpen] = useState(false);
+  const [omrScannerOpen, setOmrScannerOpen] = useState(false);
 
   // Trình xem ảnh tự luận
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -156,6 +161,17 @@ export default function GradingDashboard({ activityId, activityTitle }) {
 
   return (
     <div className="space-y-4">
+      <ExamPaperTimerModal
+        isOpen={examTimerOpen}
+        onClose={() => setExamTimerOpen(false)}
+        defaultMinutes={45}
+      />
+
+      <AiOmrScannerModal
+        isOpen={omrScannerOpen}
+        onClose={() => setOmrScannerOpen(false)}
+      />
+
       <ClassroomWhiteboardModal
         isOpen={whiteboardModalOpen}
         onClose={() => setWhiteboardModalOpen(false)}
@@ -188,6 +204,20 @@ export default function GradingDashboard({ activityId, activityTitle }) {
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
             <span>Xuất Bảng Điểm Cả Lớp (Excel/CSV)</span>
+          </button>
+
+          <button
+            onClick={() => setExamTimerOpen(true)}
+            className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+          >
+            <span>⏱️ Đồng Hồ Giám Thị Tivi</span>
+          </button>
+
+          <button
+            onClick={() => setOmrScannerOpen(true)}
+            className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+          >
+            <span>📷 Camera AI Quét OMR</span>
           </button>
 
           <button
