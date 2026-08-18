@@ -247,7 +247,7 @@ export default function QuizEngine({ activity }) {
   const renderFourBlockExplanation = (explanationText, correctText) => {
     if (!explanationText) {
       return (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-2">
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-2 col-span-full">
           <p className="font-extrabold text-emerald-950 text-sm">➔ Đáp án đúng: {correctText || 'Chính xác'}</p>
           <p className="text-emerald-800">💡 Ghi nhớ từ vựng & cấu trúc trọng tâm để chọn đúng đáp án bài sau!</p>
         </div>
@@ -440,9 +440,10 @@ export default function QuizEngine({ activity }) {
                   </span>
                 </div>
 
-                <h3 className="font-extrabold text-xs text-teal-800 leading-relaxed">
+                {/* KHUNG CÂU LỆNH HƯỚNG DẪN THỐNG NHẤT CÓ ĐƯỜNG GẠCH TÍM BÊN TRÁI CHUẨN ẢNH 3 */}
+                <div className="p-4 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content?.question || 'Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F).'}
-                </h3>
+                </div>
 
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-5 text-slate-800 font-serif text-xs leading-relaxed text-justify shadow-2xs">
                   {q.content?.passage}
@@ -517,7 +518,7 @@ export default function QuizEngine({ activity }) {
 
             return (
               <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
-                {/* Header Bar Chuẩn 100% */}
+                {/* Header Bar */}
                 <div className="bg-blue-50/70 rounded-xl p-3.5 flex justify-between items-center">
                   <h3 className="font-extrabold text-sm text-blue-900 tracking-wide uppercase flex items-center space-x-2">
                     <span className="w-7 h-7 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
@@ -528,19 +529,19 @@ export default function QuizEngine({ activity }) {
                   <Volume2 className="w-5 h-5 text-blue-600 cursor-pointer" />
                 </div>
 
-                {/* Render Lần Lượt Cả Task 1 & Task 2 Trong Cùng 1 Khung */}
+                {/* Render Lần Lượt Cả Task 1 & Task 2 */}
                 {tasksList.map((taskItem, tIdx) => {
                   const tQuestions = taskItem.questions || [];
 
                   return (
                     <div key={tIdx} className="space-y-4 border-b border-slate-100 pb-5 last:border-b-0 last:pb-0">
-                      {/* Sub-header instruction */}
-                      <div className="space-y-0.5">
-                        <h4 className="text-xs font-extrabold text-blue-800 uppercase tracking-tight">
+                      {/* KHUNG CÂU LỆNH HƯỚNG DẪN THỐNG NHẤT CÓ ĐƯỜNG GẠCH TÍM BÊN TRÁI CHUẨN ẢNH 3 */}
+                      <div className="p-3.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs space-y-0.5">
+                        <h4 className="uppercase tracking-tight text-purple-950">
                           {taskItem.task_title}
                         </h4>
                         {taskItem.task_sub && (
-                          <p className="text-[11px] italic text-slate-500">
+                          <p className="text-[11px] italic text-purple-800 font-medium">
                             {taskItem.task_sub}
                           </p>
                         )}
@@ -565,7 +566,7 @@ export default function QuizEngine({ activity }) {
                         </p>
                       </div>
 
-                      {/* HÀNG CÂU HỎI CLOZE TEST */}
+                      {/* HÀNG CÂU HỎI CLOZE TEST: 4 CỘT A, B, C, D THẲNG CỘT TẮP NẰM TRÊN 1 DÒNG CHUẨN ẢNH 2 */}
                       <div className="space-y-2 pt-1">
                         {tQuestions.map((cQ, cIdx) => {
                           const childKey = `${q.id}_t${tIdx}_q${cIdx}`;
@@ -575,12 +576,13 @@ export default function QuizEngine({ activity }) {
 
                           return (
                             <div key={cIdx} className="space-y-1.5">
-                              <div className="inline-flex flex-wrap items-center gap-2.5 border border-slate-200 bg-white rounded-2xl py-1.5 px-3 shadow-2xs w-fit max-w-full">
+                              <div className="flex items-center gap-3 w-full">
                                 <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
                                   {cQ.question_number || (16 + cIdx)}
                                 </span>
 
-                                <div className="flex flex-row items-center gap-2 overflow-x-auto flex-nowrap py-0.5">
+                                {/* 🎯 CĂN CHỈNH 4 CỘT A, B, C, D THẲNG HÀNG DỌC TẮP NẰM TRÊN 1 HÀNG CHUẨN ẢNH 2 */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full items-center">
                                   {opts.map((opt, oIdx) => {
                                     const optVal = opt.id || String.fromCharCode(65 + oIdx);
                                     const optText = opt.text || `${optVal}. ${opt.label || opt}`;
@@ -591,10 +593,10 @@ export default function QuizEngine({ activity }) {
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, optVal)}
-                                        className={`rounded-full px-3.5 py-1 text-xs transition font-semibold whitespace-nowrap flex-shrink-0 ${
+                                        className={`rounded-full px-3.5 py-1 text-xs transition font-semibold text-left truncate border ${
                                           isSelected
-                                            ? `${tIdx === 1 ? 'bg-teal-600' : 'bg-blue-600'} text-white font-bold shadow-xs`
-                                            : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
+                                            ? `${tIdx === 1 ? 'bg-teal-600' : 'bg-blue-600'} text-white font-bold shadow-xs border-transparent`
+                                            : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                                         }`}
                                       >
                                         {optText}
@@ -616,7 +618,7 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ / LISTENING SECTION - THIẾT KẾ BỐ CỤC KHUNG LƯỚI CSS GRID NĂM THẲNG HÀNG CỘT TẤT CẢ 4 CÂU
+          // DẠNG CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ / LISTENING SECTION - THIẾT KẾ CĂN 4 CỘT THẲNG HÀNG DỌC A, B, C, D CHUẨN ẢNH 2
           return (
             <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
@@ -630,8 +632,9 @@ export default function QuizEngine({ activity }) {
                 </div>
               </div>
 
+              {/* KHUNG CÂU LỆNH HƯỚNG DẪN THỐNG NHẤT CÓ ĐƯỜNG GẠCH TÍM BÊN TRÁI CHUẨN ẢNH 3 */}
               {(q.content?.question || q.content?.title) && (
-                <div className="p-3.5 bg-purple-50/70 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                <div className="p-4 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content.question || q.content.title}
                 </div>
               )}
@@ -718,8 +721,8 @@ export default function QuizEngine({ activity }) {
                         )}
                       </div>
 
-                      {/* 🎯 ÁP DỤNG CỘT KHUNG LƯỚI CSS GRID CHUẨN ĐÚNG PROMPT VÀ Ý THẦY YÊU CẦU: grid grid-cols-1 md:grid-cols-2 gap-4 w-full */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full pt-1">
+                      {/* 🎯 CĂN BỐ CỤC 4 CỘT A, B, C, D THẲNG HÀNG DỌC TẮP NẰM NGHĨA TRÊN 1 HÀNG CHUẨN 100% ẢNH 2: grid grid-cols-2 sm:grid-cols-4 gap-3 w-full */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full items-center pt-1">
                         {cOpts.map((opt, oIdx) => {
                           const isSelected = selectedOptIndex === oIdx;
                           const isThisCorrect = opt?.isCorrect;
@@ -741,9 +744,9 @@ export default function QuizEngine({ activity }) {
                               key={oIdx}
                               disabled={submitted}
                               onClick={() => handleSelectAnswer(childKey, oIdx)}
-                              className={`w-full text-left p-3 rounded-2xl border text-xs font-semibold flex items-center space-x-2.5 transition ${btnStyle}`}
+                              className={`w-full text-left px-3.5 py-1.5 rounded-full text-xs font-semibold border transition flex items-center space-x-1.5 truncate ${btnStyle}`}
                             >
-                              <span className={`w-5 h-5 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
+                              <span className={`w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
                                 isSelected ? 'bg-white text-emerald-800' : 'bg-slate-200 text-slate-600'
                               }`}>
                                 {label}
