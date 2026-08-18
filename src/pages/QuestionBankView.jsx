@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, ArrowLeft, Search, Filter, BookOpen, Layers, Volume2, CheckCircle, Eye } from 'lucide-react';
+import { Database, ArrowLeft, Search, Filter, BookOpen, Layers, Volume2, CheckCircle, Eye, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -11,16 +11,21 @@ export default function QuestionBankView() {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [hasError, setHasError] = useState(false);
 
   const fetchAllQuestions = async () => {
     setLoading(true);
+    setHasError(false);
     try {
       const { data, error } = await supabase
         .from('questions')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
+      if (error) {
+        console.error('Lỗi fetch ngân hàng đề:', error);
+        setQuestions([]);
+      } else if (data) {
         const safeData = data.map((q) => {
           let cObj = q.content;
           if (typeof cObj === 'string') {
@@ -39,6 +44,7 @@ export default function QuestionBankView() {
       }
     } catch (err) {
       console.error('Lỗi load ngân hàng đề:', err);
+      setHasError(true);
     } finally {
       setLoading(false);
     }
@@ -48,22 +54,32 @@ export default function QuestionBankView() {
     fetchAllQuestions();
   }, []);
 
-  const filteredQuestions = questions.filter((q) => {
-    const title = q.content?.title || '';
-    const qText = q.content?.question || '';
-    const passage = q.content?.passage || '';
-    const query = searchQuery.toLowerCase();
-    return title.toLowerCase().includes(query) || qText.toLowerCase().includes(query) || passage.toLowerCase().includes(query);
+  const filteredQuestions = (questions || []).filter((q) => {
+    try {
+      const title = q.content?.title || '';
+      const qText = q.content?.question || '';
+      const passage = q.content?.passage || '';
+      const query = searchQuery.toLowerCase();
+      return (
+        title.toLowerCase().includes(query) ||
+        qText.toLowerCase().includes(query) ||
+        passage.toLowerCase().includes(query)
+      );
+    } catch (e) {
+      return false;
+    }
   });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* THANH THÊU VÀ ĐIỀU HƯỚNG TRÊN CÙNG */}
       <div className="flex items-center space-x-3">
         <button
           onClick={() => navigate('/dashboard')}
-          className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
+          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-200 rounded-xl transition flex items-center space-x-1 font-bold text-xs"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4" />
+          <span>Về Khóa Học</span>
         </button>
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 flex items-center space-x-2">
@@ -71,12 +87,12 @@ export default function QuestionBankView() {
             <span>Ngân Hàng Câu Hỏi Nguồn Mẫu & Đề Thi Đã Soạn</span>
           </h1>
           <p className="text-xs text-slate-500">
-            Kho lưu trữ 500+ câu hỏi trắc nghiệm, bài đọc hiểu READING SECTION và bài nghe LISTENING SECTION của Giáo Viên.
+            Kho lưu trữ câu hỏi trắc nghiệm, bài đọc hiểu READING SECTION và bài nghe LISTENING SECTION của Giáo Viên.
           </p>
         </div>
       </div>
 
-      {/* TAB CHỌN XEM: ĐỀ VỪA SOẠN HOẶC THEO KHỐI LỚP */}
+      {/* TAB CHỌN XEM */}
       <div className="flex border-b border-slate-200 space-x-4">
         <button
           onClick={() => setActiveTab('my_questions')}
@@ -85,7 +101,7 @@ export default function QuestionBankView() {
           }`}
         >
           <BookOpen className="w-4 h-4 text-emerald-600" />
-          <span>📚 Câu Hỏi & Đề Thi Vừa Soạn Trong Bài Học ({questions.length} đề)</span>
+          <span>📚 Đề Thi Vừa Soạn Trong Bài Học ({questions.length} đề)</span>
         </button>
 
         <button
@@ -99,8 +115,8 @@ export default function QuestionBankView() {
         </button>
       </div>
 
-      {/* CHỈNH TÌM KIẾM */}
-      <div className="flex items-center space-x-3 bg-white p-3 rounded-2xl border border-slate-200">
+      {/* TÌM KIẾM */}
+      <div className="flex items-center space-x-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
         <Search className="w-5 h-5 text-slate-400 ml-2" />
         <input
           type="text"
@@ -111,25 +127,38 @@ export default function QuestionBankView() {
         />
       </div>
 
-      {/* DANH SÁCH ĐỀ THI ĐÃ SOẠN TRONG BÀI HỌC (CHUẨN ẢNH 2) */}
+      {/* DANH SÁCH CÂU HỎI & ĐỀ THI TRONG NGÂN HÀNG */}
       {activeTab === 'my_questions' ? (
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center border-b pb-3">
             <h3 className="font-extrabold text-base text-slate-900">
-              Danh Sách Bài Thi & Đề Soạn Trong Khóa Học ({filteredQuestions.length} câu)
+              Danh Sách Đề Thi Giáo Viên Vừa Soạn ({filteredQuestions.length} câu)
             </h3>
           </div>
 
           {loading ? (
             <LoadingSpinner text="Đang tải ngân hàng đề thi..." />
+          ) : hasError ? (
+            <div className="p-8 text-center bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs font-bold space-y-2">
+              <AlertCircle className="w-6 h-6 text-rose-600 mx-auto" />
+              <p>Có lỗi khi nạp ngân hàng đề. Vui lòng bấm nút Tải Lại!</p>
+              <button
+                onClick={fetchAllQuestions}
+                className="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold"
+              >
+                Tải Lại Trang
+              </button>
+            </div>
           ) : filteredQuestions.length === 0 ? (
             <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 text-xs font-semibold">
-              Chưa có câu hỏi hoặc bài đọc nào được tạo. Hãy quay lại Bài Học và bấm nút "Soạn Bài & Câu Hỏi"!
+              Chưa có câu hỏi hoặc bài đọc nào trong CSDL. Hãy vào bài học và bấm nút "Soạn Bài & Câu Hỏi"!
             </div>
           ) : (
             <div className="space-y-4">
               {filteredQuestions.map((q, idx) => {
                 const childs = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
+                const sectionType = q.content?.sectionType || q.type || 'multiple_choice';
+
                 return (
                   <div key={q.id || idx} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                     <div className="flex justify-between items-center">
@@ -138,7 +167,7 @@ export default function QuestionBankView() {
                           {idx + 1}
                         </span>
                         <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase rounded-lg">
-                          Dạng: {q.type}
+                          Dạng: {sectionType}
                         </span>
                         <span className="text-xs text-slate-400 font-medium">({q.marks} điểm)</span>
                       </div>
@@ -148,7 +177,7 @@ export default function QuestionBankView() {
 
                     {/* NẾU LÀ BÀI ĐỌC READING SECTION */}
                     {q.content?.passage && (
-                      <div className="p-3 bg-white border border-sky-200 rounded-xl text-xs text-slate-700 leading-relaxed font-medium">
+                      <div className="p-3.5 bg-white border border-sky-200 rounded-xl text-xs text-slate-700 leading-relaxed font-medium">
                         <p className="line-clamp-3 italic">"{q.content.passage}"</p>
                       </div>
                     )}
