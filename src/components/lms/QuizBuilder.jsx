@@ -118,13 +118,19 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
-  // Xử lý Upload file MP3 Audio từ máy tính -> HIỂN THỊ TÊN FILE TRỰC TIẾP VÀO KHUNG SOẠN & THÀNH PLAY AUDIO
+  // NẠP VÀ CHUYỂN ĐỔI ĐÚNG FILE AUDIO THẬT TỪ MÁY THÀNH DATA URL ĐỂ LƯU CHÍNH XÁC VÀO CSDL VÀ THI THỬ THẬT
   const handleAudioFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const fakeUrl = URL.createObjectURL(file);
+
     setUploadedAudioFileName(file.name);
-    setListeningAudioUrl(fakeUrl);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const audioDataUrl = evt.target.result;
+      setListeningAudioUrl(audioDataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   // MỞ NGUYÊN PAGE/MODAL XEM VÀ CHỈNH SỬA KHI BẤM VÀO TIÊU ĐỀ BÀI HỌC / READING SECTION
@@ -138,6 +144,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setSectionPassage(q.content?.passage || '');
     setAudioscriptText(q.content?.audioscript || '');
     setListeningAudioUrl(q.content?.audioUrl || '');
+    setUploadedAudioFileName(q.content?.audioFileName || '');
     setSectionChildQuestions(
       q.content?.childQuestions || [
         {
@@ -277,7 +284,7 @@ ANSWER: D`;
       'Chuong village in Hanoi is famous for its long history of making conical hats (non la). For centuries, local artisans have passed down the craft from generation to generation. However, in recent years, the village has faced up to many challenges. Fewer young people want to learn the craft because they do not know how to make a living from it. To deal with this problem, the local community has turned the village into a tourist destination. Visitors come here to learn how to make conical hats themselves. Artisans show them where to buy the best palm leaves and how to sew the hats neatly. This initiative has helped the village avoid having to close down. Now, the locals are looking forward to welcoming more international tourists. By combining traditional crafts with tourism, Chuong village not only preserves its heritage but also improves the local economy.'
     );
     setAudioscriptText('Hello everyone, my name is Phong, and I am a third-generation artisan in Bat Trang pottery village...');
-    setListeningAudioUrl('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+    setListeningAudioUrl('');
     setUploadedAudioFileName('');
     setSectionChildQuestions([
       {
@@ -350,6 +357,7 @@ ANSWER: D`;
     const normType = selectedType?.toLowerCase();
     if (normType === 'listening_section') {
       customContent.audioUrl = listeningAudioUrl;
+      customContent.audioFileName = uploadedAudioFileName;
       customContent.audioscript = audioscriptText;
       customContent.childQuestions = sectionChildQuestions;
     } else if (normType === 'reading_section') {
@@ -615,7 +623,7 @@ ANSWER: D`;
         </button>
       </div>
 
-      {/* TAB 1: DANH SÁCH & BIÊN TẬP CÂU HỎI (NHẤP TRỰC TIẾP VÀO TIÊU ĐỀ LÀ MỞ NGAY NGUYÊN BẢNG XEM & SỬA) */}
+      {/* TAB 1: DANH SÁCH & BIÊN TẬP CÂU HỎI */}
       {activeTab === 'questions' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
@@ -697,7 +705,6 @@ ANSWER: D`;
                     </div>
                   </div>
 
-                  {/* THẦY BẤM TRỰC TIẾP VÀO TIÊU ĐỀ READING SECTION -> MỞ NGUYÊN PAGE XEM VÀ CHỈNH SỬA TỨC THỜI */}
                   <h4
                     onClick={() => handleOpenEditModal(q)}
                     className="font-extrabold text-sm text-slate-900 hover:text-emerald-600 cursor-pointer flex items-center space-x-1.5 transition underline-offset-4 hover:underline"
@@ -1083,7 +1090,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI (HIỂN THỊ TÊN FILE MP3 TRỰC TIẾP CHUẨN 100%) */}
+      {/* FORM BIÊN TẬP CÂU HỎI */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1097,7 +1104,7 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* FORM LISTENING SECTION (CÓ BOX UPLOAD & HIỂN THỊ TÊN FILE MP3 TRỰC TIẾP) */}
+              {/* FORM LISTENING SECTION (LƯU ĐÚNG FILE AUDIO THẬT CỦA THẦY VÀO THI THỬ 100%) */}
               {selectedType?.toLowerCase() === 'listening_section' && (
                 <div className="p-5 bg-purple-50 border border-purple-200 rounded-3xl space-y-4 shadow-xs">
                   <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-2 border-b border-purple-200 pb-2">
@@ -1112,12 +1119,12 @@ ANSWER: D`
                     <div className="flex items-center space-x-2">
                       <input
                         type="text"
-                        value={uploadedAudioFileName ? `📁 File đã chọn: ${uploadedAudioFileName}` : listeningAudioUrl}
+                        value={uploadedAudioFileName ? `📁 File audio đã chọn: ${uploadedAudioFileName}` : listeningAudioUrl}
                         onChange={(e) => {
                           setListeningAudioUrl(e.target.value);
                           setUploadedAudioFileName('');
                         }}
-                        placeholder="Dán link audio https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3..."
+                        placeholder="Dán link audio mp3 hoặc bấm nút bên để chọn file..."
                         className="w-full px-3 py-2 border border-purple-300 rounded-xl text-xs bg-white font-bold text-purple-950"
                       />
                       <label className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer flex items-center space-x-1 flex-shrink-0">
@@ -1127,15 +1134,15 @@ ANSWER: D`
                       </label>
                     </div>
 
-                    {/* THANH NÚT BẤM NGHE THỬ AUDIO TRỰC TIẾP TRONG FORM SOẠN */}
+                    {/* NÚT BẤM NGHE THỬ ĐÚNG FILE AUDIO THẬT VỪA NẠP */}
                     {listeningAudioUrl && (
                       <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
                         <span className="text-[11px] font-bold text-purple-800 flex items-center space-x-1">
                           <PlayCircle className="w-3.5 h-3.5 text-purple-600" />
-                          <span>Nghe thử Audio MP3 trực tiếp:</span>
+                          <span>Nghe thử file Audio vừa tải lên: {uploadedAudioFileName}</span>
                         </span>
                         <audio controls className="w-full h-8">
-                          <source src={listeningAudioUrl} type="audio/mpeg" />
+                          <source src={listeningAudioUrl} />
                         </audio>
                       </div>
                     )}
