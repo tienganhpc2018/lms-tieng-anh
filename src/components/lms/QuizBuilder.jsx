@@ -41,6 +41,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [explanation, setExplanation] = useState('');
   const [marks, setMarks] = useState(1.0);
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(0);
+  const [maxTabSwitches, setMaxTabSwitches] = useState(3);
+  const [isRandomized, setIsRandomized] = useState(false);
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
@@ -173,6 +175,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setUploadedAudioFileName(q.content?.audioFileName || '');
     setSectionChildQuestions(q.content?.childQuestions || []);
     setTimeLimitMinutes(q.content?.timeLimit || 0);
+      setMaxTabSwitches(q.content?.maxTabSwitches !== undefined ? q.content.maxTabSwitches : 3);
+      setIsRandomized(q.content?.isRandomized || false);
     setMarks(q.marks || 1.0);
     setMcOptions(
       q.content?.options && q.content?.options.length > 0
@@ -559,6 +563,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
         question: questionText.trim() || questionTitle || 'Instruction Question',
         explanation: explanation.trim(),
         timeLimit: Number(timeLimitMinutes) || 0,
+        maxTabSwitches: Number(maxTabSwitches) || 3,
+        isRandomized: isRandomized,
         categories: selectedCategories,
       };
 
@@ -772,11 +778,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
-              {/* CÀI ĐẶT THỜI GIAN & ĐIỂM SỐ */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200">
+              {/* CÀI ĐẶT THỜI GIAN & ĐIỂM SỐ & GIAN LẬN & TRỘN ĐỀ */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200 text-xs">
                 <div>
-                  <label className="block text-xs font-extrabold text-emerald-950 uppercase mb-1">
-                    ⏱️ CÀI ĐẶT THỜI GIAN LÀM BÀI
+                  <label className="block font-extrabold text-emerald-950 uppercase mb-1">
+                    ⏱️ CÀI ĐẶT THỜI GIAN
                   </label>
                   <select
                     value={timeLimitMinutes}
@@ -784,22 +790,53 @@ export default function QuizBuilder({ activityId, onSaved }) {
                     className="w-full px-3 py-2 border border-emerald-300 rounded-xl text-xs font-bold bg-white"
                   >
                     <option value={0}>⏱️ Không tính giờ</option>
-                    <option value={5}>⚡ 5 phút (Bài kiểm tra nhanh)</option>
+                    <option value={5}>⚡ 5 phút</option>
                     <option value={15}>📝 15 phút</option>
                     <option value={45}>🏫 45 phút</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                    🎯 ĐIỂM SỐ CÂU HỎI (MARKS)
+                  <label className="block font-extrabold text-rose-950 uppercase mb-1">
+                    🛡️ GIỚI HẠN RỜI TAB
+                  </label>
+                  <select
+                    value={maxTabSwitches}
+                    onChange={(e) => setMaxTabSwitches(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-rose-300 rounded-xl text-xs font-bold bg-white"
+                  >
+                    <option value={1}>🚫 Tối đa 1 lần (Nghiêm ngặt)</option>
+                    <option value={3}>⚠️ Tối đa 3 lần (Tiêu chuẩn)</option>
+                    <option value={5}>💬 Tối đa 5 lần</option>
+                    <option value={99}>Tùy chọn không khóa</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold text-purple-950 uppercase mb-1">
+                    🔀 TRỘN ĐỀ NGẪU NHIÊN
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsRandomized(!isRandomized)}
+                    className={`w-full px-3 py-2 rounded-xl text-xs font-extrabold border transition flex items-center justify-center space-x-1 ${
+                      isRandomized ? 'bg-purple-600 text-white border-transparent' : 'bg-white text-slate-600 border-slate-300'
+                    }`}
+                  >
+                    <span>{isRandomized ? '🔀 Đã bật trộn ngẫu nhiên' : 'Tắt trộn đề'}</span>
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold text-slate-800 uppercase mb-1">
+                    🎯 ĐIỂM SỐ CÂU HỎI
                   </label>
                   <input
                     type="number"
                     step="0.5"
                     value={marks}
                     onChange={(e) => setMarks(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold bg-white"
                   />
                 </div>
               </div>
