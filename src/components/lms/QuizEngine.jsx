@@ -254,7 +254,7 @@ export default function QuizEngine({ activity }) {
       });
 
       return (
-        <p key={idx} className={`leading-relaxed text-slate-700 ${idx > 0 ? 'mt-2' : ''}`}>
+        <p key={idx} className={`leading-relaxed text-slate-700 ${idx > 0 ? 'mt-1' : ''}`}>
           {isHeader ? (
             <span className="font-extrabold text-slate-900 bg-amber-100/70 px-1.5 py-0.5 rounded mr-1">
               {line}
@@ -267,14 +267,33 @@ export default function QuizEngine({ activity }) {
     });
   };
 
-  const renderFourBlockExplanation = (explanationText, correctText) => {
-    if (!explanationText) {
+  // HÀM RENDER GIẢI THÍCH GỌN NHẸ SIÊU TIẾT KIỆM DIỆN TÍCH CHO CLOZE TEST VÀ CÂU HỎI NHỎ
+  const renderCompactExplanation = (explanationText, correctText) => {
+    if (!explanationText || explanationText.trim() === '') {
       return (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-2 col-span-full">
-          <p className="font-extrabold text-emerald-950 text-sm">➔ Đáp án đúng: {correctText || 'Chính xác'}</p>
-          <p className="text-emerald-800">💡 Ghi nhớ từ vựng & cấu trúc trọng tâm để chọn đúng đáp án bài sau!</p>
+        <div className="mt-1 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] flex items-center justify-between text-emerald-950">
+          <span className="font-extrabold">➔ Đáp án đúng: {correctText}</span>
+          <span className="text-emerald-700 text-[10px]">💡 Nhớ từ vựng & cấu trúc trọng tâm!</span>
         </div>
       );
+    }
+
+    return (
+      <div className="mt-1.5 p-3 bg-emerald-50/90 border border-emerald-300 rounded-2xl text-[11px] space-y-1 text-slate-800">
+        <span className="font-extrabold text-emerald-950 block border-b border-emerald-200 pb-0.5">
+          ➔ ĐÁP ÁN ĐÚNG: {correctText}
+        </span>
+        <div className="pt-0.5">
+          {renderFormattedParagraphs(explanationText)}
+        </div>
+      </div>
+    );
+  };
+
+  // Render Khối AI Giải Thích Chuẩn 4 Phần Cho Bài Đọc/Nghe Lớn
+  const renderFourBlockExplanation = (explanationText, correctText) => {
+    if (!explanationText) {
+      return renderCompactExplanation('', correctText);
     }
 
     const sectionGrammar = explanationText.includes('Phân tích ngữ pháp')
@@ -294,52 +313,32 @@ export default function QuizEngine({ activity }) {
       : 'Dịch câu hỏi và đáp án chuẩn Tiếng Việt giúp học sinh nắm vững nghĩa.';
 
     return (
-      <div className="p-5 bg-emerald-50/80 border border-emerald-300 rounded-3xl space-y-4 text-xs col-span-full">
-        <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-xs">
-          <p className="font-extrabold text-sm flex items-center space-x-1.5">
-            <CheckCircle className="w-4 h-4 text-emerald-200" />
+      <div className="p-4 bg-emerald-50/80 border border-emerald-300 rounded-2xl space-y-3 text-xs col-span-full mt-2">
+        <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-xs">
+          <p className="font-extrabold text-xs flex items-center space-x-1.5">
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-200" />
             <span>➔ ĐÁP ÁN ĐÚNG: {correctText}</span>
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          <div className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2 shadow-2xs">
-            <span className="font-extrabold text-emerald-950 flex items-center space-x-1.5 text-[11px] border-b border-emerald-100 pb-1">
-              <Search className="w-3.5 h-3.5 text-sky-600" />
-              <span>📌 PHÂN TÍCH NGỮ PHÁP / NGỮ CẢNH:</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-0.5">
+          <div className="p-3 bg-white border border-emerald-200 rounded-xl space-y-1 text-[11px] shadow-2xs">
+            <span className="font-extrabold text-emerald-950 flex items-center space-x-1 border-b border-emerald-100 pb-0.5">
+              <Search className="w-3 h-3 text-sky-600" />
+              <span>📌 PHÂN TÍCH NGỮ PHÁP:</span>
             </span>
-            <div className="text-slate-700 space-y-1 font-medium leading-relaxed">
+            <div className="text-slate-700 space-y-0.5 font-medium leading-relaxed">
               {renderFormattedParagraphs(sectionGrammar)}
             </div>
           </div>
 
-          <div className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2 shadow-2xs">
-            <span className="font-extrabold text-emerald-950 flex items-center space-x-1.5 text-[11px] border-b border-emerald-100 pb-1">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-              <span>💡 GIẢI THÍCH CHI TIẾT (EVIDENCE / DẪN CHỨNG):</span>
+          <div className="p-3 bg-white border border-emerald-200 rounded-xl space-y-1 text-[11px] shadow-2xs">
+            <span className="font-extrabold text-emerald-950 flex items-center space-x-1 border-b border-emerald-100 pb-0.5">
+              <Lightbulb className="w-3 h-3 text-amber-500" />
+              <span>💡 EVIDENCE / DẪN CHỨNG:</span>
             </span>
-            <div className="text-slate-700 space-y-1 font-medium leading-relaxed">
+            <div className="text-slate-700 space-y-0.5 font-medium leading-relaxed">
               {renderFormattedParagraphs(sectionDetail)}
-            </div>
-          </div>
-
-          <div className="p-4 bg-white border border-rose-200 rounded-2xl space-y-2 shadow-2xs">
-            <span className="font-extrabold text-rose-950 flex items-center space-x-1.5 text-[11px] border-b border-rose-100 pb-1">
-              <XCircle className="w-3.5 h-3.5 text-rose-600" />
-              <span>✕ LOẠI TRỪ CÁC ĐÁP ÁN GÂY NHIỄU:</span>
-            </span>
-            <div className="text-slate-700 space-y-1 font-medium leading-relaxed">
-              {renderFormattedParagraphs(sectionExclude)}
-            </div>
-          </div>
-
-          <div className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2 shadow-2xs">
-            <span className="font-extrabold text-emerald-950 flex items-center space-x-1.5 text-[11px] border-b border-emerald-100 pb-1">
-              <span className="text-xs">🇻🇳</span>
-              <span>BẢN DỊCH NGHĨA SONG NGỮ TIẾNG VIỆT:</span>
-            </span>
-            <div className="text-slate-700 space-y-1 font-medium leading-relaxed">
-              {renderFormattedParagraphs(sectionTranslation)}
             </div>
           </div>
         </div>
@@ -356,47 +355,47 @@ export default function QuizEngine({ activity }) {
   const isTimeWarning = isCountdownMode && secondsRemaining < 120;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* THÔNG BÁO TỔNG KẾT BÀI THI SAU KHU NỘP */}
       {submitted ? (
-        <div className="p-6 bg-gradient-to-br from-slate-900 to-navy-900 text-white rounded-3xl shadow-xl space-y-6 border border-slate-700 animate-scale-up">
-          <div className="flex items-center space-x-3 border-b border-slate-800 pb-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
-              <Award className="w-6 h-6 text-emerald-400" />
+        <div className="p-5 bg-gradient-to-br from-slate-900 to-navy-900 text-white rounded-3xl shadow-xl space-y-5 border border-slate-700 animate-scale-up">
+          <div className="flex items-center space-x-3 border-b border-slate-800 pb-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+              <Award className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h3 className="text-xl font-extrabold tracking-tight">KẾT QUẢ BÀI KÍỂM TRA</h3>
-              <p className="text-xs text-slate-300">Học sinh: {resultData.studentName}</p>
+              <h3 className="text-lg font-extrabold tracking-tight">KẾT QUẢ BÀI KÍỂM TRA</h3>
+              <p className="text-[11px] text-slate-300">Học sinh: {resultData.studentName}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 space-y-1">
-              <span className="text-[11px] font-bold text-slate-400 uppercase block">Thời Gian Làm</span>
-              <span className="text-sm font-extrabold text-white flex items-center justify-center space-x-1">
-                <Clock className="w-4 h-4 text-sky-400" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Thời Gian Làm</span>
+              <span className="text-xs font-extrabold text-white flex items-center justify-center space-x-1">
+                <Clock className="w-3.5 h-3.5 text-sky-400" />
                 <span>{resultData.timeTakenStr}</span>
               </span>
             </div>
 
-            <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 space-y-1">
-              <span className="text-[11px] font-bold text-slate-400 uppercase block">Số Câu Đúng</span>
-              <span className="text-sm font-extrabold text-emerald-400">
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Số Câu Đúng</span>
+              <span className="text-xs font-extrabold text-emerald-400">
                 {resultData.correctCount} / {resultData.totalQuestions} câu
               </span>
             </div>
 
-            <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 space-y-1">
-              <span className="text-[11px] font-bold text-slate-400 uppercase block">Tổng Điểm Đạt Được</span>
-              <span className="text-sm font-extrabold text-amber-400">
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Tổng Điểm Đạt Được</span>
+              <span className="text-xs font-extrabold text-amber-400">
                 {resultData.score} / {resultData.totalMarks} điểm
               </span>
             </div>
 
-            <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 space-y-1">
-              <span className="text-[11px] font-bold text-slate-400 uppercase block">Trạng Thái</span>
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 space-y-0.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Trạng Thái</span>
               <span
-                className={`text-xs font-extrabold px-2.5 py-1 rounded-lg inline-block ${
+                className={`text-[11px] font-extrabold px-2 py-0.5 rounded inline-block ${
                   resultData.isPassed ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                 }`}
               >
@@ -407,17 +406,17 @@ export default function QuizEngine({ activity }) {
         </div>
       ) : (
         /* THANH ĐỒNG HỒ THỜI GIAN LÀM BÀI */
-        <div className="bg-slate-900 text-white p-4 rounded-2xl flex justify-between items-center shadow-md">
+        <div className="bg-slate-900 text-white p-3.5 rounded-2xl flex justify-between items-center shadow-md">
           <div className="flex items-center space-x-2">
             <User className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold">Học sinh: {profile?.full_name || 'Học Viên'}</span>
           </div>
           <div
-            className={`flex items-center space-x-2 text-xs font-extrabold px-3.5 py-1.5 rounded-xl border transition ${
+            className={`flex items-center space-x-2 text-xs font-extrabold px-3 py-1 rounded-xl border transition ${
               isTimeWarning ? 'bg-rose-950 text-rose-300 border-rose-600 animate-pulse' : 'bg-slate-800 text-emerald-400 border-slate-700'
             }`}
           >
-            <Clock className="w-4 h-4 text-amber-400" />
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
             {isCountdownMode ? (
               <span>
                 ⏱️ Tổng thời gian làm bài ({Math.floor(timeLimitSeconds / 60)} phút): {minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}
@@ -432,7 +431,7 @@ export default function QuizEngine({ activity }) {
       )}
 
       {/* DANH SÁCH CÂU HỎI */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {questions.map((q, qIdx) => {
           const sectionType = (q.content?.sectionType || q.type || 'multiple_choice').toLowerCase();
           const isReading = sectionType === 'reading_section';
@@ -454,36 +453,36 @@ export default function QuizEngine({ activity }) {
           // DẠNG 3: READING (True/False)
           if (isReadingTF) {
             return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-500 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-500 rounded-3xl p-5 shadow-xs border-y border-r border-slate-200 space-y-4">
                 <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
-                  <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
                     {qIdx + 1}
                   </span>
-                  <span className="font-extrabold text-emerald-900 text-sm uppercase">
+                  <span className="font-extrabold text-emerald-900 text-xs uppercase">
                     {q.content?.title || 'READING (True/False)'}
                   </span>
                 </div>
 
-                <div className="p-4 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content?.question || 'Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F).'}
                 </div>
 
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-5 text-slate-800 font-serif text-xs leading-relaxed text-justify shadow-2xs">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4 text-slate-800 font-serif text-xs leading-relaxed text-justify shadow-2xs">
                   {q.content?.passage}
                 </div>
 
-                <div className="space-y-3 pt-2">
+                <div className="space-y-2 pt-1">
                   {childQuestions.map((cQ, cIdx) => {
                     const childKey = `${q.id}_c${cIdx}`;
                     const selectedVal = userAnswers[childKey];
                     return (
-                      <div key={cIdx} className="space-y-2">
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-2.5 gap-4">
+                      <div key={cIdx} className="space-y-1">
+                        <div className="flex justify-between items-center border-b border-slate-100 pb-2 gap-3">
                           <span className="text-xs font-semibold text-slate-800 leading-relaxed">
                             {cQ.question}
                           </span>
 
-                          <div className="flex items-center space-x-2 flex-shrink-0">
+                          <div className="flex items-center space-x-1.5 flex-shrink-0">
                             <button
                               disabled={submitted}
                               onClick={() => handleSelectAnswer(childKey, 'T')}
@@ -510,7 +509,7 @@ export default function QuizEngine({ activity }) {
                           </div>
                         </div>
 
-                        {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, cQ.correctAnswer === 'T' ? 'True (T)' : 'False (F)')}
+                        {submitted && renderCompactExplanation(cQ.explanation || q.content?.explanation, cQ.correctAnswer === 'T' ? 'True (T)' : 'False (F)')}
                       </div>
                     );
                   })}
@@ -519,7 +518,7 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test)
+          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test) - SIÊU GỌN GÀNG KHÔNG GIÃN TRANG
           if (isClozeTest) {
             const tasksList = Array.isArray(q.content?.tasks) && q.content.tasks.length > 0
               ? q.content.tasks
@@ -540,35 +539,35 @@ export default function QuizEngine({ activity }) {
                 ];
 
             return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
-                <div className="bg-blue-50/70 rounded-xl p-3.5 flex justify-between items-center">
-                  <h3 className="font-extrabold text-sm text-blue-900 tracking-wide uppercase flex items-center space-x-2">
-                    <span className="w-7 h-7 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-5 shadow-xs border-y border-r border-slate-200 space-y-4">
+                <div className="bg-blue-50/70 rounded-xl p-3 flex justify-between items-center">
+                  <h3 className="font-extrabold text-xs text-blue-900 tracking-wide uppercase flex items-center space-x-2">
+                    <span className="w-6 h-6 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
                       {qIdx + 1}
                     </span>
                     <span>{q.content?.title || 'KNOWLEDGE OF LANGUAGE'}</span>
                   </h3>
-                  <Volume2 className="w-5 h-5 text-blue-600 cursor-pointer" />
+                  <Volume2 className="w-4 h-4 text-blue-600 cursor-pointer" />
                 </div>
 
                 {tasksList.map((taskItem, tIdx) => {
                   const tQuestions = taskItem.questions || [];
 
                   return (
-                    <div key={tIdx} className="space-y-4 border-b border-slate-100 pb-5 last:border-b-0 last:pb-0">
-                      <div className="p-3.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs space-y-0.5">
+                    <div key={tIdx} className="space-y-3 border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
+                      <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs space-y-0.5">
                         <h4 className="uppercase tracking-tight text-purple-950">
                           {taskItem.task_title}
                         </h4>
                         {taskItem.task_sub && (
-                          <p className="text-[11px] italic text-purple-800 font-medium">
+                          <p className="text-[10px] italic text-purple-800 font-medium">
                             {taskItem.task_sub}
                           </p>
                         )}
                       </div>
 
-                      <div className="border border-slate-300 rounded-2xl bg-amber-50/20 p-5 relative space-y-2 mt-3">
-                        <span className={`text-white text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase absolute -top-3 left-4 shadow-xs ${
+                      <div className="border border-slate-300 rounded-2xl bg-amber-50/20 p-4 relative space-y-1.5 mt-2">
+                        <span className={`text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase absolute -top-2.5 left-3 shadow-xs ${
                           tIdx === 1 ? 'bg-teal-600' : 'bg-amber-500'
                         }`}>
                           {taskItem.badge_label || (tIdx === 1 ? 'EMAIL' : 'POSTER')}
@@ -585,7 +584,8 @@ export default function QuizEngine({ activity }) {
                         </p>
                       </div>
 
-                      <div className="space-y-2.5 pt-1">
+                      {/* HÀNG CÂU HỎI CLOZE TEST SIÊU KHÍT BẰNG NHAU */}
+                      <div className="space-y-2 pt-1">
                         {tQuestions.map((cQ, cIdx) => {
                           const childKey = `${q.id}_t${tIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
@@ -598,13 +598,13 @@ export default function QuizEngine({ activity }) {
                           });
 
                           return (
-                            <div key={cIdx} className="space-y-1.5">
-                              <div className="flex items-start gap-3 w-full">
-                                <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0 mt-1">
+                            <div key={cIdx} className="space-y-1">
+                              <div className="flex items-center gap-2.5 w-full">
+                                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
                                   {cQ.question_number || (16 + cIdx)}
                                 </span>
 
-                                <div className={`grid gap-2.5 w-full items-stretch ${
+                                <div className={`grid gap-2 w-full items-stretch ${
                                   isLongOptions ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
                                 }`}>
                                   {opts.map((opt, oIdx) => {
@@ -617,7 +617,7 @@ export default function QuizEngine({ activity }) {
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, optVal)}
-                                        className={`rounded-2xl px-3.5 py-2 text-xs transition font-semibold text-left whitespace-normal break-words border flex items-center space-x-1.5 ${
+                                        className={`rounded-xl px-3 py-1.5 text-xs transition font-semibold text-left whitespace-normal break-words border flex items-center space-x-1 ${
                                           isSelected
                                             ? `${tIdx === 1 ? 'bg-teal-600' : 'bg-blue-600'} text-white font-bold shadow-xs border-transparent`
                                             : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
@@ -630,7 +630,8 @@ export default function QuizEngine({ activity }) {
                                 </div>
                               </div>
 
-                              {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctOpt ? `Option ${correctOpt}` : 'Đáp án đúng')}
+                              {/* HIỂN THỊ GIẢI THÍCH GỌN DÒNG DUY NHẤT TRÁNH GIÃN KHUNG */}
+                              {submitted && renderCompactExplanation(cQ.explanation || taskItem.explanation, correctOpt ? `Option ${correctOpt}` : 'Đáp án đúng')}
                             </div>
                           );
                         })}
@@ -642,16 +643,16 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // NẾU LÀ LISTENING_SECTION HOẶC READING_SECTION CÓ MULTI PARTS (PART 1 Trắc nghiệm & PART 2 True/False)
+          // NẾU LÀ LISTENING_SECTION HOẶC READING_SECTION CÓ MULTI PARTS
           if ((isListening || isReading) && sectionParts.length > 0) {
             return (
-              <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-6 shadow-xs">
+              <div key={q.id || qIdx} className="p-5 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
-                    <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
+                    <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
                       {qIdx + 1}
                     </span>
-                    <span className="uppercase text-emerald-900 tracking-tight text-sm font-extrabold">
+                    <span className="uppercase text-emerald-900 tracking-tight text-xs font-extrabold">
                       {q.content?.title || (isListening ? 'LISTENING SECTION' : 'READING SECTION')}
                     </span>
                   </div>
@@ -670,23 +671,23 @@ export default function QuizEngine({ activity }) {
                   }
 
                   return (
-                    <div key={pIdx} className="space-y-4 border-b border-slate-200 pb-6 last:border-b-0 last:pb-0">
-                      <div className="p-4 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                    <div key={pIdx} className="space-y-3 border-b border-slate-200 pb-4 last:border-b-0 last:pb-0">
+                      <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                         {pItem.part_title || `PART ${pIdx + 1}: Instruction`}
                       </div>
 
                       {isListening && (
-                        <div className="space-y-2 bg-white p-4 rounded-2xl border border-purple-200 shadow-2xs">
+                        <div className="space-y-1.5 bg-white p-3 rounded-xl border border-purple-200 shadow-2xs">
                           <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
-                            <Volume2 className="w-4 h-4 text-purple-600" />
+                            <Volume2 className="w-3.5 h-3.5 text-purple-600" />
                             <span>Audio Part {pIdx + 1}</span>
                           </div>
                           {pAudioSrc ? (
-                            <audio controls preload="auto" className="w-full h-9" src={pAudioSrc}>
+                            <audio controls preload="auto" className="w-full h-8" src={pAudioSrc}>
                               Trình duyệt không hỗ trợ phát audio.
                             </audio>
                           ) : (
-                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
+                            <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800 font-medium">
                               ⚠️ File audio MP3 Part {pIdx + 1} đang chờ Thầy chọn từ máy.
                             </div>
                           )}
@@ -694,13 +695,12 @@ export default function QuizEngine({ activity }) {
                       )}
 
                       {isReading && pItem.passage && (
-                        <div className="p-5 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-serif shadow-2xs">
+                        <div className="p-4 bg-white border border-emerald-200 rounded-xl text-xs text-slate-800 leading-relaxed font-serif shadow-2xs">
                           {pItem.passage}
                         </div>
                       )}
 
-                      {/* KHỐI HIỂN THỊ CÂU HỎI CON: NẾU TRẮC NGHIỆM THÌ HIỂN THỊ A,B,C,D; NẾU TRUE/FALSE THÌ NÚT [T] VÀ [F] */}
-                      <div className="space-y-4 pt-1">
+                      <div className="space-y-3 pt-1">
                         {pQs.map((cQ, cIdx) => {
                           const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
@@ -708,13 +708,13 @@ export default function QuizEngine({ activity }) {
                           if (isTF) {
                             const correctAnsTF = cQ.correctAnswer || 'T';
                             return (
-                              <div key={cIdx} className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2">
-                                <div className="flex justify-between items-center gap-4">
+                              <div key={cIdx} className="p-3.5 bg-white border border-emerald-200 rounded-xl space-y-1.5">
+                                <div className="flex justify-between items-center gap-3">
                                   <span className="text-xs font-semibold text-slate-800 leading-relaxed">
                                     {cQ.question}
                                   </span>
 
-                                  <div className="flex items-center space-x-2 flex-shrink-0">
+                                  <div className="flex items-center space-x-1.5 flex-shrink-0">
                                     <button
                                       disabled={submitted}
                                       onClick={() => handleSelectAnswer(childKey, 'T')}
@@ -741,12 +741,11 @@ export default function QuizEngine({ activity }) {
                                   </div>
                                 </div>
 
-                                {submitted && renderFourBlockExplanation(cQ.explanation || pItem.explanation, correctAnsTF === 'T' ? 'True (T)' : 'False (F)')}
+                                {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctAnsTF === 'T' ? 'True (T)' : 'False (F)')}
                               </div>
                             );
                           }
 
-                          // CÂU HỎI TRẮC NGHIỆM MULTIPLE CHOICE
                           const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
                           const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
                           const isCorrect = submitted && selectedVal === correctOptIndex;
@@ -761,7 +760,7 @@ export default function QuizEngine({ activity }) {
                           return (
                             <div
                               key={cIdx}
-                              className={`p-5 bg-white border rounded-2xl space-y-3 transition ${
+                              className={`p-4 bg-white border rounded-xl space-y-2 transition ${
                                 submitted
                                   ? isCorrect
                                     ? 'border-emerald-400 bg-emerald-50/20'
@@ -775,14 +774,14 @@ export default function QuizEngine({ activity }) {
                                 {submitted && (
                                   <div>
                                     {isCorrect && (
-                                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-extrabold rounded-lg flex items-center space-x-1">
-                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded flex items-center space-x-1">
+                                        <CheckCircle className="w-3 h-3 text-emerald-600" />
                                         <span>Đúng</span>
                                       </span>
                                     )}
                                     {isWrong && (
-                                      <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[11px] font-extrabold rounded-lg flex items-center space-x-1">
-                                        <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                      <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-extrabold rounded flex items-center space-x-1">
+                                        <XCircle className="w-3 h-3 text-rose-600" />
                                         <span>Sai</span>
                                       </span>
                                     )}
@@ -790,7 +789,7 @@ export default function QuizEngine({ activity }) {
                                 )}
                               </div>
 
-                              <div className={`grid gap-3 w-full items-stretch pt-1 ${
+                              <div className={`grid gap-2 w-full items-stretch pt-0.5 ${
                                 isLongOptions ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
                               }`}>
                                 {cOpts.map((opt, oIdx) => {
@@ -814,9 +813,9 @@ export default function QuizEngine({ activity }) {
                                       key={oIdx}
                                       disabled={submitted}
                                       onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                      className={`w-full text-left px-3.5 py-2 rounded-2xl text-xs font-semibold border transition flex items-center space-x-2 whitespace-normal break-words ${btnStyle}`}
+                                      className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center space-x-1.5 whitespace-normal break-words ${btnStyle}`}
                                     >
-                                      <span className={`w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
+                                      <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
                                         isSelected ? 'bg-white text-emerald-800' : 'bg-slate-200 text-slate-600'
                                       }`}>
                                         {label}
@@ -827,16 +826,15 @@ export default function QuizEngine({ activity }) {
                                 })}
                               </div>
 
-                              {submitted && renderFourBlockExplanation(cQ.explanation || pItem.explanation, correctText)}
+                              {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctText)}
                             </div>
                           );
                         })}
                       </div>
 
-                      {/* HIỂN THỊ GIẢI THÍCH CHUNG CỦA PART NẾU CÓ */}
                       {submitted && pItem.explanation && (
-                        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-950">
-                          <span className="font-extrabold block mb-1">💡 GIẢI THÍCH TỔNG QUAN PART #{pIdx + 1}:</span>
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-950">
+                          <span className="font-extrabold block mb-0.5">💡 GIẢI THÍCH TỔNG QUAN PART #{pIdx + 1}:</span>
                           {renderFormattedParagraphs(pItem.explanation)}
                         </div>
                       )}
@@ -849,25 +847,25 @@ export default function QuizEngine({ activity }) {
 
           // DẠNG CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ KHÁC
           return (
-            <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
+            <div key={q.id || qIdx} className="p-5 bg-slate-50 border border-slate-200 rounded-3xl space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
-                  <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
+                  <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
                     {qIdx + 1}
                   </span>
-                  <span className="uppercase text-emerald-900 tracking-tight text-sm font-extrabold">
+                  <span className="uppercase text-emerald-900 tracking-tight text-xs font-extrabold">
                     {isListening ? 'LISTENING SECTION' : isReading ? 'READING SECTION' : 'MULTIPLE CHOICE'}
                   </span>
                 </div>
               </div>
 
               {(q.content?.question || q.content?.title) && (
-                <div className="p-4 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content.question || q.content.title}
                 </div>
               )}
 
-              <div className="space-y-4 pt-1">
+              <div className="space-y-3 pt-1">
                 {(childQuestions.length > 0
                   ? childQuestions
                   : [
@@ -899,7 +897,7 @@ export default function QuizEngine({ activity }) {
                   return (
                     <div
                       key={cIdx}
-                      className={`p-5 bg-white border rounded-2xl space-y-3 transition ${
+                      className={`p-4 bg-white border rounded-xl space-y-2 transition ${
                         submitted
                           ? isCorrect
                             ? 'border-emerald-400 bg-emerald-50/20'
@@ -911,7 +909,7 @@ export default function QuizEngine({ activity }) {
                         <h4 className="font-extrabold text-xs text-slate-900">{cQ.question}</h4>
                       </div>
 
-                      <div className={`grid gap-3 w-full items-stretch pt-1 ${
+                      <div className={`grid gap-2 w-full items-stretch pt-0.5 ${
                         isLongOptions ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
                       }`}>
                         {cOpts.map((opt, oIdx) => {
@@ -935,9 +933,9 @@ export default function QuizEngine({ activity }) {
                               key={oIdx}
                               disabled={submitted}
                               onClick={() => handleSelectAnswer(childKey, oIdx)}
-                              className={`w-full text-left px-3.5 py-2 rounded-2xl text-xs font-semibold border transition flex items-center space-x-2 whitespace-normal break-words ${btnStyle}`}
+                              className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center space-x-1.5 whitespace-normal break-words ${btnStyle}`}
                             >
-                              <span className={`w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
+                              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
                                 isSelected ? 'bg-white text-emerald-800' : 'bg-slate-200 text-slate-600'
                               }`}>
                                 {label}
@@ -948,7 +946,7 @@ export default function QuizEngine({ activity }) {
                         })}
                       </div>
 
-                      {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctText)}
+                      {submitted && renderCompactExplanation(cQ.explanation || q.content?.explanation, correctText)}
                     </div>
                   );
                 })}
