@@ -96,7 +96,11 @@ export default function Dashboard() {
     const finalJoinCode = (customJoinCode.trim() || generateRandomCode()).toUpperCase();
     const newCover = coverImage || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
 
-    const { data, error } = await supabase
+    let data = null;
+    let error = null;
+
+    // Thử Insert có join_code trước
+    const res1 = await supabase
       .from('courses')
       .insert([
         {
@@ -108,7 +112,28 @@ export default function Dashboard() {
         },
       ])
       .select()
-      .single();
+      .maybeSingle();
+
+    if (res1.error && res1.error.message?.includes('join_code')) {
+      // Fallback nếu database Supabase chưa có cột join_code
+      const res2 = await supabase
+        .from('courses')
+        .insert([
+          {
+            title: title.trim(),
+            description: `[MÃ: ${finalJoinCode}] ${description.trim()}`,
+            cover_image: newCover,
+            teacher_id: user.id,
+          },
+        ])
+        .select()
+        .single();
+      data = res2.data;
+      error = res2.error;
+    } else {
+      data = res1.data;
+      error = res1.error;
+    }
 
     if (error) {
       showToast('error', 'Lỗi Tạo Khóa Học', error.message);
