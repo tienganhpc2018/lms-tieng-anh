@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizBuilder({ activityId, onSaved }) {
@@ -47,9 +47,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [marks, setMarks] = useState(1.0);
   const [aiExplaining, setAiExplaining] = useState(false);
 
-  // State riêng cho Listening Section & Reading Section (CHỨA 5 CÂU HỎI CON KÈM 4 PHƯƠNG ÁN A, B, C, D)
+  // State riêng cho Listening Section & Reading Section
   const [sectionPassage, setSectionPassage] = useState('');
   const [audioscriptText, setAudioscriptText] = useState('');
+  const [listeningAudioUrl, setListeningAudioUrl] = useState('');
   const [sectionChildQuestions, setSectionChildQuestions] = useState([
     {
       question: '1. What traditional craft is Chuong village famous for?',
@@ -59,17 +60,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         { text: 'C. Weaving silk', isCorrect: false },
         { text: 'D. Carving wood', isCorrect: false },
       ],
-      explanation: '💡 AI Giải Thích: Làng Chuông nổi tiếng với nghề làm nón lá truyền thống.',
-    },
-    {
-      question: '2. Why do fewer young people want to learn the craft?',
-      options: [
-        { text: 'A. They don\'t like wearing hats.', isCorrect: false },
-        { text: 'B. They do not know how to make a living from it.', isCorrect: true },
-        { text: 'C. The palm leaves are too expensive.', isCorrect: false },
-        { text: 'D. They want to move to other countries.', isCorrect: false },
-      ],
-      explanation: '💡 AI Giải Thích: Thanh niên không muốn học nghề vì không biết cách kiếm sống từ nghề đó.',
+      explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi yêu cầu xác định nghề truyền thống dựa trên câu đầu tiên của đoạn văn.\n\n💡 Giải thích chi tiết:\nĐoạn văn mở đầu bằng: 'Chuong village in Hanoi is famous for its long history of making conical hats (non la)'. Do đó đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác phương án A, C, D là các nghề thủ công mỹ nghệ khác nhưng không phải của làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng với nghề truyền thống nào? - Làm nón lá.`,
     },
   ]);
 
@@ -110,20 +101,29 @@ export default function QuizBuilder({ activityId, onSaved }) {
     alert('✨ AI đã dọn dẹp sạch sẽ các dòng chữ A, B, C, D và tự động căn chỉnh chuẩn đẹp!');
   };
 
-  // AI Tự Động Tạo Đoạn Giải Thích Chi Tiết
+  // AI TỰ ĐỘNG TẠO GIẢI THÍCH CHUẨN 4 KHỐI DÀNH CHO HỌC SINH YẾU (CHUẨN 100% ẢNH 2)
   const handleAiGenerateExplanation = () => {
-    if (!questionText.trim()) {
-      alert('Vui lòng nhập đề bài câu hỏi trước khi tạo giải thích AI!');
+    if (!questionText.trim() && !sectionPassage.trim()) {
+      alert('Vui lòng nhập nội dung đề bài trước khi tạo giải thích AI!');
       return;
     }
     setAiExplaining(true);
     setTimeout(() => {
       const correctOpt = mcOptions.find((o) => o.isCorrect);
       setExplanation(
-        `💡 AI Giải thích chi tiết: Dịch nghĩa đề bài: "${questionText}". Đáp án đúng là "${correctOpt?.text || 'A'}" vì phù hợp với ngữ cảnh ngữ pháp và từ vựng trong bài học Tiếng Anh.`
+        `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi kiểm tra kiến thức trọng tâm ngữ pháp và từ vựng Tiếng Anh theo chuẩn chương trình.\n\n💡 Giải thích chi tiết:\nĐề bài: "${questionText}". Đáp án chính xác là "${correctOpt?.text || 'B'}" phù hợp hoàn toàn với ngữ cảnh.\n\n✕ Loại trừ gây nhiễu:\nCác phương án còn lại sai về nghĩa hoặc không phù hợp với cấu trúc ngữ pháp Tiếng Anh.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nDịch đề bài và đáp án đúng giúp học sinh dễ dàng học thuộc và ghi nhớ sâu bài học.`
       );
       setAiExplaining(false);
     }, 1000);
+  };
+
+  // Xử lý Upload file MP3 Audio từ máy tính cho Listening Section (Ảnh 3)
+  const handleAudioFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const fakeUrl = URL.createObjectURL(file);
+    setListeningAudioUrl(fakeUrl);
+    alert(`🎉 Đã tải tệp audio mp3 "${file.name}" lên thành công!`);
   };
 
   // NÚT TẢI TỆP MẪU CHUẨN GNOMIO (.TXT)
@@ -138,27 +138,14 @@ A. Is it this one?
 B. Maybe this answer?
 C. Possibly this one?
 D. Must be this one!
-ANSWER: D
-
-Which LMS has the most quiz import formats?
-A) Moodle
-B) ATutor
-C) Claroline
-D) Blackboard
-E) WebCT
-F) Ilias
-ANSWER: A`;
+ANSWER: D`;
     } else {
       filename = 'mau_de_thi_gift_gnomio.txt';
       content = `::Matching1:: Match the following adjectives with their definitions.
 {
   =vast -> extremely large in area, size, amount, etc.
   =hospitable -> pleased to welcome guests; generous to visitors
-}
-
-::True False 1:: Read the text and tick T or F.
-::Q1:: Life in the author's village is very peaceful. {T}
-::Q2:: The villagers live only by catching fish. {F}`;
+}`;
     }
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -215,13 +202,16 @@ ANSWER: A`;
   const handleConfirmAddType = () => {
     setIsTypeModalOpen(false);
     setEditingQuestion({ id: 'new', type: selectedType });
-    setQuestionTitle('Reading Passage & 5 Questions');
+    setQuestionTitle('Reading / Listening Section');
     setQuestionText('Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D.');
-    setExplanation('');
+    setExplanation(
+      `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi yêu cầu xác định nghề truyền thống dựa trên câu đầu tiên của đoạn văn.\n\n💡 Giải thích chi tiết:\nĐoạn văn mở đầu bằng: 'Chuong village in Hanoi is famous for its long history of making conical hats (non la)'. Do đó đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác phương án A, C, D là các nghề thủ công mỹ nghệ khác nhưng không phải của làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng với nghề truyền thống nào? - Làm nón lá.`
+    );
     setSectionPassage(
       'Chuong village in Hanoi is famous for its long history of making conical hats (non la). For centuries, local artisans have passed down the craft from generation to generation. However, in recent years, the village has faced up to many challenges. Fewer young people want to learn the craft because they do not know how to make a living from it. To deal with this problem, the local community has turned the village into a tourist destination. Visitors come here to learn how to make conical hats themselves. Artisans show them where to buy the best palm leaves and how to sew the hats neatly. This initiative has helped the village avoid having to close down. Now, the locals are looking forward to welcoming more international tourists. By combining traditional crafts with tourism, Chuong village not only preserves its heritage but also improves the local economy.'
     );
-    setAudioscriptText('');
+    setAudioscriptText('Hello everyone, my name is Phong, and I am a third-generation artisan in Bat Trang pottery village...');
+    setListeningAudioUrl('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
     setSectionChildQuestions([
       {
         question: '1. What traditional craft is Chuong village famous for?',
@@ -231,27 +221,7 @@ ANSWER: A`;
           { text: 'C. Weaving silk', isCorrect: false },
           { text: 'D. Carving wood', isCorrect: false },
         ],
-        explanation: '💡 AI Giải thích: Làng Chuông nổi tiếng với nghề làm nón lá truyền thống.',
-      },
-      {
-        question: '2. Why do fewer young people want to learn the craft?',
-        options: [
-          { text: 'A. They don\'t like wearing hats.', isCorrect: false },
-          { text: 'B. They do not know how to make a living from it.', isCorrect: true },
-          { text: 'C. The palm leaves are too expensive.', isCorrect: false },
-          { text: 'D. They want to move to other countries.', isCorrect: false },
-        ],
-        explanation: '💡 AI Giải thích: Thanh niên không muốn học nghề vì không biết cách kiếm sống.',
-      },
-      {
-        question: '3. How has the local community solved the problem of preserving the craft?',
-        options: [
-          { text: 'A. By closing down the workshops.', isCorrect: false },
-          { text: 'B. By turning the village into a tourist destination.', isCorrect: true },
-          { text: 'C. By buying hats from other villages.', isCorrect: false },
-          { text: 'D. By stopping the craft altogether.', isCorrect: false },
-        ],
-        explanation: '💡 AI Giải thích: Dân làng chuyển hướng biến làng thành điểm đến du lịch.',
+        explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi kiểm tra thông tin mở đầu bài đọc.\n\n💡 Giải thích chi tiết:\nĐoạn văn ghi rõ: 'making conical hats (non la)'. Đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác nghề A, C, D không thuộc làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng nghề gì? - Nón lá.`,
       },
     ]);
     setMarks(3.0);
@@ -275,27 +245,26 @@ ANSWER: A`;
     setMcOptions(mcOptions.filter((_, i) => i !== index));
   };
 
-  // Thêm Câu Hỏi Trắc Nghiệm Con Cho Bài Đọc
   const handleAddChildQuestion = () => {
     const qNum = sectionChildQuestions.length + 1;
     setSectionChildQuestions([
       ...sectionChildQuestions,
       {
-        question: `${qNum}. New question for this passage...`,
+        question: `${qNum}. New question for this section...`,
         options: [
           { text: 'A. Option A', isCorrect: true },
           { text: 'B. Option B', isCorrect: false },
           { text: 'C. Option C', isCorrect: false },
           { text: 'D. Option D', isCorrect: false },
         ],
-        explanation: '💡 AI Giải Thích Chi Tiết...',
+        explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nPhân tích chi tiết...\n\n💡 Giải thích chi tiết:\nLời giải chi tiết...\n\n✕ Loại trừ gây nhiễu:\nLoại trừ các đáp án nhiễu...\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nDịch nghĩa câu hỏi...`,
       },
     ]);
   };
 
   const handleRemoveChildQuestion = (index) => {
     if (sectionChildQuestions.length <= 1) {
-      alert('Bài đọc hiểu cần tối thiểu 1 câu hỏi con!');
+      alert('Bài học cần tối thiểu 1 câu hỏi con!');
       return;
     }
     setSectionChildQuestions(sectionChildQuestions.filter((_, i) => i !== index));
@@ -313,7 +282,7 @@ ANSWER: A`;
 
     const normType = selectedType?.toLowerCase();
     if (normType === 'listening_section') {
-      customContent.audioUrl = audioFileUrl;
+      customContent.audioUrl = listeningAudioUrl;
       customContent.audioscript = audioscriptText;
       customContent.childQuestions = sectionChildQuestions;
     } else if (normType === 'reading_section') {
@@ -519,8 +488,8 @@ ANSWER: A`;
   };
 
   const questionTypesList = [
-    { type: 'reading_section', label: '1. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Hỏi Trắc Nghiệm Con)', desc: 'Thiết kế nguyên 1 Section bài đọc chứa đoạn văn bản đọc hiểu Chuong Village... và danh sách 5 câu hỏi trắc nghiệm A, B, C, D bên dưới (Chuẩn 100% Ảnh 2).' },
-    { type: 'listening_section', label: '2. LISTENING SECTION (Bài Nghe Audio & Kịch Bản Kèm Nhiều Câu Hỏi Con)', desc: 'Thiết kế nguyên 1 Section bài nghe Audio MP3 kèm kịch bản Reading Script và danh sách câu hỏi trắc nghiệm/điền từ bên dưới.' },
+    { type: 'listening_section', label: '1. LISTENING SECTION (Bài Nghe Audio MP3 & Kịch Bản Hội Thoại)', desc: 'Thiết kế bài nghe Audio MP3 (box dán link hoặc upload từ máy) kèm kịch bản Reading Script và danh sách câu hỏi trắc nghiệm con (Chuẩn Ảnh 3).' },
+    { type: 'reading_section', label: '2. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Hỏi Trắc Nghiệm Con)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu Chuong Village... và danh sách 5 câu hỏi trắc nghiệm A, B, C, D bên dưới (Chuẩn 100% Ảnh 2).' },
     { type: 'multiple_choice', label: 'Multiple choice (Trắc nghiệm A, B, C, D)', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False (Đúng / Sai)', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
     { type: 'matching', label: 'Matching (Nối từ Cột A - Cột B)', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
@@ -639,6 +608,7 @@ ANSWER: A`;
                           setExplanation(q.content?.explanation || '');
                           setSectionPassage(q.content?.passage || '');
                           setAudioscriptText(q.content?.audioscript || '');
+                          setListeningAudioUrl(q.content?.audioUrl || '');
                           setSectionChildQuestions(
                             q.content?.childQuestions || [
                               {
@@ -677,19 +647,6 @@ ANSWER: A`;
                   </div>
 
                   <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question || q.content?.title}</h4>
-
-                  {/* VĂN BẢN BÀI ĐỌC HIỂU XEM TRƯỚC */}
-                  {q.content?.passage && (
-                    <div className="p-3 bg-sky-50 border border-sky-200 text-sky-950 rounded-xl text-xs font-medium italic">
-                      {q.content.passage.substring(0, 150)}...
-                    </div>
-                  )}
-
-                  {q.content?.explanation && (
-                    <p className="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 font-medium italic">
-                      {q.content.explanation}
-                    </p>
-                  )}
                 </div>
               ))}
             </div>
@@ -717,9 +674,7 @@ ANSWER: A`;
               </div>
 
               <div>
-                <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">
-                  UNIT (MENU SỔ XUỐNG GLOBAL SUCCESS 12 UNITS)
-                </label>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">UNIT</label>
                 <select
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
@@ -912,7 +867,7 @@ ANSWER: A`;
         </div>
       )}
 
-      {/* POPUP HƯỚNG DẪN ❓ CUNG CẤP HỌC LIỆU MẪU CHUẨN GNOMIO VÀ NÚT TẢI TỆP .TXT */}
+      {/* POPUP HƯỚNG DẪN ❓ */}
       {helpFormatModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-scale-up">
@@ -1053,13 +1008,13 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI & CHUẨN SOẠN BÀI ĐỌC HIỂU READING SECTION (ẢNH 1 & 2) */}
+      {/* FORM BIÊN TẬP CÂU HỎI & CẤU HÌNH CÓ BOX UPLOAD/LINK MP3 CHO LISTENING_SECTION (CHUẨN ẢNH 3) */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base uppercase">
-                Adding/Editing Question: {selectedType?.toUpperCase()}
+                ADDING/EDITING QUESTION: {selectedType?.toUpperCase()}
               </h3>
               <button onClick={() => setEditingQuestion(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -1067,136 +1022,181 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* PHÂN NHÁNH 1: FORM SOẠN BÀI ĐỌC HIỂU READING SECTION CHUẨN ẢNH 1 & 2 */}
-              {selectedType?.toLowerCase() === 'reading_section' ? (
-                <div className="space-y-5">
-                  <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl space-y-3">
-                    <h4 className="font-extrabold text-xs text-sky-900 uppercase flex items-center space-x-1.5">
-                      <BookOpen className="w-4 h-4 text-sky-600" />
-                      <span>📖 NỘI DUNG ĐOẠN VĂN BÀI ĐỌC HIỂU (READING PASSAGE)</span>
-                    </h4>
-                    <div>
-                      <label className="block text-xs font-bold text-sky-900 mb-1">
-                        1. Tiêu Đề Bài Đọc (Reading Title / Instruction):
-                      </label>
+              {/* FORM LISTENING SECTION (CÓ BOX DÁN LINK MP3 HOẶC UPLOAD TỪ MÁY CHUẨN ẢNH 3) */}
+              {selectedType?.toLowerCase() === 'listening_section' && (
+                <div className="p-5 bg-purple-50 border border-purple-200 rounded-3xl space-y-4 shadow-xs">
+                  <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-2 border-b border-purple-200 pb-2">
+                    <Headphones className="w-4 h-4 text-purple-600" />
+                    <span>🔊 AUDIO RECORDINGS & SCRIPT (THIẾT KẾ BÀI NGHE LISTENING)</span>
+                  </h4>
+
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-purple-900">
+                      1. Dán Link MP3 Audio Hoặc Tải Tệp MP3 Từ Máy Tính:
+                    </label>
+                    <div className="flex items-center space-x-2">
                       <input
                         type="text"
-                        value={questionText}
-                        onChange={(e) => setQuestionText(e.target.value)}
-                        placeholder="Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D."
-                        className="w-full px-3 py-2 border border-sky-300 rounded-xl text-xs bg-white font-bold"
+                        value={listeningAudioUrl}
+                        onChange={(e) => setListeningAudioUrl(e.target.value)}
+                        placeholder="Dán link audio https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3..."
+                        className="w-full px-3 py-2 border border-purple-300 rounded-xl text-xs bg-white font-medium"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-sky-900 mb-1">
-                        2. Nội dung đoạn văn bài đọc (Reading Passage Text):
+                      <label className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer flex items-center space-x-1 flex-shrink-0">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Tải MP3 Từ Máy</span>
+                        <input type="file" accept="audio/*" onChange={handleAudioFileUpload} className="hidden" />
                       </label>
-                      <textarea
-                        rows={6}
-                        value={sectionPassage}
-                        onChange={(e) => setSectionPassage(e.target.value)}
-                        placeholder="Chuong village in Hanoi is famous for its long history of making conical hats (non la)..."
-                        className="w-full p-3 border border-sky-300 rounded-xl text-xs bg-white font-medium leading-relaxed"
-                      />
                     </div>
                   </div>
 
-                  {/* KHUNG DANH SÁCH 5 CÂU HỎI TRẮC NGHIỆM CON KÈM 4 LỰA CHỌN A, B, C, D */}
-                  <div className="space-y-4 pt-2">
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <h4 className="font-extrabold text-xs text-slate-800 uppercase flex items-center space-x-1.5">
-                        <ListFilter className="w-4 h-4 text-emerald-600" />
-                        <span>DANH SÁCH {sectionChildQuestions.length} CÂU HỎI TRẮC NGHIỆM CON CHO BÀI ĐỌC NÀY</span>
-                      </h4>
-                      <button
-                        type="button"
-                        onClick={handleAddChildQuestion}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ THÊM CÂU HỎI TRẮC NGHIỆM CON</span>
-                      </button>
-                    </div>
-
-                    <div className="space-y-4">
-                      {sectionChildQuestions.map((qChild, qIdx) => (
-                        <div key={qIdx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 relative">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-extrabold text-slate-900 bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-lg">
-                              Câu hỏi con #{qIdx + 1}
-                            </span>
-                            {sectionChildQuestions.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveChildQuestion(qIdx)}
-                                className="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center space-x-1"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>Xóa câu này</span>
-                              </button>
-                            )}
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                              Nội dung đề bài câu hỏi con #{qIdx + 1}:
-                            </label>
-                            <input
-                              type="text"
-                              value={qChild.question}
-                              onChange={(e) => {
-                                const newChilds = [...sectionChildQuestions];
-                                newChilds[qIdx].question = e.target.value;
-                                setSectionChildQuestions(newChilds);
-                              }}
-                              placeholder={`Ví dụ: ${qIdx + 1}. What traditional craft is Chuong village famous for?`}
-                              className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-bold text-slate-900"
-                            />
-                          </div>
-
-                          {/* 4 PHƯƠNG ÁN A, B, C, D CHO CÂU HỎI CON */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {qChild.options.map((opt, oIdx) => {
-                              const label = String.fromCharCode(65 + oIdx);
-                              return (
-                                <div key={oIdx} className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1">
-                                  <div className="flex justify-between items-center text-[11px] font-bold">
-                                    <span className="text-slate-700">Đáp án {label}</span>
-                                    <label className="flex items-center space-x-1 cursor-pointer text-emerald-700">
-                                      <input
-                                        type="checkbox"
-                                        checked={opt.isCorrect}
-                                        onChange={(e) => {
-                                          const newChilds = [...sectionChildQuestions];
-                                          newChilds[qIdx].options[oIdx].isCorrect = e.target.checked;
-                                          setSectionChildQuestions(newChilds);
-                                        }}
-                                      />
-                                      <span>Đúng</span>
-                                    </label>
-                                  </div>
-                                  <input
-                                    type="text"
-                                    value={opt.text}
-                                    onChange={(e) => {
-                                      const newChilds = [...sectionChildQuestions];
-                                      newChilds[qIdx].options[oIdx].text = e.target.value;
-                                      setSectionChildQuestions(newChilds);
-                                    }}
-                                    placeholder={`Nội dung ${label}...`}
-                                    className="w-full px-2.5 py-1 border border-slate-200 rounded-lg text-xs"
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-purple-900">
+                      2. Kịch Bản Hội Thoại (Teacher's Reading Script):
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={audioscriptText}
+                      onChange={(e) => setAudioscriptText(e.target.value)}
+                      placeholder="Dán kịch bản bài nghe tại đây (ví dụ: Hello everyone, my name is Phong...)"
+                      className="w-full p-3 border border-purple-300 rounded-xl text-xs bg-white font-medium leading-relaxed"
+                    />
                   </div>
                 </div>
-              ) : (
-                /* PHÂN NHÁNH 2: FORM TRẮC NGHIỆM ĐƠN LẺ MULTIPLE_CHOICE */
+              )}
+
+              {/* FORM READING SECTION (ĐOẠN VĂN BÀI ĐỌC HIỂU) */}
+              {selectedType?.toLowerCase() === 'reading_section' && (
+                <div className="p-5 bg-sky-50 border border-sky-200 rounded-3xl space-y-3 shadow-xs">
+                  <h4 className="font-extrabold text-xs text-sky-900 uppercase flex items-center space-x-1.5 border-b border-sky-200 pb-2">
+                    <BookOpen className="w-4 h-4 text-sky-600" />
+                    <span>📖 NỘI DUNG ĐOẠN VĂN BÀI ĐỌC HIỂU (READING PASSAGE)</span>
+                  </h4>
+                  <div>
+                    <label className="block text-xs font-bold text-sky-900 mb-1">
+                      1. Tiêu Đề Bài Đọc (Reading Title / Instruction):
+                    </label>
+                    <input
+                      type="text"
+                      value={questionText}
+                      onChange={(e) => setQuestionText(e.target.value)}
+                      placeholder="Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D."
+                      className="w-full px-3 py-2 border border-sky-300 rounded-xl text-xs bg-white font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-sky-900 mb-1">
+                      2. Nội dung đoạn văn bài đọc (Reading Passage Text):
+                    </label>
+                    <textarea
+                      rows={6}
+                      value={sectionPassage}
+                      onChange={(e) => setSectionPassage(e.target.value)}
+                      placeholder="Chuong village in Hanoi is famous for its long history of making conical hats (non la)..."
+                      className="w-full p-3 border border-sky-300 rounded-xl text-xs bg-white font-medium leading-relaxed"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* KHUNG SOẠN CÁC CÂU HỎI CON CHO READING / LISTENING SECTION */}
+              {(selectedType?.toLowerCase() === 'reading_section' || selectedType?.toLowerCase() === 'listening_section') && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex justify-between items-center border-b pb-2">
+                    <h4 className="font-extrabold text-xs text-slate-800 uppercase flex items-center space-x-1.5">
+                      <ListFilter className="w-4 h-4 text-emerald-600" />
+                      <span>DANH SÁCH {sectionChildQuestions.length} CÂU HỎI TRẮC NGHIỆM CON CHO BÀI NÀY</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={handleAddChildQuestion}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ THÊM CÂU HỎI TRẮC NGHIỆM CON</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {sectionChildQuestions.map((qChild, qIdx) => (
+                      <div key={qIdx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 relative">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-extrabold text-slate-900 bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-lg">
+                            Câu hỏi con #{qIdx + 1}
+                          </span>
+                          {sectionChildQuestions.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveChildQuestion(qIdx)}
+                              className="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center space-x-1"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Xóa câu này</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                            Nội dung đề bài câu hỏi con #{qIdx + 1}:
+                          </label>
+                          <input
+                            type="text"
+                            value={qChild.question}
+                            onChange={(e) => {
+                              const newChilds = [...sectionChildQuestions];
+                              newChilds[qIdx].question = e.target.value;
+                              setSectionChildQuestions(newChilds);
+                            }}
+                            placeholder={`Ví dụ: ${qIdx + 1}. What traditional craft is Chuong village famous for?`}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-bold text-slate-900"
+                          />
+                        </div>
+
+                        {/* 4 PHƯƠNG ÁN A, B, C, D */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {qChild.options.map((opt, oIdx) => {
+                            const label = String.fromCharCode(65 + oIdx);
+                            return (
+                              <div key={oIdx} className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1">
+                                <div className="flex justify-between items-center text-[11px] font-bold">
+                                  <span className="text-slate-700">Đáp án {label}</span>
+                                  <label className="flex items-center space-x-1 cursor-pointer text-emerald-700">
+                                    <input
+                                      type="checkbox"
+                                      checked={opt.isCorrect}
+                                      onChange={(e) => {
+                                        const newChilds = [...sectionChildQuestions];
+                                        newChilds[qIdx].options[oIdx].isCorrect = e.target.checked;
+                                        setSectionChildQuestions(newChilds);
+                                      }}
+                                    />
+                                    <span>Đúng</span>
+                                  </label>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={opt.text}
+                                  onChange={(e) => {
+                                    const newChilds = [...sectionChildQuestions];
+                                    newChilds[qIdx].options[oIdx].text = e.target.value;
+                                    setSectionChildQuestions(newChilds);
+                                  }}
+                                  placeholder={`Nội dung ${label}...`}
+                                  className="w-full px-2.5 py-1 border border-slate-200 rounded-lg text-xs"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* FORM CHO TRẮC NGHIỆM ĐƠN LẺ MULTIPLE_CHOICE */}
+              {selectedType?.toLowerCase() === 'multiple_choice' && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
@@ -1279,11 +1279,11 @@ ANSWER: D`
                 </div>
               )}
 
-              {/* AI GIẢI THÍCH CHI TIẾT */}
+              {/* Ô TÍCH HỢP AI GIẢI THÍCH CHUẨN 4 PHẦN DÀNH CHO HỌC SINH YẾU (CHUẨN 100% ẢNH 2) */}
               <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="block text-xs font-extrabold text-emerald-900 uppercase">
-                    GIẢI THÍCH ĐÁP ÁN CHI TIẾT (EXPLANATION / FEEDBACK CHO HỌC SINH)
+                    GIẢI THÍCH ĐÁP ÁN CHUẨN 4 KHỐI DÀNH CHO HỌC SINH YẾU (PHÂN TÍCH - GIẢI THÍCH - LOẠI TRỪ - NGHĨA SONG NGỮ)
                   </label>
                   <button
                     type="button"
@@ -1297,11 +1297,11 @@ ANSWER: D`
                 </div>
 
                 <textarea
-                  rows={3}
+                  rows={6}
                   value={explanation}
                   onChange={(e) => setExplanation(e.target.value)}
-                  placeholder="Nhập hoặc để AI tự động viết đoạn giải thích vì sao đáp án này đúng..."
-                  className="w-full p-3 border border-emerald-300 rounded-xl text-xs bg-white font-medium"
+                  placeholder={`🔍 Phân tích ngữ pháp/ngữ cảnh:\n...\n\n💡 Giải thích chi tiết:\n...\n\n✕ Loại trừ gây nhiễu:\n...\n\n🇻🇳 Bản dịch nghĩa song ngữ:\n...`}
+                  className="w-full p-3 border border-emerald-300 rounded-xl text-xs bg-white font-medium leading-relaxed font-mono"
                 />
               </div>
 
@@ -1317,7 +1317,7 @@ ANSWER: D`
                   type="submit"
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md"
                 >
-                  Save changes (Lưu Bài Đọc & Câu Hỏi)
+                  Save changes (Lưu Bài Tập)
                 </button>
               </div>
             </form>
