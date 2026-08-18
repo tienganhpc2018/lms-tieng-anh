@@ -29,7 +29,7 @@ export default function QuizEngine({ activity }) {
     isPassed: false,
   });
 
-  // TIMER LOGIC: CỘNG DỒN TỔNG THỜI GIAN CỦA TẤT CẢ CÁC BÀI (VÍ DỤ 5P + 5P = 10P)
+  // TIMER LOGIC
   useEffect(() => {
     let interval = null;
     if (timerActive && !submitted) {
@@ -144,15 +144,25 @@ export default function QuizEngine({ activity }) {
       } else if ((sectionType === 'listening_section' || sectionType === 'reading_section') && Array.isArray(q.content?.parts) && q.content.parts.length > 0) {
         q.content.parts.forEach((pItem, pIdx) => {
           const pQs = pItem.questions || [];
+          const isTF = pItem.part_type === 'true_false';
+
           pQs.forEach((cQ, qIdx) => {
             totalQCount += 1;
             const key = `${q.id}_p${pIdx}_q${qIdx}`;
             const selected = userAnswers[key];
-            const opts = Array.isArray(cQ.options) ? cQ.options : [];
-            const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
-            if (selected === correctOptIndex && selected !== undefined) {
-              correctCount += 1;
-              totalScore += 1;
+
+            if (isTF) {
+              if (selected === (cQ.correctAnswer || 'T')) {
+                correctCount += 1;
+                totalScore += 1;
+              }
+            } else {
+              const opts = Array.isArray(cQ.options) ? cQ.options : [];
+              const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
+              if (selected === correctOptIndex && selected !== undefined) {
+                correctCount += 1;
+                totalScore += 1;
+              }
             }
           });
         });
@@ -230,7 +240,6 @@ export default function QuizEngine({ activity }) {
     }
   };
 
-  // HÀM ĐỊNH DẠNG VĂN BẢN XUỐNG DÒNG RÕ RÀNG + BÔI ĐẬM EVIDENCE / DẪN CHỨNG DỄ ĐỌC BÀI
   const renderFormattedParagraphs = (rawText) => {
     if (!rawText) return null;
     const lines = rawText.split('\n').filter((l) => l.trim() !== '');
@@ -258,7 +267,6 @@ export default function QuizEngine({ activity }) {
     });
   };
 
-  // Render Khối AI Giải Thích Chuẩn 4 Phần Xuống Dòng Rõ Ràng Cho Học Sinh Yếu
   const renderFourBlockExplanation = (explanationText, correctText) => {
     if (!explanationText) {
       return (
@@ -443,7 +451,7 @@ export default function QuizEngine({ activity }) {
             } catch (errLocal) {}
           }
 
-          // DẠNG 3: READING (True/False) CHUẨN ĐÚNG 100% ẢNH 1
+          // DẠNG 3: READING (True/False)
           if (isReadingTF) {
             return (
               <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-500 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
@@ -511,7 +519,7 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test Gộp Task 1 & Task 2)
+          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test)
           if (isClozeTest) {
             const tasksList = Array.isArray(q.content?.tasks) && q.content.tasks.length > 0
               ? q.content.tasks
@@ -533,7 +541,6 @@ export default function QuizEngine({ activity }) {
 
             return (
               <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
-                {/* Header Bar */}
                 <div className="bg-blue-50/70 rounded-xl p-3.5 flex justify-between items-center">
                   <h3 className="font-extrabold text-sm text-blue-900 tracking-wide uppercase flex items-center space-x-2">
                     <span className="w-7 h-7 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
@@ -544,13 +551,11 @@ export default function QuizEngine({ activity }) {
                   <Volume2 className="w-5 h-5 text-blue-600 cursor-pointer" />
                 </div>
 
-                {/* Render Lần Lượt Cả Task 1 & Task 2 */}
                 {tasksList.map((taskItem, tIdx) => {
                   const tQuestions = taskItem.questions || [];
 
                   return (
                     <div key={tIdx} className="space-y-4 border-b border-slate-100 pb-5 last:border-b-0 last:pb-0">
-                      {/* Khung hướng dẫn tím */}
                       <div className="p-3.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs space-y-0.5">
                         <h4 className="uppercase tracking-tight text-purple-950">
                           {taskItem.task_title}
@@ -562,7 +567,6 @@ export default function QuizEngine({ activity }) {
                         )}
                       </div>
 
-                      {/* Passage Container */}
                       <div className="border border-slate-300 rounded-2xl bg-amber-50/20 p-5 relative space-y-2 mt-3">
                         <span className={`text-white text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase absolute -top-3 left-4 shadow-xs ${
                           tIdx === 1 ? 'bg-teal-600' : 'bg-amber-500'
@@ -581,7 +585,6 @@ export default function QuizEngine({ activity }) {
                         </p>
                       </div>
 
-                      {/* HÀNG CÂU HỎI CLOZE TEST */}
                       <div className="space-y-2.5 pt-1">
                         {tQuestions.map((cQ, cIdx) => {
                           const childKey = `${q.id}_t${tIdx}_q${cIdx}`;
@@ -639,7 +642,7 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // NẾU LÀ LISTENING_SECTION HOẶC READING_SECTION CÓ MULTI PARTS (PART 1 & PART 2)
+          // NẾU LÀ LISTENING_SECTION HOẶC READING_SECTION CÓ MULTI PARTS (PART 1 Trắc nghiệm & PART 2 True/False)
           if ((isListening || isReading) && sectionParts.length > 0) {
             return (
               <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-6 shadow-xs">
@@ -656,6 +659,7 @@ export default function QuizEngine({ activity }) {
 
                 {sectionParts.map((pItem, pIdx) => {
                   const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
+                  const isTF = pItem.part_type === 'true_false';
 
                   let pAudioSrc = pItem.audioUrl;
                   if ((!pAudioSrc || pAudioSrc.startsWith('blob:')) && pItem.audioFileName) {
@@ -695,14 +699,58 @@ export default function QuizEngine({ activity }) {
                         </div>
                       )}
 
+                      {/* KHỐI HIỂN THỊ CÂU HỎI CON: NẾU TRẮC NGHIỆM THÌ HIỂN THỊ A,B,C,D; NẾU TRUE/FALSE THÌ NÚT [T] VÀ [F] */}
                       <div className="space-y-4 pt-1">
                         {pQs.map((cQ, cIdx) => {
                           const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
-                          const selectedOptIndex = userAnswers[childKey];
+                          const selectedVal = userAnswers[childKey];
+
+                          if (isTF) {
+                            const correctAnsTF = cQ.correctAnswer || 'T';
+                            return (
+                              <div key={cIdx} className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2">
+                                <div className="flex justify-between items-center gap-4">
+                                  <span className="text-xs font-semibold text-slate-800 leading-relaxed">
+                                    {cQ.question}
+                                  </span>
+
+                                  <div className="flex items-center space-x-2 flex-shrink-0">
+                                    <button
+                                      disabled={submitted}
+                                      onClick={() => handleSelectAnswer(childKey, 'T')}
+                                      className={`w-7 h-7 rounded-md font-extrabold text-xs transition flex items-center justify-center ${
+                                        selectedVal === 'T'
+                                          ? 'bg-emerald-100 border border-emerald-400 text-emerald-700 shadow-xs'
+                                          : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'
+                                      }`}
+                                    >
+                                      T
+                                    </button>
+
+                                    <button
+                                      disabled={submitted}
+                                      onClick={() => handleSelectAnswer(childKey, 'F')}
+                                      className={`w-7 h-7 rounded-md font-extrabold text-xs transition flex items-center justify-center ${
+                                        selectedVal === 'F'
+                                          ? 'bg-rose-100 border border-rose-400 text-rose-700 shadow-xs'
+                                          : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'
+                                      }`}
+                                    >
+                                      F
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {submitted && renderFourBlockExplanation(cQ.explanation || pItem.explanation, correctAnsTF === 'T' ? 'True (T)' : 'False (F)')}
+                              </div>
+                            );
+                          }
+
+                          // CÂU HỎI TRẮC NGHIỆM MULTIPLE CHOICE
                           const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
                           const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
-                          const isCorrect = submitted && selectedOptIndex === correctOptIndex;
-                          const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
+                          const isCorrect = submitted && selectedVal === correctOptIndex;
+                          const isWrong = submitted && selectedVal !== undefined && selectedVal !== correctOptIndex;
                           const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
 
                           const isLongOptions = cOpts.some(o => {
@@ -746,7 +794,7 @@ export default function QuizEngine({ activity }) {
                                 isLongOptions ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
                               }`}>
                                 {cOpts.map((opt, oIdx) => {
-                                  const isSelected = selectedOptIndex === oIdx;
+                                  const isSelected = selectedVal === oIdx;
                                   const isThisCorrect = opt?.isCorrect;
                                   const label = String.fromCharCode(65 + oIdx);
 
@@ -779,11 +827,19 @@ export default function QuizEngine({ activity }) {
                                 })}
                               </div>
 
-                              {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctText)}
+                              {submitted && renderFourBlockExplanation(cQ.explanation || pItem.explanation, correctText)}
                             </div>
                           );
                         })}
                       </div>
+
+                      {/* HIỂN THỊ GIẢI THÍCH CHUNG CỦA PART NẾU CÓ */}
+                      {submitted && pItem.explanation && (
+                        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-950">
+                          <span className="font-extrabold block mb-1">💡 GIẢI THÍCH TỔNG QUAN PART #{pIdx + 1}:</span>
+                          {renderFormattedParagraphs(pItem.explanation)}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -808,32 +864,6 @@ export default function QuizEngine({ activity }) {
               {(q.content?.question || q.content?.title) && (
                 <div className="p-4 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content.question || q.content.title}
-                </div>
-              )}
-
-              {isListening && (
-                <div className="space-y-2 bg-white p-4 rounded-2xl border border-purple-200 shadow-2xs">
-                  <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
-                    <Volume2 className="w-4 h-4 text-purple-600" />
-                    <span>Audio Bài Nghe (Listening Track)</span>
-                  </div>
-                  {audioSrc ? (
-                    <audio controls preload="auto" className="w-full h-9" src={audioSrc}>
-                      Trình duyệt của bạn không hỗ trợ phát audio.
-                    </audio>
-                  ) : (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
-                      ⚠️ File audio MP3 đang chờ Thầy chọn từ máy tính hoặc dán link MP3.
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {isReading && (
-                <div className="p-5 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-medium space-y-3">
-                  <p className="text-slate-700 leading-relaxed text-justify">
-                    {q.content?.passage || 'Nội dung đoạn văn bài đọc hiểu...'}
-                  </p>
                 </div>
               )}
 
@@ -879,23 +909,6 @@ export default function QuizEngine({ activity }) {
                     >
                       <div className="flex items-center justify-between">
                         <h4 className="font-extrabold text-xs text-slate-900">{cQ.question}</h4>
-
-                        {submitted && (
-                          <div>
-                            {isCorrect && (
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-extrabold rounded-lg flex items-center space-x-1">
-                                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Đúng</span>
-                              </span>
-                            )}
-                            {isWrong && (
-                              <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[11px] font-extrabold rounded-lg flex items-center space-x-1">
-                                <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                                <span>Sai</span>
-                              </span>
-                            )}
-                          </div>
-                        )}
                       </div>
 
                       <div className={`grid gap-3 w-full items-stretch pt-1 ${
