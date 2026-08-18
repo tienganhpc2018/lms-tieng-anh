@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle } from 'lucide-react';
+import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizBuilder({ activityId, onSaved }) {
@@ -51,6 +51,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [sectionPassage, setSectionPassage] = useState('');
   const [audioscriptText, setAudioscriptText] = useState('');
   const [listeningAudioUrl, setListeningAudioUrl] = useState('');
+  const [uploadedAudioFileName, setUploadedAudioFileName] = useState('');
   const [sectionChildQuestions, setSectionChildQuestions] = useState([
     {
       question: '1. What traditional craft is Chuong village famous for?',
@@ -117,13 +118,48 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
-  // Xử lý Upload file MP3 Audio từ máy tính cho Listening Section
+  // Xử lý Upload file MP3 Audio từ máy tính -> HIỂN THỊ TÊN FILE TRỰC TIẾP VÀO KHUNG SOẠN & THÀNH PLAY AUDIO
   const handleAudioFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const fakeUrl = URL.createObjectURL(file);
+    setUploadedAudioFileName(file.name);
     setListeningAudioUrl(fakeUrl);
-    alert(`🎉 Đã tải tệp audio mp3 "${file.name}" lên thành công!`);
+  };
+
+  // MỞ NGUYÊN PAGE/MODAL XEM VÀ CHỈNH SỬA KHI BẤM VÀO TIÊU ĐỀ BÀI HỌC / READING SECTION
+  const handleOpenEditModal = (q) => {
+    setEditingQuestion(q);
+    const normalized = q.type?.toLowerCase() || 'multiple_choice';
+    setSelectedType(normalized);
+    setQuestionTitle(q.content?.title || '');
+    setQuestionText(q.content?.question || '');
+    setExplanation(q.content?.explanation || '');
+    setSectionPassage(q.content?.passage || '');
+    setAudioscriptText(q.content?.audioscript || '');
+    setListeningAudioUrl(q.content?.audioUrl || '');
+    setSectionChildQuestions(
+      q.content?.childQuestions || [
+        {
+          question: '1. What traditional craft is Chuong village famous for?',
+          options: [
+            { text: 'A. Making pottery', isCorrect: false },
+            { text: 'B. Making conical hats', isCorrect: true },
+          ],
+        },
+      ]
+    );
+    setMarks(q.marks || 1.0);
+    setMcOptions(
+      q.content?.options && q.content?.options.length > 0
+        ? q.content.options
+        : [
+            { text: '', isCorrect: true },
+            { text: '', isCorrect: false },
+            { text: '', isCorrect: false },
+            { text: '', isCorrect: false },
+          ]
+    );
   };
 
   // NÚT TẢI TỆP MẪU CHUẨN JSON & AIKEN (.JSON & .TXT)
@@ -153,16 +189,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                     { text: 'D. Carving wood', isCorrect: false },
                   ],
                   explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi yêu cầu xác định nghề truyền thống.\n\n💡 Giải thích chi tiết:\nĐoạn văn mở đầu: 'making conical hats (non la)'. Đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác nghề khác không phải làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng nghề gì? - Nón lá.`,
-                },
-                {
-                  question: '2. Why do fewer young people want to learn the craft?',
-                  options: [
-                    { text: 'A. They don\'t like wearing hats.', isCorrect: false },
-                    { text: 'B. They do not know how to make a living from it.', isCorrect: true },
-                    { text: 'C. The palm leaves are too expensive.', isCorrect: false },
-                    { text: 'D. They want to move to other countries.', isCorrect: false },
-                  ],
-                  explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nNguyên nhân thanh niên không học nghề.\n\n💡 Giải thích chi tiết:\nĐoạn văn nêu: 'they do not know how to make a living from it'. Đáp án B.\n\n✕ Loại trừ gây nhiễu:\nCác phương án A, C, D sai nghĩa.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nVì sao giới trẻ ít học nghề? - Không biết cách kiếm sống từ nghề.`,
                 },
               ],
             },
@@ -242,7 +268,7 @@ ANSWER: D`;
   const handleConfirmAddType = () => {
     setIsTypeModalOpen(false);
     setEditingQuestion({ id: 'new', type: selectedType });
-    setQuestionTitle('Reading / Listening Section');
+    setQuestionTitle('READING SECTION - Chuong Conical Hat Village');
     setQuestionText('Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D.');
     setExplanation(
       `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi yêu cầu xác định nghề truyền thống dựa trên câu đầu tiên của đoạn văn.\n\n💡 Giải thích chi tiết:\nĐoạn văn mở đầu bằng: 'Chuong village in Hanoi is famous for its long history of making conical hats (non la)'. Do đó đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác phương án A, C, D là các nghề thủ công mỹ nghệ khác nhưng không phải của làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng với nghề truyền thống nào? - Làm nón lá.`
@@ -252,6 +278,7 @@ ANSWER: D`;
     );
     setAudioscriptText('Hello everyone, my name is Phong, and I am a third-generation artisan in Bat Trang pottery village...');
     setListeningAudioUrl('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+    setUploadedAudioFileName('');
     setSectionChildQuestions([
       {
         question: '1. What traditional craft is Chuong village famous for?',
@@ -310,7 +337,6 @@ ANSWER: D`;
     setSectionChildQuestions(sectionChildQuestions.filter((_, i) => i !== index));
   };
 
-  // LƯU CÂU HỎI VÀO BÀI HỌC CỦA KHÓA HỌC + ĐỒNG THỜI LƯU TỰ ĐỘNG VÀO NGÂN HÀNG ĐỀ CHUNG (QUESTION_BANK)
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
 
@@ -350,14 +376,12 @@ ANSWER: D`;
       content: customContent,
     };
 
-    // 1. Lưu vào bảng `questions` bài học hiện tại
     if (editingQuestion?.id === 'new') {
       await supabase.from('questions').insert([payload]);
     } else {
       await supabase.from('questions').update(payload).eq('id', editingQuestion.id);
     }
 
-    // 2. TỰ ĐỘNG LƯU / DỰ DỮ LIỆU VÀO NGÂN HÀNG CÂU HỎI CHUNG (QUESTION_BANK)
     try {
       await supabase.from('question_bank').insert([
         {
@@ -371,9 +395,7 @@ ANSWER: D`;
           explanation: customContent.explanation,
         },
       ]);
-    } catch (errBank) {
-      console.log('Thông báo: Đã lưu vào bài học hiện tại');
-    }
+    } catch (errBank) {}
 
     setEditingQuestion(null);
     await fetchQuestions();
@@ -390,7 +412,6 @@ ANSWER: D`;
     reader.readAsText(file);
   };
 
-  // PARSER IMPORT JSON TỰ ĐỘNG ĐƯA VÀO BÀI HỌC VÀ NGÂN HÀNG ĐỀ CHUNG
   const handleImportJson = async () => {
     if (!jsonInputText.trim()) return;
     try {
@@ -549,8 +570,8 @@ ANSWER: D`;
   };
 
   const questionTypesList = [
-    { type: 'listening_section', label: '1. LISTENING SECTION (Bài Nghe Audio MP3 & Kịch Bản Hội Thoại)', desc: 'Thiết kế bài nghe Audio MP3 (box dán link hoặc upload từ máy) kèm kịch bản Reading Script và danh sách câu hỏi trắc nghiệm con (Chuẩn Ảnh 3).' },
-    { type: 'reading_section', label: '2. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Hỏi Trắc Nghiệm Con)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu Chuong Village... và danh sách 5 câu hỏi trắc nghiệm A, B, C, D bên dưới (Chuẩn 100% Ảnh 2).' },
+    { type: 'reading_section', label: '1. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Hỏi Trắc Nghiệm Con)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu Chuong Village... và danh sách 5 câu hỏi trắc nghiệm A, B, C, D bên dưới (Chuẩn 100% Ảnh 2).' },
+    { type: 'listening_section', label: '2. LISTENING SECTION (Bài Nghe Audio MP3 & Kịch Bản Hội Thoại)', desc: 'Thiết kế bài nghe Audio MP3 (box dán link hoặc upload từ máy) kèm kịch bản Reading Script và danh sách câu hỏi trắc nghiệm con (Chuẩn Ảnh 3).' },
     { type: 'multiple_choice', label: 'Multiple choice (Trắc nghiệm A, B, C, D)', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False (Đúng / Sai)', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
     { type: 'matching', label: 'Matching (Nối từ Cột A - Cột B)', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
@@ -594,7 +615,7 @@ ANSWER: D`;
         </button>
       </div>
 
-      {/* TAB 1: DANH SÁCH & BIÊN TẬP CÂU HỎI */}
+      {/* TAB 1: DANH SÁCH & BIÊN TẬP CÂU HỎI (NHẤP TRỰC TIẾP VÀO TIÊU ĐỀ LÀ MỞ NGAY NGUYÊN BẢNG XEM & SỬA) */}
       {activeTab === 'questions' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
@@ -660,54 +681,31 @@ ANSWER: D`;
 
                     <div className="flex items-center space-x-1">
                       <button
-                        onClick={() => {
-                          setEditingQuestion(q);
-                          const normalized = q.type?.toLowerCase() || 'multiple_choice';
-                          setSelectedType(normalized);
-                          setQuestionTitle(q.content?.title || '');
-                          setQuestionText(q.content?.question || '');
-                          setExplanation(q.content?.explanation || '');
-                          setSectionPassage(q.content?.passage || '');
-                          setAudioscriptText(q.content?.audioscript || '');
-                          setListeningAudioUrl(q.content?.audioUrl || '');
-                          setSectionChildQuestions(
-                            q.content?.childQuestions || [
-                              {
-                                question: '1. What traditional craft is Chuong village famous for?',
-                                options: [
-                                  { text: 'A. Making pottery', isCorrect: false },
-                                  { text: 'B. Making conical hats', isCorrect: true },
-                                ],
-                              },
-                            ]
-                          );
-                          setMarks(q.marks || 1.0);
-                          setMcOptions(
-                            q.content?.options && q.content?.options.length > 0
-                              ? q.content.options
-                              : [
-                                  { text: '', isCorrect: true },
-                                  { text: '', isCorrect: false },
-                                  { text: '', isCorrect: false },
-                                  { text: '', isCorrect: false },
-                                ]
-                          );
-                        }}
-                        className="p-1 text-slate-400 hover:text-emerald-600 rounded"
-                        title="Chỉnh sửa câu hỏi này"
+                        onClick={() => handleOpenEditModal(q)}
+                        className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded border border-emerald-200 text-xs font-bold transition flex items-center space-x-1"
+                        title="Bấm để xem và chỉnh sửa bài này"
                       >
-                        <Edit3 className="w-4 h-4" />
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Xem & Sửa</span>
                       </button>
                       <button
                         onClick={() => handleDeleteQuestion(q.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded ml-1"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question || q.content?.title}</h4>
+                  {/* THẦY BẤM TRỰC TIẾP VÀO TIÊU ĐỀ READING SECTION -> MỞ NGUYÊN PAGE XEM VÀ CHỈNH SỬA TỨC THỜI */}
+                  <h4
+                    onClick={() => handleOpenEditModal(q)}
+                    className="font-extrabold text-sm text-slate-900 hover:text-emerald-600 cursor-pointer flex items-center space-x-1.5 transition underline-offset-4 hover:underline"
+                    title="Nhấp trực tiếp vào tiêu đề này để mở toàn bộ bài đọc/câu hỏi"
+                  >
+                    <span>{q.content?.title || q.content?.question}</span>
+                    <Eye className="w-4 h-4 text-emerald-600 inline ml-1 opacity-80" />
+                  </h4>
                 </div>
               ))}
             </div>
@@ -840,7 +838,7 @@ ANSWER: D`;
         </div>
       )}
 
-      {/* TAB 3: IMPORT QUESTIONS FROM FILE (BỔ SUNG NÚT TẢI TỆP JSON MẪU BÀI ĐỌC & BÀI NGHE HÀNG LOẠT) */}
+      {/* TAB 3: IMPORT QUESTIONS FROM FILE */}
       {activeTab === 'import' && (
         <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-6">
           <div className="flex justify-between items-center border-b pb-3">
@@ -967,7 +965,7 @@ ANSWER: D`;
                     rows={8}
                     value={jsonInputText}
                     onChange={(e) => setJsonInputText(e.target.value)}
-                    placeholder={`[\n  {\n    "type": "reading_section",\n    "marks": 3.0,\n    "content": {\n      "title": "READING SECTION - Chuong Conical Hat Village",\n      "passage": "Chuong village in Hanoi is famous for...",\n      "childQuestions": [\n        {\n          "question": "1. What craft is Chuong village famous for?",\n          "options": [\n            {"text": "A. Pottery", "isCorrect": false},\n            {"text": "B. Conical hats", "isCorrect": true}\n          ],\n          "explanation": "🔍 Phân tích ngữ pháp/ngữ cảnh:\\n...\\n\\n💡 Giải thích chi tiết:\\n..."\n        }\n      ]\n    }\n  }\n]`}
+                    placeholder={`[\n  {\n    "type": "reading_section",\n    "marks": 3.0,\n    "content": {\n      "title": "READING SECTION - Chuong Conical Hat Village",\n      "passage": "Chuong village in Hanoi is famous for...",\n      "childQuestions": [\n        {\n          "question": "1. What craft is Chuong village famous for?",\n          "options": [\n            {"text": "A. Pottery", "isCorrect": false},\n            {"text": "B. Conical hats", "isCorrect": true}\n          ]\n        }\n      ]\n    }\n  }\n]`}
                     className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl"
                   />
                   <button
@@ -1085,7 +1083,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI */}
+      {/* FORM BIÊN TẬP CÂU HỎI (HIỂN THỊ TÊN FILE MP3 TRỰC TIẾP CHUẨN 100%) */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1099,7 +1097,7 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* FORM LISTENING SECTION */}
+              {/* FORM LISTENING SECTION (CÓ BOX UPLOAD & HIỂN THỊ TÊN FILE MP3 TRỰC TIẾP) */}
               {selectedType?.toLowerCase() === 'listening_section' && (
                 <div className="p-5 bg-purple-50 border border-purple-200 rounded-3xl space-y-4 shadow-xs">
                   <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-2 border-b border-purple-200 pb-2">
@@ -1114,10 +1112,13 @@ ANSWER: D`
                     <div className="flex items-center space-x-2">
                       <input
                         type="text"
-                        value={listeningAudioUrl}
-                        onChange={(e) => setListeningAudioUrl(e.target.value)}
+                        value={uploadedAudioFileName ? `📁 File đã chọn: ${uploadedAudioFileName}` : listeningAudioUrl}
+                        onChange={(e) => {
+                          setListeningAudioUrl(e.target.value);
+                          setUploadedAudioFileName('');
+                        }}
                         placeholder="Dán link audio https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3..."
-                        className="w-full px-3 py-2 border border-purple-300 rounded-xl text-xs bg-white font-medium"
+                        className="w-full px-3 py-2 border border-purple-300 rounded-xl text-xs bg-white font-bold text-purple-950"
                       />
                       <label className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer flex items-center space-x-1 flex-shrink-0">
                         <Upload className="w-3.5 h-3.5" />
@@ -1125,6 +1126,19 @@ ANSWER: D`
                         <input type="file" accept="audio/*" onChange={handleAudioFileUpload} className="hidden" />
                       </label>
                     </div>
+
+                    {/* THANH NÚT BẤM NGHE THỬ AUDIO TRỰC TIẾP TRONG FORM SOẠN */}
+                    {listeningAudioUrl && (
+                      <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
+                        <span className="text-[11px] font-bold text-purple-800 flex items-center space-x-1">
+                          <PlayCircle className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Nghe thử Audio MP3 trực tiếp:</span>
+                        </span>
+                        <audio controls className="w-full h-8">
+                          <source src={listeningAudioUrl} type="audio/mpeg" />
+                        </audio>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1">
