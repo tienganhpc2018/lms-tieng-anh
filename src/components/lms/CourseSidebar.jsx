@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, BookOpen, Users, Award, FileText, Activity, CheckSquare, Home, Globe, Folder, PlayCircle, HelpCircle, Layers, Video } from 'lucide-react';
+import { ChevronDown, ChevronRight, BookOpen, Users, Award, FileText, Activity, CheckSquare, Home, Globe, Folder, PlayCircle, HelpCircle, Layers, Video, Database, Headphones, Type, Edit3, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function CourseSidebar({
   courseTitle = 'English 9',
@@ -12,10 +13,11 @@ export default function CourseSidebar({
   isTeacher,
   onOpenEnrolledModal,
 }) {
+  const navigate = useNavigate();
   const [navExpanded, setNavExpanded] = useState({
     dashboard: true,
     myCourses: true,
-    courseContent: true,
+    questionBank: true, // MẶC ĐỊNH MỞ QUESTION BANK TRONG NAVIGATION SIDEBAR
     units: {},
   });
 
@@ -39,8 +41,8 @@ export default function CourseSidebar({
           <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Live Data</span>
         </div>
 
-        <div className="space-y-1 text-xs font-semibold text-slate-700">
-          {/* Dashboard */}
+        <div className="space-y-1.5 text-xs font-semibold text-slate-700">
+          {/* 1. Dashboard */}
           <div>
             <button
               onClick={() => toggleNav('dashboard')}
@@ -55,11 +57,11 @@ export default function CourseSidebar({
 
             {navExpanded.dashboard && (
               <div className="pl-6 space-y-1 pt-1 text-slate-600">
-                <div className="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
+                <div onClick={() => navigate('/dashboard')} className="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
                   <Globe className="w-3.5 h-3.5 text-sky-500" />
                   <span>Site home</span>
                 </div>
-                <div className="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
+                <div onClick={() => navigate('/dashboard')} className="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
                   <Folder className="w-3.5 h-3.5 text-amber-500" />
                   <span>Site pages</span>
                 </div>
@@ -67,7 +69,7 @@ export default function CourseSidebar({
             )}
           </div>
 
-          {/* My courses */}
+          {/* 2. My courses */}
           <div>
             <button
               onClick={() => toggleNav('myCourses')}
@@ -95,9 +97,9 @@ export default function CourseSidebar({
                   DANH SÁCH BÀI HỌC THỰC TẾ ({sections.length} Units)
                 </div>
 
-                {/* DỰ LIỆU ĐỘNG LẶP THEO TỪNG UNIT TRONG CSDL */}
+                {/* DỮ LIỆU ĐỘNG LẶP THEO TỪNG UNIT TRONG CSDL */}
                 {sections.map((sec) => {
-                  const isUnitExpanded = navExpanded.units[sec.id] !== false; // Mặc định mở
+                  const isUnitExpanded = navExpanded.units[sec.id] !== false;
                   const secActivities = activities.filter((a) => a.section_id === sec.id);
 
                   return (
@@ -150,6 +152,64 @@ export default function CourseSidebar({
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* 3. QUESTION BANK (NGÂN HÀNG CÂU HỎI & ĐỀ THI DƯỚI NAVIGATION SIDEBAR) */}
+          <div className="pt-2 border-t border-slate-100">
+            <button
+              onClick={() => toggleNav('questionBank')}
+              className="w-full flex items-center justify-between p-2 hover:bg-sky-50 rounded-xl transition text-sky-900 font-extrabold bg-sky-50/50"
+            >
+              <div className="flex items-center space-x-2">
+                <Database className="w-4 h-4 text-sky-600" />
+                <span>Question Bank (Ngân Hàng Đề)</span>
+              </div>
+              {navExpanded.questionBank ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+
+            {navExpanded.questionBank && (
+              <div className="pl-4 space-y-1.5 pt-2 text-[11px] font-bold">
+                <div
+                  onClick={() => navigate('/question-bank')}
+                  className="flex items-center space-x-2 p-1.5 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg cursor-pointer text-slate-800"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>📖 1. READING SECTION (Bài Đọc)</span>
+                </div>
+
+                <div
+                  onClick={() => navigate('/question-bank')}
+                  className="flex items-center space-x-2 p-1.5 hover:bg-purple-50 hover:text-purple-800 rounded-lg cursor-pointer text-slate-800"
+                >
+                  <Headphones className="w-3.5 h-3.5 text-purple-600" />
+                  <span>🎧 2. LISTENING SECTION (Bài Nghe)</span>
+                </div>
+
+                <div
+                  onClick={() => navigate('/question-bank')}
+                  className="flex items-center space-x-2 p-1.5 hover:bg-sky-50 hover:text-sky-800 rounded-lg cursor-pointer text-slate-800"
+                >
+                  <Type className="w-3.5 h-3.5 text-sky-600" />
+                  <span>🔤 3. KNOWLEDGE (Cloze Test Đục Lỗ)</span>
+                </div>
+
+                <div
+                  onClick={() => navigate('/question-bank')}
+                  className="flex items-center space-x-2 p-1.5 hover:bg-amber-50 hover:text-amber-800 rounded-lg cursor-pointer text-slate-800"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-amber-600" />
+                  <span>✍️ 4. WRITING SECTION (3 Parts)</span>
+                </div>
+
+                <div
+                  onClick={() => navigate('/question-bank')}
+                  className="flex items-center space-x-2 p-1.5 hover:bg-teal-50 hover:text-teal-800 rounded-lg cursor-pointer text-slate-800"
+                >
+                  <Globe className="w-3.5 h-3.5 text-teal-600" />
+                  <span>🌐 5. GLOBAL SUCCESS (Khối 6-9)</span>
+                </div>
               </div>
             )}
           </div>
