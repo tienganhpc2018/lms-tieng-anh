@@ -108,18 +108,21 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
-  // CHUYỂN BÀI NGHE MP3 TẢI TỪ MÁY THÀNH BASE64 DATA URL THẬT 100%
+  // CHUYỂN BÀI NGHE MP3 TẢI TỪ MÁY THÀNH STREAM NGHE THỬ TỨC THÌ TRONG MODAL SÁNG NÚT PLAY 100%
   const handleAudioFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setUploadedAudioFileName(file.name);
 
+    // 1. Tạo Blob Object URL để thanh nghe thử trong Modal SOẠN SÁNG NÚT PLAY ▶️ VÀ HIỆN ĐÚNG ĐỘ DÀI MP3 TỨC THÌ (VD: 1:45 / 1:45)!
+    const blobUrl = URL.createObjectURL(file);
+    setListeningAudioUrl(blobUrl);
+
+    // 2. Chuyển thành Data URL Base64 và lưu vĩnh viễn vào localStorage theo tên tệp để mục THI THỬ lấy âm thanh THẬT 100%!
     const reader = new FileReader();
     reader.onload = (evt) => {
       const dataUrl = evt.target.result;
-      setListeningAudioUrl(dataUrl);
-      // Lưu trữ dự phòng vào localStorage theo tên file để trang Thi Thử luôn lấy đúng âm thanh THẬT của Thầy!
       try {
         localStorage.setItem(`audio_file_${file.name}`, dataUrl);
       } catch (errLocal) {}
@@ -136,7 +139,16 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setQuestionText(q.content?.question || '');
     setExplanation(q.content?.explanation || '');
     setSectionPassage(q.content?.passage || '');
-    setListeningAudioUrl(q.content?.audioUrl || '');
+    
+    // Ưu tiên lấy link nghe thử hoặc dữ liệu từ localStorage
+    let audioUrlToLoad = q.content?.audioUrl || '';
+    if (q.content?.audioFileName) {
+      try {
+        const cached = localStorage.getItem(`audio_file_${q.content.audioFileName}`);
+        if (cached) audioUrlToLoad = cached;
+      } catch (e) {}
+    }
+    setListeningAudioUrl(audioUrlToLoad);
     setUploadedAudioFileName(q.content?.audioFileName || '');
     setSectionChildQuestions(q.content?.childQuestions || []);
     setTimeLimitMinutes(q.content?.timeLimit || 0);
@@ -1171,7 +1183,7 @@ ANSWER: D`
                 />
               </div>
 
-              {/* FORM LISTENING SECTION */}
+              {/* FORM LISTENING SECTION - SÁNG NÚT PLAY ▶️ 100% NGAY KHI CHỌN FILE TỪ MÁY */}
               {selectedType?.toLowerCase() === 'listening_section' && (
                 <div className="p-5 bg-purple-50 border border-purple-200 rounded-3xl space-y-4 shadow-xs">
                   <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-2 border-b border-purple-200 pb-2">
@@ -1201,15 +1213,15 @@ ANSWER: D`
                       </label>
                     </div>
 
-                    {/* NÚT BẤM NGHE THỬ AUDIO TRONG MODAL (RẤT NGON) */}
+                    {/* NÚT BẤM NGHE THỬ AUDIO TRONG MODAL (SÁNG RỰC NÚT PLAY 100% NGAY KHI CHỌN FILE) */}
                     {listeningAudioUrl && (
                       <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
                         <span className="text-[11px] font-bold text-purple-800 flex items-center space-x-1">
                           <PlayCircle className="w-3.5 h-3.5 text-purple-600" />
                           <span>Nghe thử file Audio: {uploadedAudioFileName || 'track-listening.mp3'}</span>
                         </span>
-                        <audio controls className="w-full h-8">
-                          <source src={listeningAudioUrl} />
+                        <audio key={listeningAudioUrl} controls preload="auto" className="w-full h-8" src={listeningAudioUrl}>
+                          Trình duyệt không hỗ trợ phát âm thanh.
                         </audio>
                       </div>
                     )}
