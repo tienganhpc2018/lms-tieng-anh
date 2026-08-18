@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code } from 'lucide-react';
+import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizBuilder({ activityId, onSaved }) {
@@ -22,14 +22,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [showAnswerBox, setShowAnswerBox] = useState(false);
   const [isSavingHomework, setIsSavingHomework] = useState(false);
 
-  // Popup Hướng Dẫn ❓ và Mẫu Nhập JSON Hàng Loạt
+  // Popup Hướng Dẫn ❓ và Mẫu Nhập JSON Hàng Loạt (HỌC LIỆU MẪU CHUẨN GNOMIO)
   const [helpFormatModal, setHelpFormatModal] = useState(null);
   const [jsonInputText, setJsonInputText] = useState('');
 
   // Checkbox Categories Kỹ Năng
   const [selectedCategories, setSelectedCategories] = useState(['Knowledge of English (Vocab & Grammar)']);
 
-  // Modal "Choose a question type to add" (20 DẠNG CÂU HỎI MOODLE)
+  // Modal "Choose a question type to add" (20+ DẠNG MOODLE GỒM CẢ LISTENING & READING SECTION)
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState('multiple_choice');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
@@ -46,6 +46,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [explanation, setExplanation] = useState('');
   const [marks, setMarks] = useState(1.0);
   const [aiExplaining, setAiExplaining] = useState(false);
+
+  // State riêng cho Listening Section (Ảnh 4) & Reading Section (Ảnh 5)
+  const [sectionPassage, setSectionPassage] = useState('');
+  const [audioscriptText, setAudioscriptText] = useState('');
 
   // State Trắc nghiệm Multiple Choice 2 Cột (A, C & B, D)
   const [mcOptions, setMcOptions] = useState([
@@ -100,6 +104,51 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
+  // NÚT TẢI TỆP MẪU CHUẨN GNOMIO (.TXT)
+  const handleDownloadSampleFile = (format) => {
+    let content = '';
+    let filename = '';
+
+    if (format === 'aiken') {
+      filename = 'mau_de_thi_aiken_gnomio.txt';
+      content = `What is the correct answer to this question?
+A. Is it this one?
+B. Maybe this answer?
+C. Possibly this one?
+D. Must be this one!
+ANSWER: D
+
+Which LMS has the most quiz import formats?
+A) Moodle
+B) ATutor
+C) Claroline
+D) Blackboard
+E) WebCT
+F) Ilias
+ANSWER: A`;
+    } else {
+      filename = 'mau_de_thi_gift_gnomio.txt';
+      content = `::Matching1:: Match the following adjectives with their definitions.
+{
+  =vast -> extremely large in area, size, amount, etc.
+  =hospitable -> pleased to welcome guests; generous and friendly to visitors
+  =well-trained -> having received good or thorough training
+}
+
+::True False 1:: Read the text and tick T or F.
+::Q1:: Life in the author's village is very peaceful. {T}
+::Q2:: The villagers live only by catching fish. {F}`;
+    }
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // LƯU BÀI TẬP VỀ NHÀ
   const handleSaveHomework = async () => {
     if (!homeworkContent.trim() && !summaryText.trim()) {
@@ -137,7 +186,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }
   };
 
-  // BẤM NÚT ADD -> MỞ NGAY MODAL 20 DẠNG CÂU HỎI MOODLE
   const handleOpenAddModal = (mode) => {
     setIsAddMenuOpen(false);
     setIsTypeModalOpen(true);
@@ -149,6 +197,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setQuestionTitle('Untitled Question');
     setQuestionText('');
     setExplanation('');
+    setSectionPassage('');
+    setAudioscriptText('');
     setMarks(1.0);
     setMcOptions([
       { text: '', isCorrect: true, feedback: '' },
@@ -182,7 +232,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
     };
 
     const normType = selectedType?.toLowerCase();
-    if (normType === 'multiple_choice') {
+    if (normType === 'listening_section') {
+      customContent.audioUrl = audioFileUrl;
+      customContent.audioscript = audioscriptText;
+      customContent.options = mcOptions.filter(o => o.text.trim() !== '');
+    } else if (normType === 'reading_section') {
+      customContent.passage = sectionPassage;
+      customContent.options = mcOptions.filter(o => o.text.trim() !== '');
+    } else if (normType === 'multiple_choice') {
       customContent.options = mcOptions.filter(o => o.text.trim() !== '');
     } else if (normType === 'true_false') {
       customContent.options = [
@@ -367,26 +424,23 @@ export default function QuizBuilder({ activityId, onSaved }) {
     await fetchQuestions();
   };
 
+  // DANH SÁCH ĐẦY ĐỦ CÁC DẠNG CÂU HỎI MOODLE (BAO GỒM CẢ 2 DẠNG THIẾT KẾ ĐẶC BIỆT LISTENING & READING SECTION CHUẨN ẢNH 4 & 5)
   const questionTypesList = [
-    { type: 'multiple_choice', label: 'Multiple choice', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
-    { type: 'true_false', label: 'True/False', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
-    { type: 'matching', label: 'Matching', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
-    { type: 'short_answer', label: 'Short answer', desc: 'Dạng câu hỏi nhập từ/số chính xác vào ô trống.' },
-    { type: 'numerical', label: 'Numerical', desc: 'Cho phép nhập đáp án chữ số có sai số cho phép.' },
-    { type: 'essay', label: 'Essay', desc: 'Cho phép học sinh gõ văn bản bài viết luận hoặc nộp file.' },
-    { type: 'calculated', label: 'Calculated', desc: 'Câu hỏi tính toán với biến số ngẫu nhiên theo công thức.' },
-    { type: 'calculated_multichoice', label: 'Calculated multichoice', desc: 'Trắc nghiệm tính toán với giá trị số ngẫu nhiên.' },
-    { type: 'calculated_simple', label: 'Calculated simple', desc: 'Dạng toán tính toán đơn giản nhanh.' },
-    { type: 'drag_drop_text', label: 'Drag and drop into text', desc: 'Kéo thả từ tương ứng vào vị trí khuyết trong đoạn văn.' },
-    { type: 'drag_drop_markers', label: 'Drag and drop markers', desc: 'Kéo thả các điểm ghim marker lên vị trí hình ảnh.' },
-    { type: 'drag_drop_image', label: 'Drag and drop onto image', desc: 'Kéo thả ô chữ/hình ảnh vào tấm ảnh nền.' },
+    { type: 'listening_section', label: '1. LISTENING SECTION (Bài Nghe Audio & Kịch Bản Hội Thoại)', desc: 'Thiết kế nguyên 1 Section bài nghe Audio MP3 kèm kịch bản Reading Script ẩn/hiện và các câu hỏi trắc nghiệm/điền từ bên dưới (Chuẩn Ảnh 4).' },
+    { type: 'reading_section', label: '2. READING SECTION (Bài Đọc Hiểu Đoạn Văn & Trắc Nghiệm)', desc: 'Thiết kế nguyên 1 Section bài đọc hiểu chứa đoạn văn bản đọc hiểu và các câu hỏi trắc nghiệm/tự luận bên dưới (Chuẩn Ảnh 5).' },
+    { type: 'multiple_choice', label: 'Multiple choice (Trắc nghiệm A, B, C, D)', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
+    { type: 'true_false', label: 'True/False (Đúng / Sai)', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
+    { type: 'matching', label: 'Matching (Nối từ Cột A - Cột B)', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
+    { type: 'short_answer', label: 'Short answer (Điền từ ngắn)', desc: 'Dạng câu hỏi nhập từ/số chính xác vào ô trống.' },
+    { type: 'essay', label: 'Essay (Bài viết tự luận)', desc: 'Cho phép học sinh gõ văn bản bài viết luận hoặc nộp file.' },
+    { type: 'audio_record', label: 'Audio response (Ghi âm câu trả lời)', desc: 'Ghi âm câu trả lời nói Tiếng Anh trực tiếp từ mic.' },
+    { type: 'fill_blank_dropdown', label: 'Select missing words (Dropdown)', desc: 'Điền từ khuyết vào đoạn văn bằng hộp chọn Dropdown.' },
+    { type: 'fill_blank_text', label: 'Fill in the blanks (Điền từ ô trống)', desc: 'Điền từ khuyết trực tiếp vào các ô trống trong đoạn văn.' },
+    { type: 'numerical', label: 'Numerical (Câu hỏi chữ số)', desc: 'Cho phép nhập đáp án chữ số có sai số cho phép.' },
+    { type: 'calculated', label: 'Calculated (Tính toán công thức)', desc: 'Câu hỏi tính toán với biến số ngẫu nhiên theo công thức.' },
     { type: 'cloze', label: 'Embedded answers (Cloze)', desc: 'Đoạn văn hỗn hợp chứa nhiều câu hỏi nhỏ điền từ/trắc nghiệm.' },
-    { type: 'ordering', label: 'Ordering', desc: 'Sắp xếp thứ tự các câu/từ theo trình tự đúng.' },
-    { type: 'random_matching', label: 'Random short-answer matching', desc: 'Khớp câu trả lời ngắn ngẫu nhiên từ bài tập.' },
-    { type: 'fill_blank_dropdown', label: 'Select missing words', desc: 'Điền từ khuyết vào đoạn văn bằng hộp chọn Dropdown.' },
-    { type: 'fill_blank_text', label: 'Fill in the blanks', desc: 'Điền từ khuyết trực tiếp vào các ô trống trong đoạn văn.' },
-    { type: 'audio_record', label: 'Audio response', desc: 'Ghi âm câu trả lời nói Tiếng Anh trực tiếp từ mic.' },
-    { type: 'description', label: 'Description', desc: 'Đoạn ghi chú / Hướng dẫn đề bài (không tính điểm).' },
+    { type: 'ordering', label: 'Ordering (Sắp xếp thứ tự)', desc: 'Sắp xếp thứ tự các câu/từ theo trình tự đúng.' },
+    { type: 'description', label: 'Description (Hướng dẫn đề bài)', desc: 'Đoạn ghi chú / Hướng dẫn đề bài (không tính điểm).' },
   ];
 
   return (
@@ -446,13 +500,13 @@ export default function QuizBuilder({ activityId, onSaved }) {
               </button>
 
               {isAddMenuOpen && (
-                <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-30 font-semibold text-xs text-slate-700">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-30 font-semibold text-xs text-slate-700">
                   <button
                     onClick={() => handleOpenAddModal('new')}
                     className="w-full px-4 py-2.5 text-left hover:bg-emerald-50 hover:text-emerald-700 transition flex items-center space-x-2 font-bold"
                   >
                     <Plus className="w-4 h-4 text-emerald-600" />
-                    <span>+ a new question (Mở 20 dạng câu hỏi Moodle)</span>
+                    <span>+ a new question (Mở 20 dạng Moodle)</span>
                   </button>
                   <button
                     onClick={() => handleOpenAddModal('bank')}
@@ -496,8 +550,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           setQuestionTitle(q.content?.title || '');
                           setQuestionText(q.content?.question || '');
                           setExplanation(q.content?.explanation || '');
+                          setSectionPassage(q.content?.passage || '');
+                          setAudioscriptText(q.content?.audioscript || '');
                           setMarks(q.marks || 1.0);
-                          if (normalized === 'multiple_choice') {
+                          if (normalized === 'multiple_choice' || normalized === 'listening_section' || normalized === 'reading_section') {
                             setMcOptions(
                               q.content?.options && q.content?.options.length > 0
                                 ? q.content.options
@@ -526,7 +582,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
                   <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question}</h4>
 
-                  {/* Hiển thị Giải thích AI nếu có */}
                   {q.content?.explanation && (
                     <p className="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 font-medium italic">
                       {q.content.explanation}
@@ -666,20 +721,29 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* TAB 3: IMPORT QUESTIONS FROM FILE */}
+      {/* TAB 3: IMPORT QUESTIONS FROM FILE (CUNG CẤP HỌC LIỆU MẪU CHUẨN GNOMIO VÀ NÚT TẢI TỆP .TXT) */}
       {activeTab === 'import' && (
         <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-6">
           <div className="flex justify-between items-center border-b pb-3">
             <h3 className="text-base font-extrabold text-slate-900">
               Import questions from file (Nhập ngân hàng câu hỏi từ tệp)
             </h3>
-            <button
-              onClick={() => setHelpFormatModal('json')}
-              className="px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-xl text-xs font-bold transition flex items-center space-x-1.5"
-            >
-              <Code className="w-4 h-4" />
-              <span>❓ Mẫu Nhập JSON Hàng Loạt</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handleDownloadSampleFile(fileFormat)}
+                className="px-3 py-1.5 bg-sky-100 text-sky-800 hover:bg-sky-200 rounded-xl text-xs font-bold transition flex items-center space-x-1"
+              >
+                <Download className="w-4 h-4" />
+                <span>📥 Tải Tệp Mẫu {fileFormat.toUpperCase()} (.txt)</span>
+              </button>
+              <button
+                onClick={() => setHelpFormatModal('json')}
+                className="px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-xl text-xs font-bold transition flex items-center space-x-1.5"
+              >
+                <Code className="w-4 h-4" />
+                <span>❓ Mẫu Nhập JSON Hàng Loạt</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -745,20 +809,20 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* POPUP HƯỚNG DẪN ❓ VÀ MẪU NHẬP JSON HÀNG LOẠT */}
+      {/* POPUP HƯỚNG DẪN ❓ CUNG CẤP HỌC LIỆU MẪU CHUẨN GNOMIO VÀ NÚT TẢI TỆP .TXT */}
       {helpFormatModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base uppercase">
-                ❓ Hướng Dẫn Mẫu Cho Định Dạng: {helpFormatModal.toUpperCase()}
+                ❓ HỌC LIỆU MẪU CHUẨN GNOMIO CHO: {helpFormatModal.toUpperCase()}
               </h3>
               <button onClick={() => setHelpFormatModal(null)} className="text-slate-400 hover:text-white font-bold">
                 ✕
               </button>
             </div>
 
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {helpFormatModal === 'json' ? (
                 <div className="space-y-3">
                   <p className="text-xs text-slate-600 leading-relaxed font-semibold">
@@ -779,13 +843,54 @@ export default function QuizBuilder({ activityId, onSaved }) {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3 text-xs text-slate-700">
-                  <h4 className="font-extrabold text-slate-900">Mẫu Đơn Giản Cho {helpFormatModal.toUpperCase()}:</h4>
-                  <pre className="p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl overflow-x-auto">
+                <div className="space-y-4 text-xs text-slate-700">
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1">
+                    <h5 className="font-extrabold text-emerald-900">📌 Hướng Dẫn Từng Bước (Step-by-step guidance):</h5>
+                    <p className="text-emerald-800">
+                      Bước 1: Bấm nút <strong>"📥 Tải Tệp Mẫu (.txt)"</strong> bên dưới để lấy file mẫu chuẩn Gnomio.<br />
+                      Bước 2: Mở file bằng Notepad hoặc Word, chỉnh sửa nội dung câu hỏi và đáp án <code>ANSWER: X</code>.<br />
+                      Bước 3: Lưu file và bấm nút <strong>Choose File</strong> để nạp toàn bộ câu hỏi vào hệ thống!
+                    </p>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-extrabold text-slate-900">Ví dụ Học Liệu Mẫu Chuẩn Gnomio ({helpFormatModal.toUpperCase()}):</h4>
+                    <button
+                      onClick={() => handleDownloadSampleFile(helpFormatModal)}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Tải Tệp Mẫu (.txt)</span>
+                    </button>
+                  </div>
+
+                  <pre className="p-4 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl overflow-x-auto leading-relaxed">
                     {helpFormatModal === 'aiken'
-                      ? `The children in my home village used to go _______.\nA. on foot\nB. bare-footed\nANSWER: B`
+                      ? `What is the correct answer to this question?
+A. Is it this one?
+B. Maybe this answer?
+C. Possibly this one?
+D. Must be this one!
+ANSWER: D
+
+Which LMS has the most quiz import formats?
+A) Moodle
+B) ATutor
+C) Claroline
+D) Blackboard
+E) WebCT
+F) Ilias
+ANSWER: A`
                       : helpFormatModal === 'gift'
-                      ? `::Matching1:: Match adjectives with definitions {\n  =vast -> extremely large\n  =hospitable -> generous to visitors\n}`
+                      ? `::Matching1:: Match the following adjectives with their definitions.
+{
+  =vast -> extremely large in area, size, amount, etc.
+  =hospitable -> pleased to welcome guests; generous to visitors
+}
+
+::True False 1:: Read the text and tick T or F.
+::Q1:: Life in the author's village is very peaceful. {T}
+::Q2:: The villagers live only by catching fish. {F}`
                       : `<quiz>\n  <question type="category">\n    <category><text>Grammar</text></category>\n  </question>\n</quiz>`}
                   </pre>
                 </div>
@@ -795,7 +900,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* BẢNG MODAL 20 DẠNG CÂU HỎI MOODLE */}
+      {/* BẢNG MODAL 20 DẠNG CÂU HỎI MOODLE (BAO GỒM CẢ LISTENING SECTION & READING SECTION CHUẨN ẢNH 4 & 5) */}
       {isTypeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 animate-scale-up">
@@ -809,7 +914,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 max-h-[65vh] overflow-y-auto">
               <div className="space-y-1 border-r border-slate-100 pr-4">
                 <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2">
-                  QUESTIONS TYPES ({questionTypesList.length} Dạng Câu Hỏi Moodle)
+                  QUESTIONS TYPES ({questionTypesList.length} Dạng Moodle)
                 </span>
                 {questionTypesList.map((t) => (
                   <label
@@ -858,7 +963,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI (SỬA LỖI HIỂN THỊ ĐẦY ĐỦ 4 LỰA CHỌN TRẮC NGHIỆM + AI GIẢI THÍCH CHI TIẾT) */}
+      {/* FORM BIÊN TẬP CÂU HỎI & SECTION */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -870,6 +975,53 @@ export default function QuizBuilder({ activityId, onSaved }) {
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* CẤU HÌNH DẠNG BÀI NGHE LISTENING SECTION (ẢNH 4) */}
+              {selectedType?.toLowerCase() === 'listening_section' && (
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl space-y-3">
+                  <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-1.5">
+                    <Headphones className="w-4 h-4 text-purple-600" />
+                    <span>LISTENING SECTION (Đường Dẫn Audio MP3 & Kịch Bản Bài Nghe Script)</span>
+                  </h4>
+                  <div>
+                    <label className="block text-xs font-bold text-purple-800 mb-1">Đường Dẫn File Audio MP3:</label>
+                    <input
+                      type="text"
+                      value={audioFileUrl}
+                      onChange={(e) => setAudioFileUrl(e.target.value)}
+                      placeholder="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+                      className="w-full px-3 py-2 border border-purple-300 rounded-xl text-xs bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-purple-800 mb-1">Kịch Bản Hội Thoại (Reading Script):</label>
+                    <textarea
+                      rows={4}
+                      value={audioscriptText}
+                      onChange={(e) => setAudioscriptText(e.target.value)}
+                      placeholder="Nhập kịch bản bài nghe (ví dụ: Hello everyone, my name is Phong...)"
+                      className="w-full p-2.5 border border-purple-300 rounded-xl text-xs bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* CẤU HÌNH DẠNG BÀI ĐỌC READING SECTION (ẢNH 5) */}
+              {selectedType?.toLowerCase() === 'reading_section' && (
+                <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl space-y-2">
+                  <h4 className="font-extrabold text-xs text-sky-900 uppercase flex items-center space-x-1.5">
+                    <BookOpen className="w-4 h-4 text-sky-600" />
+                    <span>READING SECTION (Đoạn Văn Bản Đọc Hiểu Reading Passage)</span>
+                  </h4>
+                  <textarea
+                    rows={5}
+                    value={sectionPassage}
+                    onChange={(e) => setSectionPassage(e.target.value)}
+                    placeholder="Dán đoạn văn bản đọc hiểu tại đây (ví dụ: Chuong village in Hanoi is famous for making conical hats...)"
+                    className="w-full p-3 border border-sky-300 rounded-xl text-xs bg-white"
+                  />
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                   Question Text (Nội dung đề bài câu hỏi) *
@@ -884,8 +1036,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
                 />
               </div>
 
-              {/* Ô HIỂN THỊ 4 LỰA CHỌN 2 CỘT CHO CÂU HỎI TRẮC NGHIỆM MULTIPLE_CHOICE */}
-              {selectedType?.toLowerCase() === 'multiple_choice' && (
+              {/* LỰA CHỌN TRẮC NGHIỆM CHO MULTIPLE CHOICE / LISTENING / READING SECTION */}
+              {(selectedType?.toLowerCase() === 'multiple_choice' || selectedType?.toLowerCase() === 'listening_section' || selectedType?.toLowerCase() === 'reading_section') && (
                 <div className="space-y-3 pt-2">
                   <div className="flex justify-between items-center">
                     <h4 className="font-extrabold text-xs text-slate-800 uppercase">
@@ -952,7 +1104,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                 </div>
               )}
 
-              {/* Ô TÍCH HỢP AI GIẢI THÍCH ĐÁP ÁN CHI TIẾT */}
+              {/* AI GIẢI THÍCH CHI TIẾT */}
               <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="block text-xs font-extrabold text-emerald-900 uppercase">
