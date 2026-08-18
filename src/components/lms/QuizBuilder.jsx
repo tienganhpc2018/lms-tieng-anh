@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle, MessageSquareText, Clock, Tag } from 'lucide-react';
+import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle, MessageSquareText, Clock, Tag, FileCode } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizBuilder({ activityId, onSaved }) {
@@ -45,14 +45,17 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questionText, setQuestionText] = useState('');
   const [explanation, setExplanation] = useState('');
   const [marks, setMarks] = useState(1.0);
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState(0); // 0 = Không đếm ngược (Mặc định chạy đếm tiến)
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(0);
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
-  // State riêng cho Listening, Reading, Reading T/F & Cloze Test
+  // State riêng cho Cloze Test Gộp Cả Task 1 + Task 2
+  const [clozeTasks, setClozeTasks] = useState([]);
+  const [clozeJsonDirect, setClozeJsonDirect] = useState('');
+  const [isJsonDirectMode, setIsJsonDirectMode] = useState(false);
+
+  // State riêng cho Listening, Reading, Reading T/F
   const [sectionPassage, setSectionPassage] = useState('');
-  const [passageBadge, setPassageBadge] = useState('POSTER'); // Dùng cho Cloze Test (POSTER, EMAIL, ARTICLE...)
-  const [passageTitle, setPassageTitle] = useState('Harry Potter - A Magical Adventure');
   const [listeningAudioUrl, setListeningAudioUrl] = useState('');
   const [uploadedAudioFileName, setUploadedAudioFileName] = useState('');
   const [sectionChildQuestions, setSectionChildQuestions] = useState([]);
@@ -96,15 +99,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
   // AI TỰ ĐỘNG TẠO GIẢI THÍCH CHUẨN 4 KHỐI DÀNH CHO HỌC SINH YẾU
   const handleAiGenerateExplanation = () => {
-    if (!questionText.trim() && !sectionPassage.trim()) {
+    if (!questionText.trim() && !sectionPassage.trim() && clozeTasks.length === 0) {
       alert('Vui lòng nhập nội dung đề bài trước khi tạo giải thích AI!');
       return;
     }
     setAiExplaining(true);
     setTimeout(() => {
-      const correctOpt = mcOptions.find((o) => o.isCorrect);
       setExplanation(
-        `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi kiểm tra kiến thức trọng tâm ngữ pháp và từ vựng Tiếng Anh theo chuẩn chương trình.\n\n💡 Giải thích chi tiết (Evidence / Dẫn chứng):\nĐề bài: "${questionText}". Đáp án chính xác là "${correctOpt?.text || 'B'}" dựa theo dẫn chứng mở đầu bài đọc.\n\n✕ Loại trừ gây nhiễu:\nCác phương án còn lại sai về nghĩa hoặc không phù hợp với ngữ cảnh đoạn văn.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nDịch đề bài và đáp án đúng giúp học sinh dễ học thuộc và ghi nhớ sâu.`
+        `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi kiểm tra kiến thức trọng tâm từ vựng và cấu trúc ngữ pháp Tiếng Anh theo bài học.\n\n💡 Giải thích chi tiết (Evidence / Dẫn chứng):\nDựa theo ngữ cảnh đoạn văn bản, lựa chọn đáp án chính xác nhất phù hợp hoàn toàn.\n\n✕ Loại trừ gây nhiễu:\nCác phương án còn lại sai về ý nghĩa hoặc không đúng cấu trúc từ vựng Tiếng Anh.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nDịch đề bài và đáp án đúng giúp học sinh dễ dàng ghi nhớ sâu kiến thức.`
       );
       setAiExplaining(false);
     }, 1000);
@@ -139,8 +141,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setQuestionText(q.content?.question || '');
     setExplanation(q.content?.explanation || '');
     setSectionPassage(q.content?.passage || '');
-    setPassageBadge(q.content?.badge || 'POSTER');
-    setPassageTitle(q.content?.passageTitle || 'Harry Potter - A Magical Adventure');
+    setClozeTasks(q.content?.tasks || []);
+    setIsJsonDirectMode(false);
 
     let audioUrlToLoad = q.content?.audioUrl || '';
     if (q.content?.audioFileName) {
@@ -172,31 +174,41 @@ export default function QuizBuilder({ activityId, onSaved }) {
     let filename = '';
 
     if (format === 'json') {
-      filename = 'mau_bai_doc_va_bai_nghe_lms.json';
+      filename = 'mau_cloze_test_2_tasks_knowledge_of_language.json';
       content = JSON.stringify(
-        [
-          {
-            type: 'reading_tf',
-            marks: 3.0,
-            content: {
-              title: '3. READING (True/False)',
-              question: 'Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F).',
-              passage: 'In Green Valley neighborhood, residents have started a community garden to grow fresh vegetables. At first, many people did not know how to grow plants, but experienced gardeners in the neighborhood volunteered to show them what to do...',
-              childQuestions: [
-                {
-                  question: '1. The community garden is used to grow flowers only.',
-                  correctAnswer: 'F',
-                  explanation: '💡 Evidence: In Green Valley neighborhood, residents have started a community garden to grow fresh vegetables.'
-                },
-                {
-                  question: '2. Experienced gardeners showed others how to grow plants.',
-                  correctAnswer: 'T',
-                  explanation: '💡 Evidence: experienced gardeners in the neighborhood volunteered to show them what to do.'
-                }
+        {
+          section_id: "cloze_test_section_1",
+          section_type: "cloze_test",
+          title: "2 KNOWLEDGE OF LANGUAGE",
+          tasks: [
+            {
+              task_title: "TASK 1: READ THE FIRST TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.",
+              task_sub: "Read the following blog post about a local community and choose the best option (A, B, C, or D) for each blank.",
+              badge_label: "BLOG",
+              passage_title: "Our Beautiful Suburb Blog",
+              passage_content: "Hi everyone! Welcome back to my blog. Today, I want to talk about my local community. Two years ago, my family decided to move to this (16) _______ of the city. At first, I felt lonely, but soon I found out that our neighbours are extremely warm and helpful. There are many great facilities here, such as a large (17) _______ and a clean swimming pool. We also have a pedestrian street where we can walk and relax. My family often goes out to a local restaurant to enjoy some (18) _______ food of this region. It is very delicious! To keep our community clean, we always (19) _______ rubbish before taking it away. I really get on well with everyone here, and I hope we can (20) _______ our community together.",
+              questions: [
+                { question_number: "16", options: [{ id: "A", text: "A. suburb" }, { id: "B", text: "B. suitcase" }, { id: "C", text: "C. seagull" }, { id: "D", text: "D. fragrance" }], correct_option: "A" },
+                { question_number: "17", options: [{ id: "A", text: "A. bus station" }, { id: "B", text: "B. shopping mall" }, { id: "C", text: "C. firefighter" }, { id: "D", text: "D. delivery person" }], correct_option: "B" },
+                { question_number: "18", options: [{ id: "A", text: "A. original" }, { id: "B", text: "B. hard-working" }, { id: "C", text: "C. speciality" }, { id: "D", text: "D. worldwide" }], correct_option: "C" },
+                { question_number: "19", options: [{ id: "A", text: "A. sort" }, { id: "B", text: "B. preserve" }, { id: "C", text: "C. shorten" }, { id: "D", text: "D. decide" }], correct_option: "A" },
+                { question_number: "20", options: [{ id: "A", text: "A. preserve" }, { id: "B", text: "B. build" }, { id: "C", text: "C. develop" }, { id: "D", text: "D. clean" }], correct_option: "B" }
+              ]
+            },
+            {
+              task_title: "TASK 2: READ THE SECOND TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.",
+              task_sub: "Read the following email invitation and choose the best option (A, B, C, or D) for each blank.",
+              badge_label: "EMAIL",
+              passage_title: "Invitation to a House-Warming Party",
+              passage_content: "Dear Vy,\nHow are you? I am writing to invite you to our (21) _______ party next Saturday. My family has just moved to a new house, and we want to celebrate with our neighbours. Our new house is located near a beautiful tourist attraction, which is famous (22) _______ its paper fans and pottery. If you come early, we can (23) _______ this historic area together. I can show you where the local artisans work and make traditional lanterns. Don't worry about transport because there is a bus (24) _______ just five minutes away from my house. If you are not sure how (25) _______ there, just call me and I will give you some advice.\nHope to see you soon!\nBest,\nDuy",
+              questions: [
+                { question_number: "21", options: [{ id: "A", text: "A. house-warming" }, { id: "B", text: "B. hard-working" }, { id: "C", text: "C. worldwide" }, { id: "D", text: "D. responsible" }], correct_option: "A" },
+                { question_number: "22", options: [{ id: "A", text: "A. of" }, { id: "B", text: "B. for" }, { id: "C", text: "C. about" }, { id: "D", text: "D. from" }], correct_option: "B" },
+                { question_number: "23", options: [{ id: "A", text: "A. look around" }, { id: "B", text: "B. break down" }, { id: "C", text: "C. cut down on" }, { id: "D", text: "D. pass down" }], correct_option: "A" }
               ]
             }
-          }
-        ],
+          ]
+        },
         null,
         2
       );
@@ -268,17 +280,44 @@ ANSWER: D`;
     setIsTypeModalOpen(true);
   };
 
-  // TẠO CÂU HỎI MỚI -> TRỐNG TRƠN 100% XÓA SẠCH DỮ LIỆU MẪU CŨ
+  // TẠO CÂU HỎI MỚI -> KHỞI TẠO DỮ LIỆU MẪU ĐỘC QUYỀN CHUẨN THẦY YÊU CẦU
   const handleConfirmAddType = () => {
     setIsTypeModalOpen(false);
     setEditingQuestion({ id: 'new', type: selectedType });
     setQuestionTitle('');
+    setIsJsonDirectMode(false);
 
     const normType = selectedType?.toLowerCase();
-    if (normType === 'listening_section') {
-      setQuestionText('Listen to Phong, a local artisan, talking about Bat Trang pottery village. Choose the correct answer A, B, C, or D for each question.');
-    } else if (normType === 'reading_section') {
-      setQuestionText('Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D for each question.');
+    if (normType === 'cloze_test') {
+      setQuestionTitle('2 KNOWLEDGE OF LANGUAGE');
+      setClozeTasks([
+        {
+          task_title: "TASK 1: READ THE FIRST TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.",
+          task_sub: "Read the following blog post about a local community and choose the best option (A, B, C, or D) for each blank.",
+          badge_label: "BLOG",
+          passage_title: "Our Beautiful Suburb Blog",
+          passage_content: "Hi everyone! Welcome back to my blog. Today, I want to talk about my local community. Two years ago, my family decided to move to this (16) _______ of the city. At first, I felt lonely, but soon I found out that our neighbours are extremely warm and helpful. There are many great facilities here, such as a large (17) _______ and a clean swimming pool. We also have a pedestrian street where we can walk and relax. My family often goes out to a local restaurant to enjoy some (18) _______ food of this region. It is very delicious! To keep our community clean, we always (19) _______ rubbish before taking it away. I really get on well with everyone here, and I hope we can (20) _______ our community together.",
+          questions: [
+            { question_number: "16", options: [{ id: "A", text: "A. suburb" }, { id: "B", text: "B. suitcase" }, { id: "C", text: "C. seagull" }, { id: "D", text: "D. fragrance" }], correct_option: "A" },
+            { question_number: "17", options: [{ id: "A", text: "A. bus station" }, { id: "B", text: "B. shopping mall" }, { id: "C", text: "C. firefighter" }, { id: "D", text: "D. delivery person" }], correct_option: "B" },
+            { question_number: "18", options: [{ id: "A", text: "A. original" }, { id: "B", text: "B. hard-working" }, { id: "C", text: "C. speciality" }, { id: "D", text: "D. worldwide" }], correct_option: "C" },
+            { question_number: "19", options: [{ id: "A", text: "A. sort" }, { id: "B", text: "B. preserve" }, { id: "C", text: "C. shorten" }, { id: "D", text: "D. decide" }], correct_option: "A" },
+            { question_number: "20", options: [{ id: "A", text: "A. preserve" }, { id: "B", text: "B. build" }, { id: "C", text: "C. develop" }, { id: "D", text: "D. clean" }], correct_option: "B" }
+          ]
+        },
+        {
+          task_title: "TASK 2: READ THE SECOND TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.",
+          task_sub: "Read the following email invitation and choose the best option (A, B, C, or D) for each blank.",
+          badge_label: "EMAIL",
+          passage_title: "Invitation to a House-Warming Party",
+          passage_content: "Dear Vy,\nHow are you? I am writing to invite you to our (21) _______ party next Saturday. My family has just moved to a new house, and we want to celebrate with our neighbours. Our new house is located near a beautiful tourist attraction, which is famous (22) _______ its paper fans and pottery. If you come early, we can (23) _______ this historic area together. I can show you where the local artisans work and make traditional lanterns. Don't worry about transport because there is a bus (24) _______ just five minutes away from my house. If you are not sure how (25) _______ there, just call me and I will give you some advice.\nHope to see you soon!\nBest,\nDuy",
+          questions: [
+            { question_number: "21", options: [{ id: "A", text: "A. house-warming" }, { id: "B", text: "B. hard-working" }, { id: "C", text: "C. worldwide" }, { id: "D", text: "D. responsible" }], correct_option: "A" },
+            { question_number: "22", options: [{ id: "A", text: "A. of" }, { id: "B", text: "B. for" }, { id: "C", text: "C. about" }, { id: "D", text: "D. from" }], correct_option: "B" },
+            { question_number: "23", options: [{ id: "A", text: "A. look around" }, { id: "B", text: "B. break down" }, { id: "C", text: "C. cut down on" }, { id: "D", text: "D. pass down" }], correct_option: "A" }
+          ]
+        }
+      ]);
     } else if (normType === 'reading_tf') {
       setQuestionText('Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F).');
       setSectionPassage('In Green Valley neighborhood, residents have started a community garden to grow fresh vegetables. At first, many people did not know how to grow plants, but experienced gardeners in the neighborhood volunteered to show them what to do. They set up a weekly schedule to take care of the garden. The project has helped neighbors get on with each other much better. Children also join in, learning how to protect the environment. However, they sometimes have to deal with pests and bad weather. Despite these difficulties, they refuse to give up. They are looking forward to harvesting their first organic tomatoes next week. This community garden not only provides healthy food but also strengthens the connection among local residents. It is a great model for other urban areas.');
@@ -289,20 +328,9 @@ ANSWER: D`;
         { question: '4. The gardeners sometimes have to deal with pests and bad weather.', correctAnswer: 'T', explanation: '💡 Evidence: However, they sometimes have to deal with pests and bad weather.' },
         { question: '5. They are looking forward to harvesting organic tomatoes next week.', correctAnswer: 'T', explanation: '💡 Evidence: They are looking forward to harvesting their first organic tomatoes next week.' }
       ]);
-    } else if (normType === 'cloze_test') {
-      setQuestionText('PART 1: READ THE FOLLOWING POSTER AND CIRCLE THE LETTER A, B, C, OR D TO INDICATE THE CORRECT OPTION.\nChoose the best answer to fill in each blank in the movie advertisement.');
-      setPassageBadge('POSTER');
-      setPassageTitle('Harry Potter - A Magical Adventure');
-      setSectionPassage('You should (16) ______ Harry Potter if you (17) ______ exciting, magical, and thrilling films. With wonderful characters and (18) ______ visuals, this movie will transport you to a world full of wonder. Don’t miss out! You (19) ______ skip this epic journey of friendship and adventure. A must-see for (20) ______!');
-      setSectionChildQuestions([
-        { qNum: 16, options: [{ text: 'A. watch', isCorrect: true }, { text: 'B. watching', isCorrect: false }, { text: 'C. to watch', isCorrect: false }, { text: 'D. watches', isCorrect: false }], explanation: '💡 Structure: modal verb "should" + V-bare -> watch.' },
-        { qNum: 17, options: [{ text: 'A. dislike', isCorrect: false }, { text: 'B. enjoy', isCorrect: true }, { text: 'C. prefer', isCorrect: false }, { text: 'D. hate', isCorrect: false }], explanation: '💡 Meaning: enjoy exciting films.' },
-        { qNum: 18, options: [{ text: 'A. amaze', isCorrect: false }, { text: 'B. amazement', isCorrect: false }, { text: 'C. amazed', isCorrect: false }, { text: 'D. amazing', isCorrect: true }], explanation: '💡 Grammar: Adjective + Noun -> amazing visuals.' },
-        { qNum: 19, options: [{ text: 'A. isn\'t able to', isCorrect: false }, { text: 'B. should not', isCorrect: true }, { text: 'C. not should', isCorrect: false }, { text: 'D. not are able to', isCorrect: false }], explanation: '💡 Meaning: should not (không nên bỏ lỡ).' },
-        { qNum: 20, options: [{ text: 'A. fantasy lover', isCorrect: false }, { text: 'B. fantastic lovers', isCorrect: false }, { text: 'C. fantasy lovers', isCorrect: true }, { text: 'D. romantic lovers', isCorrect: false }], explanation: '💡 Collocation: fantasy lovers (người yêu thích phim kỳ ảo).' }
-      ]);
     } else {
       setQuestionText('');
+      setSectionChildQuestions([]);
     }
 
     setExplanation('');
@@ -316,6 +344,36 @@ ANSWER: D`;
       { text: '', isCorrect: false, feedback: '' },
       { text: '', isCorrect: false, feedback: '' },
     ]);
+  };
+
+  // HÀM CHUYỂN ĐỔI CHUỖI JSON DÁN TRỰC TIẾP TRONG MODAL THÀNH DỮ LIỆU BÀI ĐỌC TASK 1 + TASK 2
+  const handleApplyClozeDirectJson = () => {
+    if (!clozeJsonDirect.trim()) {
+      alert('Vui lòng dán chuỗi JSON theo đúng cấu trúc mẫu!');
+      return;
+    }
+    try {
+      const parsed = JSON.parse(clozeJsonDirect);
+      if (parsed.title) setQuestionTitle(parsed.title);
+      if (parsed.tasks && Array.isArray(parsed.tasks)) {
+        setClozeTasks(parsed.tasks);
+      } else if (parsed.passage && parsed.questions) {
+        setClozeTasks([
+          {
+            task_title: "TASK 1: READ THE TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.",
+            task_sub: "Choose the best option (A, B, C, or D) for each blank.",
+            badge_label: parsed.passage.badge_label || "POSTER",
+            passage_title: parsed.passage.title || "Passage Title",
+            passage_content: parsed.passage.content || parsed.passage,
+            questions: parsed.questions
+          }
+        ]);
+      }
+      alert('🎉 Đã NẠP CHUỖI JSON THÀNH CÔNG VÀO BÀI ĐỌC THẦY NHÉ!');
+      setIsJsonDirectMode(false);
+    } catch (err) {
+      alert('Lỗi định dạng JSON không hợp lệ: ' + err.message);
+    }
   };
 
   const handleAddOption = () => {
@@ -381,7 +439,7 @@ ANSWER: D`;
 
       let customContent = {
         sectionType: selectedType,
-        title: questionTitle || (normType === 'reading_tf' ? '3. READING (True/False)' : normType === 'cloze_test' ? '4. KNOWLEDGE OF LANGUAGE (Cloze Test)' : normType === 'reading_section' ? 'READING SECTION' : normType === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
+        title: questionTitle || (normType === 'reading_tf' ? '3. READING (True/False)' : normType === 'cloze_test' ? '2 KNOWLEDGE OF LANGUAGE' : normType === 'reading_section' ? 'READING SECTION' : normType === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
         question: questionText.trim() || questionTitle || 'Instruction Question',
         explanation: explanation.trim(),
         timeLimit: Number(timeLimitMinutes) || 0,
@@ -399,10 +457,7 @@ ANSWER: D`;
         customContent.passage = sectionPassage;
         customContent.childQuestions = sectionChildQuestions;
       } else if (normType === 'cloze_test') {
-        customContent.badge = passageBadge;
-        customContent.passageTitle = passageTitle;
-        customContent.passage = sectionPassage;
-        customContent.childQuestions = sectionChildQuestions;
+        customContent.tasks = clozeTasks;
       } else if (normType === 'multiple_choice') {
         customContent.options = mcOptions.filter((o) => o.text.trim() !== '');
       } else if (normType === 'true_false') {
@@ -449,7 +504,7 @@ ANSWER: D`;
             category,
             type: validDbType,
             question_text: customContent.question || customContent.title,
-            options: customContent.options || customContent.childQuestions || [],
+            options: customContent.options || customContent.childQuestions || customContent.tasks || [],
             correct_answer: 'Option B',
             explanation: customContent.explanation,
           },
@@ -636,8 +691,8 @@ ANSWER: D`;
   };
 
   const questionTypesList = [
+    { type: 'cloze_test', label: '4. KNOWLEDGE OF LANGUAGE (Cloze Test Gộp Task 1 & Task 2)', desc: 'Thiết kế trọn bộ 2 Bài Đọc Đục Lỗ (Task 1: BLOG/POSTER 16-20 và Task 2: EMAIL/ARTICLE 21-25) trong cùng 1 khung giao diện soạn thảo độc quyền.' },
     { type: 'reading_tf', label: '3. READING (True/False) - Bài Đọc Chọn Đúng (T) / Sai (F)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu và 5 câu phát biểu bên dưới với nút vuông [T] và [F] đổi màu xanh/đỏ.' },
-    { type: 'cloze_test', label: '4. KNOWLEDGE OF LANGUAGE (Cloze Test / Đọc Đục Lỗ)', desc: 'Thiết kế dạng bài đọc đục lỗ điền khuyết với huy hiệu nổi POSTER màu cam và các nút trắc nghiệm A, B, C, D hình viên thuốc.' },
     { type: 'reading_section', label: '1. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Trắc Nghiệm)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu và danh sách câu hỏi trắc nghiệm A, B, C, D bên dưới.' },
     { type: 'listening_section', label: '2. LISTENING SECTION (Bài Nghe Audio MP3)', desc: 'Thiết kế bài nghe Audio MP3 (box dán link hoặc upload từ máy) và danh sách câu hỏi trắc nghiệm con.' },
     { type: 'multiple_choice', label: 'Multiple choice (Trắc nghiệm A, B, C, D)', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
@@ -918,7 +973,7 @@ ANSWER: D`;
                 className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-sm"
               >
                 <Download className="w-4 h-4" />
-                <span>📥 Tải Tệp JSON Mẫu Bài Đọc & Bài Nghe (.json)</span>
+                <span>📥 Tải Tệp JSON Mẫu 2 Tasks Cloze Test (.json)</span>
               </button>
               <button
                 onClick={() => handleDownloadSampleFile(fileFormat)}
@@ -1006,7 +1061,7 @@ ANSWER: D`;
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base uppercase">
-                ❓ HỌC LIỆU MẪU CHUẨN JSON BÀI ĐỌC & BÀI NGHE
+                ❓ HỌC LIỆU MẪU CHUẨN JSON CLOZE TEST 2 TASKS
               </h3>
               <button onClick={() => setHelpFormatModal(null)} className="text-slate-400 hover:text-white font-bold">
                 ✕
@@ -1032,7 +1087,7 @@ ANSWER: D`;
                     rows={8}
                     value={jsonInputText}
                     onChange={(e) => setJsonInputText(e.target.value)}
-                    placeholder={`[\n  {\n    "type": "reading_tf",\n    "marks": 3.0,\n    "content": {\n      "title": "3. READING (True/False)",\n      "passage": "Enter reading passage here...",\n      "childQuestions": [\n        {\n          "question": "1. Enter statement here...",\n          "correctAnswer": "T"\n        }\n      ]\n    }\n  }\n]`}
+                    placeholder={`{\n  "section_id": "cloze_test_section_1",\n  "title": "2 KNOWLEDGE OF LANGUAGE",\n  "tasks": [\n    {\n      "task_title": "TASK 1: READ THE FIRST TEXT...",\n      "badge_label": "BLOG",\n      "passage_title": "Our Beautiful Suburb Blog",\n      "passage_content": "...",\n      "questions": []\n    }\n  ]\n}`}
                     className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl"
                   />
                   <button
@@ -1200,55 +1255,167 @@ ANSWER: D`
                 </div>
               </div>
 
-              {/* KHUNG YÊU CẦU ĐỀ BÀI HƯỚNG DẪN (QUESTION INSTRUCTION BOX CHUẨN ẢNH 1) */}
-              <div className="p-4 bg-purple-50/60 border-l-4 border-purple-600 rounded-r-2xl space-y-1.5 shadow-xs">
-                <label className="block text-xs font-extrabold text-purple-900 uppercase flex items-center space-x-1.5">
-                  <MessageSquareText className="w-4 h-4 text-purple-600" />
-                  <span>📝 YÊU CẦU ĐỀ BÀI / CÂU LỆNH HƯỚNG DẪN LÀM BÀI (INSTRUCTION BOX) *</span>
-                </label>
-                <textarea
-                  rows={2}
-                  required
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  placeholder="Ví dụ: Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F)."
-                  className="w-full p-2.5 border border-purple-300 rounded-xl text-xs font-extrabold text-purple-950 bg-white leading-relaxed focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* CLOZE TEST: HUY HIỆU NỔI CẤU HÌNH (POSTER / EMAIL / ARTICLE) */}
+              {/* NÚT CHUYỂN ĐỔI CHẾ ĐỘ NHẬP JSON TRỰC TIẾP TRONG KHUNG SOẠN THẢO CHO CLOZE TEST */}
               {selectedType?.toLowerCase() === 'cloze_test' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-amber-50/60 border border-amber-200 rounded-2xl">
-                  <div>
-                    <label className="block text-xs font-extrabold text-amber-900 uppercase mb-1 flex items-center space-x-1">
-                      <Tag className="w-4 h-4 text-amber-600" />
-                      <span>HUY HIỆU NỔI (FLOATING BADGE)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={passageBadge}
-                      onChange={(e) => setPassageBadge(e.target.value)}
-                      placeholder="POSTER, EMAIL, ARTICLE..."
-                      className="w-full px-3 py-2 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 bg-white uppercase"
-                    />
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-extrabold text-blue-900 uppercase flex items-center space-x-1.5">
+                      <FileCode className="w-4 h-4 text-blue-600" />
+                      <span>🚀 NHẬP JSON TRỰC TIẾP TRONG KHUNG SOẠN (DÁN CẢ TASK 1 & TASK 2)</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsJsonDirectMode(!isJsonDirectMode)}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition"
+                    >
+                      {isJsonDirectMode ? '✕ Quay Về Form Thủ Công' : '⚡ Bật Ô Nhập JSON'}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-xs font-extrabold text-amber-900 uppercase mb-1">
-                      TIÊU ĐỀ BÀI ĐỌC ĐỤC LỖ (PASSAGE TITLE)
-                    </label>
-                    <input
-                      type="text"
-                      value={passageTitle}
-                      onChange={(e) => setPassageTitle(e.target.value)}
-                      placeholder="Harry Potter - A Magical Adventure..."
-                      className="w-full px-3 py-2 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 bg-white"
-                    />
-                  </div>
+
+                  {isJsonDirectMode && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-blue-800 font-semibold">
+                        Dán chuỗi JSON chứa trọn bộ Task 1 & Task 2 vào đây và bấm <strong>"Áp Dụng JSON"</strong>:
+                      </p>
+                      <textarea
+                        rows={8}
+                        value={clozeJsonDirect}
+                        onChange={(e) => setClozeJsonDirect(e.target.value)}
+                        placeholder={`{\n  "title": "2 KNOWLEDGE OF LANGUAGE",\n  "tasks": [\n    {\n      "task_title": "TASK 1: READ THE FIRST TEXT...",\n      "badge_label": "BLOG",\n      "passage_title": "Our Beautiful Suburb Blog",\n      "passage_content": "...",\n      "questions": []\n    }\n  ]\n}`}
+                        className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyClozeDirectJson}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md"
+                      >
+                        ✅ Áp Dụng Chuỗi JSON Này Ngay
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* FORM READING / READING T/F / CLOZE TEST PASSAGE TEXTAREA */}
-              {(selectedType?.toLowerCase() === 'reading_section' || selectedType?.toLowerCase() === 'reading_tf' || selectedType?.toLowerCase() === 'cloze_test') && (
+              {/* KHUNG YÊU CẦU ĐỀ BÀI HƯỚNG DẪN (INSTRUCTION BOX CHUẨN ẢNH 1) */}
+              <div className="p-4 bg-purple-50/60 border-l-4 border-purple-600 rounded-r-2xl space-y-1.5 shadow-xs">
+                <label className="block text-xs font-extrabold text-purple-900 uppercase flex items-center space-x-1.5">
+                  <MessageSquareText className="w-4 h-4 text-purple-600" />
+                  <span>📝 TIÊU ĐỀ PHẦN BÀI THI / CÂU LỆNH HƯỚNG DẪN *</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={questionTitle}
+                  onChange={(e) => setQuestionTitle(e.target.value)}
+                  placeholder="Ví dụ: 2 KNOWLEDGE OF LANGUAGE"
+                  className="w-full p-2.5 border border-purple-300 rounded-xl text-xs font-extrabold text-purple-950 bg-white focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* CLOZE TEST: HIỂN THỊ VÀ CHỈNH SỬA TẤT CẢ CÁC TASK TRONG CÙNG 1 KHUNG SOẠN */}
+              {selectedType?.toLowerCase() === 'cloze_test' && !isJsonDirectMode && (
+                <div className="space-y-6 pt-2">
+                  <div className="flex justify-between items-center border-b pb-2">
+                    <h4 className="font-extrabold text-xs text-blue-900 uppercase flex items-center space-x-1.5">
+                      <ListFilter className="w-4 h-4 text-blue-600" />
+                      <span>DANH SÁCH {clozeTasks.length} BÀI ĐỌC (TASK 1 & TASK 2) TRONG KHUNG NÀY</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tNum = clozeTasks.length + 1;
+                        setClozeTasks([
+                          ...clozeTasks,
+                          {
+                            task_title: `TASK ${tNum}: READ THE TEXT AND CHOOSE THE CORRECT WORD.`,
+                            task_sub: `Read the text and choose the best option (A, B, C, or D) for each blank.`,
+                            badge_label: tNum === 1 ? 'BLOG' : 'EMAIL',
+                            passage_title: `Title for Task ${tNum}`,
+                            passage_content: `Enter reading passage with blanks (16) _______...`,
+                            questions: []
+                          }
+                        ]);
+                      }}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ THÊM TASK MỚI</span>
+                    </button>
+                  </div>
+
+                  {clozeTasks.map((task, tIdx) => (
+                    <div key={tIdx} className="p-5 bg-blue-50/40 border border-blue-200 rounded-3xl space-y-4 relative">
+                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
+                        <span className="px-3 py-1 bg-blue-600 text-white text-xs font-extrabold rounded-xl">
+                          TASK #{tIdx + 1}: {task.badge_label || 'POSTER'}
+                        </span>
+                        {clozeTasks.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setClozeTasks(clozeTasks.filter((_, i) => i !== tIdx))}
+                            className="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center space-x-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Xóa Task Này</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-blue-900 uppercase mb-1">
+                            Tiêu đề Task (VD: TASK 1: READ THE FIRST TEXT...):
+                          </label>
+                          <input
+                            type="text"
+                            value={task.task_title}
+                            onChange={(e) => {
+                              const newTasks = [...clozeTasks];
+                              newTasks[tIdx].task_title = e.target.value;
+                              setClozeTasks(newTasks);
+                            }}
+                            className="w-full px-3 py-1.5 border border-blue-300 rounded-xl text-xs bg-white font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-blue-900 uppercase mb-1">
+                            Huy Hiệu Nổi (POSTER, BLOG, EMAIL, ARTICLE...):
+                          </label>
+                          <input
+                            type="text"
+                            value={task.badge_label}
+                            onChange={(e) => {
+                              const newTasks = [...clozeTasks];
+                              newTasks[tIdx].badge_label = e.target.value;
+                              setClozeTasks(newTasks);
+                            }}
+                            className="w-full px-3 py-1.5 border border-blue-300 rounded-xl text-xs bg-white font-bold uppercase text-amber-600"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-blue-900 uppercase mb-1">
+                          Nội dung đoạn văn đục lỗ (Passage Content):
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={task.passage_content}
+                          onChange={(e) => {
+                            const newTasks = [...clozeTasks];
+                            newTasks[tIdx].passage_content = e.target.value;
+                            setClozeTasks(newTasks);
+                          }}
+                          className="w-full p-2.5 border border-blue-300 rounded-xl text-xs bg-white font-serif"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* FORM READING / READING T/F PASSAGE TEXTAREA */}
+              {(selectedType?.toLowerCase() === 'reading_section' || selectedType?.toLowerCase() === 'reading_tf') && (
                 <div className="p-5 bg-emerald-50/50 border border-emerald-200 rounded-3xl space-y-3 shadow-xs">
                   <h4 className="font-extrabold text-xs text-emerald-900 uppercase flex items-center space-x-1.5 border-b border-emerald-200 pb-2">
                     <BookOpen className="w-4 h-4 text-emerald-600" />
@@ -1311,8 +1478,8 @@ ANSWER: D`
                 </div>
               )}
 
-              {/* KHUNG SOẠN CÁC CÂU HỎI CON CHO READING / READING T/F / CLOZE TEST / LISTENING */}
-              {(selectedType?.toLowerCase() === 'reading_section' || selectedType?.toLowerCase() === 'reading_tf' || selectedType?.toLowerCase() === 'cloze_test' || selectedType?.toLowerCase() === 'listening_section') && (
+              {/* KHUNG SOẠN CÁC CÂU HỎI CON CHO READING / READING T/F / LISTENING */}
+              {(selectedType?.toLowerCase() === 'reading_section' || selectedType?.toLowerCase() === 'reading_tf' || selectedType?.toLowerCase() === 'listening_section') && (
                 <div className="space-y-4 pt-2">
                   <div className="flex justify-between items-center border-b pb-2">
                     <h4 className="font-extrabold text-xs text-slate-800 uppercase flex items-center space-x-1.5">
@@ -1365,7 +1532,6 @@ ANSWER: D`
                           />
                         </div>
 
-                        {/* DẠNG READING TRUE / FALSE (2 NÚT T & F CHO MỖI CÂU) */}
                         {selectedType?.toLowerCase() === 'reading_tf' ? (
                           <div className="flex items-center space-x-4 bg-white p-3 rounded-xl border border-slate-200">
                             <span className="text-xs font-bold text-slate-700">Đáp án đúng cho câu này:</span>
@@ -1403,7 +1569,6 @@ ANSWER: D`
                             </div>
                           </div>
                         ) : (
-                          /* DẠNG CÓ 4 LỰA CHỌN A, B, C, D */
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {qChild.options?.map((opt, oIdx) => {
                               const label = String.fromCharCode(65 + oIdx);
