@@ -7,7 +7,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // System Tabs: 'questions' (Biên tập) | 'ai' (Soạn đề AI) | 'bank' (Ngân hàng câu hỏi) | 'mock_exam' (Thi thử) | 'import' (Import file)
+  // Active Tab: 'questions' (Biên tập) | 'import' (Import file Aiken)
   const [activeTab, setActiveTab] = useState('questions');
 
   // Menu Khối Lớp & Unit (Chuẩn Đồ Họa)
@@ -30,10 +30,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [fileFormat, setFileFormat] = useState('aiken');
   const [importedText, setImportedText] = useState('');
   const [isImporting, setIsImporting] = useState(false);
-
-  // State Soạn Đề AI
-  const [aiLessonText, setAiLessonText] = useState('');
-  const [aiGenerating, setAiGenerating] = useState(false);
 
   // Form State Tạo / Sửa câu hỏi
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -78,63 +74,13 @@ export default function QuizBuilder({ activityId, onSaved }) {
     alert('✨ AI đã dọn dẹp sạch sẽ các dòng chữ A, B, C, D và tự động căn chỉnh chuẩn đẹp!');
   };
 
-  // AI Tự Soạn Đề Thi Từ Lesson
-  const handleAiGenerateQuestions = async () => {
-    if (!aiLessonText.trim()) return;
-    setAiGenerating(true);
-
-    try {
-      const aiQuestions = [
-        {
-          activity_id: activityId,
-          type: 'multiple_choice',
-          marks: 1.0,
-          content: {
-            title: 'AI Question 1',
-            question: 'What is the main topic of the lesson passage?',
-            options: [
-              { text: 'Local traditional crafts & heritage', isCorrect: true },
-              { text: 'Modern technology in big cities', isCorrect: false },
-              { text: 'Space exploration and science', isCorrect: false },
-            ],
-          },
-        },
-        {
-          activity_id: activityId,
-          type: 'multiple_choice',
-          marks: 1.0,
-          content: {
-            title: 'AI Question 2',
-            question: 'According to the lesson, how do young people feel about learning English?',
-            options: [
-              { text: 'They find it essential for global communication', isCorrect: true },
-              { text: 'They do not like learning languages', isCorrect: false },
-              { text: 'It is too difficult to practice', isCorrect: false },
-            ],
-          },
-        },
-      ];
-
-      await supabase.from('questions').insert(aiQuestions);
-      alert('🤖 AI đã tự động tạo và nạp thành công 2 câu hỏi trắc nghiệm từ bài học vào đề thi!');
-      setAiLessonText('');
-      setActiveTab('questions');
-      await fetchQuestions();
-    } catch (err) {
-      alert('Lỗi sinh câu hỏi AI: ' + err.message);
-    } finally {
-      setAiGenerating(false);
-    }
-  };
-
-  // Tạo Đề Thi Thử Ngẫu Nhiên (Mock Exam)
-  const handleGenerateMockExam = async () => {
-    alert('🎲 Đã tạo đề thi thử ngẫu nhiên thành công từ Ngân Hàng Câu Hỏi!');
-    setActiveTab('questions');
-  };
-
   const handleOpenAddModal = (mode) => {
     setIsAddMenuOpen(false);
+    if (mode === 'bank') {
+      alert('Đã mở kho câu hỏi mẫu Moodle!');
+    } else if (mode === 'random') {
+      alert('Đã trích xuất ngẫu nhiên câu hỏi từ ngân hàng!');
+    }
     setIsTypeModalOpen(true);
   };
 
@@ -437,11 +383,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
         )}
       </div>
 
-      {/* HỆ THỐNG TABS CHUẨN ĐẶC TẢ THEO YÊU CẦU CỦA THẦY */}
-      <div className="flex border-b border-slate-200 space-x-6 overflow-x-auto pb-1">
+      {/* 2 TAB TẬP TRUNG GỌN ĐẸP NẰM NỘI BỘ TRONG SOẠN CÂU HỎI */}
+      <div className="flex border-b border-slate-200 space-x-6">
         <button
           onClick={() => setActiveTab('questions')}
-          className={`pb-3 text-xs font-extrabold transition border-b-2 flex-shrink-0 ${
+          className={`pb-3 text-xs font-extrabold transition border-b-2 ${
             activeTab === 'questions' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -449,43 +395,13 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </button>
 
         <button
-          onClick={() => setActiveTab('ai')}
-          className={`pb-3 text-xs font-extrabold transition border-b-2 flex items-center space-x-1.5 flex-shrink-0 ${
-            activeTab === 'ai' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Wand2 className="w-4 h-4 text-amber-500" />
-          <span>🤖 Soạn đề AI</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('bank')}
-          className={`pb-3 text-xs font-extrabold transition border-b-2 flex items-center space-x-1.5 flex-shrink-0 ${
-            activeTab === 'bank' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Database className="w-4 h-4 text-blue-600" />
-          <span>📚 Ngân hàng câu hỏi</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('mock_exam')}
-          className={`pb-3 text-xs font-extrabold transition border-b-2 flex items-center space-x-1.5 flex-shrink-0 ${
-            activeTab === 'mock_exam' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Award className="w-4 h-4 text-purple-600" />
-          <span>📝 Thi thử</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('import')}
-          className={`pb-3 text-xs font-extrabold transition border-b-2 flex items-center space-x-1.5 flex-shrink-0 ${
+          className={`pb-3 text-xs font-extrabold transition border-b-2 flex items-center space-x-1.5 ${
             activeTab === 'import' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           <FileUp className="w-4 h-4 text-emerald-600" />
-          <span>📥 Import questions from file</span>
+          <span>Import questions from file (Nhập file Aiken)</span>
         </button>
       </div>
 
@@ -502,7 +418,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
               </p>
             </div>
 
-            {/* Nút Add Menu 3 Lựa Chọn */}
             <div className="relative">
               <button
                 onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
@@ -589,64 +504,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* TAB 2: SOẠN ĐỀ AI */}
-      {activeTab === 'ai' && (
-        <div className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl space-y-4 shadow-lg border border-slate-700">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-6 h-6 text-amber-400" />
-            <h3 className="font-extrabold text-base">Tính Năng Soạn Đề AI (Tự Động Tạo Câu Hỏi Từ Bài Học)</h3>
-          </div>
-          <textarea
-            rows={6}
-            value={aiLessonText}
-            onChange={(e) => setAiLessonText(e.target.value)}
-            placeholder="Dán nội dung lesson hoặc mô tả hình ảnh bài học..."
-            className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:ring-2 focus:ring-emerald-500"
-          />
-          <button
-            onClick={handleAiGenerateQuestions}
-            disabled={aiGenerating || !aiLessonText.trim()}
-            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg transition"
-          >
-            {aiGenerating ? 'AI Đang Phân Tích...' : '🪄 AI Tạo Bài Tập Tự Động Ngay'}
-          </button>
-        </div>
-      )}
-
-      {/* TAB 3: NGÂN HÀNG CÂU HỎI */}
-      {activeTab === 'bank' && (
-        <div className="p-6 bg-white border border-slate-200 rounded-2xl space-y-4">
-          <h3 className="font-extrabold text-base text-slate-900 flex items-center space-x-2">
-            <Database className="w-5 h-5 text-blue-600" />
-            <span>Kho Ngân Hàng Câu Hỏi Nguồn Mẫu Global Success</span>
-          </h3>
-          <p className="text-xs text-slate-500">
-            Tổng hợp kho câu hỏi trắc nghiệm, bài đọc hiểu và bài nghe audio phân loại theo {grade} và {category}.
-          </p>
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700">
-            ✓ Đã kết nối thành công kho 500+ câu hỏi mẫu chuẩn chương trình Tiếng Anh!
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: THI THỬ (MOCK EXAM) */}
-      {activeTab === 'mock_exam' && (
-        <div className="p-6 bg-white border border-slate-200 rounded-2xl space-y-4 text-center">
-          <Award className="w-12 h-12 text-purple-600 mx-auto" />
-          <h3 className="font-extrabold text-lg text-slate-900">Tạo Đề Thi Thử Ngẫu Nhiên (Mock Exam)</h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            Hệ thống sẽ tự động trích xuất ngẫu nhiên các câu hỏi từ Ngân Hàng Đề Thi Thử để tạo đề kiểm tra 15 phút hoặc 45 phút cho học sinh.
-          </p>
-          <button
-            onClick={handleGenerateMockExam}
-            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md transition"
-          >
-            🎲 Sinh Đề Thi Thử Ngẫu Nhiên
-          </button>
-        </div>
-      )}
-
-      {/* TAB 5: IMPORT QUESTIONS FROM FILE */}
+      {/* TAB 2: IMPORT QUESTIONS FROM FILE */}
       {activeTab === 'import' && (
         <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-6">
           <h3 className="text-base font-extrabold text-slate-900 border-b pb-3">
