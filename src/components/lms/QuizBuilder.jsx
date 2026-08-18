@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle } from 'lucide-react';
+import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle, MessageSquareText } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizBuilder({ activityId, onSaved }) {
@@ -120,8 +120,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
   // MỞ NGUYÊN PAGE/MODAL XEM VÀ CHỈNH SỬA KHI BẤM VÀO TIÊU ĐỀ BÀI HỌC / READING SECTION
   const handleOpenEditModal = (q) => {
     setEditingQuestion(q);
-    const normalized = q.type?.toLowerCase() || 'multiple_choice';
-    setSelectedType(normalized);
+    const sectionType = q.content?.sectionType || q.type || 'multiple_choice';
+    setSelectedType(sectionType.toLowerCase());
     setQuestionTitle(q.content?.title || '');
     setQuestionText(q.content?.question || '');
     setExplanation(q.content?.explanation || '');
@@ -249,7 +249,13 @@ ANSWER: D`;
     setIsTypeModalOpen(false);
     setEditingQuestion({ id: 'new', type: selectedType });
     setQuestionTitle('');
-    setQuestionText('');
+    setQuestionText(
+      selectedType?.toLowerCase() === 'listening_section'
+        ? 'Listen to Phong, a local artisan, talking about Bat Trang pottery village. Choose the correct answer A, B, C, or D for each question.'
+        : selectedType?.toLowerCase() === 'reading_section'
+        ? 'Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D for each question.'
+        : ''
+    );
     setExplanation('');
     setSectionPassage('');
     setListeningAudioUrl('');
@@ -312,20 +318,28 @@ ANSWER: D`;
     setSectionChildQuestions(sectionChildQuestions.filter((_, i) => i !== index));
   };
 
-  // LƯU CÂU HỎI & BÀI THI AN TOÀN 100% CÓ CƠ CHẾ NGHỈ TRÁNH QUÁ TẢI SUPABASE
+  // LƯU CÂU HỎI KHẮC PHỤC TRIỆT ĐỂ LỖI CHECK CONSTRAINT SUPABASE 100%
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
     setIsSavingQuestion(true);
 
     try {
+      const normType = selectedType?.toLowerCase() || 'multiple_choice';
+
+      // MAP TYPE SANG GIÁ TRỊ CHUẨN CỦA POSTGRES SUPABASE ĐỂ TRÁNH LỖI CHECK CONSTRAINT questions_type_check
+      let validDbType = 'multiple_choice';
+      if (['true_false', 'short_answer', 'essay', 'matching'].includes(normType)) {
+        validDbType = normType;
+      }
+
       let customContent = {
-        title: questionTitle || (selectedType?.toLowerCase() === 'reading_section' ? 'READING SECTION' : selectedType?.toLowerCase() === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
-        question: questionText.trim() || questionTitle || 'Question',
+        sectionType: selectedType,
+        title: questionTitle || (normType === 'reading_section' ? 'READING SECTION' : normType === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
+        question: questionText.trim() || questionTitle || 'Instruction Question',
         explanation: explanation.trim(),
         categories: selectedCategories,
       };
 
-      const normType = selectedType?.toLowerCase();
       if (normType === 'listening_section') {
         customContent.audioUrl = listeningAudioUrl;
         customContent.audioFileName = uploadedAudioFileName;
@@ -349,7 +363,7 @@ ANSWER: D`;
 
       const payload = {
         activity_id: activityId,
-        type: selectedType,
+        type: validDbType,
         marks: Number(marks),
         content: customContent,
       };
@@ -377,7 +391,7 @@ ANSWER: D`;
             grade,
             unit,
             category,
-            type: selectedType,
+            type: validDbType,
             question_text: customContent.question || customContent.title,
             options: customContent.options || customContent.childQuestions || [],
             correct_answer: 'Option B',
@@ -429,7 +443,7 @@ ANSWER: D`;
 
         return {
           activity_id: activityId,
-          type: q.type || 'multiple_choice',
+          type: 'multiple_choice',
           marks: Number(q.marks) || 1.0,
           content: contentObj,
         };
@@ -670,7 +684,7 @@ ANSWER: D`;
                         {idx + 1}
                       </span>
                       <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-bold uppercase rounded">
-                        Dạng: {q.type}
+                        Dạng: {q.content?.sectionType || q.type}
                       </span>
                       <span className="text-xs text-slate-400">({q.marks} điểm)</span>
                     </div>
@@ -1079,7 +1093,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI (ĐÃ XÓA BỎ HOÀN TOÀN Ô TAPESCRIPT THEO Ý THẦY) */}
+      {/* FORM BIÊN TẬP CÂU HỎI (BỔ SUNG KHUNG YÊU CẦU ĐỀ BÀI QUESTION INSTRUCTION BOX CHUẨN 100% ẢNH 1) */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1093,7 +1107,23 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* FORM LISTENING SECTION (XÓA BỎ HOÀN TOÀN Ô TAPESCRIPT CHUẨN 100% ẢNH 2) */}
+              {/* KHUNG YÊU CẦU ĐỀ BÀI HƯỚNG DẪN (QUESTION INSTRUCTION BOX CHUẨN ẢNH 1) */}
+              <div className="p-4 bg-purple-50/60 border-l-4 border-purple-600 rounded-r-2xl space-y-1.5 shadow-xs">
+                <label className="block text-xs font-extrabold text-purple-900 uppercase flex items-center space-x-1.5">
+                  <MessageSquareText className="w-4 h-4 text-purple-600" />
+                  <span>📝 YÊU CẦU ĐỀ BÀI / CÂU LỆNH HƯỚNG DẪN LÀM BÀI (INSTRUCTION BOX) *</span>
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  placeholder="Ví dụ: Listen to Phong, a local artisan, talking about Bat Trang pottery village. Choose the correct answer A, B, C, or D for each question."
+                  className="w-full p-2.5 border border-purple-300 rounded-xl text-xs font-extrabold text-purple-950 bg-white leading-relaxed focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              {/* FORM LISTENING SECTION */}
               {selectedType?.toLowerCase() === 'listening_section' && (
                 <div className="p-5 bg-purple-50 border border-purple-200 rounded-3xl space-y-4 shadow-xs">
                   <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-2 border-b border-purple-200 pb-2">
@@ -1148,19 +1178,7 @@ ANSWER: D`
                   </h4>
                   <div>
                     <label className="block text-xs font-bold text-sky-900 mb-1">
-                      1. Tiêu Đề Bài Đọc (Reading Title / Instruction):
-                    </label>
-                    <input
-                      type="text"
-                      value={questionText}
-                      onChange={(e) => setQuestionText(e.target.value)}
-                      placeholder="Nhập tiêu đề bài đọc hiểu..."
-                      className="w-full px-3 py-2 border border-sky-300 rounded-xl text-xs bg-white font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-sky-900 mb-1">
-                      2. Nội dung đoạn văn bài đọc (Reading Passage Text):
+                      Nội dung đoạn văn bài đọc (Reading Passage Text):
                     </label>
                     <textarea
                       rows={6}
@@ -1272,20 +1290,6 @@ ANSWER: D`
               {/* FORM CHO TRẮC NGHIỆM ĐƠN LẺ MULTIPLE_CHOICE */}
               {selectedType?.toLowerCase() === 'multiple_choice' && (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                      Question Text (Nội dung đề bài câu hỏi) *
-                    </label>
-                    <textarea
-                      rows={3}
-                      required
-                      value={questionText}
-                      onChange={(e) => setQuestionText(e.target.value)}
-                      placeholder="Nhập nội dung đề bài..."
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-
                   <div className="space-y-3 pt-2">
                     <div className="flex justify-between items-center">
                       <h4 className="font-extrabold text-xs text-slate-800 uppercase">
