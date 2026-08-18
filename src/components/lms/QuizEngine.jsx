@@ -13,6 +13,8 @@ import ClassLeaderboard from './ClassLeaderboard';
 import { speakText } from '../../utils/textToSpeech';
 import { exportQuizToWord } from '../../utils/exportQuizWord';
 import AdaptiveLearningModal from './AdaptiveLearningModal';
+import AiOmrScannerModal from './AiOmrScannerModal';
+import { exportOmrSheet } from '../../utils/exportOmrSheet';
 
 export default function QuizEngine({ activity }) {
   const { profile } = useAuth();
@@ -41,7 +43,11 @@ export default function QuizEngine({ activity }) {
   // PHÁT HIỆN GIAN LẬN / THEO DÕI CHUYỂN TAB (ANTI-CHEATING / FOCUS TRACKER)
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [showCheatingWarning, setShowCheatingWarning] = useState(false);
-  const [maxTabSwitchesAllowed, setMaxTabSwitchesAllowed] = useState(3); // Giới hạn 3 lần rời tab mặc định
+  const [maxTabSwitchesAllowed, setMaxTabSwitchesAllowed] = useState(3);
+  const [passcodeRequired, setPasscodeRequired] = useState('');
+  const [enteredPasscode, setEnteredPasscode] = useState('');
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [omrScannerOpen, setOmrScannerOpen] = useState(false); // Giới hạn 3 lần rời tab mặc định
 
   // Bộ đếm thời gian
   const [isCountdownMode, setIsCountdownMode] = useState(false);
@@ -138,6 +144,9 @@ export default function QuizEngine({ activity }) {
             }
             if (cObj?.timeLimit && Number(cObj.timeLimit) > 0) {
               totalCustomMinutes += Number(cObj.timeLimit);
+            }
+            if (cObj?.passcode) {
+              setPasscodeRequired(String(cObj.passcode));
             }
             if (cObj?.maxTabSwitches && Number(cObj.maxTabSwitches) > 0) {
               setMaxTabSwitchesAllowed(Number(cObj.maxTabSwitches));
@@ -520,6 +529,50 @@ export default function QuizEngine({ activity }) {
   };
 
   if (loading) return <LoadingSpinner text="Đang tải bài làm..." />;
+  if (passcodeRequired && !isUnlocked && !submitted) {
+    return (
+      <div className="p-8 bg-slate-900 text-white rounded-3xl shadow-2xl border border-slate-800 text-center space-y-4 max-w-md mx-auto my-12 animate-scale-up">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-8 h-8 text-amber-400 animate-pulse" />
+        </div>
+        <div>
+          <h3 className="font-extrabold text-base text-amber-400 uppercase tracking-wide">
+            🔒 BÀI THI CÓ MÃ KHÓA BẢO MẬT
+          </h3>
+          <p className="text-xs text-slate-300 mt-1">
+            Vui lòng nhập Mật Khẩu do Giám Thị cung cấp để bắt đầu làm bài thi.
+          </p>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (enteredPasscode.trim() === passcodeRequired.trim()) {
+              setIsUnlocked(true);
+            } else {
+              alert('❌ Mã khóa không chính xác! Vui lòng hỏi Giám Thị.');
+            }
+          }}
+          className="space-y-3"
+        >
+          <input
+            type="password"
+            required
+            value={enteredPasscode}
+            onChange={(e) => setEnteredPasscode(e.target.value)}
+            placeholder="Nhập mã khóa (Ví dụ: 123456)..."
+            className="w-full p-3 border border-amber-400/50 rounded-xl text-center text-base font-extrabold tracking-widest bg-slate-950 text-amber-300 focus:ring-2 focus:ring-amber-400"
+          />
+          <button
+            type="submit"
+            className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition"
+          >
+            Mở Khóa & Vào Làm Bài Thi
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   const minsLeft = Math.floor(secondsRemaining / 60);
   const secsLeft = secondsRemaining % 60;
@@ -530,6 +583,11 @@ export default function QuizEngine({ activity }) {
   return (
     <div className="space-y-3">
       {/* MODAL CHATBOT AI TUTOR TRỢ LÝ HỌC TẬP */}
+      <AiOmrScannerModal
+        isOpen={omrScannerOpen}
+        onClose={() => setOmrScannerOpen(false)}
+      />
+
       <AdaptiveLearningModal
         isOpen={adaptiveModalOpen}
         onClose={() => setAdaptiveModalOpen(false)}
@@ -618,6 +676,22 @@ export default function QuizEngine({ activity }) {
             >
               <Printer className="w-4 h-4 text-sky-200" />
               <span>🖨️ Tải Báo Cáo PDF Bài Thi</span>
+            </button>
+
+            <button
+              onClick={() => exportOmrSheet(activity?.title || 'BÀI THI TRẮC NGHIỆM', 40)}
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+            >
+              <FileText className="w-4 h-4 text-indigo-200" />
+              <span>📄 In Phiếu Tô Trắc Nghiệm OMR</span>
+            </button>
+
+            <button
+              onClick={() => setOmrScannerOpen(true)}
+              className="px-3.5 py-2 bg-teal-600 hover:bg-teal-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+            >
+              <Camera className="w-4 h-4 text-teal-200" />
+              <span>📷 Camera AI Quét Phiếu OMR</span>
             </button>
 
             <button
