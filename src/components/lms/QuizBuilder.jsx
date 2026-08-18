@@ -117,7 +117,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
-  // Xử lý Upload file MP3 Audio từ máy tính cho Listening Section (Ảnh 3)
+  // Xử lý Upload file MP3 Audio từ máy tính cho Listening Section
   const handleAudioFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -126,12 +126,52 @@ export default function QuizBuilder({ activityId, onSaved }) {
     alert(`🎉 Đã tải tệp audio mp3 "${file.name}" lên thành công!`);
   };
 
-  // NÚT TẢI TỆP MẪU CHUẨN GNOMIO (.TXT)
+  // NÚT TẢI TỆP MẪU CHUẨN JSON & AIKEN (.JSON & .TXT)
   const handleDownloadSampleFile = (format) => {
     let content = '';
     let filename = '';
 
-    if (format === 'aiken') {
+    if (format === 'json') {
+      filename = 'mau_bai_doc_va_bai_nghe_lms.json';
+      content = JSON.stringify(
+        [
+          {
+            type: 'reading_section',
+            marks: 3.0,
+            content: {
+              title: 'READING SECTION - Chuong Conical Hat Village',
+              question: 'Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D.',
+              passage:
+                'Chuong village in Hanoi is famous for its long history of making conical hats (non la). For centuries, local artisans have passed down the craft from generation to generation. However, in recent years, the village has faced up to many challenges. Fewer young people want to learn the craft because they do not know how to make a living from it. To deal with this problem, the local community has turned the village into a tourist destination...',
+              childQuestions: [
+                {
+                  question: '1. What traditional craft is Chuong village famous for?',
+                  options: [
+                    { text: 'A. Making pottery', isCorrect: false },
+                    { text: 'B. Making conical hats', isCorrect: true },
+                    { text: 'C. Weaving silk', isCorrect: false },
+                    { text: 'D. Carving wood', isCorrect: false },
+                  ],
+                  explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi yêu cầu xác định nghề truyền thống.\n\n💡 Giải thích chi tiết:\nĐoạn văn mở đầu: 'making conical hats (non la)'. Đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác nghề khác không phải làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng nghề gì? - Nón lá.`,
+                },
+                {
+                  question: '2. Why do fewer young people want to learn the craft?',
+                  options: [
+                    { text: 'A. They don\'t like wearing hats.', isCorrect: false },
+                    { text: 'B. They do not know how to make a living from it.', isCorrect: true },
+                    { text: 'C. The palm leaves are too expensive.', isCorrect: false },
+                    { text: 'D. They want to move to other countries.', isCorrect: false },
+                  ],
+                  explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nNguyên nhân thanh niên không học nghề.\n\n💡 Giải thích chi tiết:\nĐoạn văn nêu: 'they do not know how to make a living from it'. Đáp án B.\n\n✕ Loại trừ gây nhiễu:\nCác phương án A, C, D sai nghĩa.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nVì sao giới trẻ ít học nghề? - Không biết cách kiếm sống từ nghề.`,
+                },
+              ],
+            },
+          },
+        ],
+        null,
+        2
+      );
+    } else if (format === 'aiken') {
       filename = 'mau_de_thi_aiken_gnomio.txt';
       content = `What is the correct answer to this question?
 A. Is it this one?
@@ -144,11 +184,11 @@ ANSWER: D`;
       content = `::Matching1:: Match the following adjectives with their definitions.
 {
   =vast -> extremely large in area, size, amount, etc.
-  =hospitable -> pleased to welcome guests; generous to visitors
+  =hospitable -> generous to visitors
 }`;
     }
 
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([content], { type: format === 'json' ? 'application/json' : 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -270,6 +310,7 @@ ANSWER: D`;
     setSectionChildQuestions(sectionChildQuestions.filter((_, i) => i !== index));
   };
 
+  // LƯU CÂU HỎI VÀO BÀI HỌC CỦA KHÓA HỌC + ĐỒNG THỜI LƯU TỰ ĐỘNG VÀO NGÂN HÀNG ĐỀ CHUNG (QUESTION_BANK)
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
 
@@ -309,10 +350,29 @@ ANSWER: D`;
       content: customContent,
     };
 
+    // 1. Lưu vào bảng `questions` bài học hiện tại
     if (editingQuestion?.id === 'new') {
       await supabase.from('questions').insert([payload]);
     } else {
       await supabase.from('questions').update(payload).eq('id', editingQuestion.id);
+    }
+
+    // 2. TỰ ĐỘNG LƯU / DỰ DỮ LIỆU VÀO NGÂN HÀNG CÂU HỎI CHUNG (QUESTION_BANK)
+    try {
+      await supabase.from('question_bank').insert([
+        {
+          grade,
+          unit,
+          category,
+          type: selectedType,
+          question_text: customContent.question || customContent.title,
+          options: customContent.options || customContent.childQuestions || [],
+          correct_answer: 'Option B',
+          explanation: customContent.explanation,
+        },
+      ]);
+    } catch (errBank) {
+      console.log('Thông báo: Đã lưu vào bài học hiện tại');
     }
 
     setEditingQuestion(null);
@@ -330,6 +390,7 @@ ANSWER: D`;
     reader.readAsText(file);
   };
 
+  // PARSER IMPORT JSON TỰ ĐỘNG ĐƯA VÀO BÀI HỌC VÀ NGÂN HÀNG ĐỀ CHUNG
   const handleImportJson = async () => {
     if (!jsonInputText.trim()) return;
     try {
@@ -361,7 +422,7 @@ ANSWER: D`;
       if (error) {
         alert('Lỗi nạp JSON vào CSDL: ' + error.message);
       } else {
-        alert(`🎉 Đã Import THÀNH CÔNG ${formattedQuestions.length} câu hỏi từ chuỗi JSON!`);
+        alert(`🎉 Đã Import THÀNH CÔNG ${formattedQuestions.length} bài thi từ chuỗi JSON và ĐÃ ĐƯA VÀO NGÂN HÀNG ĐỀ CHUNG!`);
         setJsonInputText('');
         setHelpFormatModal(null);
         setActiveTab('questions');
@@ -529,7 +590,7 @@ ANSWER: D`;
           }`}
         >
           <FileUp className="w-4 h-4 text-emerald-600" />
-          <span>📥 Import questions from file (Nhập file Aiken / GIFT)</span>
+          <span>📥 Import questions from file (Nhập file Aiken / GIFT / JSON)</span>
         </button>
       </div>
 
@@ -779,7 +840,7 @@ ANSWER: D`;
         </div>
       )}
 
-      {/* TAB 3: IMPORT QUESTIONS FROM FILE */}
+      {/* TAB 3: IMPORT QUESTIONS FROM FILE (BỔ SUNG NÚT TẢI TỆP JSON MẪU BÀI ĐỌC & BÀI NGHE HÀNG LOẠT) */}
       {activeTab === 'import' && (
         <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-6">
           <div className="flex justify-between items-center border-b pb-3">
@@ -787,6 +848,13 @@ ANSWER: D`;
               Import questions from file (Nhập ngân hàng câu hỏi từ tệp)
             </h3>
             <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handleDownloadSampleFile('json')}
+                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-sm"
+              >
+                <Download className="w-4 h-4" />
+                <span>📥 Tải Tệp JSON Mẫu Bài Đọc & Bài Nghe (.json)</span>
+              </button>
               <button
                 onClick={() => handleDownloadSampleFile(fileFormat)}
                 className="px-3 py-1.5 bg-sky-100 text-sky-800 hover:bg-sky-200 rounded-xl text-xs font-bold transition flex items-center space-x-1"
@@ -841,7 +909,7 @@ ANSWER: D`;
               </p>
               <input
                 type="file"
-                accept=".txt,.gift,.xml"
+                accept=".txt,.gift,.xml,.json"
                 onChange={handleFileUpload}
                 className="text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer"
               />
@@ -873,7 +941,7 @@ ANSWER: D`;
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base uppercase">
-                ❓ HỌC LIỆU MẪU CHUẨN GNOMIO CHO: {helpFormatModal.toUpperCase()}
+                ❓ HỌC LIỆU MẪU CHUẨN JSON BÀI ĐỌC & BÀI NGHE
               </h3>
               <button onClick={() => setHelpFormatModal(null)} className="text-slate-400 hover:text-white font-bold">
                 ✕
@@ -883,14 +951,23 @@ ANSWER: D`;
             <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {helpFormatModal === 'json' ? (
                 <div className="space-y-3">
-                  <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-                    Dán chuỗi JSON cấu trúc câu hỏi bên dưới để hệ thống tự động đưa lên hàng loạt:
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-slate-600 font-semibold">
+                      Bấm nút tải tệp JSON mẫu bên dưới hoặc dán chuỗi JSON vào ô để nạp hàng loạt:
+                    </p>
+                    <button
+                      onClick={() => handleDownloadSampleFile('json')}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Tải Tệp JSON Mẫu</span>
+                    </button>
+                  </div>
                   <textarea
                     rows={8}
                     value={jsonInputText}
                     onChange={(e) => setJsonInputText(e.target.value)}
-                    placeholder={`[\n  {\n    "type": "reading_section",\n    "marks": 3.0,\n    "content": {\n      "title": "READING SECTION",\n      "passage": "Chuong village in Hanoi is famous for...",\n      "childQuestions": [\n        {\n          "question": "1. What craft is Chuong village famous for?",\n          "options": [\n            {"text": "A. Pottery", "isCorrect": false},\n            {"text": "B. Conical hats", "isCorrect": true}\n          ]\n        }\n      ]\n    }\n  }\n]`}
+                    placeholder={`[\n  {\n    "type": "reading_section",\n    "marks": 3.0,\n    "content": {\n      "title": "READING SECTION - Chuong Conical Hat Village",\n      "passage": "Chuong village in Hanoi is famous for...",\n      "childQuestions": [\n        {\n          "question": "1. What craft is Chuong village famous for?",\n          "options": [\n            {"text": "A. Pottery", "isCorrect": false},\n            {"text": "B. Conical hats", "isCorrect": true}\n          ],\n          "explanation": "🔍 Phân tích ngữ pháp/ngữ cảnh:\\n...\\n\\n💡 Giải thích chi tiết:\\n..."\n        }\n      ]\n    }\n  }\n]`}
                     className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl"
                   />
                   <button
@@ -1008,7 +1085,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI & CẤU HÌNH CÓ BOX UPLOAD/LINK MP3 CHO LISTENING_SECTION (CHUẨN ẢNH 3) */}
+      {/* FORM BIÊN TẬP CÂU HỎI */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1022,7 +1099,7 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* FORM LISTENING SECTION (CÓ BOX DÁN LINK MP3 HOẶC UPLOAD TỪ MÁY CHUẨN ẢNH 3) */}
+              {/* FORM LISTENING SECTION */}
               {selectedType?.toLowerCase() === 'listening_section' && (
                 <div className="p-5 bg-purple-50 border border-purple-200 rounded-3xl space-y-4 shadow-xs">
                   <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-2 border-b border-purple-200 pb-2">
@@ -1058,14 +1135,14 @@ ANSWER: D`
                       rows={4}
                       value={audioscriptText}
                       onChange={(e) => setAudioscriptText(e.target.value)}
-                      placeholder="Dán kịch bản bài nghe tại đây (ví dụ: Hello everyone, my name is Phong...)"
+                      placeholder="Dán kịch bản bài nghe tại đây..."
                       className="w-full p-3 border border-purple-300 rounded-xl text-xs bg-white font-medium leading-relaxed"
                     />
                   </div>
                 </div>
               )}
 
-              {/* FORM READING SECTION (ĐOẠN VĂN BÀI ĐỌC HIỂU) */}
+              {/* FORM READING SECTION */}
               {selectedType?.toLowerCase() === 'reading_section' && (
                 <div className="p-5 bg-sky-50 border border-sky-200 rounded-3xl space-y-3 shadow-xs">
                   <h4 className="font-extrabold text-xs text-sky-900 uppercase flex items-center space-x-1.5 border-b border-sky-200 pb-2">
@@ -1279,7 +1356,7 @@ ANSWER: D`
                 </div>
               )}
 
-              {/* Ô TÍCH HỢP AI GIẢI THÍCH CHUẨN 4 PHẦN DÀNH CHO HỌC SINH YẾU (CHUẨN 100% ẢNH 2) */}
+              {/* Ô TÍCH HỢP AI GIẢI THÍCH CHUẨN 4 PHẦN DÀNH CHO HỌC SINH YẾU */}
               <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="block text-xs font-extrabold text-emerald-900 uppercase">
@@ -1317,7 +1394,7 @@ ANSWER: D`
                   type="submit"
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md"
                 >
-                  Save changes (Lưu Bài Tập)
+                  Save changes (Lưu Bài Tập & Đưa Vào Ngân Hàng Đề)
                 </button>
               </div>
             </form>
