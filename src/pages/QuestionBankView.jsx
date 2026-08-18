@@ -144,22 +144,19 @@ export default function QuestionBankView() {
   const [selectedGrade, setSelectedGrade] = useState('Khối 8');
   const [activeTab, setActiveTab] = useState('my_questions');
   const [questions, setQuestions] = useState(SAMPLE_QUESTIONS_DATA);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // MẶC ĐỊNH LÀ FALSE ĐỂ NẠP NGAY GIAO DIỆN
   const [searchQuery, setSearchQuery] = useState('');
-  const [fetchErrorMsg, setFetchErrorMsg] = useState(null);
 
   const fetchAllQuestions = async () => {
-    setLoading(true);
-    setFetchErrorMsg(null);
     try {
-      const { data, error } = await supabase
-        .from('questions')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Dùng Timeout 1.2s phòng ngừa API Supabase bị treo trên Vercel
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ data: null, isTimeout: true }), 1200));
+      const fetchPromise = supabase.from('questions').select('*').order('created_at', { ascending: false });
 
-      let dbLoaded = [];
-      if (data && data.length > 0) {
-        dbLoaded = data.map((q) => {
+      const res = await Promise.race([fetchPromise, timeoutPromise]);
+
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        const dbLoaded = res.data.map((q) => {
           let cObj = {};
           if (q && q.content) {
             if (typeof q.content === 'object') {
@@ -179,12 +176,10 @@ export default function QuestionBankView() {
             content: cObj || {},
           };
         });
+        setQuestions([...dbLoaded, ...SAMPLE_QUESTIONS_DATA]);
       }
-
-      setQuestions([...dbLoaded, ...SAMPLE_QUESTIONS_DATA]);
     } catch (err) {
-      console.error('Lỗi fetch ngân hàng đề:', err);
-      setQuestions(SAMPLE_QUESTIONS_DATA);
+      console.warn('Supabase fetch query notice:', err);
     } finally {
       setLoading(false);
     }
@@ -194,9 +189,10 @@ export default function QuestionBankView() {
     fetchAllQuestions();
   }, []);
 
-  const safeQuestions = Array.isArray(questions) ? questions : SAMPLE_QUESTIONS_DATA;
+  // SỬ DỤNG OPTIONAL CHAINING & FALLBACK ARRAY TẠI TẤT CẢ BIẾN
+  const safeQuestions = (Array.isArray(questions) ? questions : SAMPLE_QUESTIONS_DATA) || [];
   const filteredQuestions = safeQuestions.filter((q) => {
-    if (!q || !q.content) return false;
+    if (!q || !q.content) return true;
     try {
       const title = String(q.content?.title || '');
       const qText = String(q.content?.question || '');
@@ -243,7 +239,7 @@ export default function QuestionBankView() {
           }`}
         >
           <BookOpen className="w-4 h-4 text-emerald-600" />
-          <span>📚 Đề Thi Vừa Soạn Trong Bài Học ({safeQuestions.length} đề)</span>
+          <span>📚 Đề Thi Vừa Soạn Trong Bài Học ({(filteredQuestions || []).length} đề)</span>
         </button>
 
         <button
@@ -274,7 +270,7 @@ export default function QuestionBankView() {
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b pb-3">
             <h3 className="font-extrabold text-base text-slate-900">
-              Danh Sách Đề Thi Giáo Viên Vừa Soạn ({filteredQuestions.length} bộ đề mẫu & bài soạn)
+              Danh Sách Đề Thi Giáo Viên Vừa Soạn ({(filteredQuestions || []).length} bộ đề mẫu & bài soạn)
             </h3>
             <button
               onClick={fetchAllQuestions}
@@ -289,12 +285,12 @@ export default function QuestionBankView() {
             <LoadingSpinner text="Đang tải ngân hàng đề thi..." />
           ) : (
             <div className="space-y-4">
-              {filteredQuestions.map((q, idx) => {
-                const childs = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
-                const sectionType = q.content?.sectionType || q.type || 'multiple_choice';
+              {(filteredQuestions || []).map((q, idx) => {
+                const childs = (Array.isArray(q?.content?.childQuestions) ? q.content.childQuestions : []) || [];
+                const sectionType = q?.content?.sectionType || q?.type || 'multiple_choice';
 
                 return (
-                  <div key={q.id || idx} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                  <div key={q?.id || idx} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center space-x-2">
                         <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
@@ -303,11 +299,11 @@ export default function QuestionBankView() {
                         <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase rounded-lg">
                           Dạng: {sectionType}
                         </span>
-                        <span className="text-xs text-slate-400 font-medium">({q.marks} điểm)</span>
+                        <span className="text-xs text-slate-400 font-medium">({q?.marks || 1} điểm)</span>
                       </div>
 
                       <button
-                        onClick={() => exportQuizToWord([q], q.content?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
+                        onClick={() => exportQuizToWord([q], q?.content?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
                         className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1"
                       >
                         <FileText className="w-3.5 h-3.5" />
@@ -315,17 +311,17 @@ export default function QuestionBankView() {
                       </button>
                     </div>
 
-                    <h4 className="font-extrabold text-sm text-slate-900">{q.content?.title || q.content?.question || 'Untitled Question'}</h4>
+                    <h4 className="font-extrabold text-sm text-slate-900">{q?.content?.title || q?.content?.question || 'Untitled Question'}</h4>
 
                     {/* NẾU LÀ BÀI ĐỌC READING SECTION */}
-                    {q.content?.passage && (
+                    {q?.content?.passage && (
                       <div className="p-3.5 bg-white border border-sky-200 rounded-xl text-xs text-slate-700 leading-relaxed font-medium">
                         <p className="line-clamp-3 italic">"{q.content.passage}"</p>
                       </div>
                     )}
 
                     {/* NẾU LÀ BÀI NGHE LISTENING SECTION CÓ AUDIO MP3 */}
-                    {q.content?.audioUrl && (
+                    {q?.content?.audioUrl && (
                       <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
                         <span className="text-[11px] font-bold text-purple-900 flex items-center space-x-1">
                           <Volume2 className="w-3.5 h-3.5 text-purple-600" />
@@ -338,23 +334,23 @@ export default function QuestionBankView() {
                     )}
 
                     {/* DANH SÁCH CÁC CÂU HỎI CON */}
-                    {childs.length > 0 && (
+                    {(childs || []).length > 0 && (
                       <div className="space-y-2 pt-1">
                         <span className="text-[11px] font-extrabold text-slate-600 block">
                           Chứa {childs.length} câu hỏi trắc nghiệm con:
                         </span>
-                        {childs.map((c, cIdx) => (
+                        {(childs || []).map((c, cIdx) => (
                           <div key={cIdx} className="p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold space-y-1">
-                            <p className="text-slate-800 font-extrabold">{c.question}</p>
+                            <p className="text-slate-800 font-extrabold">{c?.question || ''}</p>
                             <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
-                              {(c.options || []).map((opt, oIdx) => (
+                              {(c?.options || []).map((opt, oIdx) => (
                                 <span
                                   key={oIdx}
                                   className={`px-2 py-0.5 rounded border ${
-                                    opt.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold' : 'bg-slate-50 border-slate-200'
+                                    opt?.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold' : 'bg-slate-50 border-slate-200'
                                   }`}
                                 >
-                                  {String.fromCharCode(65 + oIdx)}. {opt.text}
+                                  {String.fromCharCode(65 + oIdx)}. {opt?.text || opt}
                                 </span>
                               ))}
                             </div>
@@ -401,9 +397,9 @@ export default function QuestionBankView() {
                   <span className="text-[10px] font-extrabold bg-sky-100 text-sky-800 px-2 py-0.5 rounded uppercase">
                     Categories: Knowledge of English (Vocab & Grammar)
                   </span>
-                  <h4 className="font-extrabold text-sm text-slate-900">Câu {idx + 1}: {item.q}</h4>
+                  <h4 className="font-extrabold text-sm text-slate-900">Câu {idx + 1}: {item?.q}</h4>
                   <div className="flex flex-wrap gap-2 pt-1 text-xs font-semibold">
-                    {item.opts.map((o, i) => (
+                    {(item?.opts || []).map((o, i) => (
                       <span key={i} className="px-3 py-1 bg-white border border-slate-200 rounded-xl text-slate-700">
                         {String.fromCharCode(65 + i)}. {o}
                       </span>
