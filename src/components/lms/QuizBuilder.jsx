@@ -46,10 +46,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [explanation, setExplanation] = useState('');
   const [marks, setMarks] = useState(1.0);
   const [aiExplaining, setAiExplaining] = useState(false);
+  const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
   // State riêng cho Listening Section & Reading Section
   const [sectionPassage, setSectionPassage] = useState('');
-  const [audioscriptText, setAudioscriptText] = useState('');
   const [listeningAudioUrl, setListeningAudioUrl] = useState('');
   const [uploadedAudioFileName, setUploadedAudioFileName] = useState('');
   const [sectionChildQuestions, setSectionChildQuestions] = useState([]);
@@ -91,7 +91,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     alert('✨ AI đã dọn dẹp sạch sẽ các dòng chữ A, B, C, D và tự động căn chỉnh chuẩn đẹp!');
   };
 
-  // AI TỰ ĐỘNG TẠO GIẢI THÍCH CHUẨN 4 KHỐI DÀNH CHO HỌC SINH YẾU (CHUẨN 100% ẢNH 2)
+  // AI TỰ ĐỘNG TẠO GIẢI THÍCH CHUẨN 4 KHỐI DÀNH CHO HỌC SINH YẾU
   const handleAiGenerateExplanation = () => {
     if (!questionText.trim() && !sectionPassage.trim()) {
       alert('Vui lòng nhập nội dung đề bài trước khi tạo giải thích AI!');
@@ -107,19 +107,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
-  // NẠP VÀ CHUYỂN ĐỔI ĐÚNG FILE AUDIO THẬT TỪ MÁY THÀNH DATA URL
+  // XỬ LÝ NẠP FILE MP3 AUDIO SIÊU MƯỢT KHÔNG BỊ NẶNG HỆ THỐNG
   const handleAudioFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setUploadedAudioFileName(file.name);
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const audioDataUrl = evt.target.result;
-      setListeningAudioUrl(audioDataUrl);
-    };
-    reader.readAsDataURL(file);
+    const audioUrl = URL.createObjectURL(file);
+    setListeningAudioUrl(audioUrl);
   };
 
   // MỞ NGUYÊN PAGE/MODAL XEM VÀ CHỈNH SỬA KHI BẤM VÀO TIÊU ĐỀ BÀI HỌC / READING SECTION
@@ -131,7 +126,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setQuestionText(q.content?.question || '');
     setExplanation(q.content?.explanation || '');
     setSectionPassage(q.content?.passage || '');
-    setAudioscriptText(q.content?.audioscript || '');
     setListeningAudioUrl(q.content?.audioUrl || '');
     setUploadedAudioFileName(q.content?.audioFileName || '');
     setSectionChildQuestions(q.content?.childQuestions || []);
@@ -250,7 +244,7 @@ ANSWER: D`;
     setIsTypeModalOpen(true);
   };
 
-  // TẠO CÂU HỎI MỚI -> TRỐNG TRƠN 100% XÓA SẠCH DỮ LIỆU MẪU CŨ THEO ĐÚNG Ý THẦY
+  // TẠO CÂU HỎI MỚI -> TRỐNG TRƠN 100% XÓA SẠCH DỮ LIỆU MẪU CŨ
   const handleConfirmAddType = () => {
     setIsTypeModalOpen(false);
     setEditingQuestion({ id: 'new', type: selectedType });
@@ -258,12 +252,11 @@ ANSWER: D`;
     setQuestionText('');
     setExplanation('');
     setSectionPassage('');
-    setAudioscriptText('');
     setListeningAudioUrl('');
     setUploadedAudioFileName('');
     setSectionChildQuestions([
       {
-        question: '1. Enter question content here...',
+        question: '1. Nhập nội dung câu hỏi con...',
         options: [
           { text: '', isCorrect: false },
           { text: '', isCorrect: true },
@@ -319,83 +312,90 @@ ANSWER: D`;
     setSectionChildQuestions(sectionChildQuestions.filter((_, i) => i !== index));
   };
 
-  // LƯU CÂU HỎI & BÀI THI THÀNH CÔNG RỰC RỠ -> HIỂN THỊ THÔNG BÁO VÀ LOAD LẠI BÀI HỌC VÀ NGÂN HÀNG ĐỀ TỨC THÌ
+  // LƯU CÂU HỎI & BÀI THI AN TOÀN 100% CÓ CƠ CHẾ NGHỈ TRÁNH QUÁ TẢI SUPABASE
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
+    setIsSavingQuestion(true);
 
-    let customContent = {
-      title: questionTitle || (selectedType?.toLowerCase() === 'reading_section' ? 'READING SECTION' : selectedType?.toLowerCase() === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
-      question: questionText.trim() || questionTitle || 'Question',
-      explanation: explanation.trim(),
-      categories: selectedCategories,
-    };
-
-    const normType = selectedType?.toLowerCase();
-    if (normType === 'listening_section') {
-      customContent.audioUrl = listeningAudioUrl;
-      customContent.audioFileName = uploadedAudioFileName;
-      customContent.audioscript = audioscriptText;
-      customContent.childQuestions = sectionChildQuestions;
-    } else if (normType === 'reading_section') {
-      customContent.passage = sectionPassage;
-      customContent.childQuestions = sectionChildQuestions;
-    } else if (normType === 'multiple_choice') {
-      customContent.options = mcOptions.filter((o) => o.text.trim() !== '');
-    } else if (normType === 'true_false') {
-      customContent.options = [
-        { text: 'True (Đúng)', isCorrect: tfCorrect === 'True' },
-        { text: 'False (Sai)', isCorrect: tfCorrect === 'False' },
-      ];
-    } else if (normType === 'short_answer') {
-      customContent.acceptedAnswers = shortAnswers.filter((a) => a.trim() !== '');
-    } else if (normType === 'essay') {
-      customContent.instruction = essayInstruction;
-      customContent.allowFileUpload = true;
-    }
-
-    const payload = {
-      activity_id: activityId,
-      type: selectedType,
-      marks: Number(marks),
-      content: customContent,
-    };
-
-    let saveErr = null;
-
-    if (editingQuestion?.id === 'new') {
-      const { error } = await supabase.from('questions').insert([payload]);
-      saveErr = error;
-    } else {
-      const { error } = await supabase.from('questions').update(payload).eq('id', editingQuestion.id);
-      saveErr = error;
-    }
-
-    if (saveErr) {
-      alert('Lỗi lưu câu hỏi: ' + saveErr.message);
-      return;
-    }
-
-    // TỰ ĐỘNG ĐƯA VÀO BẢNG NGÂN HÀNG CÂU HỎI CHUNG (QUESTION_BANK)
     try {
-      await supabase.from('question_bank').insert([
-        {
-          grade,
-          unit,
-          category,
-          type: selectedType,
-          question_text: customContent.question || customContent.title,
-          options: customContent.options || customContent.childQuestions || [],
-          correct_answer: 'Option B',
-          explanation: customContent.explanation,
-        },
-      ]);
-    } catch (errBank) {}
+      let customContent = {
+        title: questionTitle || (selectedType?.toLowerCase() === 'reading_section' ? 'READING SECTION' : selectedType?.toLowerCase() === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
+        question: questionText.trim() || questionTitle || 'Question',
+        explanation: explanation.trim(),
+        categories: selectedCategories,
+      };
 
-    alert('🎉 ĐÃ LƯU BÀI THI THÀNH CÔNG THẦY NHÉ!\n\nĐề thi của Thầy đã được lưu vào bài học hiện tại và TỰ ĐỘNG NẠP VÀO NGÂN HÀNG ĐỀ CHUNG!');
+      const normType = selectedType?.toLowerCase();
+      if (normType === 'listening_section') {
+        customContent.audioUrl = listeningAudioUrl;
+        customContent.audioFileName = uploadedAudioFileName;
+        customContent.childQuestions = sectionChildQuestions;
+      } else if (normType === 'reading_section') {
+        customContent.passage = sectionPassage;
+        customContent.childQuestions = sectionChildQuestions;
+      } else if (normType === 'multiple_choice') {
+        customContent.options = mcOptions.filter((o) => o.text.trim() !== '');
+      } else if (normType === 'true_false') {
+        customContent.options = [
+          { text: 'True (Đúng)', isCorrect: tfCorrect === 'True' },
+          { text: 'False (Sai)', isCorrect: tfCorrect === 'False' },
+        ];
+      } else if (normType === 'short_answer') {
+        customContent.acceptedAnswers = shortAnswers.filter((a) => a.trim() !== '');
+      } else if (normType === 'essay') {
+        customContent.instruction = essayInstruction;
+        customContent.allowFileUpload = true;
+      }
 
-    setEditingQuestion(null);
-    await fetchQuestions();
-    if (onSaved) onSaved();
+      const payload = {
+        activity_id: activityId,
+        type: selectedType,
+        marks: Number(marks),
+        content: customContent,
+      };
+
+      let saveErr = null;
+
+      if (editingQuestion?.id === 'new') {
+        const { error } = await supabase.from('questions').insert([payload]);
+        saveErr = error;
+      } else {
+        const { error } = await supabase.from('questions').update(payload).eq('id', editingQuestion.id);
+        saveErr = error;
+      }
+
+      if (saveErr) {
+        alert('Lỗi lưu câu hỏi: ' + saveErr.message);
+        setIsSavingQuestion(false);
+        return;
+      }
+
+      // TỰ ĐỘNG ĐƯA VÀO BẢNG NGÂN HÀNG CÂU HỎI CHUNG (QUESTION_BANK)
+      try {
+        await supabase.from('question_bank').insert([
+          {
+            grade,
+            unit,
+            category,
+            type: selectedType,
+            question_text: customContent.question || customContent.title,
+            options: customContent.options || customContent.childQuestions || [],
+            correct_answer: 'Option B',
+            explanation: customContent.explanation,
+          },
+        ]);
+      } catch (errBank) {}
+
+      alert('🎉 ĐÃ LƯU BÀI THI THÀNH CÔNG THẦY NHÉ!\n\nĐề thi của Thầy đã được lưu vào bài học hiện tại và TỰ ĐỘNG NẠP VÀO NGÂN HÀNG ĐỀ CHUNG!');
+
+      setEditingQuestion(null);
+      await fetchQuestions();
+      if (onSaved) onSaved();
+    } catch (err) {
+      alert('Lỗi không xác định: ' + err.message);
+    } finally {
+      setIsSavingQuestion(false);
+    }
   };
 
   const handleFileUpload = (e) => {
@@ -567,7 +567,7 @@ ANSWER: D`;
 
   const questionTypesList = [
     { type: 'reading_section', label: '1. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Hỏi Trắc Nghiệm Con)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu và danh sách 5 câu hỏi trắc nghiệm A, B, C, D bên dưới.' },
-    { type: 'listening_section', label: '2. LISTENING SECTION (Bài Nghe Audio MP3 & Kịch Bản Hội Thoại)', desc: 'Thiết kế bài nghe Audio MP3 (box dán link hoặc upload từ máy) kèm kịch bản Reading Script và danh sách câu hỏi trắc nghiệm con.' },
+    { type: 'listening_section', label: '2. LISTENING SECTION (Bài Nghe Audio MP3)', desc: 'Thiết kế bài nghe Audio MP3 (box dán link hoặc upload từ máy) và danh sách câu hỏi trắc nghiệm con.' },
     { type: 'multiple_choice', label: 'Multiple choice (Trắc nghiệm A, B, C, D)', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False (Đúng / Sai)', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
     { type: 'matching', label: 'Matching (Nối từ Cột A - Cột B)', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
@@ -1079,7 +1079,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI (TRỐNG TRƠN 100% KHI TẠO MỚI) */}
+      {/* FORM BIÊN TẬP CÂU HỎI (ĐÃ XÓA BỎ HOÀN TOÀN Ô TAPESCRIPT THEO Ý THẦY) */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1093,17 +1093,17 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* FORM LISTENING SECTION */}
+              {/* FORM LISTENING SECTION (XÓA BỎ HOÀN TOÀN Ô TAPESCRIPT CHUẨN 100% ẢNH 2) */}
               {selectedType?.toLowerCase() === 'listening_section' && (
                 <div className="p-5 bg-purple-50 border border-purple-200 rounded-3xl space-y-4 shadow-xs">
                   <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-2 border-b border-purple-200 pb-2">
                     <Headphones className="w-4 h-4 text-purple-600" />
-                    <span>🔊 AUDIO RECORDINGS & SCRIPT (THIẾT KẾ BÀI NGHE LISTENING)</span>
+                    <span>🔊 AUDIO RECORDINGS (THIẾT KẾ BÀI NGHE LISTENING)</span>
                   </h4>
 
                   <div className="space-y-2">
                     <label className="block text-xs font-bold text-purple-900">
-                      1. Dán Link MP3 Audio Hoặc Tải Tệp MP3 Từ Máy Tính:
+                      Dán Link MP3 Audio Hoặc Tải Tệp MP3 Từ Máy Tính:
                     </label>
                     <div className="flex items-center space-x-2">
                       <input
@@ -1123,31 +1123,18 @@ ANSWER: D`
                       </label>
                     </div>
 
-                    {/* NÚT BẤM NGHE THỬ ĐÚNG FILE AUDIO THẬT VỪA NẠP */}
+                    {/* NÚT BẤM NGHE THỬ AUDIO */}
                     {listeningAudioUrl && (
                       <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
                         <span className="text-[11px] font-bold text-purple-800 flex items-center space-x-1">
                           <PlayCircle className="w-3.5 h-3.5 text-purple-600" />
-                          <span>Nghe thử file Audio vừa tải lên: {uploadedAudioFileName}</span>
+                          <span>Nghe thử file Audio: {uploadedAudioFileName}</span>
                         </span>
                         <audio controls className="w-full h-8">
                           <source src={listeningAudioUrl} />
                         </audio>
                       </div>
                     )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-xs font-bold text-purple-900">
-                      2. Kịch Bản Hội Thoại (Teacher's Reading Script):
-                    </label>
-                    <textarea
-                      rows={4}
-                      value={audioscriptText}
-                      onChange={(e) => setAudioscriptText(e.target.value)}
-                      placeholder="Dán kịch bản bài nghe tại đây..."
-                      className="w-full p-3 border border-purple-300 rounded-xl text-xs bg-white font-medium leading-relaxed"
-                    />
                   </div>
                 </div>
               )}
@@ -1167,7 +1154,7 @@ ANSWER: D`
                       type="text"
                       value={questionText}
                       onChange={(e) => setQuestionText(e.target.value)}
-                      placeholder="Nhập tiêu đề bài đọc hiểu (ví dụ: Read the passage and choose the correct answer A, B, C, or D)..."
+                      placeholder="Nhập tiêu đề bài đọc hiểu..."
                       className="w-full px-3 py-2 border border-sky-300 rounded-xl text-xs bg-white font-bold"
                     />
                   </div>
@@ -1402,9 +1389,10 @@ ANSWER: D`
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md"
+                  disabled={isSavingQuestion}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50"
                 >
-                  Save changes (Lưu Bài Tập & Đưa Vào Ngân Hàng Đề)
+                  {isSavingQuestion ? 'Đang Lưu Bài Thi...' : 'Save changes (Lưu Bài Tập & Đưa Vào Ngân Hàng Đề)'}
                 </button>
               </div>
             </form>
