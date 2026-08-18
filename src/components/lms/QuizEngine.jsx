@@ -848,8 +848,9 @@ export default function QuizEngine({ activity }) {
                       </div>
 
                       {pItem.passage && (
-                        <div className="p-3.5 bg-amber-50/40 border border-amber-200 rounded-xl text-xs text-amber-950 leading-relaxed font-serif">
-                          {pItem.passage}
+                        <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 leading-relaxed font-sans shadow-2xs">
+                          <span className="font-extrabold text-purple-900 block mb-1">🎧 LỜI THOẠI BÀI NGHE (TRANSCRIPT) & DẪN CHỨNG:</span>
+                          {renderPassageWithHighlights(pItem.passage)}
                         </div>
                       )}
 
