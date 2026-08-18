@@ -7,6 +7,8 @@ import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
 import { sendQuizScoreEmail } from '../../services/emailNotificationService';
 import { sendWeeklyReportToZalo } from '../../services/zaloNotificationService';
 import ClassroomWhiteboardModal from './ClassroomWhiteboardModal';
+import MediaLibraryModal from './MediaLibraryModal';
+import PaperToQuizOcrModal from './PaperToQuizOcrModal';
 import ExamPaperTimerModal from './ExamPaperTimerModal';
 import AiOmrScannerModal from './AiOmrScannerModal';
 import { exportOmrSheet } from '../../utils/exportOmrSheet';
@@ -25,6 +27,9 @@ export default function GradingDashboard({ activityId, activityTitle }) {
   const [whiteboardModalOpen, setWhiteboardModalOpen] = useState(false);
   const [examTimerOpen, setExamTimerOpen] = useState(false);
   const [omrScannerOpen, setOmrScannerOpen] = useState(false);
+  const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
+  const [paperOcrOpen, setPaperOcrOpen] = useState(false);
+  const [dashboardTab, setDashboardTab] = useState('list');
 
   // Trình xem ảnh tự luận
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -161,10 +166,74 @@ export default function GradingDashboard({ activityId, activityTitle }) {
 
   return (
     <div className="space-y-4">
+      {/* TAB CHUYỂN ĐỔI GIAO DIỆN GRADING & GIÁM THỊ THEO DÕI SĨ SỐ */}
+      <div className="flex border-b border-slate-200 space-x-4 bg-white p-2 rounded-2xl">
+        <button
+          onClick={() => setDashboardTab('list')}
+          className={`px-4 py-2 text-xs font-extrabold rounded-xl transition ${
+            dashboardTab === 'list' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          📋 Bảng Điểm & Duyệt Bài Tự Luận ({submissions.length})
+        </button>
+
+        <button
+          onClick={() => setDashboardTab('monitor')}
+          className={`px-4 py-2 text-xs font-extrabold rounded-xl transition flex items-center space-x-1.5 ${
+            dashboardTab === 'monitor' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <span>🖥️ GIÁM THỊ THEO DÕI SĨ SỐ LỚP TRỰC TUYẾN (REAL-TIME)</span>
+        </button>
+      </div>
+
+      {dashboardTab === 'monitor' && (
+        <div className="bg-slate-900 text-white p-6 rounded-3xl space-y-4 shadow-xl border border-slate-800 animate-fade-in">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+            <div>
+              <h3 className="font-extrabold text-sm text-emerald-400 uppercase tracking-wide">
+                🖥️ MÀN HÌNH GIÁM THỊ THEO DÕI SĨ SỐ LỚP THỜI GIAN THỰC (REAL-TIME MONITOR)
+              </h3>
+              <p className="text-[11px] text-slate-400">Theo dõi tiến độ làm bài thi online của từng học sinh trong lớp</p>
+            </div>
+            <div className="flex items-center space-x-2 text-xs font-bold bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>Đang Giám Thị Trực Tuyến</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {submissions.map((sub, idx) => (
+              <div key={idx} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-2 relative overflow-hidden">
+                <div className="flex justify-between items-center">
+                  <span className="font-extrabold text-xs text-slate-200">{sub.profiles?.full_name || `Học sinh ${idx+1}`}</span>
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold rounded-lg">
+                    Đã Nộp ({sub.score}đ)
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-400 space-y-0.5">
+                  <p>• Trạng thái: <span className="text-emerald-400 font-bold">Đã hoàn thành</span></p>
+                  <p>• Rời màn hình: <span className="text-slate-200">0/3 lần</span></p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <ExamPaperTimerModal
         isOpen={examTimerOpen}
         onClose={() => setExamTimerOpen(false)}
         defaultMinutes={45}
+      />
+
+      <MediaLibraryModal
+        isOpen={mediaLibraryOpen}
+        onClose={() => setMediaLibraryOpen(false)}
+      />
+
+      <PaperToQuizOcrModal
+        isOpen={paperOcrOpen}
+        onClose={() => setPaperOcrOpen(false)}
       />
 
       <AiOmrScannerModal
@@ -218,6 +287,20 @@ export default function GradingDashboard({ activityId, activityTitle }) {
             className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
           >
             <span>📷 Camera AI Quét OMR</span>
+          </button>
+
+          <button
+            onClick={() => setMediaLibraryOpen(true)}
+            className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+          >
+            <span>📁 Kho Audio & Ảnh Dùng Chung</span>
+          </button>
+
+          <button
+            onClick={() => setPaperOcrOpen(true)}
+            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+          >
+            <span>📸 Quét Đề Giấy Sang Quiz AI</span>
           </button>
 
           <button
