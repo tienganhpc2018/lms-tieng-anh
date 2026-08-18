@@ -11,7 +11,7 @@ import H5PViewer from '../components/lms/H5PViewer';
 import InteractiveVideo from '../components/lms/InteractiveVideo';
 import AssignmentGrade from '../components/lms/AssignmentGrade';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { HelpCircle, Package, Layers, FileText, Video, BookOpen, Link as LinkIcon, Plus, Trash2, Edit3, ArrowLeft } from 'lucide-react';
+import { HelpCircle, Package, Layers, FileText, Video, BookOpen, Link as LinkIcon, Plus, Trash2, Edit3, ArrowLeft, Settings } from 'lucide-react';
 
 export default function CourseView() {
   const { id: courseId } = useParams();
@@ -111,6 +111,43 @@ export default function CourseView() {
     }
   };
 
+  // Sửa tên Section
+  const handleEditSection = async (section) => {
+    const newTitle = prompt('Đổi tên Chủ đề / Tuần học:', section.title);
+    if (!newTitle?.trim() || newTitle.trim() === section.title) return;
+
+    const { error } = await supabase
+      .from('course_sections')
+      .update({ title: newTitle.trim() })
+      .eq('id', section.id);
+
+    if (error) {
+      alert('Lỗi cập nhật tên chủ đề: ' + error.message);
+    } else {
+      await fetchCourseData();
+    }
+  };
+
+  // Xóa Section
+  const handleDeleteSection = async (sectionId, sectionTitle) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa chủ đề "${sectionTitle}" cùng tất cả các bài học bên trong?`)) {
+      return;
+    }
+
+    const { error } = await supabase.from('course_sections').delete().eq('id', sectionId);
+    if (error) {
+      alert('Lỗi xóa chủ đề: ' + error.message);
+    } else {
+      const remaining = sections.filter((s) => s.id !== sectionId);
+      setSections(remaining);
+      if (remaining.length > 0) {
+        setActiveSectionId(remaining[0].id);
+      } else {
+        setActiveSectionId(null);
+      }
+    }
+  };
+
   // Thêm Activity mới
   const handleAddActivity = async (activityData) => {
     const { error } = await supabase.from('activities').insert([activityData]);
@@ -121,10 +158,28 @@ export default function CourseView() {
     }
   };
 
-  // Xóa Activity
-  const handleDeleteActivity = async (actId, e) => {
+  // Sửa tên Activity
+  const handleEditActivityTitle = async (act, e) => {
     e.stopPropagation();
-    if (!confirm('Bạn có chắc muốn xóa hoạt động này?')) return;
+    const newTitle = prompt('Đổi tên bài học / hoạt động:', act.title);
+    if (!newTitle?.trim() || newTitle.trim() === act.title) return;
+
+    const { error } = await supabase
+      .from('activities')
+      .update({ title: newTitle.trim() })
+      .eq('id', act.id);
+
+    if (error) {
+      alert('Lỗi sửa tên bài học: ' + error.message);
+    } else {
+      await fetchActivities(activeSectionId);
+    }
+  };
+
+  // Xóa Activity
+  const handleDeleteActivity = async (actId, actTitle, e) => {
+    e.stopPropagation();
+    if (!confirm(`Bạn có chắc muốn xóa bài học "${actTitle}"?`)) return;
     await supabase.from('activities').delete().eq('id', actId);
     await fetchActivities(activeSectionId);
     if (selectedActivity?.id === actId) setSelectedActivity(null);
@@ -156,15 +211,15 @@ export default function CourseView() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-slate-900 leading-tight">{course?.title}</h1>
-            <p className="text-xs text-slate-500">Giáo viên: {course?.teacher?.full_name}</p>
+            <h1 className="text-lg font-extrabold text-slate-900 leading-tight">{course?.title}</h1>
+            <p className="text-xs text-slate-500">Giáo viên phụ trách: {course?.teacher?.full_name}</p>
           </div>
         </div>
 
         {isTeacher && activeSectionId && (
           <button
             onClick={() => setIsActivityModalOpen(true)}
-            className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center space-x-1.5"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center space-x-1.5"
           >
             <Plus className="w-4 h-4" />
             <span>Thêm Bài Học / Hoạt Động</span>
@@ -181,6 +236,8 @@ export default function CourseView() {
           onSelectSection={setActiveSectionId}
           isTeacher={isTeacher}
           onAddSection={handleAddSection}
+          onEditSection={handleEditSection}
+          onDeleteSection={handleDeleteSection}
           progressPercentage={progressPercentage}
         />
 
@@ -197,13 +254,13 @@ export default function CourseView() {
                   <div>
                     <h2 className="text-lg font-bold text-slate-900">{selectedActivity.title}</h2>
                     <span className="text-xs font-semibold text-slate-400 uppercase">
-                      Loại: {selectedActivity.type}
+                      Loại Module: {selectedActivity.type}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => setSelectedActivity(null)}
-                  className="px-3 py-1.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-semibold"
+                  className="px-3.5 py-1.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold"
                 >
                   Quay lại danh sách bài
                 </button>
@@ -241,7 +298,7 @@ export default function CourseView() {
                       </div>
                       <button
                         onClick={() => navigate(`/assignment/${selectedActivity.id}`)}
-                        className="px-5 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition"
+                        className="px-5 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition shadow-sm"
                       >
                         Nộp Bài Tập Ngay
                       </button>
@@ -262,7 +319,7 @@ export default function CourseView() {
                         href={selectedActivity.content_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center space-x-2 text-xs font-bold text-brand-600 hover:underline"
+                        className="inline-flex items-center space-x-2 text-xs font-bold text-emerald-600 hover:underline"
                       >
                         <span>Tải file đính kèm kèm theo bài học</span>
                       </a>
@@ -278,9 +335,9 @@ export default function CourseView() {
                     href={selectedActivity.content_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-block px-5 py-2.5 bg-brand-600 text-white font-bold rounded-xl text-xs hover:bg-brand-700 transition"
+                    className="inline-block px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs hover:bg-emerald-700 transition"
                   >
-                    Mở Đòn Dẫn Trực Tiếp
+                    Mở Đường Dẫn Trực Tiếp
                   </a>
                 </div>
               )}
@@ -300,7 +357,7 @@ export default function CourseView() {
                   {isTeacher && (
                     <button
                       onClick={() => setIsActivityModalOpen(true)}
-                      className="mt-3 px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold"
+                      className="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
                     >
                       + Thêm Học Liệu Mới
                     </button>
@@ -312,14 +369,14 @@ export default function CourseView() {
                     <div
                       key={act.id}
                       onClick={() => setSelectedActivity(act)}
-                      className="p-4 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/20 cursor-pointer transition flex items-center justify-between group"
+                      className="p-4 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/20 cursor-pointer transition flex items-center justify-between group"
                     >
                       <div className="flex items-center space-x-3.5">
-                        <div className="p-2.5 bg-slate-100 rounded-xl group-hover:bg-brand-100 transition">
+                        <div className="p-2.5 bg-slate-100 rounded-xl group-hover:bg-emerald-100 transition">
                           {getActivityIcon(act.type)}
                         </div>
                         <div>
-                          <h4 className="text-sm font-bold text-slate-900 group-hover:text-brand-600 transition">
+                          <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition">
                             {act.title}
                           </h4>
                           <span className="text-[11px] font-semibold text-slate-400 uppercase">
@@ -328,8 +385,8 @@ export default function CourseView() {
                         </div>
                       </div>
 
-                      {/* Công cụ Giáo viên (Sửa Quiz / Xóa Activity) */}
-                      <div className="flex items-center space-x-2">
+                      {/* Công cụ Giáo viên/Admin: Sửa tên / Soạn Quiz / Xóa Activity */}
+                      <div className="flex items-center space-x-1.5">
                         {isTeacher && act.type === 'quiz' && (
                           <button
                             onClick={(e) => {
@@ -347,9 +404,19 @@ export default function CourseView() {
 
                         {isTeacher && (
                           <button
-                            onClick={(e) => handleDeleteActivity(act.id, e)}
-                            title="Xóa hoạt động"
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-rose-50 rounded-lg transition"
+                            onClick={(e) => handleEditActivityTitle(act, e)}
+                            title="Sửa tên bài học"
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {isTeacher && (
+                          <button
+                            onClick={(e) => handleDeleteActivity(act.id, act.title, e)}
+                            title="Xóa bài học này"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
