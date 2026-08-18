@@ -47,7 +47,8 @@ export default function QuizEngine({ activity }) {
   const [passcodeRequired, setPasscodeRequired] = useState('');
   const [enteredPasscode, setEnteredPasscode] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [omrScannerOpen, setOmrScannerOpen] = useState(false); // Giới hạn 3 lần rời tab mặc định
+  const [omrScannerOpen, setOmrScannerOpen] = useState(false);
+  const [scheduledOpenTime, setScheduledOpenTime] = useState(null); // Giới hạn 3 lần rời tab mặc định
 
   // Bộ đếm thời gian
   const [isCountdownMode, setIsCountdownMode] = useState(false);
@@ -144,6 +145,9 @@ export default function QuizEngine({ activity }) {
             }
             if (cObj?.timeLimit && Number(cObj.timeLimit) > 0) {
               totalCustomMinutes += Number(cObj.timeLimit);
+            }
+            if (cObj?.openTime) {
+              setScheduledOpenTime(cObj.openTime);
             }
             if (cObj?.passcode) {
               setPasscodeRequired(String(cObj.passcode));
@@ -529,6 +533,26 @@ export default function QuizEngine({ activity }) {
   };
 
   if (loading) return <LoadingSpinner text="Đang tải bài làm..." />;
+  if (scheduledOpenTime && new Date() < new Date(scheduledOpenTime) && !submitted) {
+    return (
+      <div className="p-8 bg-slate-900 text-white rounded-3xl shadow-2xl border border-slate-800 text-center space-y-4 max-w-md mx-auto my-12 animate-scale-up">
+        <div className="w-14 h-14 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center mx-auto">
+          <Clock className="w-8 h-8 text-sky-400 animate-spin" />
+        </div>
+        <div>
+          <h3 className="font-extrabold text-base text-sky-400 uppercase tracking-wide">
+            ⏳ ĐỀ THI HẸN GIỜ MỞ TỰ ĐỘNG
+          </h3>
+          <p className="text-xs text-slate-300 mt-1">
+            Đề thi sẽ chính thức mở vào lúc: <strong className="text-amber-400">{new Date(scheduledOpenTime).toLocaleString('vi-VN')}</strong>.
+          </p>
+        </div>
+        <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs font-mono text-emerald-400">
+          Vui lòng đợi Giám Thị hoặc chờ đến đúng giờ hẹn để bắt đầu làm bài!
+        </div>
+      </div>
+    );
+  }
   if (passcodeRequired && !isUnlocked && !submitted) {
     return (
       <div className="p-8 bg-slate-900 text-white rounded-3xl shadow-2xl border border-slate-800 text-center space-y-4 max-w-md mx-auto my-12 animate-scale-up">
