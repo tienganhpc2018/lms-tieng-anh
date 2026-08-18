@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { FileText, CheckCircle, Download, Award, MessageSquare, ZoomIn, ZoomOut, RotateCw, ExternalLink, Bot, Sparkles, User, RefreshCw, FileSpreadsheet, Eye } from 'lucide-react';
+import { FileText, CheckCircle, Download, Award, MessageSquare, ZoomIn, ZoomOut, RotateCw, ExternalLink, Bot, Sparkles, User, RefreshCw, FileSpreadsheet, Eye, ShieldAlert, BarChart3, Mail, BookMarked, AlertTriangle } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { exportClassExcelReport } from '../../utils/exportQuizReport';
+import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
+import { sendQuizScoreEmail } from '../../services/emailNotificationService';
 
 export default function GradingDashboard({ activityId, activityTitle }) {
   const [submissions, setSubmissions] = useState([]);
@@ -13,6 +15,7 @@ export default function GradingDashboard({ activityId, activityTitle }) {
   const [score, setScore] = useState('');
   const [feedback, setFeedback] = useState('');
   const [saving, setSaving] = useState(false);
+  const [reGradingAll, setReGradingAll] = useState(false);
 
   // Trình xem ảnh tự luận
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -49,10 +52,12 @@ export default function GradingDashboard({ activityId, activityTitle }) {
     if (!selectedSub) return;
     setSaving(true);
 
+    const updatedScore = parseFloat(score) || 0;
+
     const { error } = await supabase
       .from('submissions')
       .update({
-        score: parseFloat(score) || 0,
+        score: updatedScore,
         feedback: feedback,
         status: 'graded',
         graded_at: new Date().toISOString(),
@@ -63,6 +68,17 @@ export default function GradingDashboard({ activityId, activityTitle }) {
       alert('Lỗi khi lưu điểm: ' + error.message);
     } else {
       alert('🎉 Đã cập nhật nhận xét & chấm điểm thành công!');
+      // Gửi email thông báo cho học sinh
+      if (selectedSub.profiles?.email) {
+        await sendQuizScoreEmail({
+          studentEmail: selectedSub.profiles.email,
+          studentName: selectedSub.profiles.full_name,
+          activityTitle: activityTitle || 'Bài Thi Quiz',
+          score: updatedScore,
+          totalMarks: 10,
+          feedback: feedback,
+        });
+      }
       await fetchSubmissions();
     }
     setSaving(false);
@@ -75,35 +91,123 @@ export default function GradingDashboard({ activityId, activityTitle }) {
     if (aiData.detailedFeedback) setFeedback(aiData.detailedFeedback);
   };
 
+  // CHẾ ĐỘ CHẤM LẠI TẤT CẢ BÀI TỰ LUẬN CẢ LỚP BẰNG AI
+  const handleReGradeAllWithAI = async () => {
+    if (!confirm('🤖 Thầy có chắc chắn muốn AI chấm lại tự động toàn bộ bài làm tự luận của cả lớp?')) return;
+    setReGradingAll(true);
+
+    let updatedCount = 0;
+    for (const sub of submissions) {
+      const answersData = sub.answers_data || {};
+      const uploadedImages = answersData.uploadedStudentImages ? Object.values(answersData.uploadedStudentImages) : [];
+      const firstImg = uploadedImages[0] || null;
+      const studentGotedText = Object.values(answersData.userAnswers || {}).filter(v => typeof v === 'string' && isNaN(v)).join('\n');
+
+      if (firstImg || studentGotedText) {
+        try {
+          const aiGrading = await gradeWritingSubmissionWithAI({
+            questionTitle: 'WRITING SECTION',
+            questionPrompt: 'Bài làm tự luận Tiếng Anh',
+            sampleAnswer: '',
+            studentText: studentGotedText,
+            studentImageUrl: firstImg,
+          });
+
+          await supabase
+            .from('submissions')
+            .update({
+              score: aiGrading.overallScore || sub.score || 8.0,
+              answers_data: { ...answersData, aiGrading },
+              status: 'graded',
+              graded_at: new Date().toISOString(),
+            })
+            .eq('id', sub.id);
+
+          updatedCount += 1;
+        } catch (e) {
+          console.error(`Lỗi chấm AI bài ${sub.id}:`, e);
+        }
+      }
+    }
+
+    alert(`🎉 Đã hoàn tất AI chấm lại tự động cho ${updatedCount} bài làm cả lớp!`);
+    setReGradingAll(false);
+    await fetchSubmissions();
+  };
+
   if (loading) return <LoadingSpinner text="Đang tải danh sách bài làm của học sinh..." />;
 
-  // Tìm tất cả ảnh tự luận từ answers_data
+  // PHỔ ĐIỂM THỐNG KÊ (ANALYTICS & ITEM ANALYSIS)
+  const totalGraded = submissions.filter((s) => s.status === 'graded').length;
+  const countLow = submissions.filter((s) => (s.score || 0) < 5).length;
+  const countMid = submissions.filter((s) => (s.score || 0) >= 5 && (s.score || 0) < 8).length;
+  const countHigh = submissions.filter((s) => (s.score || 0) >= 8).length;
+
   const uploadedImages = selectedSub?.answers_data?.uploadedStudentImages
     ? Object.values(selectedSub.answers_data.uploadedStudentImages)
     : [];
 
   const aiGrading = selectedSub?.answers_data?.aiGrading;
+  const tabSwitchCount = selectedSub?.answers_data?.tabSwitchCount || 0;
 
   return (
     <div className="space-y-4">
-      {/* THANH THỦ THUẬT & XUẤT BÁO CÁO EXCEL */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900 text-white p-4 rounded-2xl shadow-md gap-3">
+      {/* THANH THỦ THUẬT & XUẤT BÁO CÁO EXCEL & NÚT CHẤM LẠI CẢ LỚP BẰNG AI */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 text-white p-4 rounded-3xl shadow-md gap-3">
         <div>
           <h3 className="font-extrabold text-sm text-amber-400 uppercase tracking-wide flex items-center space-x-2">
             <Award className="w-4 h-4 text-amber-400" />
-            <span>GIAO DIỆN GIÁM THỊ: CHẤM BÀI TỰ LUẬN TRỰC QUAN</span>
+            <span>GIAO DIỆN GIÁM THỊ: CHẤM BÀI TỰ LUẬN TRỰC QUAN & ANALYTICS</span>
           </h3>
           <p className="text-[11px] text-slate-300">Bài kiểm tra: {activityTitle || 'Quiz / Writing Test'}</p>
         </div>
 
-        <button
-          onClick={() => exportClassExcelReport(submissions, activityTitle)}
-          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
-        >
-          <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
-          <span>Xuất Bảng Điểm Cả Lớp (Excel/CSV)</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleReGradeAllWithAI}
+            disabled={reGradingAll}
+            className="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+          >
+            <Bot className="w-4 h-4 text-purple-200" />
+            <span>{reGradingAll ? 'Đang AI chấm...' : '🤖 Chấm Lại Bài Cả Lớp Bằng AI'}</span>
+          </button>
+
+          <button
+            onClick={() => exportClassExcelReport(submissions, activityTitle)}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+            <span>Xuất Bảng Điểm Cả Lớp (Excel/CSV)</span>
+          </button>
+        </div>
       </div>
+
+      {/* KHỐI BIỂU ĐỒ PHỔ ĐIỂM & PHÂN TÍCH ĐỀ THI (ANALYTICS & ITEM ANALYSIS) */}
+      {submissions.length > 0 && (
+        <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+          <h4 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide flex items-center space-x-1.5 border-b border-slate-100 pb-2">
+            <BarChart3 className="w-4 h-4 text-indigo-600" />
+            <span>📊 THỐNG KÊ PHỔ ĐIỂM CẢ LỚP ({submissions.length} Học Sinh)</span>
+          </h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center text-xs">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl space-y-1">
+              <span className="font-bold text-rose-800 uppercase block text-[10px]">Dưới 5.0 Điểm (Yếu/Kém)</span>
+              <span className="text-xl font-extrabold text-rose-600">{countLow} học sinh</span>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl space-y-1">
+              <span className="font-bold text-amber-800 uppercase block text-[10px]">5.0 - 7.9 Điểm (Trung Bình/Khá)</span>
+              <span className="text-xl font-extrabold text-amber-600">{countMid} học sinh</span>
+            </div>
+
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-1">
+              <span className="font-bold text-emerald-800 uppercase block text-[10px]">8.0 - 10.0 Điểm (Giỏi/Xuất Sắc)</span>
+              <span className="text-xl font-extrabold text-emerald-600">{countHigh} học sinh</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {submissions.length === 0 ? (
         <div className="p-8 text-center bg-white border border-dashed rounded-2xl space-y-2">
@@ -122,6 +226,7 @@ export default function GradingDashboard({ activityId, activityTitle }) {
               {submissions.map((sub) => {
                 const isSelected = selectedSub?.id === sub.id;
                 const hasAiScore = sub.answers_data?.aiGrading?.overallScore !== undefined;
+                const sTabSwitch = sub.answers_data?.tabSwitchCount || 0;
 
                 return (
                   <div
@@ -155,12 +260,20 @@ export default function GradingDashboard({ activityId, activityTitle }) {
 
                     <div className="flex justify-between items-center text-[10px] text-slate-400 border-t border-slate-100 pt-1">
                       <span>{new Date(sub.submitted_at || Date.now()).toLocaleString('vi-VN')}</span>
-                      {hasAiScore && (
-                        <span className="text-purple-600 font-bold flex items-center space-x-0.5">
-                          <Bot className="w-3 h-3 text-purple-600" />
-                          <span>AI Chấm</span>
-                        </span>
-                      )}
+                      <div className="flex items-center space-x-1">
+                        {sTabSwitch > 0 && (
+                          <span className="text-rose-600 font-extrabold flex items-center space-x-0.5 bg-rose-50 border border-rose-200 px-1 rounded">
+                            <ShieldAlert className="w-3 h-3 text-rose-600" />
+                            <span>{sTabSwitch} rời tab</span>
+                          </span>
+                        )}
+                        {hasAiScore && (
+                          <span className="text-purple-600 font-bold flex items-center space-x-0.5">
+                            <Bot className="w-3 h-3 text-purple-600" />
+                            <span>AI Chấm</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -171,6 +284,19 @@ export default function GradingDashboard({ activityId, activityTitle }) {
           {/* CỘT 2 & 3: KHU VỰC SOI BÀI TỰ LUẬN VÀ CHẤM ĐIỂM */}
           {selectedSub ? (
             <div className="lg:col-span-2 space-y-4">
+              {/* THẺ THÔNG BÁO GIÁM THỊ VỀ VI PHẠM RỜI TAB GIAN LẬN */}
+              {tabSwitchCount > 0 && (
+                <div className="p-3 bg-rose-50 border-2 border-rose-300 rounded-2xl flex items-center justify-between text-xs text-rose-950">
+                  <div className="flex items-center space-x-2 font-bold">
+                    <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                    <span>⚠️ GIÁM THỊ PHÁT HIỆN: Học sinh đã chuyển tab/rời khỏi màn hình thi <strong>{tabSwitchCount} lần</strong>!</span>
+                  </div>
+                  <span className="px-2.5 py-0.5 bg-rose-600 text-white font-extrabold rounded-full text-[10px]">
+                    Cảnh Báo Gian Lận
+                  </span>
+                </div>
+              )}
+
               {/* PHẦN 1: BÀI LÀM TỰ LUẬN CỦA HỌC SINH (TEXT + ẢNH CHỤP TAY) */}
               <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs space-y-3">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -189,7 +315,6 @@ export default function GradingDashboard({ activityId, activityTitle }) {
                         <span>Ảnh Bài Làm Chụp Tay ({uploadedImages.length} ảnh):</span>
                       </span>
 
-                      {/* Công cụ phóng to / xoay ảnh */}
                       <div className="flex items-center space-x-1.5 bg-slate-800 px-2 py-1 rounded-xl border border-slate-700">
                         <button
                           onClick={() => setZoomLevel((prev) => Math.min(prev + 0.25, 3))}
@@ -302,6 +427,18 @@ export default function GradingDashboard({ activityId, activityTitle }) {
                         </div>
                       )}
 
+                      {/* GỢI Ý CỤM TỪ C2 / BAND 8.0 NÂNG CAO */}
+                      {aiGrading.advancedVocabularySuggestions && aiGrading.advancedVocabularySuggestions.length > 0 && (
+                        <div className="p-2 bg-purple-950/90 rounded-xl border border-purple-700/70 space-y-1 text-[10px]">
+                          <span className="font-bold text-amber-300 block">✨ Cụm từ C2 / Band 8.0 gợi ý:</span>
+                          {aiGrading.advancedVocabularySuggestions.map((av, idx) => (
+                            <div key={idx} className="text-slate-300">
+                              • <span className="line-through text-slate-400">{av.original}</span> ➔ <strong className="text-amber-300">{av.c2Upgrade}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="p-2.5 bg-purple-950/90 rounded-xl border border-purple-800/80 leading-relaxed text-[11px] text-slate-200 max-h-36 overflow-y-auto">
                         <span className="font-bold text-amber-300 block mb-1">Nhận xét chi tiết:</span>
                         {aiGrading.detailedFeedback}
@@ -358,7 +495,7 @@ export default function GradingDashboard({ activityId, activityTitle }) {
                     className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1.5"
                   >
                     <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    <span>{saving ? 'Đang lưu điểm...' : 'Lưu Điểm & Gửi Lời Phê Cho Học Sinh'}</span>
+                    <span>{saving ? 'Đang lưu điểm...' : 'Lưu Điểm & Gửi Email Cho Học Sinh'}</span>
                   </button>
                 </form>
               </div>
