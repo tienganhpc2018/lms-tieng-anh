@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Database, ArrowLeft, Search, Filter, BookOpen, Layers, Volume2, CheckCircle, Eye, AlertCircle, RefreshCw, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import { exportQuizToWord } from '../utils/exportQuizWord';
 
 // DỮ LIỆU ĐỀ THI NGUỒN MẪU CHUẨN (GLOBAL SUCCESS & PRACTICE TESTS)
@@ -144,19 +143,19 @@ export default function QuestionBankView() {
   const [selectedGrade, setSelectedGrade] = useState('Khối 8');
   const [activeTab, setActiveTab] = useState('my_questions');
   const [questions, setQuestions] = useState(SAMPLE_QUESTIONS_DATA);
-  const [loading, setLoading] = useState(false); // MẶC ĐỊNH LÀ FALSE ĐỂ NẠP NGAY GIAO DIỆN
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchAllQuestions = async () => {
+    setIsRefreshing(true);
     try {
-      // Dùng Timeout 1.2s phòng ngừa API Supabase bị treo trên Vercel
-      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ data: null, isTimeout: true }), 1200));
-      const fetchPromise = supabase.from('questions').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      const res = await Promise.race([fetchPromise, timeoutPromise]);
-
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        const dbLoaded = res.data.map((q) => {
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const dbLoaded = data.map((q) => {
           let cObj = {};
           if (q && q.content) {
             if (typeof q.content === 'object') {
@@ -181,7 +180,7 @@ export default function QuestionBankView() {
     } catch (err) {
       console.warn('Supabase fetch query notice:', err);
     } finally {
-      setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -189,7 +188,6 @@ export default function QuestionBankView() {
     fetchAllQuestions();
   }, []);
 
-  // SỬ DỤNG OPTIONAL CHAINING & FALLBACK ARRAY TẠI TẤT CẢ BIẾN
   const safeQuestions = (Array.isArray(questions) ? questions : SAMPLE_QUESTIONS_DATA) || [];
   const filteredQuestions = safeQuestions.filter((q) => {
     if (!q || !q.content) return true;
@@ -274,95 +272,92 @@ export default function QuestionBankView() {
             </h3>
             <button
               onClick={fetchAllQuestions}
+              disabled={isRefreshing}
               className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Tải lại</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-600' : ''}`} />
+              <span>{isRefreshing ? 'Đang cập nhật...' : 'Tải lại'}</span>
             </button>
           </div>
 
-          {loading ? (
-            <LoadingSpinner text="Đang tải ngân hàng đề thi..." />
-          ) : (
-            <div className="space-y-4">
-              {(filteredQuestions || []).map((q, idx) => {
-                const childs = (Array.isArray(q?.content?.childQuestions) ? q.content.childQuestions : []) || [];
-                const sectionType = q?.content?.sectionType || q?.type || 'multiple_choice';
+          <div className="space-y-4">
+            {(filteredQuestions || []).map((q, idx) => {
+              const childs = (Array.isArray(q?.content?.childQuestions) ? q.content.childQuestions : []) || [];
+              const sectionType = q?.content?.sectionType || q?.type || 'multiple_choice';
 
-                return (
-                  <div key={q?.id || idx} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
-                        <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
-                          {idx + 1}
-                        </span>
-                        <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase rounded-lg">
-                          Dạng: {sectionType}
-                        </span>
-                        <span className="text-xs text-slate-400 font-medium">({q?.marks || 1} điểm)</span>
-                      </div>
-
-                      <button
-                        onClick={() => exportQuizToWord([q], q?.content?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
-                        className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>Xuất File Word</span>
-                      </button>
+              return (
+                <div key={q?.id || idx} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
+                        {idx + 1}
+                      </span>
+                      <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold uppercase rounded-lg">
+                        Dạng: {sectionType}
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">({q?.marks || 1} điểm)</span>
                     </div>
 
-                    <h4 className="font-extrabold text-sm text-slate-900">{q?.content?.title || q?.content?.question || 'Untitled Question'}</h4>
-
-                    {/* NẾU LÀ BÀI ĐỌC READING SECTION */}
-                    {q?.content?.passage && (
-                      <div className="p-3.5 bg-white border border-sky-200 rounded-xl text-xs text-slate-700 leading-relaxed font-medium">
-                        <p className="line-clamp-3 italic">"{q.content.passage}"</p>
-                      </div>
-                    )}
-
-                    {/* NẾU LÀ BÀI NGHE LISTENING SECTION CÓ AUDIO MP3 */}
-                    {q?.content?.audioUrl && (
-                      <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
-                        <span className="text-[11px] font-bold text-purple-900 flex items-center space-x-1">
-                          <Volume2 className="w-3.5 h-3.5 text-purple-600" />
-                          <span>File Nghe Audio MP3: ({q.content?.audioFileName || 'Audio Track'})</span>
-                        </span>
-                        <audio controls className="w-full h-8">
-                          <source src={q.content.audioUrl} />
-                        </audio>
-                      </div>
-                    )}
-
-                    {/* DANH SÁCH CÁC CÂU HỎI CON */}
-                    {(childs || []).length > 0 && (
-                      <div className="space-y-2 pt-1">
-                        <span className="text-[11px] font-extrabold text-slate-600 block">
-                          Chứa {childs.length} câu hỏi trắc nghiệm con:
-                        </span>
-                        {(childs || []).map((c, cIdx) => (
-                          <div key={cIdx} className="p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold space-y-1">
-                            <p className="text-slate-800 font-extrabold">{c?.question || ''}</p>
-                            <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
-                              {(c?.options || []).map((opt, oIdx) => (
-                                <span
-                                  key={oIdx}
-                                  className={`px-2 py-0.5 rounded border ${
-                                    opt?.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold' : 'bg-slate-50 border-slate-200'
-                                  }`}
-                                >
-                                  {String.fromCharCode(65 + oIdx)}. {opt?.text || opt}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <button
+                      onClick={() => exportQuizToWord([q], q?.content?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
+                      className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Xuất File Word</span>
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
+
+                  <h4 className="font-extrabold text-sm text-slate-900">{q?.content?.title || q?.content?.question || 'Untitled Question'}</h4>
+
+                  {/* NẾU LÀ BÀI ĐỌC READING SECTION */}
+                  {q?.content?.passage && (
+                    <div className="p-3.5 bg-white border border-sky-200 rounded-xl text-xs text-slate-700 leading-relaxed font-medium">
+                      <p className="line-clamp-3 italic">"{q.content.passage}"</p>
+                    </div>
+                  )}
+
+                  {/* NẾU LÀ BÀI NGHE LISTENING SECTION CÓ AUDIO MP3 */}
+                  {q?.content?.audioUrl && (
+                    <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
+                      <span className="text-[11px] font-bold text-purple-900 flex items-center space-x-1">
+                        <Volume2 className="w-3.5 h-3.5 text-purple-600" />
+                        <span>File Nghe Audio MP3: ({q.content?.audioFileName || 'Audio Track'})</span>
+                      </span>
+                      <audio controls className="w-full h-8">
+                        <source src={q.content.audioUrl} />
+                      </audio>
+                    </div>
+                  )}
+
+                  {/* DANH SÁCH CÁC CÂU HỎI CON */}
+                  {(childs || []).length > 0 && (
+                    <div className="space-y-2 pt-1">
+                      <span className="text-[11px] font-extrabold text-slate-600 block">
+                        Chứa {childs.length} câu hỏi trắc nghiệm con:
+                      </span>
+                      {(childs || []).map((c, cIdx) => (
+                        <div key={cIdx} className="p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold space-y-1">
+                          <p className="text-slate-800 font-extrabold">{c?.question || ''}</p>
+                          <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
+                            {(c?.options || []).map((opt, oIdx) => (
+                              <span
+                                key={oIdx}
+                                className={`px-2 py-0.5 rounded border ${
+                                  opt?.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold' : 'bg-slate-50 border-slate-200'
+                                }`}
+                              >
+                                {String.fromCharCode(65 + oIdx)}. {opt?.text || opt}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
