@@ -440,7 +440,6 @@ export default function QuizEngine({ activity }) {
                   </span>
                 </div>
 
-                {/* KHUNG CÂU LỆNH HƯỚNG DẪN THỐNG NHẤT CÓ ĐƯỜNG GẠCH TÍM BÊN TRÁI CHUẨN ẢNH 3 */}
                 <div className="p-4 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content?.question || 'Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F).'}
                 </div>
@@ -535,7 +534,7 @@ export default function QuizEngine({ activity }) {
 
                   return (
                     <div key={tIdx} className="space-y-4 border-b border-slate-100 pb-5 last:border-b-0 last:pb-0">
-                      {/* KHUNG CÂU LỆNH HƯỚNG DẪN THỐNG NHẤT CÓ ĐƯỜNG GẠCH TÍM BÊN TRÁI CHUẨN ẢNH 3 */}
+                      {/* Khung hướng dẫn tím */}
                       <div className="p-3.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs space-y-0.5">
                         <h4 className="uppercase tracking-tight text-purple-950">
                           {taskItem.task_title}
@@ -566,23 +565,29 @@ export default function QuizEngine({ activity }) {
                         </p>
                       </div>
 
-                      {/* HÀNG CÂU HỎI CLOZE TEST: 4 CỘT A, B, C, D THẲNG CỘT TẮP NẰM TRÊN 1 DÒNG CHUẨN ẢNH 2 */}
-                      <div className="space-y-2 pt-1">
+                      {/* HÀNG CÂU HỎI CLOZE TEST */}
+                      <div className="space-y-2.5 pt-1">
                         {tQuestions.map((cQ, cIdx) => {
                           const childKey = `${q.id}_t${tIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
                           const opts = Array.isArray(cQ.options) ? cQ.options : [];
                           const correctOpt = cQ.correct_option || opts.find(o => o.isCorrect)?.id || opts.find(o => o.isCorrect)?.text?.substring(0,1);
 
+                          const isLongOptions = opts.some(o => {
+                            const txt = typeof o === 'string' ? o : (o.text || o.label || '');
+                            return txt.length > 16;
+                          });
+
                           return (
                             <div key={cIdx} className="space-y-1.5">
-                              <div className="flex items-center gap-3 w-full">
-                                <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
+                              <div className="flex items-start gap-3 w-full">
+                                <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0 mt-1">
                                   {cQ.question_number || (16 + cIdx)}
                                 </span>
 
-                                {/* 🎯 CĂN CHỈNH 4 CỘT A, B, C, D THẲNG HÀNG DỌC TẮP NẰM TRÊN 1 HÀNG CHUẨN ẢNH 2 */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full items-center">
+                                <div className={`grid gap-2.5 w-full items-stretch ${
+                                  isLongOptions ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+                                }`}>
                                   {opts.map((opt, oIdx) => {
                                     const optVal = opt.id || String.fromCharCode(65 + oIdx);
                                     const optText = opt.text || `${optVal}. ${opt.label || opt}`;
@@ -593,13 +598,13 @@ export default function QuizEngine({ activity }) {
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, optVal)}
-                                        className={`rounded-full px-3.5 py-1 text-xs transition font-semibold text-left truncate border ${
+                                        className={`rounded-2xl px-3.5 py-2 text-xs transition font-semibold text-left whitespace-normal break-words border flex items-center space-x-1.5 ${
                                           isSelected
                                             ? `${tIdx === 1 ? 'bg-teal-600' : 'bg-blue-600'} text-white font-bold shadow-xs border-transparent`
                                             : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                                         }`}
                                       >
-                                        {optText}
+                                        <span>{optText}</span>
                                       </button>
                                     );
                                   })}
@@ -618,7 +623,7 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ / LISTENING SECTION - THIẾT KẾ CĂN 4 CỘT THẲNG HÀNG DỌC A, B, C, D CHUẨN ẢNH 2
+          // DẠNG CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ / LISTENING SECTION
           return (
             <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
@@ -632,7 +637,6 @@ export default function QuizEngine({ activity }) {
                 </div>
               </div>
 
-              {/* KHUNG CÂU LỆNH HƯỚNG DẪN THỐNG NHẤT CÓ ĐƯỜNG GẠCH TÍM BÊN TRÁI CHUẨN ẢNH 3 */}
               {(q.content?.question || q.content?.title) && (
                 <div className="p-4 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                   {q.content.question || q.content.title}
@@ -689,6 +693,12 @@ export default function QuizEngine({ activity }) {
                   const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
                   const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
 
+                  // 🎯 TỰ ĐỘNG KIỂM TRA ĐỘ DÀI CỤM TỪ TRONG 4 ĐÁP ÁN
+                  const isLongOptions = cOpts.some(o => {
+                    const txt = typeof o === 'string' ? o : (o.text || o.label || '');
+                    return txt.length > 18;
+                  });
+
                   return (
                     <div
                       key={cIdx}
@@ -721,8 +731,13 @@ export default function QuizEngine({ activity }) {
                         )}
                       </div>
 
-                      {/* 🎯 CĂN BỐ CỤC 4 CỘT A, B, C, D THẲNG HÀNG DỌC TẮP NẰM NGHĨA TRÊN 1 HÀNG CHUẨN 100% ẢNH 2: grid grid-cols-2 sm:grid-cols-4 gap-3 w-full */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full items-center pt-1">
+                      {/* 🎯 BỐ CỤC THÔNG MINH 100% THEO Ý THẦY:
+                          - NẾU CÂU DÀI (>18 KÝ TỰ): TỰ ĐỘNG TÁCH THÀNH 2 DÒNG (DÒNG 1 LÀ A & B; DÒNG 2 LÀ C & D);
+                          - NẾU CÂU NGẮN (<=18 KÝ TỰ): NẰM THẲNG 4 CỘT TRÊN 1 DÒNG CHUẨN ĐẸP;
+                          - KHÔNG BAO GIỜ BỊ CẮT CHỮ TRUNCATE! */}
+                      <div className={`grid gap-3 w-full items-stretch pt-1 ${
+                        isLongOptions ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+                      }`}>
                         {cOpts.map((opt, oIdx) => {
                           const isSelected = selectedOptIndex === oIdx;
                           const isThisCorrect = opt?.isCorrect;
@@ -744,14 +759,14 @@ export default function QuizEngine({ activity }) {
                               key={oIdx}
                               disabled={submitted}
                               onClick={() => handleSelectAnswer(childKey, oIdx)}
-                              className={`w-full text-left px-3.5 py-1.5 rounded-full text-xs font-semibold border transition flex items-center space-x-1.5 truncate ${btnStyle}`}
+                              className={`w-full text-left px-3.5 py-2 rounded-2xl text-xs font-semibold border transition flex items-center space-x-2 whitespace-normal break-words ${btnStyle}`}
                             >
                               <span className={`w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
                                 isSelected ? 'bg-white text-emerald-800' : 'bg-slate-200 text-slate-600'
                               }`}>
                                 {label}
                               </span>
-                              <span className="truncate">{opt.text}</span>
+                              <span className="leading-snug">{opt.text}</span>
                             </button>
                           );
                         })}
