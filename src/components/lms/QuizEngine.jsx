@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { compressImage } from '../../utils/imageCompressor';
 import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
@@ -16,6 +16,10 @@ export default function QuizEngine({ activity }) {
   const [submitted, setSubmitted] = useState(false);
   const [aiGradingResult, setAiGradingResult] = useState(null);
   const [isAiGradingLoading, setIsAiGradingLoading] = useState(false);
+
+  // PHÁT HIỆN GIAN LẬN / THEO DÕI CHUYỂN TAB (ANTI-CHEATING / FOCUS TRACKER)
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [showCheatingWarning, setShowCheatingWarning] = useState(false);
 
   // Bộ đếm thời gian
   const [isCountdownMode, setIsCountdownMode] = useState(false);
@@ -35,6 +39,24 @@ export default function QuizEngine({ activity }) {
     isPassed: false,
     submittedAt: null,
   });
+
+  // LẮNG NGHE SỰ KIỆN CHUYỂN TAB (ANTI-CHEATING)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && timerActive && !submitted && isCountdownMode) {
+        setTabSwitchCount((prev) => {
+          const nextCount = prev + 1;
+          setShowCheatingWarning(true);
+          return nextCount;
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [timerActive, submitted, isCountdownMode]);
 
   // TIMER LOGIC
   useEffect(() => {
@@ -158,7 +180,6 @@ export default function QuizEngine({ activity }) {
       const sectionType = (q.content?.sectionType || q.type || '').toLowerCase();
 
       if (sectionType === 'writing_section' && Array.isArray(q.content?.parts)) {
-        // Lưu câu hỏi tự luận để chấm bằng AI
         writingQuestionInfo = {
           title: q.content.title,
           prompt: q.content.parts.map(p => p.part_title).join('\n'),
@@ -246,7 +267,6 @@ export default function QuizEngine({ activity }) {
       }
     });
 
-    // 2. TỰ ĐỘNG CHẤM BÀI TỰ LUẬN VỚI AI VÀ OCR ÁNH
     let aiGrading = null;
     const firstImgUrl = Object.values(uploadedStudentImages)[0] || null;
     const studentGotedText = Object.values(userAnswers).filter(v => typeof v === 'string' && isNaN(v)).join('\n');
@@ -300,7 +320,7 @@ export default function QuizEngine({ activity }) {
         {
           activity_id: activity.id,
           student_id: profile.id,
-          answers_data: { userAnswers, uploadedStudentImages, aiGrading },
+          answers_data: { userAnswers, uploadedStudentImages, aiGrading, tabSwitchCount },
           score: totalScore,
           status: 'graded',
         },
@@ -382,6 +402,22 @@ export default function QuizEngine({ activity }) {
 
   return (
     <div className="space-y-3">
+      {/* THÔNG BÁO GIÁM THỊ CẢNH BÁO CHUYỂN TAB GIAN LẬN */}
+      {showCheatingWarning && !submitted && (
+        <div className="p-3 bg-rose-950 text-rose-200 border-2 border-rose-600 rounded-2xl flex items-center justify-between shadow-lg animate-bounce">
+          <div className="flex items-center space-x-2 text-xs font-extrabold">
+            <ShieldAlert className="w-5 h-5 text-rose-400" />
+            <span>⚠️ CẢNH BÁO GIÁM THỊ: Bạn vừa rời khỏi màn hình bài thi ({tabSwitchCount} lần vi phạm)! Lịch sử chuyển tab đã được ghi lại.</span>
+          </div>
+          <button
+            onClick={() => setShowCheatingWarning(false)}
+            className="px-2.5 py-1 bg-rose-800 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg"
+          >
+            Tôi đã hiểu
+          </button>
+        </div>
+      )}
+
       {/* THÔNG BÁO TỔNG KẾT BÀI THI SAU KHU NỘP */}
       {submitted ? (
         <div className="p-5 bg-gradient-to-br from-slate-900 to-navy-900 text-white rounded-3xl shadow-xl space-y-5 border border-slate-700 animate-scale-up">
@@ -396,7 +432,6 @@ export default function QuizEngine({ activity }) {
               </div>
             </div>
 
-            {/* NÚT IN / TẢI BÁO CÁO FILE PDF */}
             <button
               onClick={() =>
                 exportStudentPdfReport({
@@ -453,6 +488,19 @@ export default function QuizEngine({ activity }) {
             </div>
           </div>
 
+          {/* HIỂN THỊ THÔNG TIN VI PHẠM GIÁM THỊ NẾU CÓ */}
+          {tabSwitchCount > 0 && (
+            <div className="p-2.5 bg-rose-950/60 border border-rose-800 rounded-xl text-xs text-rose-300 flex items-center justify-between">
+              <span className="font-bold flex items-center space-x-1">
+                <ShieldAlert className="w-4 h-4 text-rose-400" />
+                <span>Ghi nhận số lần học sinh rời màn hình thi:</span>
+              </span>
+              <span className="px-2 py-0.5 bg-rose-900 border border-rose-700 text-white font-extrabold rounded-md">
+                {tabSwitchCount} lần
+              </span>
+            </div>
+          )}
+
           {/* ĐÁNH GIÁ VÀ NHẬN XẾT BÀI VIẾT TỪ AI AGENT (NẾU CÓ BÀI WRITING) */}
           {aiGradingResult && (
             <div className="p-4 bg-gradient-to-r from-purple-950 to-slate-900 border border-purple-800 rounded-2xl space-y-3 shadow-inner text-xs">
@@ -484,6 +532,27 @@ export default function QuizEngine({ activity }) {
                         <span className="text-slate-400">({gf.explanation})</span>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* GỢI Ý CỤM TỪ C2 / BAND 8.0 NÂNG CAO */}
+                {aiGradingResult.advancedVocabularySuggestions && aiGradingResult.advancedVocabularySuggestions.length > 0 && (
+                  <div className="p-3 bg-purple-900/60 rounded-2xl border border-purple-700/70 space-y-2">
+                    <span className="font-extrabold text-amber-300 uppercase tracking-wide flex items-center space-x-1">
+                      <BookMarked className="w-4 h-4 text-amber-400" />
+                      <span>✨ CỤM TỪ C2 / IELTS BAND 8.0 GỢI Ý ĐỂ NÂNG BAND BÀI VIẾT:</span>
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                      {aiGradingResult.advancedVocabularySuggestions.map((av, idx) => (
+                        <div key={idx} className="p-2 bg-slate-900/80 rounded-xl border border-purple-800 space-y-0.5">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 line-through">{av.original}</span>
+                            <span className="text-amber-300 font-extrabold">➔ {av.c2Upgrade}</span>
+                          </div>
+                          <p className="text-[10px] italic text-purple-200">Ví dụ: "{av.example}"</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
