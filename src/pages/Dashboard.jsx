@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase, uploadLMSFile } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Settings, ShieldCheck } from 'lucide-react';
+import CenterToastModal from '../components/common/CenterToastModal';
+import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function Dashboard() {
@@ -13,20 +14,43 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Toast Center Modal State
+  const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
+  const showToast = (type, title, message) => setToast({ isOpen: true, type, title, message });
+
   // State Modal Tạo Khóa Học Mới
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [coverImage, setCoverImage] = useState('');
+  const [customJoinCode, setCustomJoinCode] = useState('');
   const [uploading, setUploading] = useState(false);
   const [creating, setCreating] = useState(false);
+
+  // State Modal Gia Nhập Khóa Học Bằng Mã (Join Code) cho Học sinh
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [inputJoinCode, setInputJoinCode] = useState('');
+  const [joining, setJoining] = useState(false);
 
   // State Modal Chỉnh Sửa Khóa Học (Dành Cho Admin / Giáo viên)
   const [editingCourse, setEditingCourse] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editCoverImage, setEditCoverImage] = useState('');
+  const [editJoinCode, setEditJoinCode] = useState('');
   const [updating, setUpdating] = useState(false);
+
+  const [copiedCode, setCopiedCode] = useState('');
+
+  // Sinh Mã Gia Nhập 6 Ký Tự Ngẫu Nhiên
+  const generateRandomCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
 
   const fetchCourses = async () => {
     setLoading(true);
@@ -57,18 +81,19 @@ export default function Dashboard() {
         setCoverImage(url);
       }
     } catch (err) {
-      alert('Lỗi upload ảnh cover: ' + err.message);
+      showToast('error', 'Lỗi Upload Ảnh', err.message);
     } finally {
       setUploading(false);
     }
   };
 
-  // Tạo Khóa Học Mới & Tự Động Điều Hướng Ngay Vào Trang Khóa Học
+  // Tạo Khóa Học Mới & Tự Động Sinh Mã Gia Nhập
   const handleCreateCourse = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
     setCreating(true);
 
+    const finalJoinCode = (customJoinCode.trim() || generateRandomCode()).toUpperCase();
     const newCover = coverImage || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
 
     const { data, error } = await supabase
@@ -78,6 +103,7 @@ export default function Dashboard() {
           title: title.trim(),
           description: description.trim(),
           cover_image: newCover,
+          join_code: finalJoinCode,
           teacher_id: user.id,
         },
       ])
@@ -85,9 +111,18 @@ export default function Dashboard() {
       .single();
 
     if (error) {
-      alert('Lỗi tạo khóa học: ' + error.message);
+      showToast('error', 'Lỗi Tạo Khóa Học', error.message);
       setCreating(false);
     } else if (data) {
+      // Tự động Ghi danh Giáo viên vào khóa học
+      await supabase.from('course_enrollments').insert([
+        {
+          course_id: data.id,
+          user_id: user.id,
+          role: 'teacher',
+        },
+      ]);
+
       // Tạo sẵn Chủ đề 1 mặc định
       await supabase.from('course_sections').insert([
         {
@@ -101,11 +136,54 @@ export default function Dashboard() {
       setTitle('');
       setDescription('');
       setCoverImage('');
+      setCustomJoinCode('');
       setCreating(false);
 
       // TỰ ĐỘNG ĐIỀU HƯỚNG SANG TRANG KHÓA HỌC VỪA TẠO
       navigate(`/course/${data.id}`);
     }
+  };
+
+  // Học Sinh Gia Nhập Khóa Học Bằng Mã Join Code 6 Ký Tự
+  const handleJoinCourseByCode = async (e) => {
+    e.preventDefault();
+    if (!inputJoinCode.trim()) return;
+    setJoining(true);
+
+    const searchCode = inputJoinCode.trim().toUpperCase();
+
+    // 1. Tìm khóa học theo join_code
+    const { data: targetCourse, error: cErr } = await supabase
+      .from('courses')
+      .select('*')
+      .eq('join_code', searchCode)
+      .maybeSingle();
+
+    if (cErr || !targetCourse) {
+      showToast('error', 'Mã Khóa Học Không Đúng', `Không tìm thấy khóa học với mã "${searchCode}". Vui lòng kiểm tra lại mã do Giáo viên cung cấp!`);
+      setJoining(false);
+      return;
+    }
+
+    // 2. Ghi danh (Enrol) Học sinh vào khóa học
+    const { error: eErr } = await supabase.from('course_enrollments').upsert([
+      {
+        course_id: targetCourse.id,
+        user_id: user.id,
+        role: 'student',
+        status: 'active',
+      },
+    ]);
+
+    if (eErr) {
+      showToast('error', 'Lỗi Gia Nhập', eErr.message);
+    } else {
+      setIsJoinModalOpen(false);
+      setInputJoinCode('');
+      showToast('success', 'Gia Nhập Thành Công!', `Bạn đã tham gia khóa học "${targetCourse.title}"!`);
+      navigate(`/course/${targetCourse.id}`);
+    }
+    setJoining(false);
   };
 
   // Mở Modal Chỉnh Sửa Khóa Học
@@ -115,6 +193,7 @@ export default function Dashboard() {
     setEditTitle(course.title);
     setEditDescription(course.description || '');
     setEditCoverImage(course.cover_image || '');
+    setEditJoinCode(course.join_code || '');
   };
 
   // Cập Nhật Khóa Học (Update Course)
@@ -129,14 +208,16 @@ export default function Dashboard() {
         title: editTitle.trim(),
         description: editDescription.trim(),
         cover_image: editCoverImage,
+        join_code: (editJoinCode.trim() || generateRandomCode()).toUpperCase(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', editingCourse.id);
 
     if (error) {
-      alert('Lỗi cập nhật khóa học: ' + error.message);
+      showToast('error', 'Lỗi Cập Nhật', error.message);
     } else {
       setEditingCourse(null);
+      showToast('success', 'Cập Nhật Thành Công', 'Đã lưu thay đổi thông tin khóa học!');
       await fetchCourses();
     }
     setUpdating(false);
@@ -151,50 +232,72 @@ export default function Dashboard() {
 
     const { error } = await supabase.from('courses').delete().eq('id', courseId);
     if (error) {
-      alert('Lỗi xóa khóa học: ' + error.message);
+      showToast('error', 'Lỗi Xóa Khóa Học', error.message);
     } else {
+      showToast('success', 'Đã Xóa Khóa Học', `Đã xóa khóa học "${courseTitle}".`);
       await fetchCourses();
     }
+  };
+
+  const copyToClipboard = (text, e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopiedCode(text);
+    setTimeout(() => setCopiedCode(''), 2000);
   };
 
   const filteredCourses = courses.filter(
     (c) =>
       c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      c.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.join_code?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Banner Chào Mừng & Thanh Tìm Kiếm */}
+      {/* Banner Chào Mừng & Các Nút Thao Tác Trực Quan */}
       <div className="bg-gradient-to-r from-navy-900 via-slate-800 to-navy-800 rounded-3xl p-6 sm:p-10 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-2 max-w-xl">
           <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-bold uppercase tracking-wider inline-flex items-center space-x-1 border border-emerald-500/30">
             <BookOpen className="w-3.5 h-3.5" />
-            <span>LMS TIẾNG ANH - QUẢN TRỊ VIÊN</span>
+            <span>LMS TIẾNG ANH - SMART E-LEARNING</span>
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Xin chào, {profile?.full_name || 'Giáo viên'}!
+            Xin chào, {profile?.full_name || 'Học viên'}!
           </h1>
           <p className="text-sm text-slate-300 leading-relaxed">
-            Khám phá các khóa học E-learning tương tác, bài thi Quiz chuẩn SCORM / H5P và quản lý toàn bộ học liệu.
+            Tham gia các khóa học Tiếng Anh E-learning tương tác, nhập Mã Khóa Học 6 ký tự để gia nhập lớp và làm bài thi tự động.
           </p>
         </div>
 
-        {/* Action Button Tạo Khóa Học Mới Cho Giáo Viên */}
-        {isTeacher && (
+        {/* Action Buttons cho Giáo Viên & Học Sinh */}
+        <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-sm shadow-lg hover:shadow-emerald-500/30 transition flex items-center space-x-2 flex-shrink-0"
+            onClick={() => setIsJoinModalOpen(true)}
+            className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl text-xs shadow-md border border-slate-700 transition flex items-center space-x-1.5"
           >
-            <Plus className="w-5 h-5" />
-            <span>Tạo Khóa Học Mới</span>
+            <Key className="w-4 h-4 text-emerald-400" />
+            <span>Nhập Mã Gia Nhập Lớp</span>
           </button>
-        )}
+
+          {isTeacher && (
+            <button
+              onClick={() => {
+                setCustomJoinCode(generateRandomCode());
+                setIsModalOpen(true);
+              }}
+              className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-xs shadow-lg hover:shadow-emerald-500/30 transition flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tạo Khóa Học Mới</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+        <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">
           Danh Sách Khóa Học ({filteredCourses.length})
         </h2>
         <div className="relative w-full sm:w-80">
@@ -203,7 +306,7 @@ export default function Dashboard() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm khóa học..."
+            placeholder="Tìm theo tên hoặc Mã Khóa Học..."
             className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
           />
         </div>
@@ -218,8 +321,8 @@ export default function Dashboard() {
           <h3 className="font-bold text-slate-700 text-lg">Chưa có khóa học nào</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
             {isTeacher
-              ? 'Hãy bấm nút "Tạo Khóa Học Mới" ở trên để bắt đầu thêm bài giảng đầu tiên!'
-              : 'Hiện chưa có khóa học nào được đăng tải trên hệ thống.'}
+              ? 'Bấm "Tạo Khóa Học Mới" ở trên để sinh Mã Lớp 6 ký tự và bắt đầu thêm bài học!'
+              : 'Bấm nút "Nhập Mã Gia Nhập Lớp" để nhập mã do Giáo viên cung cấp và gia nhập lớp học.'}
           </p>
         </div>
       ) : (
@@ -239,19 +342,30 @@ export default function Dashboard() {
                       alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
                     
-                    <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm text-slate-800 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center space-x-1 shadow-sm">
+                    <span className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm text-slate-800 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center space-x-1 shadow-sm">
                       <User className="w-3 h-3 text-emerald-600" />
                       <span>GV: {course.teacher?.full_name || 'Giáo viên'}</span>
                     </span>
+
+                    {/* BADGE MÃ GIA NHẬP (JOIN CODE 6 KÝ TỰ) */}
+                    <button
+                      onClick={(e) => copyToClipboard(course.join_code, e)}
+                      title="Bấm để copy Mã Khóa Học"
+                      className="absolute top-3 left-3 bg-emerald-600/90 hover:bg-emerald-500 text-white text-[11px] font-extrabold px-2.5 py-1 rounded-lg flex items-center space-x-1 shadow-md transition border border-emerald-400/40"
+                    >
+                      <Key className="w-3 h-3" />
+                      <span>Mã: {course.join_code}</span>
+                      {copiedCode === course.join_code ? <Check className="w-3 h-3 text-white" /> : <Copy className="w-3 h-3 text-emerald-200" />}
+                    </button>
 
                     {/* NÚT CHỈNH SỬA & XÓA KHÓA HỌC DÀNH CHO ADMIN / GIÁO VIÊN */}
                     {isOwnerOrAdmin && (
                       <div className="absolute top-3 right-3 flex items-center space-x-1 bg-slate-900/80 backdrop-blur-sm p-1 rounded-xl shadow-lg border border-slate-700">
                         <button
                           onClick={(e) => openEditModal(course, e)}
-                          title="Chỉnh sửa tên, mô tả & ảnh bìa khóa học"
+                          title="Chỉnh sửa tên, mô tả & mã khóa học"
                           className="p-1.5 text-slate-300 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition"
                         >
                           <Edit3 className="w-4 h-4" />
@@ -297,12 +411,62 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* MODAL GIA NHẬP BẰNG MÃ JOIN CODE 6 KÝ TỰ CHO HỌC SINH */}
+      {isJoinModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up">
+            <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base flex items-center space-x-2">
+                <Key className="w-5 h-5 text-emerald-400" />
+                <span>Gia Nhập Khóa Học Bằng Mã</span>
+              </h3>
+              <button onClick={() => setIsJoinModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleJoinCourseByCode} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Nhập Mã Gia Nhập (6 Ký Tự Do Giáo Viên Cung Cấp) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={10}
+                  value={inputJoinCode}
+                  onChange={(e) => setInputJoinCode(e.target.value.toUpperCase())}
+                  placeholder="Ví dụ: E9GS26"
+                  className="w-full px-4 py-3 border-2 border-emerald-500 rounded-xl text-center text-lg font-extrabold uppercase tracking-widest text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-emerald-50/30"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsJoinModalOpen(false)}
+                  className="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-semibold"
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={joining}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition disabled:opacity-50"
+                >
+                  {joining ? 'Đang gia nhập...' : 'Xác Nhận Gia Nhập Lớp'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal Tạo Khóa Học Mới */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
-              <h3 className="font-bold text-base">Tạo Khóa Học Mới</h3>
+              <h3 className="font-extrabold text-base">Tạo Khóa Học Mới</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
@@ -317,9 +481,32 @@ export default function Dashboard() {
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ví dụ: Tiếng Anh 10 Global Success - Unit 1: Family Life"
+                  placeholder="Ví dụ: Tiếng Anh 9 - Global Success Unit 1"
                   className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Mã Gia Nhập Khóa Học (Mã Lớp 6 Ký Tự)
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    required
+                    maxLength={10}
+                    value={customJoinCode}
+                    onChange={(e) => setCustomJoinCode(e.target.value.toUpperCase())}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-900 uppercase tracking-wider bg-slate-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCustomJoinCode(generateRandomCode())}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                  >
+                    Tạo Mã Mới
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -359,9 +546,9 @@ export default function Dashboard() {
                 <button
                   type="submit"
                   disabled={creating || uploading}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition disabled:opacity-50"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition disabled:opacity-50"
                 >
-                  {creating ? 'Đang tạo & Chuyển sang khóa học...' : 'Tạo & Bắt Đầu Soạn Bài'}
+                  {creating ? 'Đang tạo & Chuyển sang khóa học...' : 'Tạo Khóa Học Ngay'}
                 </button>
               </div>
             </form>
@@ -371,10 +558,10 @@ export default function Dashboard() {
 
       {/* MODAL CHỈNH SỬA KHÓA HỌC DÀNH CHO ADMIN / GIÁO VIÊN */}
       {editingCourse && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
-              <h3 className="font-bold text-base flex items-center space-x-2">
+              <h3 className="font-extrabold text-base flex items-center space-x-2">
                 <Edit3 className="w-5 h-5 text-emerald-400" />
                 <span>Chỉnh Sửa Khóa Học</span>
               </h3>
@@ -393,6 +580,20 @@ export default function Dashboard() {
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Đổi Mã Gia Nhập (Mã Lớp 6 Ký Tự)
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={10}
+                  value={editJoinCode}
+                  onChange={(e) => setEditJoinCode(e.target.value.toUpperCase())}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-900 uppercase tracking-wider bg-slate-50"
                 />
               </div>
 
@@ -432,7 +633,7 @@ export default function Dashboard() {
                 <button
                   type="submit"
                   disabled={updating || uploading}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition disabled:opacity-50"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition disabled:opacity-50"
                 >
                   {updating ? 'Đang cập nhật...' : 'Lưu Thay Đổi'}
                 </button>
@@ -441,6 +642,15 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* TOAST CENTER MODAL THÔNG BÁO Ở GIỮA TRANG */}
+      <CenterToastModal
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+      />
     </div>
   );
 }
