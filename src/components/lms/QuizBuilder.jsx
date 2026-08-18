@@ -7,19 +7,22 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Active Tab: 'questions' (Biên tập) | 'import' (Import file Aiken)
+  // Active Tab: 'questions' (Biên tập) | 'manual_editor' (Khung Soạn Thủ Công Đồ Họa Ảnh 1) | 'import' (Import Aiken/GIFT)
   const [activeTab, setActiveTab] = useState('questions');
 
-  // Menu Khối Lớp & Unit (Chuẩn Đồ Họa)
+  // Menu Khối Lớp & Unit
   const [grade, setGrade] = useState('Khối 8');
   const [unit, setUnit] = useState('Unit 1: My New School / Leisure Time');
   const [category, setCategory] = useState('Knowledge of English (Vocab & Grammar)');
   const [summaryText, setSummaryText] = useState('Sơ đồ Infographic tóm tắt công thức Verbs of liking + V-ing giúp học sinh dễ nhớ bài học bằng hình ảnh 3D.');
 
-  // Form State Soạn Văn Bản / Bài Tập Về Nhà
+  // Form State Soạn Văn Bản / Bài Tập Về Nhà (Ảnh 1)
   const [homeworkContent, setHomeworkContent] = useState('');
   const [audioFileUrl, setAudioFileUrl] = useState('');
   const [showAnswerBox, setShowAnswerBox] = useState(false);
+
+  // Checkbox Categories Kỹ Năng Khi Tạo / Sửa Câu Hỏi
+  const [selectedCategories, setSelectedCategories] = useState(['Knowledge of English (Vocab & Grammar)']);
 
   // State Modal "Choose a question type to add" (HƠN 20 DẠNG CÂU HỎI MOODLE)
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
@@ -76,11 +79,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
   const handleOpenAddModal = (mode) => {
     setIsAddMenuOpen(false);
-    if (mode === 'bank') {
-      alert('Đã mở kho câu hỏi mẫu Moodle!');
-    } else if (mode === 'random') {
-      alert('Đã trích xuất ngẫu nhiên câu hỏi từ ngân hàng!');
-    }
     setIsTypeModalOpen(true);
   };
 
@@ -117,6 +115,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     let customContent = {
       title: questionTitle,
       question: questionText.trim(),
+      categories: selectedCategories,
     };
 
     if (selectedType === 'multiple_choice') {
@@ -161,49 +160,107 @@ export default function QuizBuilder({ activityId, onSaved }) {
     reader.readAsText(file);
   };
 
-  const parseAikenText = (text) => {
+  // BỘ PARSER ADVANCED MOODLE GIFT (GIẢI MÃ NÂNG CAO CHO MATCHING, TRUE/FALSE VÀ FILL-IN-THE-BLANK DE MAU CUA THAY)
+  const parseAdvancedMoodleText = (text) => {
     const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    const rawLines = cleanText.split('\n').map(l => l.trim());
     const parsedQuestions = [];
 
-    let currentQTextLines = [];
-    let currentOptions = [];
-
-    for (let i = 0; i < rawLines.length; i++) {
-      const line = rawLines[i];
-      if (!line) continue;
-
-      const ansMatch = line.match(/^ANSWER:\s*([A-Z])/i);
-      const optMatch = line.match(/^([A-Z])[\.\)]\s*(.+)/i);
-
-      if (ansMatch) {
-        const correctLetter = ansMatch[1].toUpperCase();
-        if (currentQTextLines.length > 0 && currentOptions.length >= 2) {
-          const finalOpts = currentOptions.map(o => ({
-            text: o.text,
-            isCorrect: o.letter === correctLetter
-          }));
-
+    // 1. Parse dạng Matching ::Matching1::
+    const matchingBlocks = cleanText.match(/::Matching\d*::([\s\S]*?)\{([\s\S]*?)\}/gi);
+    if (matchingBlocks) {
+      matchingBlocks.forEach(block => {
+        const titleMatch = block.match(/::Matching\d*::\s*([^\n\{]+)/i);
+        const pairsMatch = block.match(/\{([\s\S]*?)\}/);
+        if (pairsMatch) {
+          const pairLines = pairsMatch[1].split('\n').filter(l => l.includes('->'));
+          const pairs = pairLines.map(l => {
+            const parts = l.replace(/^=/, '').split('->');
+            return { itemA: parts[0]?.trim(), itemB: parts[1]?.trim() };
+          });
           parsedQuestions.push({
             activity_id: activityId,
-            type: 'multiple_choice',
+            type: 'matching',
             marks: 1.0,
             content: {
-              title: currentQTextLines[0].substring(0, 50),
-              question: currentQTextLines.join(' '),
-              options: finalOpts
+              title: titleMatch ? titleMatch[1].trim() : 'Matching Question',
+              question: titleMatch ? titleMatch[1].trim() : 'Match the items',
+              pairs
             }
           });
         }
-        currentQTextLines = [];
-        currentOptions = [];
-      } else if (optMatch) {
-        currentOptions.push({
-          letter: optMatch[1].toUpperCase(),
-          text: optMatch[2].trim()
+      });
+    }
+
+    // 2. Parse dạng True / False ::True False 1::
+    const tfBlocks = cleanText.match(/::True False\d*::([\s\S]*?)(?=::|$)/gi);
+    if (tfBlocks) {
+      tfBlocks.forEach(block => {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const passage = lines.slice(1).filter(l => !l.startsWith('::Q')).join(' ');
+        
+        lines.forEach(l => {
+          const qMatch = l.match(/::Q\d+::\s*(.*?)\s*\{([TF])\}/i);
+          if (qMatch) {
+            parsedQuestions.push({
+              activity_id: activityId,
+              type: 'true_false',
+              marks: 1.0,
+              content: {
+                title: qMatch[1].substring(0, 50),
+                question: passage ? `${passage}\n\nStatement: ${qMatch[1]}` : qMatch[1],
+                options: [
+                  { text: 'True (Đúng)', isCorrect: qMatch[2].toUpperCase() === 'T' },
+                  { text: 'False (Sai)', isCorrect: qMatch[2].toUpperCase() === 'F' }
+                ]
+              }
+            });
+          }
         });
-      } else {
-        currentQTextLines.push(line);
+      });
+    }
+
+    // 3. Standard Aiken Fallback
+    if (parsedQuestions.length === 0) {
+      const rawLines = cleanText.split('\n').map(l => l.trim());
+      let currentQTextLines = [];
+      let currentOptions = [];
+
+      for (let i = 0; i < rawLines.length; i++) {
+        const line = rawLines[i];
+        if (!line) continue;
+
+        const ansMatch = line.match(/^ANSWER:\s*([A-Z])/i);
+        const optMatch = line.match(/^([A-Z])[\.\)]\s*(.+)/i);
+
+        if (ansMatch) {
+          const correctLetter = ansMatch[1].toUpperCase();
+          if (currentQTextLines.length > 0 && currentOptions.length >= 2) {
+            const finalOpts = currentOptions.map(o => ({
+              text: o.text,
+              isCorrect: o.letter === correctLetter
+            }));
+
+            parsedQuestions.push({
+              activity_id: activityId,
+              type: 'multiple_choice',
+              marks: 1.0,
+              content: {
+                title: currentQTextLines[0].substring(0, 50),
+                question: currentQTextLines.join(' '),
+                options: finalOpts
+              }
+            });
+          }
+          currentQTextLines = [];
+          currentOptions = [];
+        } else if (optMatch) {
+          currentOptions.push({
+            letter: optMatch[1].toUpperCase(),
+            text: optMatch[2].trim()
+          });
+        } else {
+          currentQTextLines.push(line);
+        }
       }
     }
 
@@ -215,21 +272,21 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setIsImporting(true);
 
     try {
-      const parsedQuestions = parseAikenText(importedText);
+      const parsedQuestions = parseAdvancedMoodleText(importedText);
 
       if (parsedQuestions.length > 0) {
         const { error } = await supabase.from('questions').insert(parsedQuestions);
         if (error) {
           alert('Lỗi lưu câu hỏi vào CSDL: ' + error.message);
         } else {
-          alert(`🎉 Đã Import THÀNH CÔNG ${parsedQuestions.length} câu hỏi chuẩn Aiken vào đề thi!`);
+          alert(`🎉 Đã Import THÀNH CÔNG ${parsedQuestions.length} câu hỏi chuẩn Moodle/GIFT vào đề thi!`);
           setImportedText('');
           setActiveTab('questions');
           await fetchQuestions();
           if (onSaved) onSaved();
         }
       } else {
-        alert('Không tìm thấy câu hỏi đúng cấu trúc Aiken. Ví dụ định dạng Aiken:\n\nThe children in my home village used to go _______, even in winter.\nA. on foot\nB. bare-footed\nC. playing around\nANSWER: B');
+        alert('Không tìm thấy câu hỏi đúng cấu trúc Aiken/GIFT.');
       }
     } catch (err) {
       alert('Lỗi xử lý file import: ' + err.message);
@@ -244,150 +301,22 @@ export default function QuizBuilder({ activityId, onSaved }) {
     await fetchQuestions();
   };
 
-  // DANH SÁCH ĐẦY ĐỦ HƠN 20 DẠNG CÂU HỎI CHUẨN MOODLE / GNOMIO
   const questionTypesList = [
     { type: 'multiple_choice', label: 'Multiple choice', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
     { type: 'matching', label: 'Matching', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
     { type: 'short_answer', label: 'Short answer', desc: 'Dạng câu hỏi nhập từ/số chính xác vào ô trống.' },
-    { type: 'numerical', label: 'Numerical', desc: 'Cho phép nhập đáp án chữ số có sai số cho phép.' },
     { type: 'essay', label: 'Essay', desc: 'Cho phép học sinh gõ văn bản bài viết luận hoặc nộp file.' },
-    { type: 'calculated', label: 'Calculated', desc: 'Câu hỏi tính toán với biến số ngẫu nhiên theo công thức.' },
-    { type: 'calculated_multichoice', label: 'Calculated multichoice', desc: 'Trắc nghiệm tính toán với giá trị số ngẫu nhiên.' },
-    { type: 'calculated_simple', label: 'Calculated simple', desc: 'Dạng toán tính toán đơn giản nhanh.' },
-    { type: 'drag_drop_text', label: 'Drag and drop into text', desc: 'Kéo thả từ tương ứng vào vị trí khuyết trong đoạn văn.' },
-    { type: 'drag_drop_markers', label: 'Drag and drop markers', desc: 'Kéo thả các điểm ghim marker lên vị trí hình ảnh.' },
-    { type: 'drag_drop_image', label: 'Drag and drop onto image', desc: 'Kéo thả ô chữ/hình ảnh vào tấm ảnh nền.' },
-    { type: 'cloze', label: 'Embedded answers (Cloze)', desc: 'Đoạn văn hỗn hợp chứa nhiều câu hỏi nhỏ điền từ/trắc nghiệm.' },
-    { type: 'ordering', label: 'Ordering', desc: 'Sắp xếp thứ tự các câu/từ theo trình tự đúng.' },
-    { type: 'random_matching', label: 'Random short-answer matching', desc: 'Khớp câu trả lời ngắn ngẫu nhiên từ bài tập.' },
     { type: 'fill_blank_dropdown', label: 'Select missing words', desc: 'Điền từ khuyết vào đoạn văn bằng hộp chọn Dropdown.' },
-    { type: 'description', label: 'Description', desc: 'Đoạn ghi chú / Hướng dẫn đề bài (không tính điểm).' },
   ];
 
   return (
     <div className="space-y-6">
-      {/* KHỐI CẤU HÌNH KHỐI LỚP, UNIT VÀ CATEGORIES KỸ NĂNG (Chuẩn Đồ Họa) */}
-      <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">KHỐI LỚP</label>
-            <select
-              value={grade}
-              onChange={(e) => setGrade(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="Khối 6">Khối 6</option>
-              <option value="Khối 7">Khối 7</option>
-              <option value="Khối 8">Khối 8</option>
-              <option value="Khối 9">Khối 9</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">
-              UNIT (MENU SỔ XUỐNG GLOBAL SUCCESS 12 UNITS)
-            </label>
-            <select
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="Unit 1: My New School / Leisure Time">Unit 1: My New School / Leisure Time</option>
-              <option value="Unit 2: Life in the Countryside">Unit 2: Life in the Countryside</option>
-              <option value="Unit 3: Teenagers">Unit 3: Teenagers</option>
-              <option value="Unit 4: Ethnic Groups of Viet Nam">Unit 4: Ethnic Groups of Viet Nam</option>
-              <option value="Unit 5: Our Customs and Traditions">Unit 5: Our Customs and Traditions</option>
-              <option value="Unit 6: Lifestyles">Unit 6: Lifestyles</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">CATEGORIES KỸ NĂNG</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-emerald-400 focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="Knowledge of English (Vocab & Grammar)">Knowledge of English (Vocab & Grammar)</option>
-              <option value="Listening">Listening (Bài Nghe Audio)</option>
-              <option value="Reading">Reading (Bài Đọc Hiểu)</option>
-              <option value="Writing">Writing (Bài Viết Luận)</option>
-              <option value="Speaking">Speaking (Bài Nói Phát Âm)</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">
-            MÔ TẢ TÓM TẮT BÀI VIẾT (HIỂN THỊ TRÊN THẺ CARD)
-          </label>
-          <input
-            type="text"
-            value={summaryText}
-            onChange={(e) => setSummaryText(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-200 focus:ring-2 focus:ring-emerald-500"
-          />
-        </div>
-      </div>
-
-      {/* THANH CÔNG CỤ SOẠN ĐỀ THỦ CÔNG ĐẦY ĐỦ VỚI CÁC NÚT ĐỘC ĐÁO */}
-      <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleAiCleanText}
-            className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-1"
-          >
-            <Wand2 className="w-3.5 h-3.5" />
-            <span>🪄 AI Bóc Tách Đề A,B,C,D Hàng Lỗi</span>
-          </button>
-
-          <button
-            onClick={() => {
-              const url = prompt('Nhập đường dẫn File Audio MP3:');
-              if (url) setAudioFileUrl(url);
-            }}
-            className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-1"
-          >
-            <Volume2 className="w-3.5 h-3.5" />
-            <span>🔊 Upload File Audio Từ Máy</span>
-          </button>
-
-          <button
-            onClick={() => setShowAnswerBox(!showAnswerBox)}
-            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-1"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span>👉 + Khung Đáp Án Ẩn Trống</span>
-          </button>
-
-          <button className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-1">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>✨ Sửa Font Tiếng Việt Dấu Mượt</span>
-          </button>
-        </div>
-
-        <textarea
-          rows={4}
-          value={homeworkContent}
-          onChange={(e) => setHomeworkContent(e.target.value)}
-          placeholder="Dán văn bản đề bài tập về nhà copy từ file Word tại đây..."
-          className="w-full p-3 bg-slate-950 border border-slate-800 text-slate-200 text-xs font-mono rounded-xl focus:ring-2 focus:ring-emerald-500"
-        />
-
-        {showAnswerBox && (
-          <div className="p-3 bg-emerald-950/60 border border-emerald-800 text-emerald-300 rounded-xl text-xs space-y-1">
-            <span className="font-extrabold block">Mã Code Đáp Án Ẩn (Tự động hiển thị khi học sinh xem):</span>
-            <p className="font-mono text-[11px] text-emerald-400">[HƯỚNG DẪN ĐÁP ÁN: 1. A, 2. B, 3. C, 4. D]</p>
-          </div>
-        )}
-      </div>
-
-      {/* 2 TAB TẬP TRUNG GỌN ĐẸP NẰM NỘI BỘ TRONG SOẠN CÂU HỎI */}
-      <div className="flex border-b border-slate-200 space-x-6">
+      {/* 3 TAB TẬP TRUNG GỌN ĐẸP CÙNG CẤP TRONG QUIZ BUILDER */}
+      <div className="flex border-b border-slate-200 space-x-6 overflow-x-auto">
         <button
           onClick={() => setActiveTab('questions')}
-          className={`pb-3 text-xs font-extrabold transition border-b-2 ${
+          className={`pb-3 text-xs font-extrabold transition border-b-2 flex-shrink-0 ${
             activeTab === 'questions' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -395,13 +324,23 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </button>
 
         <button
+          onClick={() => setActiveTab('manual_editor')}
+          className={`pb-3 text-xs font-extrabold transition border-b-2 flex items-center space-x-1.5 flex-shrink-0 ${
+            activeTab === 'manual_editor' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <FileText className="w-4 h-4 text-emerald-600" />
+          <span>📝 Soạn Đề Thủ Công (Word / Audio / Đáp Án Ẩn)</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('import')}
-          className={`pb-3 text-xs font-extrabold transition border-b-2 flex items-center space-x-1.5 ${
+          className={`pb-3 text-xs font-extrabold transition border-b-2 flex items-center space-x-1.5 flex-shrink-0 ${
             activeTab === 'import' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           <FileUp className="w-4 h-4 text-emerald-600" />
-          <span>Import questions from file (Nhập file Aiken)</span>
+          <span>📥 Import questions from file (Nhập file Aiken / GIFT)</span>
         </button>
       </div>
 
@@ -441,12 +380,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                   >
                     + from question bank (Từ ngân hàng mẫu)
                   </button>
-                  <button
-                    onClick={() => handleOpenAddModal('random')}
-                    className="w-full px-4 py-2 text-left hover:bg-emerald-50 hover:text-emerald-700 transition"
-                  >
-                    + a random question (Thêm ngẫu nhiên)
-                  </button>
                 </div>
               )}
             </div>
@@ -481,7 +414,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           setQuestionTitle(q.content?.title || '');
                           setQuestionText(q.content?.question || '');
                           setMarks(q.marks || 1.0);
-                          if (q.type === 'multiple_choice') setMcOptions(q.content?.options || []);
                         }}
                         className="p-1 text-slate-400 hover:text-emerald-600 rounded"
                       >
@@ -504,7 +436,123 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* TAB 2: IMPORT QUESTIONS FROM FILE */}
+      {/* TAB 2: SOẠN ĐỀ THỦ CÔNG ĐỒ HỌA (ẢNH 1 CỦA THẦY) */}
+      {activeTab === 'manual_editor' && (
+        <div className="space-y-6">
+          <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">KHỐI LỚP</label>
+                <select
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="Khối 6">Khối 6</option>
+                  <option value="Khối 7">Khối 7</option>
+                  <option value="Khối 8">Khối 8</option>
+                  <option value="Khối 9">Khối 9</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">
+                  UNIT (MENU SỔ XUỐNG GLOBAL SUCCESS 12 UNITS)
+                </label>
+                <select
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="Unit 1: My New School / Leisure Time">Unit 1: My New School / Leisure Time</option>
+                  <option value="Unit 2: Life in the Countryside">Unit 2: Life in the Countryside</option>
+                  <option value="Unit 3: Teenagers">Unit 3: Teenagers</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">CATEGORIES KỸ NĂNG</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-emerald-400 focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="Knowledge of English (Vocab & Grammar)">Knowledge of English (Vocab & Grammar)</option>
+                  <option value="Listening">Listening (Bài Nghe Audio)</option>
+                  <option value="Reading">Reading (Bài Đọc Hiểu)</option>
+                  <option value="Writing">Writing (Bài Viết Luận)</option>
+                  <option value="Speaking">Speaking (Bài Nói Phát Âm)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-extrabold uppercase text-slate-300 mb-1">
+                MÔ TẢ TÓM TẮT BÀI VIẾT (HIỂN THỊ TRÊN THẺ CARD)
+              </label>
+              <input
+                type="text"
+                value={summaryText}
+                onChange={(e) => setSummaryText(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-200 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleAiCleanText}
+                className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-1"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                <span>🪄 AI Bóc Tách Đề A,B,C,D Hàng Lỗi</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const url = prompt('Nhập đường dẫn File Audio MP3:');
+                  if (url) setAudioFileUrl(url);
+                }}
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-1"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>🔊 Upload File Audio Từ Máy</span>
+              </button>
+
+              <button
+                onClick={() => setShowAnswerBox(!showAnswerBox)}
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-1"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>👉 + Khung Đáp Án Ẩn Trống</span>
+              </button>
+
+              <button className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>✨ Sửa Font Tiếng Việt Dấu Mượt</span>
+              </button>
+            </div>
+
+            <textarea
+              rows={6}
+              value={homeworkContent}
+              onChange={(e) => setHomeworkContent(e.target.value)}
+              placeholder="Dán văn bản đề bài tập về nhà copy từ file Word tại đây..."
+              className="w-full p-3 bg-slate-950 border border-slate-800 text-slate-200 text-xs font-mono rounded-xl focus:ring-2 focus:ring-emerald-500"
+            />
+
+            {showAnswerBox && (
+              <div className="p-3 bg-emerald-950/60 border border-emerald-800 text-emerald-300 rounded-xl text-xs space-y-1">
+                <span className="font-extrabold block">Mã Code Đáp Án Ẩn (Tự động hiển thị khi học sinh xem):</span>
+                <p className="font-mono text-[11px] text-emerald-400">[HƯỚNG DẪN ĐÁP ÁN: 1. A, 2. B, 3. C, 4. D]</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: IMPORT QUESTIONS FROM FILE */}
       {activeTab === 'import' && (
         <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-6">
           <h3 className="text-base font-extrabold text-slate-900 border-b pb-3">
@@ -513,7 +561,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
           <div className="space-y-3">
             <h4 className="text-xs font-extrabold text-slate-700 uppercase">File format (Định dạng tệp)</h4>
             <div className="space-y-2">
-              {['Aiken format', 'Blackboard', 'Embedded answers (Cloze)', 'GIFT format', 'Missing word format', 'Moodle XML format'].map((fmt) => {
+              {['Aiken format', 'GIFT format', 'Moodle XML format'].map((fmt) => {
                 const val = fmt.toLowerCase().split(' ')[0];
                 return (
                   <label key={fmt} className="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
@@ -547,7 +595,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
           {importedText && (
             <textarea
-              rows={5}
+              rows={6}
               value={importedText}
               onChange={(e) => setImportedText(e.target.value)}
               className="w-full p-3 border border-slate-300 rounded-xl text-xs font-mono bg-slate-900 text-emerald-400"
@@ -564,70 +612,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* MODAL "Choose a question type to add" (HƠN 20 DẠNG CÂU HỎI MOODLE CỤ THỂ) */}
-      {isTypeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 animate-scale-up">
-            <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
-              <h3 className="font-extrabold text-base">Choose a question type to add</h3>
-              <button onClick={() => setIsTypeModalOpen(false)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 max-h-[65vh] overflow-y-auto">
-              <div className="space-y-1 border-r border-slate-100 pr-4">
-                <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2">
-                  QUESTIONS TYPES ({questionTypesList.length} Dạng Câu Hỏi)
-                </span>
-                {questionTypesList.map((t) => (
-                  <label
-                    key={t.type}
-                    onClick={() => setSelectedType(t.type)}
-                    className={`p-2.5 rounded-xl border flex items-center space-x-3 cursor-pointer transition ${
-                      selectedType === t.type
-                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 font-bold'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="q_type"
-                      checked={selectedType === t.type}
-                      onChange={() => setSelectedType(t.type)}
-                    />
-                    <span className="text-xs font-semibold">{t.label}</span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 sticky top-0 h-fit">
-                <h4 className="font-extrabold text-xs text-slate-800 uppercase">Description</h4>
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                  {questionTypesList.find((t) => t.type === selectedType)?.desc}
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-100 flex justify-end space-x-3">
-              <button
-                onClick={() => setIsTypeModalOpen(false)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmAddType}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md"
-              >
-                Add (Thêm Dạng Này)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* FORM BIÊN TẬP CÂU HỎI TRẮC NGHIỆM GỘP 4 LỰA CHỌN THÀNH 2 CỘT A, C và B, D */}
+      {/* FORM BIÊN TẬP CÂU HỎI & CHECKBOX CATEGORIES KỸ NĂNG */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -639,17 +624,35 @@ export default function QuizBuilder({ activityId, onSaved }) {
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Question Title *
+              {/* CHECKBOX CATEGORIES KỸ NĂNG */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                <label className="block text-xs font-extrabold text-slate-800 uppercase">
+                  TICK PHÂN LOẠI CATEGORIES KỸ NĂNG *
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={questionTitle}
-                  onChange={(e) => setQuestionTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500"
-                />
+                <div className="flex flex-wrap gap-3 pt-1">
+                  {[
+                    'Knowledge of English (Vocab & Grammar)',
+                    'Listening',
+                    'Reading',
+                    'Writing',
+                    'Speaking'
+                  ].map((cat) => (
+                    <label key={cat} className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(cat)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCategories([...selectedCategories, cat]);
+                          } else {
+                            setSelectedCategories(selectedCategories.filter(c => c !== cat));
+                          }
+                        }}
+                      />
+                      <span>{cat}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -665,86 +668,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                   className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Default Mark (Điểm số câu hỏi)
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={marks}
-                  onChange={(e) => setMarks(e.target.value)}
-                  className="w-32 px-3 py-1.5 border border-slate-300 rounded-xl text-sm font-bold text-emerald-700"
-                />
-              </div>
-
-              {selectedType === 'multiple_choice' && (
-                <div className="space-y-3 pt-2">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-extrabold text-xs text-slate-800 uppercase">
-                      AVAILABLE OPTIONS (2 CỘT A, C & B, D)
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={handleAddOption}
-                      className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold hover:bg-emerald-200 transition"
-                    >
-                      + Thêm Lựa Chọn (Add Option)
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {mcOptions.map((opt, idx) => {
-                      const optionLabel = String.fromCharCode(65 + idx);
-                      return (
-                        <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 relative">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-extrabold text-slate-800">
-                              Option {idx + 1} ({optionLabel})
-                            </span>
-                            <label className="flex items-center space-x-1.5 cursor-pointer text-xs font-bold text-emerald-700">
-                              <input
-                                type="checkbox"
-                                checked={opt.isCorrect}
-                                onChange={(e) => {
-                                  const newOpts = [...mcOptions];
-                                  newOpts[idx].isCorrect = e.target.checked;
-                                  setMcOptions(newOpts);
-                                }}
-                              />
-                              <span>Correct (Đáp án đúng)</span>
-                            </label>
-                          </div>
-
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="text"
-                              value={opt.text}
-                              onChange={(e) => {
-                                const newOpts = [...mcOptions];
-                                newOpts[idx].text = e.target.value;
-                                setMcOptions(newOpts);
-                              }}
-                              placeholder={`Nhập đáp án ${optionLabel}...`}
-                              className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-sm bg-white"
-                            />
-                            {mcOptions.length > 2 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveOption(idx)}
-                                className="text-slate-400 hover:text-rose-600 p-1"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
                 <button
