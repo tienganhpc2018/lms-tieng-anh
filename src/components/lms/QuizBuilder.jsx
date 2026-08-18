@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabase';
 import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle, MessageSquareText, Clock, Tag, FileCode, Layers, Camera, Image as ImageIcon } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import AiQuizGeneratorModal from './AiQuizGeneratorModal';
+import CommunityExamBankModal from './CommunityExamBankModal';
+import { exportQuizToWord } from '../../utils/exportQuizWord';
 
 export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
@@ -45,6 +47,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [maxTabSwitches, setMaxTabSwitches] = useState(3);
   const [isRandomized, setIsRandomized] = useState(false);
   const [isAiGenModalOpen, setIsAiGenModalOpen] = useState(false);
+  const [isCommunityBankOpen, setIsCommunityBankOpen] = useState(false);
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
@@ -685,7 +688,21 @@ export default function QuizBuilder({ activityId, onSaved }) {
               </h3>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => exportQuizToWord(questions, questionTitle || 'BÀI KÍỂM TRA TIẾNG ANH')}
+                className="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
+              >
+                <span>🖨️ In Đề Ra Giấy (Word)</span>
+              </button>
+
+              <button
+                onClick={() => setIsCommunityBankOpen(true)}
+                className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
+              >
+                <span>🌐 Kho Đề Thi Cộng Đồng</span>
+              </button>
+
               <button
                 onClick={() => setIsAiGenModalOpen(true)}
                 className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center space-x-1"
