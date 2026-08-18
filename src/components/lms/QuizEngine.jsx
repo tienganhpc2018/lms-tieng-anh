@@ -311,16 +311,22 @@ export default function QuizEngine({ activity }) {
                   </div>
                 </div>
 
-                {/* NẾU LÀ BÀI NGHE LISTENING CÓ AUDIO MP3 (CHUẨN ẢNH 3) */}
+                {/* NẾU LÀ BÀI NGHE LISTENING CÓ AUDIO MP3 (PHÁT ĐÚNG 100% FILE CỦA THẦY UPLOAD) */}
                 {isListening && (
                   <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200">
                     <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
                       <Volume2 className="w-4 h-4 text-purple-600" />
-                      <span>Bài Nghe Audio MP3:</span>
+                      <span>Bài Nghe Audio MP3: {q.content?.audioFileName ? `(${q.content.audioFileName})` : ''}</span>
                     </div>
-                    <audio controls className="w-full">
-                      <source src={q.content?.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'} type="audio/mpeg" />
-                    </audio>
+                    {q.content?.audioUrl ? (
+                      <audio controls className="w-full">
+                        <source src={q.content.audioUrl} />
+                      </audio>
+                    ) : (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                        ⚠️ Chưa có file audio được tải lên cho bài nghe này.
+                      </div>
+                    )}
 
                     {q.content?.audioscript && (
                       <div className="pt-2">
@@ -341,7 +347,7 @@ export default function QuizEngine({ activity }) {
                   </div>
                 )}
 
-                {/* NẾU LÀ BÀI ĐỌC READING CÓ ĐOẠN VĂN (CHUẨN ẢNH 2) */}
+                {/* NẾU LÀ BÀI ĐỌC READING CÓ ĐOẠN VĂN */}
                 {isReading && (
                   <div className="p-5 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-medium space-y-3">
                     <h5 className="font-extrabold text-emerald-900 text-sm">
@@ -354,7 +360,7 @@ export default function QuizEngine({ activity }) {
                   </div>
                 )}
 
-                {/* DANH SÁCH CÂU HỎI TRẮC NGHIỆM CON KÈM AI GIẢI THÍCH 4 KHỐI CHUẨN ẢNH 2 */}
+                {/* DANH SÁCH CÂU HỎI TRẮC NGHIỆM CON KÈM AI GIẢI THÍCH 4 KHỐI */}
                 <div className="space-y-4 pt-2">
                   {(childQuestions.length > 0
                     ? childQuestions
