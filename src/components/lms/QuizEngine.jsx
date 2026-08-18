@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked, Mic, MicOff, Shuffle, Trophy } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { compressImage } from '../../utils/imageCompressor';
 import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
 import { exportStudentPdfReport } from '../../utils/exportQuizReport';
+import { calculateGamificationBadges } from '../../utils/gamificationBadges';
+import AiTutorChatModal from './AiTutorChatModal';
 
 export default function QuizEngine({ activity }) {
   const { profile } = useAuth();
@@ -17,9 +19,21 @@ export default function QuizEngine({ activity }) {
   const [aiGradingResult, setAiGradingResult] = useState(null);
   const [isAiGradingLoading, setIsAiGradingLoading] = useState(false);
 
+  // GAMIFICATION BADGES
+  const [earnedBadges, setEarnedBadges] = useState([]);
+
+  // AI TUTOR MODAL CHAT
+  const [aiTutorModalOpen, setAiTutorModalOpen] = useState(false);
+  const [selectedQuestionForTutor, setSelectedQuestionForTutor] = useState(null);
+
+  // WEB SPEECH API (SPEAKING TEST RECOGNITION)
+  const [recordingKey, setRecordingKey] = useState(null);
+  const [speechTranscripts, setSpeechTranscripts] = useState({});
+
   // PHÁT HIỆN GIAN LẬN / THEO DÕI CHUYỂN TAB (ANTI-CHEATING / FOCUS TRACKER)
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [showCheatingWarning, setShowCheatingWarning] = useState(false);
+  const [maxTabSwitchesAllowed, setMaxTabSwitchesAllowed] = useState(3); // Giới hạn 3 lần rời tab mặc định
 
   // Bộ đếm thời gian
   const [isCountdownMode, setIsCountdownMode] = useState(false);
@@ -40,13 +54,18 @@ export default function QuizEngine({ activity }) {
     submittedAt: null,
   });
 
-  // LẮNG NGHE SỰ KIỆN CHUYỂN TAB (ANTI-CHEATING)
+  // PHÁT HIỆN CHUYỂN TAB -> TỰ ĐỘNG THU BÀI NẾU VƯỢT QUÁ GIỚI HẠN
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && timerActive && !submitted && isCountdownMode) {
         setTabSwitchCount((prev) => {
           const nextCount = prev + 1;
           setShowCheatingWarning(true);
+
+          if (nextCount >= maxTabSwitchesAllowed) {
+            alert(`🚫 BÀI THI BỊ TỰ ĐỘNG THU BÀI!\n\nBạn đã vi phạm rời khỏi tab thi ${nextCount}/${maxTabSwitchesAllowed} lần!`);
+            handleSubmitQuiz(true);
+          }
           return nextCount;
         });
       }
@@ -56,7 +75,7 @@ export default function QuizEngine({ activity }) {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [timerActive, submitted, isCountdownMode]);
+  }, [timerActive, submitted, isCountdownMode, maxTabSwitchesAllowed]);
 
   // TIMER LOGIC
   useEffect(() => {
@@ -100,7 +119,7 @@ export default function QuizEngine({ activity }) {
           setQuestions([]);
         } else {
           let totalCustomMinutes = 0;
-          const safeData = (data || []).map((q) => {
+          let safeData = (data || []).map((q) => {
             let cObj = q.content;
             if (typeof cObj === 'string') {
               try {
@@ -112,11 +131,20 @@ export default function QuizEngine({ activity }) {
             if (cObj?.timeLimit && Number(cObj.timeLimit) > 0) {
               totalCustomMinutes += Number(cObj.timeLimit);
             }
+            if (cObj?.maxTabSwitches && Number(cObj.maxTabSwitches) > 0) {
+              setMaxTabSwitchesAllowed(Number(cObj.maxTabSwitches));
+            }
             return {
               ...q,
               content: cObj || {},
             };
           });
+
+          // TRỘN ĐỀ NẾU CÓ CẤU HÌNH TRỘN ĐỀ NGẪU NHIÊN
+          const isRandom = activity?.settings?.isRandomized || safeData[0]?.content?.isRandomized;
+          if (isRandom) {
+            safeData = safeData.sort(() => Math.random() - 0.5);
+          }
 
           if (totalCustomMinutes > 0) {
             setIsCountdownMode(true);
@@ -143,6 +171,42 @@ export default function QuizEngine({ activity }) {
   const handleSelectAnswer = (questionKey, value) => {
     if (submitted) return;
     setUserAnswers((prev) => ({ ...prev, [questionKey]: value }));
+  };
+
+  // NÚT THU ÂM BÀI NÓI SPEAKING TEST (WEB SPEECH API)
+  const handleStartSpeechRecognition = (qKey) => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Trình duyệt của bạn chưa hỗ trợ Web Speech API. Vui lòng thử dùng Google Chrome / Microsoft Edge!');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    setRecordingKey(qKey);
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setSpeechTranscripts((prev) => ({ ...prev, [qKey]: transcript }));
+      setUserAnswers((prev) => ({ ...prev, [qKey]: transcript }));
+      setRecordingKey(null);
+      alert(`🎙️ Nhận diện giọng nói thành công: "${transcript}"`);
+    };
+
+    recognition.onerror = (err) => {
+      console.error('Speech recognition error:', err);
+      setRecordingKey(null);
+      alert('Không nhận diện được giọng nói. Vui lòng kiểm tra micro và thử lại!');
+    };
+
+    recognition.onend = () => {
+      setRecordingKey(null);
+    };
+
+    recognition.start();
   };
 
   // HỌC SINH TẢI ẢNH BÀI LÀM TỰ LUẬN -> TỰ ĐỘNG NÉN ẢNH DƯỚI 1MB
@@ -297,6 +361,18 @@ export default function QuizEngine({ activity }) {
     const isPassed = totalScore >= (totalMarks * 0.5);
     const nowIso = new Date().toISOString();
 
+    // TÍNH HUY HIỆU GAMIFICATION BADGES
+    const badges = calculateGamificationBadges({
+      score: totalScore,
+      totalMarks,
+      correctCount,
+      totalQuestions: totalQCount,
+      timeTakenSeconds: elapsed,
+      timeLimitSeconds,
+      aiWritingScore: aiGrading?.overallScore,
+    });
+    setEarnedBadges(badges);
+
     const res = {
       studentName: profile?.full_name || 'Học Viên',
       timeTakenStr,
@@ -312,7 +388,7 @@ export default function QuizEngine({ activity }) {
     setSubmitted(true);
 
     if (isAutoSubmit) {
-      alert('⏱️ Đã HẾT THỜI GIAN LÀM BÀI THI!\n\nHệ thống đã tự động thu bài và chấm điểm.');
+      alert('⏱️ Đã THU BÀI THI!\n\nHệ thống đã tự động thu bài và chấm điểm.');
     }
 
     if (profile?.id && activity?.id) {
@@ -320,7 +396,7 @@ export default function QuizEngine({ activity }) {
         {
           activity_id: activity.id,
           student_id: profile.id,
-          answers_data: { userAnswers, uploadedStudentImages, aiGrading, tabSwitchCount },
+          answers_data: { userAnswers, uploadedStudentImages, aiGrading, tabSwitchCount, badges },
           score: totalScore,
           status: 'graded',
         },
@@ -370,24 +446,41 @@ export default function QuizEngine({ activity }) {
     });
   };
 
-  const renderCompactExplanation = (explanationText, correctText) => {
-    if (!explanationText || explanationText.trim() === '') {
-      return (
-        <div className="mt-1 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] flex items-center justify-between text-emerald-950">
-          <span className="font-extrabold">➔ Đáp án đúng: {correctText}</span>
-          <span className="text-emerald-700 text-[10px]">💡 Nhớ từ vựng & cấu trúc trọng tâm!</span>
-        </div>
-      );
-    }
-
+  const renderCompactExplanation = (explanationText, correctText, qObj = null, userVal = null) => {
     return (
-      <div className="mt-1 p-2 bg-emerald-50/90 border border-emerald-300 rounded-xl text-[11px] space-y-0.5 text-slate-800">
-        <span className="font-extrabold text-emerald-950 block border-b border-emerald-200 pb-0.5">
-          ➔ ĐÁP ÁN ĐÚNG: {correctText}
-        </span>
-        <div className="pt-0.5">
-          {renderFormattedParagraphs(explanationText)}
-        </div>
+      <div className="mt-1.5 space-y-1">
+        {!explanationText || explanationText.trim() === '' ? (
+          <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] flex items-center justify-between text-emerald-950">
+            <span className="font-extrabold">➔ Đáp án đúng: {correctText}</span>
+            <span className="text-emerald-700 text-[10px]">💡 Nhớ từ vựng & cấu trúc trọng tâm!</span>
+          </div>
+        ) : (
+          <div className="p-2 bg-emerald-50/90 border border-emerald-300 rounded-xl text-[11px] space-y-0.5 text-slate-800">
+            <span className="font-extrabold text-emerald-950 block border-b border-emerald-200 pb-0.5">
+              ➔ ĐÁP ÁN ĐÚNG: {correctText}
+            </span>
+            <div className="pt-0.5">
+              {renderFormattedParagraphs(explanationText)}
+            </div>
+          </div>
+        )}
+
+        {/* NÚT HOI AI TUTOR CÂU NÀY */}
+        <button
+          onClick={() => {
+            setSelectedQuestionForTutor({
+              question: qObj?.question || 'Câu hỏi',
+              explanation: explanationText,
+              userAnswer: userVal,
+              correctAnswer: correctText,
+            });
+            setAiTutorModalOpen(true);
+          }}
+          className="w-full py-1.5 bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-900 font-extrabold text-[11px] rounded-xl transition flex items-center justify-center space-x-1.5 shadow-2xs"
+        >
+          <Bot className="w-3.5 h-3.5 text-purple-700" />
+          <span>🤖 Hỏi AI Tutor Giải Thích Chi Tiết Câu Này</span>
+        </button>
       </div>
     );
   };
@@ -402,12 +495,21 @@ export default function QuizEngine({ activity }) {
 
   return (
     <div className="space-y-3">
+      {/* MODAL CHATBOT AI TUTOR TRỢ LÝ HỌC TẬP */}
+      <AiTutorChatModal
+        isOpen={aiTutorModalOpen}
+        onClose={() => setAiTutorModalOpen(false)}
+        questionData={selectedQuestionForTutor}
+        userSelectedAnswer={selectedQuestionForTutor?.userAnswer}
+        correctAnswerText={selectedQuestionForTutor?.correctAnswer}
+      />
+
       {/* THÔNG BÁO GIÁM THỊ CẢNH BÁO CHUYỂN TAB GIAN LẬN */}
       {showCheatingWarning && !submitted && (
         <div className="p-3 bg-rose-950 text-rose-200 border-2 border-rose-600 rounded-2xl flex items-center justify-between shadow-lg animate-bounce">
           <div className="flex items-center space-x-2 text-xs font-extrabold">
             <ShieldAlert className="w-5 h-5 text-rose-400" />
-            <span>⚠️ CẢNH BÁO GIÁM THỊ: Bạn vừa rời khỏi màn hình bài thi ({tabSwitchCount} lần vi phạm)! Lịch sử chuyển tab đã được ghi lại.</span>
+            <span>⚠️ CẢNH BÁO GIÁM THỊ: Bạn vừa rời khỏi màn hình thi ({tabSwitchCount}/{maxTabSwitchesAllowed} lần)! Vượt quá sẽ tự động thu bài.</span>
           </div>
           <button
             onClick={() => setShowCheatingWarning(false)}
@@ -488,78 +590,23 @@ export default function QuizEngine({ activity }) {
             </div>
           </div>
 
-          {/* HIỂN THỊ THÔNG TIN VI PHẠM GIÁM THỊ NẾU CÓ */}
-          {tabSwitchCount > 0 && (
-            <div className="p-2.5 bg-rose-950/60 border border-rose-800 rounded-xl text-xs text-rose-300 flex items-center justify-between">
-              <span className="font-bold flex items-center space-x-1">
-                <ShieldAlert className="w-4 h-4 text-rose-400" />
-                <span>Ghi nhận số lần học sinh rời màn hình thi:</span>
+          {/* KHỐI HUY HIỆU GAMIFICATION BADGES KHEN THƯỞNG */}
+          {earnedBadges.length > 0 && (
+            <div className="p-4 bg-gradient-to-r from-amber-950/80 to-slate-900 border border-amber-500/40 rounded-2xl space-y-2">
+              <span className="font-extrabold text-amber-300 uppercase tracking-wide text-xs flex items-center space-x-1.5">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span>🏆 DANH HIỆU & HUY HIỆU KHEN THƯỞNG ĐẠT ĐƯỢC:</span>
               </span>
-              <span className="px-2 py-0.5 bg-rose-900 border border-rose-700 text-white font-extrabold rounded-md">
-                {tabSwitchCount} lần
-              </span>
-            </div>
-          )}
-
-          {/* ĐÁNH GIÁ VÀ NHẬN XẾT BÀI VIẾT TỪ AI AGENT (NẾU CÓ BÀI WRITING) */}
-          {aiGradingResult && (
-            <div className="p-4 bg-gradient-to-r from-purple-950 to-slate-900 border border-purple-800 rounded-2xl space-y-3 shadow-inner text-xs">
-              <div className="flex justify-between items-center border-b border-purple-800 pb-2">
-                <span className="font-extrabold text-purple-300 uppercase tracking-wide flex items-center space-x-1.5">
-                  <Bot className="w-4 h-4 text-purple-400" />
-                  <span>🤖 ĐÁNH GIÁ BÀI TỰ LUẬN TỰ ĐỘNG TỪ AI AGENT (GEMINI VISION OCR)</span>
-                </span>
-                <span className="px-2 py-0.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-extrabold rounded-md">
-                  Điểm AI: {aiGradingResult.overallScore} / 10
-                </span>
-              </div>
-
-              <div className="space-y-2 text-slate-200">
-                {aiGradingResult.ocrExtractedText && (
-                  <div className="p-2 bg-purple-900/40 rounded-xl border border-purple-800 text-[11px]">
-                    <span className="font-bold text-purple-300 block mb-0.5">🔍 Nhận diện chữ bài viết tay (OCR):</span>
-                    <p className="italic text-slate-300 font-serif">{aiGradingResult.ocrExtractedText}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {earnedBadges.map((badge) => (
+                  <div key={badge.id} className={`p-3 rounded-xl bg-gradient-to-r ${badge.bgGradient} text-white shadow-md space-y-0.5 border border-white/20`}>
+                    <h5 className="font-extrabold text-xs flex items-center space-x-1">
+                      <span>{badge.icon}</span>
+                      <span>{badge.title}</span>
+                    </h5>
+                    <p className="text-[10px] text-white/90 font-medium">{badge.description}</p>
                   </div>
-                )}
-
-                {aiGradingResult.grammarFixes && aiGradingResult.grammarFixes.length > 0 && (
-                  <div className="p-2 bg-rose-950/40 rounded-xl border border-rose-800/60 space-y-1">
-                    <span className="font-bold text-rose-300 block">⚠️ Các lỗi ngữ pháp & từ vựng cần khắc phục:</span>
-                    {aiGradingResult.grammarFixes.map((gf, idx) => (
-                      <div key={idx} className="text-[11px] space-x-1">
-                        <span className="line-through text-rose-300">{gf.original}</span>
-                        <span className="text-emerald-400 font-bold">➔ {gf.suggestion}</span>
-                        <span className="text-slate-400">({gf.explanation})</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* GỢI Ý CỤM TỪ C2 / BAND 8.0 NÂNG CAO */}
-                {aiGradingResult.advancedVocabularySuggestions && aiGradingResult.advancedVocabularySuggestions.length > 0 && (
-                  <div className="p-3 bg-purple-900/60 rounded-2xl border border-purple-700/70 space-y-2">
-                    <span className="font-extrabold text-amber-300 uppercase tracking-wide flex items-center space-x-1">
-                      <BookMarked className="w-4 h-4 text-amber-400" />
-                      <span>✨ CỤM TỪ C2 / IELTS BAND 8.0 GỢI Ý ĐỂ NÂNG BAND BÀI VIẾT:</span>
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                      {aiGradingResult.advancedVocabularySuggestions.map((av, idx) => (
-                        <div key={idx} className="p-2 bg-slate-900/80 rounded-xl border border-purple-800 space-y-0.5">
-                          <div className="flex justify-between">
-                            <span className="text-slate-400 line-through">{av.original}</span>
-                            <span className="text-amber-300 font-extrabold">➔ {av.c2Upgrade}</span>
-                          </div>
-                          <p className="text-[10px] italic text-purple-200">Ví dụ: "{av.example}"</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="p-2.5 bg-slate-900/90 rounded-xl border border-purple-800 leading-relaxed text-slate-200">
-                  <span className="font-bold text-amber-400 block mb-1">💡 Nhận xét chi tiết:</span>
-                  {aiGradingResult.detailedFeedback}
-                </div>
+                ))}
               </div>
             </div>
           )}
@@ -602,7 +649,7 @@ export default function QuizEngine({ activity }) {
           const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
           const sectionParts = Array.isArray(q.content?.parts) ? q.content.parts : [];
 
-          // HIỂN THỊ DẠNG WRITING SECTION (3 PART)
+          // NẾU LÀ WRITING SECTION
           if (isWriting && sectionParts.length > 0) {
             return (
               <div key={q.id || qIdx} className="bg-white border-l-4 border-indigo-600 rounded-3xl p-5 shadow-xs border-y border-r border-slate-200 space-y-4">
@@ -680,7 +727,7 @@ export default function QuizEngine({ activity }) {
                                   })}
                                 </div>
 
-                                {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctText)}
+                                {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctText, cQ, cOpts[selectedVal]?.text)}
                               </div>
                             );
                           } else if (isPart2Short) {
@@ -763,390 +810,56 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG 3: READING (True/False)
-          if (isReadingTF) {
+          // DẠNG SPEAKING TEST (WEB SPEECH API RECOGNITION)
+          if (sectionType === 'speaking_test' || q.type === 'speaking_test') {
+            const childKey = `${q.id}_speaking`;
+            const isRecordingThis = recordingKey === childKey;
+            const transcript = speechTranscripts[childKey] || userAnswers[childKey] || '';
+
             return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-500 rounded-3xl p-4 shadow-xs border-y border-r border-slate-200 space-y-3">
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-amber-500 rounded-3xl p-4 shadow-xs border-y border-r border-slate-200 space-y-3">
                 <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
-                  <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
+                  <span className="w-6 h-6 rounded-lg bg-amber-600 text-white flex items-center justify-center font-extrabold text-xs">
                     {qIdx + 1}
                   </span>
-                  <span className="font-extrabold text-emerald-900 text-xs uppercase">
-                    {q.content?.title || 'READING (True/False)'}
+                  <span className="uppercase text-amber-900 tracking-tight text-xs font-extrabold">
+                    SPEAKING TEST (LUYỆN PHÁT ÂM VỚI AI)
                   </span>
                 </div>
 
-                <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
-                  {q.content?.question || 'Read the passage and decide whether the statements are True (T) or False (F).'}
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 leading-relaxed font-serif">
+                  {q.content?.question || 'Read the sentence out loud into your microphone.'}
                 </div>
 
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-3.5 text-slate-800 font-serif text-xs leading-relaxed text-justify shadow-2xs">
-                  {renderPassageWithHighlights(q.content?.passage)}
-                </div>
-
-                <div className="space-y-1.5 pt-0.5">
-                  {childQuestions.map((cQ, cIdx) => {
-                    const childKey = `${q.id}_c${cIdx}`;
-                    const selectedVal = userAnswers[childKey];
-                    return (
-                      <div key={cIdx} className="space-y-1">
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-1.5 gap-3">
-                          <span className="text-xs font-semibold text-slate-800 leading-relaxed">
-                            {cQ.question}
-                          </span>
-
-                          <div className="flex items-center space-x-1.5 flex-shrink-0">
-                            <button
-                              disabled={submitted}
-                              onClick={() => handleSelectAnswer(childKey, 'T')}
-                              className={`w-7 h-7 rounded-md font-extrabold text-xs transition flex items-center justify-center ${
-                                selectedVal === 'T'
-                                  ? 'bg-emerald-100 border border-emerald-400 text-emerald-700 shadow-xs'
-                                  : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'
-                              }`}
-                            >
-                              T
-                            </button>
-
-                            <button
-                              disabled={submitted}
-                              onClick={() => handleSelectAnswer(childKey, 'F')}
-                              className={`w-7 h-7 rounded-md font-extrabold text-xs transition flex items-center justify-center ${
-                                selectedVal === 'F'
-                                  ? 'bg-rose-100 border border-rose-400 text-rose-700 shadow-xs'
-                                  : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'
-                              }`}
-                            >
-                              F
-                            </button>
-                          </div>
-                        </div>
-
-                        {submitted && renderCompactExplanation(cQ.explanation || q.content?.explanation, cQ.correctAnswer === 'T' ? 'True (T)' : 'False (F)')}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          }
-
-          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test)
-          if (isClozeTest) {
-            const tasksList = Array.isArray(q.content?.tasks) && q.content.tasks.length > 0
-              ? q.content.tasks
-              : [
-                  {
-                    task_title: q.content?.question?.split('\n')[0] || "PART 1: READ THE FIRST TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.",
-                    task_sub: q.content?.question?.split('\n')[1] || "Read the following text and choose the best option (A, B, C, or D) for each blank.",
-                    badge_label: q.content?.badge || "POSTER",
-                    passage_title: q.content?.passageTitle || "Passage Title",
-                    passage_content: q.content?.passage || "Passage Content",
-                    questions: (q.content?.childQuestions || []).map((cq, idx) => ({
-                      question_number: cq.qNum || (16 + idx),
-                      options: cq.options || [],
-                      correct_option: cq.options?.find(o => o.isCorrect)?.id || "A",
-                      explanation: cq.explanation
-                    }))
-                  }
-                ];
-
-            return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-4 shadow-xs border-y border-r border-slate-200 space-y-3">
-                <div className="bg-blue-50/70 rounded-xl p-2.5 flex justify-between items-center">
-                  <h3 className="font-extrabold text-xs text-blue-900 tracking-wide uppercase flex items-center space-x-2">
-                    <span className="w-6 h-6 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
-                      {qIdx + 1}
-                    </span>
-                    <span>{q.content?.title || 'KNOWLEDGE OF LANGUAGE'}</span>
-                  </h3>
-                  <Volume2 className="w-4 h-4 text-blue-600 cursor-pointer" />
-                </div>
-
-                {tasksList.map((taskItem, tIdx) => {
-                  const tQuestions = taskItem.questions || [];
-
-                  return (
-                    <div key={tIdx} className="space-y-2.5 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
-                      <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs space-y-0.5">
-                        <h4 className="uppercase tracking-tight text-purple-950">
-                          {taskItem.task_title}
-                        </h4>
-                        {taskItem.task_sub && (
-                          <p className="text-[10px] italic text-purple-800 font-medium">
-                            {taskItem.task_sub}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="border border-slate-300 rounded-2xl bg-amber-50/20 p-3.5 relative space-y-1 mt-1.5">
-                        <span className={`text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase absolute -top-2.5 left-3 shadow-xs ${
-                          tIdx === 1 ? 'bg-teal-600' : 'bg-amber-500'
-                        }`}>
-                          {taskItem.badge_label || (tIdx === 1 ? 'EMAIL' : 'POSTER')}
-                        </span>
-
-                        {taskItem.passage_title && (
-                          <h4 className="text-center font-extrabold text-amber-950 text-xs pt-0.5">
-                            {taskItem.passage_title}
-                          </h4>
-                        )}
-
-                        <p className="text-slate-800 font-medium text-xs leading-relaxed text-justify whitespace-pre-line">
-                          {renderPassageWithHighlights(taskItem.passage_content)}
-                        </p>
-                      </div>
-
-                      <div className="space-y-1.5 pt-0.5">
-                        {tQuestions.map((cQ, cIdx) => {
-                          const childKey = `${q.id}_t${tIdx}_q${cIdx}`;
-                          const selectedVal = userAnswers[childKey];
-                          const opts = Array.isArray(cQ.options) ? cQ.options : [];
-                          const correctOpt = cQ.correct_option || opts.find(o => o.isCorrect)?.id || opts.find(o => o.isCorrect)?.text?.substring(0,1);
-
-                          const maxOptLen = Math.max(...opts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
-
-                          let btnFontSize = 'text-xs px-2.5 py-1.5';
-                          if (maxOptLen > 22) {
-                            btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
-                          } else if (maxOptLen > 15) {
-                            btnFontSize = 'text-[11px] px-2 py-1 leading-snug';
-                          }
-
-                          return (
-                            <div key={cIdx} className="space-y-0.5">
-                              <div className="flex items-center gap-2 w-full">
-                                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-extrabold text-[11px] flex items-center justify-center flex-shrink-0">
-                                  {cQ.question_number || (16 + cIdx)}
-                                </span>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch">
-                                  {opts.map((opt, oIdx) => {
-                                    const optVal = opt.id || String.fromCharCode(65 + oIdx);
-                                    const optText = opt.text || `${optVal}. ${opt.label || opt}`;
-                                    const isSelected = selectedVal === optVal || selectedVal === oIdx;
-
-                                    return (
-                                      <button
-                                        key={oIdx}
-                                        disabled={submitted}
-                                        onClick={() => handleSelectAnswer(childKey, optVal)}
-                                        className={`rounded-xl ${btnFontSize} transition font-semibold text-left whitespace-normal break-words border flex items-center space-x-1 ${
-                                          isSelected
-                                            ? `${tIdx === 1 ? 'bg-teal-600' : 'bg-blue-600'} text-white font-bold shadow-xs border-transparent`
-                                            : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                                        }`}
-                                      >
-                                        <span>{optText}</span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              {submitted && renderCompactExplanation(cQ.explanation || taskItem.explanation, correctOpt ? `Option ${correctOpt}` : 'Đáp án đúng')}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          }
-
-          // NẾU LÀ LISTENING_SECTION HOẶC READING_SECTION CÓ MULTI PARTS
-          if ((isListening || isReading) && sectionParts.length > 0) {
-            return (
-              <div key={q.id || qIdx} className="p-4 bg-slate-50 border border-slate-200 rounded-3xl space-y-2.5 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
-                    <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
-                      {qIdx + 1}
-                    </span>
-                    <span className="uppercase text-emerald-900 tracking-tight text-xs font-extrabold">
-                      {q.content?.title || (isListening ? 'LISTENING SECTION' : 'READING SECTION')}
-                    </span>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700">🎙️ Bài nói ghi âm của bạn:</span>
+                    <button
+                      disabled={submitted}
+                      onClick={() => handleStartSpeechRecognition(childKey)}
+                      className={`px-3 py-1.5 rounded-xl font-extrabold text-xs transition flex items-center space-x-1.5 ${
+                        isRecordingThis
+                          ? 'bg-rose-600 text-white animate-pulse'
+                          : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
+                      }`}
+                    >
+                      {isRecordingThis ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      <span>{isRecordingThis ? 'Đang thu âm...' : 'Bấm Để Thu Âm Giọng Nói'}</span>
+                    </button>
                   </div>
+
+                  <input
+                    type="text"
+                    disabled={submitted}
+                    value={transcript}
+                    onChange={(e) => {
+                      setSpeechTranscripts((prev) => ({ ...prev, [childKey]: e.target.value }));
+                      handleSelectAnswer(childKey, e.target.value);
+                    }}
+                    placeholder="Văn bản nhận diện giọng nói sẽ tự động xuất hiện ở đây..."
+                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white"
+                  />
                 </div>
-
-                {sectionParts.map((pItem, pIdx) => {
-                  const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
-                  const isTF = pItem.part_type === 'true_false';
-
-                  let pAudioSrc = pItem.audioUrl;
-                  if ((!pAudioSrc || pAudioSrc.startsWith('blob:')) && pItem.audioFileName) {
-                    try {
-                      const cached = localStorage.getItem(`audio_file_${pItem.audioFileName}`);
-                      if (cached) pAudioSrc = cached;
-                    } catch (e) {}
-                  }
-
-                  return (
-                    <div key={pIdx} className="space-y-2 border-b border-slate-200 pb-2.5 last:border-b-0 last:pb-0">
-                      <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
-                        {pItem.part_title || `PART ${pIdx + 1}: Instruction`}
-                      </div>
-
-                      {isListening && (
-                        <div className="bg-white p-2 rounded-xl border border-purple-200 shadow-2xs">
-                          {pAudioSrc ? (
-                            <audio controls preload="auto" className="w-full h-8" src={pAudioSrc}>
-                              Trình duyệt không hỗ trợ phát audio.
-                            </audio>
-                          ) : (
-                            <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800 font-medium">
-                              ⚠️ File audio MP3 Part {pIdx + 1} đang chờ Thầy chọn từ máy.
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {isReading && pItem.passage && (
-                        <div className="p-3.5 bg-white border border-emerald-200 rounded-xl text-xs text-slate-800 leading-relaxed font-serif text-justify shadow-2xs">
-                          {renderPassageWithHighlights(pItem.passage)}
-                        </div>
-                      )}
-
-                      <div className="space-y-1.5 pt-0.5">
-                        {pQs.map((cQ, cIdx) => {
-                          const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
-                          const selectedVal = userAnswers[childKey];
-
-                          if (isTF) {
-                            const correctAnsTF = cQ.correctAnswer || 'T';
-                            return (
-                              <div key={cIdx} className="p-2.5 bg-white border border-emerald-200 rounded-xl space-y-1 shadow-2xs">
-                                <div className="flex justify-between items-center gap-3">
-                                  <span className="text-xs font-semibold text-slate-800 leading-relaxed">
-                                    {cQ.question}
-                                  </span>
-
-                                  <div className="flex items-center space-x-1.5 flex-shrink-0">
-                                    <button
-                                      disabled={submitted}
-                                      onClick={() => handleSelectAnswer(childKey, 'T')}
-                                      className={`w-7 h-7 rounded-md font-extrabold text-xs transition flex items-center justify-center ${
-                                        selectedVal === 'T'
-                                          ? 'bg-emerald-100 border border-emerald-400 text-emerald-700 shadow-xs'
-                                          : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'
-                                      }`}
-                                    >
-                                      T
-                                    </button>
-
-                                    <button
-                                      disabled={submitted}
-                                      onClick={() => handleSelectAnswer(childKey, 'F')}
-                                      className={`w-7 h-7 rounded-md font-extrabold text-xs transition flex items-center justify-center ${
-                                        selectedVal === 'F'
-                                          ? 'bg-rose-100 border border-rose-400 text-rose-700 shadow-xs'
-                                          : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'
-                                      }`}
-                                    >
-                                      F
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctAnsTF === 'T' ? 'True (T)' : 'False (F)')}
-                              </div>
-                            );
-                          }
-
-                          const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
-                          const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
-                          const isCorrect = submitted && selectedVal === correctOptIndex;
-                          const isWrong = submitted && selectedVal !== undefined && selectedVal !== correctOptIndex;
-                          const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
-
-                          const maxOptLen = Math.max(...cOpts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
-
-                          let btnFontSize = 'text-xs px-2.5 py-1.5';
-                          if (maxOptLen > 30) {
-                            btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
-                          } else if (maxOptLen > 18) {
-                            btnFontSize = 'text-[11px] px-2 py-1 leading-snug';
-                          }
-
-                          return (
-                            <div
-                              key={cIdx}
-                              className={`p-2.5 bg-white border rounded-xl space-y-1.5 transition shadow-2xs ${
-                                submitted
-                                  ? isCorrect
-                                    ? 'border-emerald-400 bg-emerald-50/20'
-                                    : 'border-rose-400 bg-rose-50/20'
-                                  : 'border-slate-200'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-extrabold text-xs text-slate-900">
-                                  {cQ.question}
-                                </h4>
-
-                                {submitted && (
-                                  <div>
-                                    {isCorrect && (
-                                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded flex items-center space-x-1">
-                                        <CheckCircle className="w-3 h-3 text-emerald-600" />
-                                        <span>Đúng</span>
-                                      </span>
-                                    )}
-                                    {isWrong && (
-                                      <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-extrabold rounded flex items-center space-x-1">
-                                        <XCircle className="w-3 h-3 text-rose-600" />
-                                        <span>Sai</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch pt-0.5">
-                                {cOpts.map((opt, oIdx) => {
-                                  const isSelected = selectedVal === oIdx;
-                                  const isThisCorrect = opt?.isCorrect;
-                                  const label = String.fromCharCode(65 + oIdx);
-
-                                  let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
-                                  if (submitted) {
-                                    if (isThisCorrect) {
-                                      btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
-                                    } else if (isSelected && !isThisCorrect) {
-                                      btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
-                                    }
-                                  } else if (isSelected) {
-                                    btnStyle = 'bg-emerald-600 text-white font-bold border-transparent shadow-xs';
-                                  }
-
-                                  return (
-                                    <button
-                                      key={oIdx}
-                                      disabled={submitted}
-                                      onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                      className={`w-full text-left rounded-xl ${btnFontSize} font-semibold border transition flex items-center space-x-1 whitespace-normal break-words ${btnStyle}`}
-                                    >
-                                      <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
-                                        isSelected ? 'bg-white text-emerald-800' : 'bg-slate-200 text-slate-600'
-                                      }`}>
-                                        {label}
-                                      </span>
-                                      <span className="leading-snug">{opt.text}</span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctText)}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             );
           }
@@ -1256,7 +969,7 @@ export default function QuizEngine({ activity }) {
                         })}
                       </div>
 
-                      {submitted && renderCompactExplanation(cQ.explanation || q.content?.explanation, correctText)}
+                      {submitted && renderCompactExplanation(cQ.explanation || q.content?.explanation, correctText, cQ, cOpts[selectedOptIndex]?.text)}
                     </div>
                   );
                 })}
