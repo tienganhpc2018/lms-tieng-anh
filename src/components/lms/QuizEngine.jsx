@@ -126,36 +126,52 @@ export default function QuizEngine({ activity }) {
 
     questions.forEach((q) => {
       const sectionType = (q.content?.sectionType || q.type || '').toLowerCase();
-      const childs = q.content?.childQuestions;
 
-      if (Array.isArray(childs) && childs.length > 0) {
-        childs.forEach((c, cIdx) => {
-          totalQCount += 1;
-          const key = `${q.id}_c${cIdx}`;
-          const selected = userAnswers[key];
-
-          if (sectionType === 'reading_tf') {
-            if (selected === c.correctAnswer) {
+      if (sectionType === 'cloze_test' && Array.isArray(q.content?.tasks)) {
+        q.content.tasks.forEach((t, tIdx) => {
+          const tQs = t.questions || [];
+          tQs.forEach((cQ, qIdx) => {
+            totalQCount += 1;
+            const key = `${q.id}_t${tIdx}_q${qIdx}`;
+            const selected = userAnswers[key];
+            const correctOpt = cQ.correct_option || cQ.options?.find(o => o.isCorrect)?.id;
+            if (selected === correctOpt && selected !== undefined) {
               correctCount += 1;
               totalScore += 1;
             }
-          } else {
-            const opts = Array.isArray(c.options) ? c.options : [];
-            const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
-            if (selected === correctOptIndex && selected !== undefined) {
-              correctCount += 1;
-              totalScore += 1;
-            }
-          }
+          });
         });
       } else {
-        totalQCount += 1;
-        const selected = userAnswers[q.id];
-        const opts = Array.isArray(q.content?.options) ? q.content.options : [];
-        const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
-        if (selected === correctOptIndex && selected !== undefined) {
-          correctCount += 1;
-          totalScore += Number(q.marks) || 1;
+        const childs = q.content?.childQuestions;
+        if (Array.isArray(childs) && childs.length > 0) {
+          childs.forEach((c, cIdx) => {
+            totalQCount += 1;
+            const key = `${q.id}_c${cIdx}`;
+            const selected = userAnswers[key];
+
+            if (sectionType === 'reading_tf') {
+              if (selected === c.correctAnswer) {
+                correctCount += 1;
+                totalScore += 1;
+              }
+            } else {
+              const opts = Array.isArray(c.options) ? c.options : [];
+              const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
+              if (selected === correctOptIndex && selected !== undefined) {
+                correctCount += 1;
+                totalScore += 1;
+              }
+            }
+          });
+        } else {
+          totalQCount += 1;
+          const selected = userAnswers[q.id];
+          const opts = Array.isArray(q.content?.options) ? q.content.options : [];
+          const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
+          if (selected === correctOptIndex && selected !== undefined) {
+            correctCount += 1;
+            totalScore += Number(q.marks) || 1;
+          }
         }
       }
     });
@@ -415,24 +431,18 @@ export default function QuizEngine({ activity }) {
           if (isReadingTF) {
             return (
               <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-500 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
-                {/* Header & Instruction */}
                 <h3 className="font-extrabold text-sm text-teal-800 leading-relaxed">
                   {q.content?.question || 'Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F).'}
                 </h3>
 
-                {/* Passage Box */}
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-6 text-slate-800 font-serif text-sm leading-relaxed text-justify shadow-2xs">
                   {q.content?.passage}
                 </div>
 
-                {/* True/False Statements List */}
                 <div className="space-y-3 pt-2">
                   {childQuestions.map((cQ, cIdx) => {
                     const childKey = `${q.id}_c${cIdx}`;
-                    const selectedVal = userAnswers[childKey]; // 'T' hoặc 'F'
-                    const isCorrect = submitted && selectedVal === cQ.correctAnswer;
-                    const isWrong = submitted && selectedVal !== undefined && selectedVal !== cQ.correctAnswer;
-
+                    const selectedVal = userAnswers[childKey];
                     return (
                       <div key={cIdx} className="space-y-2">
                         <div className="flex justify-between items-center border-b border-slate-100 pb-3 gap-4">
@@ -441,7 +451,6 @@ export default function QuizEngine({ activity }) {
                           </span>
 
                           <div className="flex items-center space-x-2 flex-shrink-0">
-                            {/* Nút T */}
                             <button
                               disabled={submitted}
                               onClick={() => handleSelectAnswer(childKey, 'T')}
@@ -454,7 +463,6 @@ export default function QuizEngine({ activity }) {
                               T
                             </button>
 
-                            {/* Nút F */}
                             <button
                               disabled={submitted}
                               onClick={() => handleSelectAnswer(childKey, 'F')}
@@ -478,89 +486,124 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test / Fill-in-the-blanks) CHUẨN ĐÚNG 100% ẢNH 3
+          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test Gộp Cả Task 1 + Task 2 trong 1 Khung 100% Ảnh 2 & 3)
           if (isClozeTest) {
+            const tasksList = Array.isArray(q.content?.tasks) && q.content.tasks.length > 0
+              ? q.content.tasks
+              : [
+                  {
+                    task_title: q.content?.question?.split('\n')[0] || "TASK 1: READ THE FIRST TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.",
+                    task_sub: q.content?.question?.split('\n')[1] || "Read the following text and choose the best option (A, B, C, or D) for each blank.",
+                    badge_label: q.content?.badge || "POSTER",
+                    passage_title: q.content?.passageTitle || "Passage Title",
+                    passage_content: q.content?.passage || "Passage Content",
+                    questions: (q.content?.childQuestions || []).map((cq, idx) => ({
+                      question_number: cq.qNum || (16 + idx),
+                      options: cq.options || [],
+                      correct_option: cq.options?.find(o => o.isCorrect)?.id || "A",
+                      explanation: cq.explanation
+                    }))
+                  }
+                ];
+
             return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
-                {/* Header Bar */}
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-6">
+                {/* Header Bar Chuẩn 100% Ảnh 2 & 3 */}
                 <div className="bg-blue-50/70 rounded-xl p-4 flex justify-between items-center">
                   <h3 className="font-extrabold text-base text-blue-900 tracking-wide uppercase flex items-center space-x-2">
                     <span className="w-7 h-7 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
                       2
                     </span>
-                    <span>{q.content?.title || 'KNOWLEDGE OF LANGUAGE'}</span>
+                    <span>{q.content?.title || '2 KNOWLEDGE OF LANGUAGE'}</span>
                   </h3>
                   <Volume2 className="w-5 h-5 text-blue-600 cursor-pointer" />
                 </div>
 
-                {/* Sub-header instruction */}
-                <div className="space-y-1">
-                  <h4 className="text-xs font-extrabold text-blue-800 uppercase tracking-tight">
-                    {q.content?.question?.split('\n')[0] || 'PART 1: READ THE FOLLOWING POSTER AND CIRCLE THE LETTER A, B, C, OR D TO INDICATE THE CORRECT OPTION.'}
-                  </h4>
-                  <p className="text-xs italic text-slate-500">
-                    {q.content?.question?.split('\n')[1] || 'Choose the best answer to fill in each blank in the movie advertisement.'}
-                  </p>
-                </div>
+                {/* Render Lần Lượt Cả Task 1 & Task 2 Trong Cùng 1 Khung */}
+                {tasksList.map((taskItem, tIdx) => {
+                  const tQuestions = taskItem.questions || [];
 
-                {/* Passage Container với Floating Badge màu cam */}
-                <div className="border border-slate-400 rounded-2xl bg-amber-50/30 p-6 relative space-y-3 mt-4">
-                  <span className="bg-amber-500 text-white text-[11px] font-extrabold px-3 py-1 rounded-full uppercase absolute -top-3.5 left-5 shadow-xs">
-                    {q.content?.badge || 'POSTER'}
-                  </span>
-
-                  <h4 className="text-center font-extrabold text-amber-950 text-sm pt-1">
-                    {q.content?.passageTitle || 'Harry Potter - A Magical Adventure'}
-                  </h4>
-
-                  <p className="text-slate-800 font-medium text-xs leading-relaxed text-justify">
-                    {q.content?.passage}
-                  </p>
-                </div>
-
-                {/* Multiple Choice Options List dạng Pill Buttons */}
-                <div className="space-y-3 pt-2">
-                  {childQuestions.map((cQ, cIdx) => {
-                    const childKey = `${q.id}_c${cIdx}`;
-                    const selectedOptIdx = userAnswers[childKey];
-                    const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
-                    const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
-                    const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
-
-                    return (
-                      <div key={cIdx} className="space-y-2">
-                        <div className="border border-slate-100 bg-white rounded-2xl p-3.5 flex items-center gap-4 shadow-2xs">
-                          <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
-                            {cQ.qNum || (16 + cIdx)}
-                          </span>
-
-                          <div className="flex flex-wrap items-center gap-2">
-                            {cOpts.map((opt, oIdx) => {
-                              const isSelected = selectedOptIdx === oIdx;
-
-                              return (
-                                <button
-                                  key={oIdx}
-                                  disabled={submitted}
-                                  onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                  className={`rounded-full px-4 py-1.5 text-xs transition font-semibold ${
-                                    isSelected
-                                      ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                      : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
-                                  }`}
-                                >
-                                  {opt.text}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctText)}
+                  return (
+                    <div key={tIdx} className="space-y-4 border-b border-slate-100 pb-6 last:border-b-0 last:pb-0">
+                      {/* Sub-header instruction cho từng Task */}
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-extrabold text-blue-800 uppercase tracking-tight">
+                          {taskItem.task_title}
+                        </h4>
+                        {taskItem.task_sub && (
+                          <p className="text-xs italic text-slate-500">
+                            {taskItem.task_sub}
+                          </p>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Passage Container với Floating Badge màu cam/xanh */}
+                      <div className="border border-slate-400 rounded-2xl bg-amber-50/30 p-6 relative space-y-3 mt-4">
+                        <span className={`text-white text-[11px] font-extrabold px-3.5 py-1 rounded-full uppercase absolute -top-3.5 left-5 shadow-xs ${
+                          tIdx === 1 ? 'bg-teal-600' : 'bg-amber-500'
+                        }`}>
+                          {taskItem.badge_label || (tIdx === 1 ? 'EMAIL' : 'POSTER')}
+                        </span>
+
+                        {taskItem.passage_title && (
+                          <h4 className="text-center font-extrabold text-amber-950 text-sm pt-1">
+                            {taskItem.passage_title}
+                          </h4>
+                        )}
+
+                        <p className="text-slate-800 font-medium text-xs leading-relaxed text-justify whitespace-pre-line">
+                          {taskItem.passage_content}
+                        </p>
+                      </div>
+
+                      {/* Multiple Choice Options List: 4 LỰA CHỌN A, B, C, D NẰM TRÊN CÙNG 1 HÀNG NGANG CHUẨN 100% ẢNH 2 & 3 */}
+                      <div className="space-y-3 pt-2">
+                        {tQuestions.map((cQ, cIdx) => {
+                          const childKey = `${q.id}_t${tIdx}_q${cIdx}`;
+                          const selectedVal = userAnswers[childKey];
+                          const opts = Array.isArray(cQ.options) ? cQ.options : [];
+                          const correctOpt = cQ.correct_option || opts.find(o => o.isCorrect)?.id || opts.find(o => o.isCorrect)?.text?.substring(0,1);
+
+                          return (
+                            <div key={cIdx} className="space-y-2">
+                              <div className="border border-slate-100 bg-white rounded-2xl p-3.5 flex items-center gap-3 shadow-2xs overflow-x-auto">
+                                <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
+                                  {cQ.question_number || (16 + cIdx)}
+                                </span>
+
+                                {/* 4 lựa chọn A, B, C, D nằm thẳng trên cùng 1 hàng ngang */}
+                                <div className="flex flex-row items-center gap-2 overflow-x-auto flex-nowrap py-1">
+                                  {opts.map((opt, oIdx) => {
+                                    const optVal = opt.id || String.fromCharCode(65 + oIdx);
+                                    const optText = opt.text || `${optVal}. ${opt.label || opt}`;
+                                    const isSelected = selectedVal === optVal || selectedVal === oIdx;
+
+                                    return (
+                                      <button
+                                        key={oIdx}
+                                        disabled={submitted}
+                                        onClick={() => handleSelectAnswer(childKey, optVal)}
+                                        className={`rounded-full px-4 py-1.5 text-xs transition font-semibold whitespace-nowrap flex-shrink-0 ${
+                                          isSelected
+                                            ? `${tIdx === 1 ? 'bg-teal-600' : 'bg-blue-600'} text-white font-bold shadow-xs`
+                                            : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                      >
+                                        {optText}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctOpt ? `Option ${correctOpt}` : 'Đáp án đúng')}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           }
