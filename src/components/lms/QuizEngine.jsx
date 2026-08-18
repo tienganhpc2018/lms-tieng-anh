@@ -141,6 +141,21 @@ export default function QuizEngine({ activity }) {
             }
           });
         });
+      } else if ((sectionType === 'listening_section' || sectionType === 'reading_section') && Array.isArray(q.content?.parts) && q.content.parts.length > 0) {
+        q.content.parts.forEach((pItem, pIdx) => {
+          const pQs = pItem.questions || [];
+          pQs.forEach((cQ, qIdx) => {
+            totalQCount += 1;
+            const key = `${q.id}_p${pIdx}_q${qIdx}`;
+            const selected = userAnswers[key];
+            const opts = Array.isArray(cQ.options) ? cQ.options : [];
+            const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
+            if (selected === correctOptIndex && selected !== undefined) {
+              correctCount += 1;
+              totalScore += 1;
+            }
+          });
+        });
       } else {
         const childs = q.content?.childQuestions;
         if (Array.isArray(childs) && childs.length > 0) {
@@ -417,6 +432,7 @@ export default function QuizEngine({ activity }) {
           const isReadingTF = sectionType === 'reading_tf';
           const isClozeTest = sectionType === 'cloze_test';
           const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
+          const sectionParts = Array.isArray(q.content?.parts) ? q.content.parts : [];
 
           // Link Audio MP3
           let audioSrc = q.content?.audioUrl;
@@ -623,7 +639,159 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ / LISTENING SECTION
+          // NẾU LÀ LISTENING_SECTION HOẶC READING_SECTION CÓ MULTI PARTS (PART 1 & PART 2)
+          if ((isListening || isReading) && sectionParts.length > 0) {
+            return (
+              <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-6 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
+                    <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
+                      {qIdx + 1}
+                    </span>
+                    <span className="uppercase text-emerald-900 tracking-tight text-sm font-extrabold">
+                      {q.content?.title || (isListening ? 'LISTENING SECTION' : 'READING SECTION')}
+                    </span>
+                  </div>
+                </div>
+
+                {sectionParts.map((pItem, pIdx) => {
+                  const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
+
+                  let pAudioSrc = pItem.audioUrl;
+                  if ((!pAudioSrc || pAudioSrc.startsWith('blob:')) && pItem.audioFileName) {
+                    try {
+                      const cached = localStorage.getItem(`audio_file_${pItem.audioFileName}`);
+                      if (cached) pAudioSrc = cached;
+                    } catch (e) {}
+                  }
+
+                  return (
+                    <div key={pIdx} className="space-y-4 border-b border-slate-200 pb-6 last:border-b-0 last:pb-0">
+                      <div className="p-4 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                        {pItem.part_title || `PART ${pIdx + 1}: Instruction`}
+                      </div>
+
+                      {isListening && (
+                        <div className="space-y-2 bg-white p-4 rounded-2xl border border-purple-200 shadow-2xs">
+                          <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
+                            <Volume2 className="w-4 h-4 text-purple-600" />
+                            <span>Audio Part {pIdx + 1}</span>
+                          </div>
+                          {pAudioSrc ? (
+                            <audio controls preload="auto" className="w-full h-9" src={pAudioSrc}>
+                              Trình duyệt không hỗ trợ phát audio.
+                            </audio>
+                          ) : (
+                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
+                              ⚠️ File audio MP3 Part {pIdx + 1} đang chờ Thầy chọn từ máy.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {isReading && pItem.passage && (
+                        <div className="p-5 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-serif shadow-2xs">
+                          {pItem.passage}
+                        </div>
+                      )}
+
+                      <div className="space-y-4 pt-1">
+                        {pQs.map((cQ, cIdx) => {
+                          const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
+                          const selectedOptIndex = userAnswers[childKey];
+                          const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                          const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
+                          const isCorrect = submitted && selectedOptIndex === correctOptIndex;
+                          const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
+                          const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
+
+                          const isLongOptions = cOpts.some(o => {
+                            const txt = typeof o === 'string' ? o : (o.text || o.label || '');
+                            return txt.length > 18;
+                          });
+
+                          return (
+                            <div
+                              key={cIdx}
+                              className={`p-5 bg-white border rounded-2xl space-y-3 transition ${
+                                submitted
+                                  ? isCorrect
+                                    ? 'border-emerald-400 bg-emerald-50/20'
+                                    : 'border-rose-400 bg-rose-50/20'
+                                  : 'border-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-extrabold text-xs text-slate-900">{cQ.question}</h4>
+
+                                {submitted && (
+                                  <div>
+                                    {isCorrect && (
+                                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-extrabold rounded-lg flex items-center space-x-1">
+                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                        <span>Đúng</span>
+                                      </span>
+                                    )}
+                                    {isWrong && (
+                                      <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[11px] font-extrabold rounded-lg flex items-center space-x-1">
+                                        <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                        <span>Sai</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className={`grid gap-3 w-full items-stretch pt-1 ${
+                                isLongOptions ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+                              }`}>
+                                {cOpts.map((opt, oIdx) => {
+                                  const isSelected = selectedOptIndex === oIdx;
+                                  const isThisCorrect = opt?.isCorrect;
+                                  const label = String.fromCharCode(65 + oIdx);
+
+                                  let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
+                                  if (submitted) {
+                                    if (isThisCorrect) {
+                                      btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
+                                    } else if (isSelected && !isThisCorrect) {
+                                      btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
+                                    }
+                                  } else if (isSelected) {
+                                    btnStyle = 'bg-emerald-600 text-white font-bold border-transparent shadow-xs';
+                                  }
+
+                                  return (
+                                    <button
+                                      key={oIdx}
+                                      disabled={submitted}
+                                      onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                      className={`w-full text-left px-3.5 py-2 rounded-2xl text-xs font-semibold border transition flex items-center space-x-2 whitespace-normal break-words ${btnStyle}`}
+                                    >
+                                      <span className={`w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
+                                        isSelected ? 'bg-white text-emerald-800' : 'bg-slate-200 text-slate-600'
+                                      }`}>
+                                        {label}
+                                      </span>
+                                      <span className="leading-snug">{opt.text}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctText)}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          // DẠNG CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ KHÁC
           return (
             <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
@@ -693,7 +861,6 @@ export default function QuizEngine({ activity }) {
                   const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
                   const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
 
-                  // 🎯 TỰ ĐỘNG KIỂM TRA ĐỘ DÀI CỤM TỪ TRONG 4 ĐÁP ÁN
                   const isLongOptions = cOpts.some(o => {
                     const txt = typeof o === 'string' ? o : (o.text || o.label || '');
                     return txt.length > 18;
@@ -731,10 +898,6 @@ export default function QuizEngine({ activity }) {
                         )}
                       </div>
 
-                      {/* 🎯 BỐ CỤC THÔNG MINH 100% THEO Ý THẦY:
-                          - NẾU CÂU DÀI (>18 KÝ TỰ): TỰ ĐỘNG TÁCH THÀNH 2 DÒNG (DÒNG 1 LÀ A & B; DÒNG 2 LÀ C & D);
-                          - NẾU CÂU NGẮN (<=18 KÝ TỰ): NẰM THẲNG 4 CỘT TRÊN 1 DÒNG CHUẨN ĐẸP;
-                          - KHÔNG BAO GIỜ BỊ CẮT CHỮ TRUNCATE! */}
                       <div className={`grid gap-3 w-full items-stretch pt-1 ${
                         isLongOptions ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
                       }`}>
@@ -780,16 +943,16 @@ export default function QuizEngine({ activity }) {
             </div>
           );
         })}
-
-        {!submitted && (
-          <button
-            onClick={() => handleSubmitQuiz(false)}
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg transition"
-          >
-            Nộp Bài Thi Quiz Ngay
-          </button>
-        )}
       </div>
+
+      {!submitted && (
+        <button
+          onClick={() => handleSubmitQuiz(false)}
+          className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg transition"
+        >
+          Nộp Bài Thi Quiz Ngay
+        </button>
+      )}
     </div>
   );
 }
