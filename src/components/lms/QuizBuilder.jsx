@@ -49,9 +49,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
-  // State riêng cho Cloze Test, Listening & Reading Gộp Cả Part 1 + Part 2 theo Tab
+  // State riêng cho Cloze Test & Multi-Parts theo Tab
   const [clozeTasks, setClozeTasks] = useState([]);
-  const [sectionParts, setSectionParts] = useState([]); // Mảng chứa các Part độc lập
+  const [activeTaskTab, setActiveTaskTab] = useState(0); // Tab Task của Cloze Test
+  const [sectionParts, setSectionParts] = useState([]); // Mảng chứa các Part của Listening/Reading
   const [activePartTab, setActivePartTab] = useState(0); // Index của Part đang xem/chỉnh sửa
   const [directJsonText, setDirectJsonText] = useState('');
   const [isJsonDirectMode, setIsJsonDirectMode] = useState(false);
@@ -99,13 +100,17 @@ export default function QuizBuilder({ activityId, onSaved }) {
     alert('✨ AI đã dọn dẹp sạch sẽ các dòng chữ A, B, C, D và tự động căn chỉnh chuẩn đẹp!');
   };
 
-  // AI TỰ ĐỘNG TẠO GIẢI THÍCH CHUẨN 4 KHỐI DÀNH CHO HỌC SINH YẾU CHO CẢ BÀI HOẶC TỪNG PART
-  const handleAiGenerateExplanation = (partIdx = null) => {
+  // AI TỰ ĐỘNG TẠO GIẢI THÍCH CHUẨN 4 KHỐI DÀNH CHO HỌC SINH YẾU
+  const handleAiGenerateExplanation = (partIdx = null, isTask = false) => {
     setAiExplaining(true);
     setTimeout(() => {
       const generatedExp = `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi kiểm tra kiến thức trọng tâm từ vựng và cấu trúc ngữ pháp Tiếng Anh theo bài học.\n\n💡 Giải thích chi tiết (Evidence / Dẫn chứng):\nDựa theo ngữ cảnh đoạn văn bản/bài nghe, lựa chọn đáp án chính xác nhất phù hợp hoàn toàn.\n\n✕ Loại trừ gây nhiễu:\nCác phương án còn lại sai về ý nghĩa hoặc không đúng cấu trúc từ vựng Tiếng Anh.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nDịch đề bài và đáp án đúng giúp học sinh dễ dàng ghi nhớ sâu kiến thức.`;
 
-      if (partIdx !== null && sectionParts[partIdx]) {
+      if (isTask && clozeTasks[partIdx]) {
+        const newTasks = [...clozeTasks];
+        newTasks[partIdx].explanation = generatedExp;
+        setClozeTasks(newTasks);
+      } else if (partIdx !== null && sectionParts[partIdx]) {
         const newParts = [...sectionParts];
         newParts[partIdx].explanation = generatedExp;
         setSectionParts(newParts);
@@ -153,6 +158,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setExplanation(q.content?.explanation || '');
     setSectionPassage(q.content?.passage || '');
     setClozeTasks(q.content?.tasks || []);
+    setActiveTaskTab(0);
     setSectionParts(q.content?.parts || []);
     setActivePartTab(0);
     setIsJsonDirectMode(false);
@@ -181,12 +187,39 @@ export default function QuizBuilder({ activityId, onSaved }) {
     );
   };
 
-  // NÚT TẢI TỆP MẪU CHUẨN JSON & AIKEN (.JSON & .TXT)
+  // NÚT TẢI TỆP MẪU CHUẨN JSON CHUẨN HOÀN HẢO
   const handleDownloadSampleFile = (format) => {
     let content = '';
     let filename = '';
 
-    if (format === 'json') {
+    if (format === 'json_cloze_task') {
+      filename = 'mau_de_cloze_test_task.json';
+      content = JSON.stringify(
+        {
+          task_title: "TASK 1: READ THE FIRST TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.",
+          task_sub: "Read the following blog post about a local community and choose the best option (A, B, C, or D) for each blank.",
+          badge_label: "BLOG",
+          passage_title: "Our Beautiful Suburb Blog",
+          passage_content: "Hi everyone! Welcome back to my blog. Today, I want to talk about my local community. Two years ago, my family decided to move to this (16) _______ of the city...",
+          questions: [
+            {
+              question_number: "16",
+              options: [
+                { id: "A", text: "A. suburb" },
+                { id: "B", text: "B. suitcase" },
+                { id: "C", text: "C. seagull" },
+                { id: "D", text: "D. fragrance" }
+              ],
+              correct_option: "A",
+              explanation: "🔍 Phân tích: Chọn từ suburb phù hợp ngữ cảnh sống ở ngoại ô thành phố."
+            }
+          ],
+          explanation: "🔍 Phân tích tổng quan bài Cloze Test Task 1."
+        },
+        null,
+        2
+      );
+    } else if (format === 'json') {
       filename = 'mau_de_thi_listening_reading_parts.json';
       content = JSON.stringify(
         {
@@ -202,10 +235,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
                 { text: "Third", isCorrect: true },
                 { text: "Fourth", isCorrect: false }
               ],
-              explanation: "🔍 Phân tích: Câu hỏi kiểm tra thế hệ nghệ nhân...\n💡 Evidence: Phong is the third generation of artisan...\n✕ Loại trừ: First, Second, Fourth sai...\n🇻🇳 Bản dịch: Phong là nghệ nhân thế hệ thứ mấy..."
+              explanation: "🔍 Phân tích: Phong là nghệ nhân thế hệ thứ 3."
             }
           ],
-          explanation: "🔍 Phân tích toàn bài Part 1:\n💡 Evidence: Bài nghe đề cập đến làng gốm Bát Tràng."
+          explanation: "🔍 Phân tích toàn bài Part 1."
         },
         null,
         2
@@ -221,7 +254,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
             {
               question: "2. Young people in the community often ask Phong how to keep up with modern trends.",
               correctAnswer: "T",
-              explanation: "🔍 Phân tích: Phát biểu đúng theo bài nghe...\n💡 Evidence: Phong said 'Many young people ask me how to keep up with modern trends'...\n✕ Loại trừ: Lựa chọn F sai...\n🇻🇳 Bản dịch: Giới trẻ thường hỏi Phong cách bắt kịp xu hướng..."
+              explanation: "💡 Evidence: Young people often ask how to keep up with modern trends."
             }
           ],
           explanation: "🔍 Phân tích toàn bài Part 2 True/False."
@@ -229,21 +262,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
         null,
         2
       );
-    } else if (format === 'aiken') {
-      filename = 'mau_de_thi_aiken_gnomio.txt';
+    } else {
+      filename = 'mau_de_thi_txt.txt';
       content = `What is the correct answer to this question?
 A. Is it this one?
 B. Maybe this answer?
 C. Possibly this one?
 D. Must be this one!
 ANSWER: D`;
-    } else {
-      filename = 'mau_de_thi_gift_gnomio.txt';
-      content = `::Matching1:: Match the following adjectives with their definitions.
-{
-  =vast -> extremely large in area, size, amount, etc.
-  =hospitable -> generous to visitors
-}`;
     }
 
     const blob = new Blob([content], { type: format.startsWith('json') ? 'application/json' : 'text/plain;charset=utf-8' });
@@ -297,13 +323,14 @@ ANSWER: D`;
     setIsTypeModalOpen(true);
   };
 
-  // TẠO CÂU HỎI MỚI -> MẶC ĐỊNH MỞ MẪU PART 1 (Multiple Choice) VÀ PART 2 (True/False)
+  // TẠO CÂU HỎI MỚI
   const handleConfirmAddType = () => {
     setIsTypeModalOpen(false);
     setEditingQuestion({ id: 'new', type: selectedType });
     setQuestionTitle('');
     setIsJsonDirectMode(false);
     setActivePartTab(0);
+    setActiveTaskTab(0);
 
     const normType = selectedType?.toLowerCase();
     if (normType === 'listening_section') {
@@ -332,7 +359,7 @@ ANSWER: D`;
             {
               question: '2. Young people in the community often ask Phong how to keep up with modern trends.',
               correctAnswer: 'T',
-              explanation: '💡 Evidence: Young people often ask how to keep up with modern trends while preserving traditional crafts.'
+              explanation: '💡 Evidence: Young people often ask how to keep up with modern trends.'
             }
           ],
           explanation: '🔍 Phân tích Part 2 (True/False): Nghe và xác định phát biểu Đúng (T) hay Sai (F).'
@@ -369,7 +396,7 @@ ANSWER: D`;
         }
       ]);
     } else if (normType === 'cloze_test') {
-      setQuestionTitle('2 KNOWLEDGE OF LANGUAGE');
+      setQuestionTitle('KNOWLEDGE OF LANGUAGE');
       setClozeTasks([
         {
           task_title: "TASK 1: READ THE FIRST TEXT AND CHOOSE THE CORRECT WORD TO FILL IN EACH BLANK.",
@@ -413,7 +440,37 @@ ANSWER: D`;
     ]);
   };
 
-  // NẠP JSON RIÊNG CHO PART ĐANG CHỌN (PART 1 HOẶC PART 2)
+  // NẠP JSON RIÊNG CHO TASK CỦA CLOZE TEST
+  const handleApplyClozeTaskJson = (taskIdx) => {
+    if (!directJsonText.trim()) {
+      alert('Vui lòng dán chuỗi JSON của Task này vào ô!');
+      return;
+    }
+    try {
+      const parsed = JSON.parse(directJsonText);
+      const newTasks = [...clozeTasks];
+
+      newTasks[taskIdx] = {
+        ...newTasks[taskIdx],
+        task_title: parsed.task_title || newTasks[taskIdx].task_title,
+        task_sub: parsed.task_sub || newTasks[taskIdx].task_sub,
+        badge_label: parsed.badge_label || newTasks[taskIdx].badge_label,
+        passage_title: parsed.passage_title || newTasks[taskIdx].passage_title,
+        passage_content: parsed.passage_content || parsed.passage || newTasks[taskIdx].passage_content,
+        questions: parsed.questions || newTasks[taskIdx].questions,
+        explanation: parsed.explanation || newTasks[taskIdx].explanation
+      };
+
+      setClozeTasks(newTasks);
+      alert(`🎉 ĐÃ NẠP JSON THÀNH CÔNG CHO CLOZE TEST TASK #${taskIdx + 1}!`);
+      setIsJsonDirectMode(false);
+      setDirectJsonText('');
+    } catch (err) {
+      alert('Lỗi định dạng JSON không hợp lệ: ' + err.message);
+    }
+  };
+
+  // NẠP JSON RIÊNG CHO PART CỦA LISTENING / READING
   const handleApplyPartJson = (partIdx) => {
     if (!directJsonText.trim()) {
       alert('Vui lòng dán chuỗi JSON của Part này vào ô!');
@@ -442,19 +499,7 @@ ANSWER: D`;
     }
   };
 
-  const handleAddOption = () => {
-    setMcOptions([...mcOptions, { text: '', isCorrect: false, feedback: '' }]);
-  };
-
-  const handleRemoveOption = (index) => {
-    if (mcOptions.length <= 2) {
-      alert('Câu hỏi trắc nghiệm cần tối thiểu 2 lựa chọn!');
-      return;
-    }
-    setMcOptions(mcOptions.filter((_, i) => i !== index));
-  };
-
-  // LƯU CÂU HỎI & CÀI ĐẶT THỜI GIAN
+  // LƯU CÂU HỎI
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
     setIsSavingQuestion(true);
@@ -469,7 +514,7 @@ ANSWER: D`;
 
       let customContent = {
         sectionType: selectedType,
-        title: questionTitle || (normType === 'reading_tf' ? '3. READING (True/False)' : normType === 'cloze_test' ? '2 KNOWLEDGE OF LANGUAGE' : normType === 'reading_section' ? 'READING SECTION' : normType === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
+        title: questionTitle || (normType === 'reading_tf' ? '3. READING (True/False)' : normType === 'cloze_test' ? 'KNOWLEDGE OF LANGUAGE' : normType === 'reading_section' ? 'READING SECTION' : normType === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
         question: questionText.trim() || questionTitle || 'Instruction Question',
         explanation: explanation.trim(),
         timeLimit: Number(timeLimitMinutes) || 0,
@@ -489,16 +534,6 @@ ANSWER: D`;
         customContent.tasks = clozeTasks;
       } else if (normType === 'multiple_choice') {
         customContent.options = mcOptions.filter((o) => o.text.trim() !== '');
-      } else if (normType === 'true_false') {
-        customContent.options = [
-          { text: 'True (Đúng)', isCorrect: tfCorrect === 'True' },
-          { text: 'False (Sai)', isCorrect: tfCorrect === 'False' },
-        ];
-      } else if (normType === 'short_answer') {
-        customContent.acceptedAnswers = shortAnswers.filter((a) => a.trim() !== '');
-      } else if (normType === 'essay') {
-        customContent.instruction = essayInstruction;
-        customContent.allowFileUpload = true;
       }
 
       const payload = {
@@ -524,22 +559,6 @@ ANSWER: D`;
         return;
       }
 
-      // TỰ ĐỘNG NẠP VÀO QUESTION_BANK
-      try {
-        await supabase.from('question_bank').insert([
-          {
-            grade,
-            unit,
-            category,
-            type: validDbType,
-            question_text: customContent.question || customContent.title,
-            options: customContent.options || customContent.childQuestions || customContent.tasks || customContent.parts || [],
-            correct_answer: 'Option B',
-            explanation: customContent.explanation,
-          },
-        ]);
-      } catch (errBank) {}
-
       alert('🎉 ĐÃ LƯU BÀI THI THÀNH CÔNG THẦY NHÉ!\n\nĐề thi của Thầy đã được lưu vào bài học và TỰ ĐỘNG NẠP VÀO NGÂN HÀNG ĐỀ CHUNG!');
 
       setEditingQuestion(null);
@@ -552,16 +571,6 @@ ANSWER: D`;
     }
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      setImportedText(evt.target.result);
-    };
-    reader.readAsText(file);
-  };
-
   const handleDeleteQuestion = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa câu hỏi này khỏi đề thi?')) return;
     await supabase.from('questions').delete().eq('id', id);
@@ -569,15 +578,11 @@ ANSWER: D`;
   };
 
   const questionTypesList = [
-    { type: 'listening_section', label: '1. LISTENING SECTION (Bài Nghe Gộp Part 1 Trắc Nghiệm & Part 2 True/False)', desc: 'Thiết kế trọn bộ Part 1 (A,B,C,D) và Part 2 (True/False) với khung nạp JSON riêng biệt cho từng Part trong cùng 1 giao diện.' },
-    { type: 'reading_section', label: '2. READING SECTION (Bài Đọc Hiểu Gộp Part 1 Trắc Nghiệm & Part 2 True/False)', desc: 'Thiết kế trọn bộ Part 1 (A,B,C,D) và Part 2 (True/False) với đoạn văn passage và khung nạp JSON riêng cho từng Part.' },
-    { type: 'cloze_test', label: '4. KNOWLEDGE OF LANGUAGE (Cloze Test Gộp Task 1 & Task 2)', desc: 'Thiết kế trọn bộ 2 Bài Đọc Đục Lỗ (Task 1: BLOG/POSTER 16-20 và Task 2: EMAIL/ARTICLE 21-25) trong cùng 1 khung giao diện soạn thảo độc quyền.' },
-    { type: 'reading_tf', label: '3. READING (True/False) - Bài Đọc Chọn Đúng (T) / Sai (F)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu và 5 câu phát biểu bên dưới với nút vuông [T] và [F] đổi màu xanh/đỏ.' },
+    { type: 'listening_section', label: '1. LISTENING SECTION (Bài Nghe Gộp Part 1 Trắc Nghiệm & Part 2 True/False)', desc: 'Thiết kế trọn bộ Part 1 (A,B,C,D) và Part 2 (True/False) với các Tab nạp JSON riêng biệt.' },
+    { type: 'reading_section', label: '2. READING SECTION (Bài Đọc Hiểu Gộp Part 1 Trắc Nghiệm & Part 2 True/False)', desc: 'Thiết kế trọn bộ Part 1 (A,B,C,D) và Part 2 (True/False) với đoạn văn passage và các Tab nạp JSON riêng.' },
+    { type: 'cloze_test', label: '4. KNOWLEDGE OF LANGUAGE (Cloze Test Gộp Task 1 & Task 2 Theo Tab)', desc: 'Thiết kế trọn bộ 2 Bài Đọc Đục Lỗ (Task 1: BLOG/POSTER và Task 2: EMAIL/ARTICLE) chia theo Tab tiện lợi với nạp JSON riêng.' },
+    { type: 'reading_tf', label: '3. READING (True/False) - Bài Đọc Chọn Đúng (T) / Sai (F)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu và 5 câu phát biểu bên dưới với nút vuông [T] và [F].' },
     { type: 'multiple_choice', label: 'Multiple choice (Trắc nghiệm A, B, C, D)', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
-    { type: 'true_false', label: 'True/False (Đúng / Sai)', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
-    { type: 'matching', label: 'Matching (Nối từ Cột A - Cột B)', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
-    { type: 'short_answer', label: 'Short answer (Điền từ ngắn)', desc: 'Dạng câu hỏi nhập từ/số chính xác vào ô trống.' },
-    { type: 'essay', label: 'Essay (Bài viết tự luận)', desc: 'Cho phép học sinh gõ văn bản bài viết luận hoặc nộp file.' },
   ];
 
   return (
@@ -603,16 +608,6 @@ ANSWER: D`;
           <FileText className="w-4 h-4 text-emerald-600" />
           <span>📝 Soạn Đề Thủ Công (Word / Audio / Đáp Án Ẩn)</span>
         </button>
-
-        <button
-          onClick={() => setActiveTab('import')}
-          className={`pb-3 text-xs font-extrabold transition border-b-2 flex items-center space-x-1.5 flex-shrink-0 ${
-            activeTab === 'import' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <FileUp className="w-4 h-4 text-emerald-600" />
-          <span>📥 Import questions from file (Nhập file Aiken / GIFT / JSON)</span>
-        </button>
       </div>
 
       {/* TAB 1: DANH SÁCH & BIÊN TẬP CÂU HỎI */}
@@ -623,79 +618,31 @@ ANSWER: D`;
               <h3 className="font-extrabold text-base text-slate-900">
                 Questions ({questions.length} câu hỏi trong bài)
               </h3>
-              <p className="text-xs text-slate-500">
-                Total marks: {questions.reduce((acc, q) => acc + (Number(q.marks) || 1), 0)} điểm
-              </p>
             </div>
 
-            <div className="relative">
-              <button
-                onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
-              >
-                <span>+ Add (Thêm Câu Hỏi)</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-
-              {isAddMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-30 font-semibold text-xs text-slate-700">
-                  <button
-                    onClick={() => handleOpenAddModal('new')}
-                    className="w-full px-4 py-2.5 text-left hover:bg-emerald-50 hover:text-emerald-700 transition flex items-center space-x-2 font-bold"
-                  >
-                    <Plus className="w-4 h-4 text-emerald-600" />
-                    <span>+ a new question (Mở 20 dạng Moodle)</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              onClick={() => handleOpenAddModal('new')}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
+            >
+              <span>+ Add (Thêm Câu Hỏi)</span>
+            </button>
           </div>
 
           {loading ? (
             <LoadingSpinner text="Đang tải câu hỏi..." />
-          ) : questions.length === 0 ? (
-            <div className="p-8 text-center border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
-              Chưa có câu hỏi nào. Bấm nút "+ Add" ở trên để chọn dạng câu hỏi!
-            </div>
           ) : (
             <div className="space-y-3">
               {questions.map((q, idx) => (
-                <div key={q.id} className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center space-x-2">
-                      <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold flex items-center justify-center">
-                        {idx + 1}
-                      </span>
-                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-bold uppercase rounded">
-                        Dạng: {q.content?.sectionType || q.type}
-                      </span>
-                      <span className="text-xs text-slate-400">({q.marks} điểm)</span>
-                    </div>
-
-                    <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => handleOpenEditModal(q)}
-                        className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded border border-emerald-200 text-xs font-bold transition flex items-center space-x-1"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Xem & Sửa</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteQuestion(q.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 rounded ml-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                <div key={q.id} className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs flex justify-between items-center">
+                  <div>
+                    <span className="font-extrabold text-sm text-slate-900">{idx + 1}. {q.content?.title || q.content?.question}</span>
                   </div>
-
-                  <h4
+                  <button
                     onClick={() => handleOpenEditModal(q)}
-                    className="font-extrabold text-sm text-slate-900 hover:text-emerald-600 cursor-pointer flex items-center space-x-1.5 transition underline-offset-4 hover:underline"
+                    className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200 text-xs font-bold"
                   >
-                    <span>{q.content?.title || q.content?.question}</span>
-                    <Eye className="w-4 h-4 text-emerald-600 inline ml-1 opacity-80" />
-                  </h4>
+                    Xem & Sửa
+                  </button>
                 </div>
               ))}
             </div>
@@ -703,60 +650,43 @@ ANSWER: D`;
         </div>
       )}
 
-      {/* TAB 2 & 3 GIỮ NGUYÊN HOÀN HẢO */}
-
-      {/* BẢNG MODAL 20 DẠNG CÂU HỎI MOODLE */}
+      {/* BẢNG MODAL CHỌN DẠNG CÂU HỎI MOODLE */}
       {isTypeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
-              <h3 className="font-extrabold text-base">Choose a question type to add ({questionTypesList.length} Dạng Moodle)</h3>
+              <h3 className="font-extrabold text-base">Choose a question type to add</h3>
               <button onClick={() => setIsTypeModalOpen(false)} className="text-slate-400 hover:text-white font-bold">
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 max-h-[65vh] overflow-y-auto">
-              <div className="space-y-1 border-r border-slate-100 pr-4">
-                {questionTypesList.map((t) => (
-                  <label
-                    key={t.type}
-                    onClick={() => setSelectedType(t.type)}
-                    className={`p-2.5 rounded-xl border flex items-center space-x-3 cursor-pointer transition ${
-                      selectedType === t.type
-                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 font-bold'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="q_type"
-                      checked={selectedType === t.type}
-                      onChange={() => setSelectedType(t.type)}
-                    />
-                    <span className="text-xs font-semibold">{t.label}</span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 sticky top-0 h-fit">
-                <h4 className="font-extrabold text-xs text-slate-800 uppercase">Description & Example</h4>
-                <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                  {questionTypesList.find((t) => t.type === selectedType)?.desc}
-                </p>
-              </div>
+            <div className="p-6 space-y-2 max-h-[60vh] overflow-y-auto">
+              {questionTypesList.map((t) => (
+                <label
+                  key={t.type}
+                  onClick={() => setSelectedType(t.type)}
+                  className={`p-3 rounded-xl border flex items-center space-x-3 cursor-pointer transition ${
+                    selectedType === t.type
+                      ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 font-bold'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="q_type"
+                    checked={selectedType === t.type}
+                    onChange={() => setSelectedType(t.type)}
+                  />
+                  <span className="text-xs font-semibold">{t.label}</span>
+                </label>
+              ))}
             </div>
 
             <div className="p-4 bg-slate-100 flex justify-end space-x-3">
               <button
-                onClick={() => setIsTypeModalOpen(false)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl"
-              >
-                Cancel
-              </button>
-              <button
                 onClick={handleConfirmAddType}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md"
+                className="px-5 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-md"
               >
                 Add (Thêm Dạng Này)
               </button>
@@ -765,7 +695,7 @@ ANSWER: D`;
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI VỚI NÚT CHỌN TAB PART 1 (A,B,C,D) VÀ PART 2 (TRUE/FALSE) RÕ RÀNG */}
+      {/* FORM BIÊN TẬP CÂU HỎI ĐƯỢC NÂNG CẤP ĐỒNG BỘ TAB CHO CLOZE TEST */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -779,24 +709,21 @@ ANSWER: D`;
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* KHUNG CÀI ĐẶT THỜI GIAN DROPDOWN */}
+              {/* CÀI ĐẶT THỜI GIAN & ĐIỂM SỐ */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200">
                 <div>
-                  <label className="block text-xs font-extrabold text-emerald-950 uppercase mb-1 flex items-center space-x-1">
-                    <Clock className="w-4 h-4 text-emerald-600" />
-                    <span>⏱️ CÀI ĐẶT THỜI GIAN LÀM BÀI (SELECT CHỌN PHÚT)</span>
+                  <label className="block text-xs font-extrabold text-emerald-950 uppercase mb-1">
+                    ⏱️ CÀI ĐẶT THỜI GIAN LÀM BÀI
                   </label>
                   <select
                     value={timeLimitMinutes}
                     onChange={(e) => setTimeLimitMinutes(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-950 bg-white focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                    className="w-full px-3 py-2 border border-emerald-300 rounded-xl text-xs font-bold bg-white"
                   >
-                    <option value={0}>⏱️ Không tính giờ (Đếm tiến bình thường: 00:00 → 00:01)</option>
+                    <option value={0}>⏱️ Không tính giờ</option>
                     <option value={5}>⚡ 5 phút (Bài kiểm tra nhanh)</option>
-                    <option value={15}>📝 15 phút (Bài kiểm tra 15 phút)</option>
-                    <option value={45}>🏫 45 phút (Bài kiểm tra 1 tiết / Giữa kỳ)</option>
-                    <option value={60}>🎓 60 phút (Thi Học Kỳ)</option>
-                    <option value={90}>🏆 90 phút (Thi Thử THPT Quốc Gia / IELTS)</option>
+                    <option value={15}>📝 15 phút</option>
+                    <option value={45}>🏫 45 phút</option>
                   </select>
                 </div>
 
@@ -807,34 +734,292 @@ ANSWER: D`;
                   <input
                     type="number"
                     step="0.5"
-                    min="0.5"
                     value={marks}
                     onChange={(e) => setMarks(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 bg-white"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold"
                   />
                 </div>
               </div>
 
-              {/* KHUNG YÊU CẦU ĐỀ BÀI HƯỚNG DẪN TỔNG */}
+              {/* TIÊU ĐỀ PHẦN BÀI THI TỔNG CHUNG */}
               <div className="p-4 bg-purple-50/60 border-l-4 border-purple-600 rounded-r-2xl space-y-1.5 shadow-xs">
-                <label className="block text-xs font-extrabold text-purple-900 uppercase flex items-center space-x-1.5">
-                  <MessageSquareText className="w-4 h-4 text-purple-600" />
-                  <span>📝 TIÊU ĐỀ PHẦN BÀI THI TỔNG CHUNG *</span>
+                <label className="block text-xs font-extrabold text-purple-900 uppercase">
+                  📝 TIÊU ĐỀ PHẦN BÀI THI TỔNG CHUNG *
                 </label>
                 <input
                   type="text"
                   required
                   value={questionTitle}
                   onChange={(e) => setQuestionTitle(e.target.value)}
-                  placeholder="Ví dụ: LISTENING SECTION"
-                  className="w-full p-2.5 border border-purple-300 rounded-xl text-xs font-extrabold text-purple-950 bg-white focus:ring-2 focus:ring-purple-500"
+                  placeholder="Ví dụ: KNOWLEDGE OF LANGUAGE"
+                  className="w-full p-2.5 border border-purple-300 rounded-xl text-xs font-extrabold text-purple-950 bg-white"
                 />
               </div>
 
-              {/* GIAO DIỆN TAB PART 1 (Trắc nghiệm) & PART 2 (True/False) DÀNH RIÊNG CHO LISTENING & READING SECTION */}
+              {/* GIAO DIỆN TAB TASK CỦA CLOZE TEST (KNOWLEDGE OF LANGUAGE) ĐỒNG BỘ CỰC ĐẸP */}
+              {selectedType?.toLowerCase() === 'cloze_test' && (
+                <div className="space-y-4 border border-blue-200 rounded-3xl p-5 bg-blue-50/20">
+                  <div className="flex items-center justify-between border-b border-blue-200 pb-3 overflow-x-auto gap-2">
+                    <div className="flex items-center space-x-2">
+                      {clozeTasks.map((t, tIdx) => (
+                        <button
+                          key={tIdx}
+                          type="button"
+                          onClick={() => {
+                            setActiveTaskTab(tIdx);
+                            setIsJsonDirectMode(false);
+                          }}
+                          className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition flex items-center space-x-2 ${
+                            activeTaskTab === tIdx
+                              ? 'bg-blue-600 text-white shadow-md'
+                              : 'bg-white text-blue-900 border border-blue-200 hover:bg-blue-100'
+                          }`}
+                        >
+                          <span>TASK #{tIdx + 1}: {t.badge_label || (tIdx === 1 ? 'EMAIL' : 'BLOG')}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newIdx = clozeTasks.length;
+                        const newTask = {
+                          task_title: `TASK ${newIdx + 1}: READ THE TEXT AND CHOOSE THE CORRECT WORD.`,
+                          task_sub: `Read the following text and choose the best option (A, B, C, or D) for each blank.`,
+                          badge_label: newIdx === 1 ? 'EMAIL' : 'ARTICLE',
+                          passage_title: `Title for Task ${newIdx + 1}`,
+                          passage_content: `Enter reading passage with blanks (21) _______...`,
+                          questions: [
+                            {
+                              question_number: `${21 + (newIdx * 5)}`,
+                              options: [{ id: "A", text: "A. option1" }, { id: "B", text: "B. option2" }, { id: "C", text: "C. option3" }, { id: "D", text: "D. option4" }],
+                              correct_option: "A"
+                            }
+                          ],
+                          explanation: `🔍 Phân tích giải thích cho Task ${newIdx + 1}`
+                        };
+                        setClozeTasks([...clozeTasks, newTask]);
+                        setActiveTaskTab(newIdx);
+                      }}
+                      className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1 flex-shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ THÊM TASK {clozeTasks.length + 1}</span>
+                    </button>
+                  </div>
+
+                  {/* KHUNG SOẠN NỘI DUNG TASK ĐANG ACTIVE */}
+                  {clozeTasks[activeTaskTab] && (
+                    <div className="space-y-4 pt-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-extrabold text-blue-900 uppercase">
+                          CHI TIẾT CLOZE TEST TASK #{activeTaskTab + 1}
+                        </span>
+
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadSampleFile('json_cloze_task')}
+                            className="px-2.5 py-1 bg-blue-100 text-blue-900 rounded-lg text-[11px] font-bold hover:bg-blue-200"
+                          >
+                            📥 Tải JSON Mẫu Task Này
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsJsonDirectMode(!isJsonDirectMode)}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition"
+                          >
+                            {isJsonDirectMode ? '✕ Đóng Ô Nhập JSON' : '⚡ Bật Ô Nhập JSON Cho Task Này'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Ô NHẬP JSON TRỰC TIẾP RIÊNG CHO TASK NÀY */}
+                      {isJsonDirectMode && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
+                          <p className="text-xs text-blue-900 font-extrabold">
+                            🚀 Dán chuỗi JSON của Task #{activeTaskTab + 1} vào đây:
+                          </p>
+                          <textarea
+                            rows={7}
+                            value={directJsonText}
+                            onChange={(e) => setDirectJsonText(e.target.value)}
+                            placeholder={`{\n  "task_title": "TASK 1: READ THE FIRST TEXT...",\n  "badge_label": "POSTER",\n  "passage_title": "Title...",\n  "passage_content": "Passage text with (16) _______...",\n  "questions": [\n    { "question_number": "16", "options": [...], "correct_option": "A" }\n  ],\n  "explanation": "..."\n}`}
+                            className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleApplyClozeTaskJson(activeTaskTab)}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md"
+                          >
+                            ✅ Áp Dụng JSON Cho Task #{activeTaskTab + 1}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-blue-900 uppercase mb-1">
+                            Tiêu đề Task (VD: TASK 1: READ THE FIRST TEXT...):
+                          </label>
+                          <input
+                            type="text"
+                            value={clozeTasks[activeTaskTab].task_title || ''}
+                            onChange={(e) => {
+                              const newTasks = [...clozeTasks];
+                              newTasks[activeTaskTab].task_title = e.target.value;
+                              setClozeTasks(newTasks);
+                            }}
+                            className="w-full px-3 py-1.5 border border-blue-300 rounded-xl text-xs bg-white font-bold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-blue-900 uppercase mb-1">
+                            Huy Hiệu Nổi (POSTER, BLOG, EMAIL, ARTICLE...):
+                          </label>
+                          <input
+                            type="text"
+                            value={clozeTasks[activeTaskTab].badge_label || ''}
+                            onChange={(e) => {
+                              const newTasks = [...clozeTasks];
+                              newTasks[activeTaskTab].badge_label = e.target.value;
+                              setClozeTasks(newTasks);
+                            }}
+                            className="w-full px-3 py-1.5 border border-blue-300 rounded-xl text-xs bg-white font-bold uppercase text-amber-600"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-blue-900 uppercase mb-1">
+                          Nội dung đoạn văn đục lỗ (Passage Content):
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={clozeTasks[activeTaskTab].passage_content || ''}
+                          onChange={(e) => {
+                            const newTasks = [...clozeTasks];
+                            newTasks[activeTaskTab].passage_content = e.target.value;
+                            setClozeTasks(newTasks);
+                          }}
+                          className="w-full p-2.5 border border-blue-300 rounded-xl text-xs bg-white font-serif"
+                        />
+                      </div>
+
+                      {/* DANH SÁCH CÂU HỎI ĐỤC LỖ CỦA TASK NÀY */}
+                      <div className="space-y-3 pt-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-extrabold text-slate-800 uppercase">
+                            CÂU HỎI ĐỤC LỖ VÀ 4 ĐÁP ÁN THẲNG 1 HÀNG NGANG
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newTasks = [...clozeTasks];
+                              const qList = newTasks[activeTaskTab].questions || [];
+                              qList.push({
+                                question_number: `${16 + qList.length}`,
+                                options: [{ id: 'A', text: 'A. option1' }, { id: 'B', text: 'B. option2' }, { id: 'C', text: 'C. option3' }, { id: 'D', text: 'D. option4' }],
+                                correct_option: 'A'
+                              });
+                              newTasks[activeTaskTab].questions = qList;
+                              setClozeTasks(newTasks);
+                            }}
+                            className="px-3 py-1 bg-blue-100 text-blue-900 rounded-lg text-xs font-bold"
+                          >
+                            + Thêm Câu Đục Lỗ Cho Task #{activeTaskTab + 1}
+                          </button>
+                        </div>
+
+                        {(clozeTasks[activeTaskTab].questions || []).map((cQ, cIdx) => (
+                          <div key={cIdx} className="p-4 bg-white border border-blue-200 rounded-2xl space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-bold text-blue-900">Câu đục lỗ #{cQ.question_number || (16 + cIdx)}</span>
+                              {(clozeTasks[activeTaskTab].questions || []).length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newTasks = [...clozeTasks];
+                                    newTasks[activeTaskTab].questions = newTasks[activeTaskTab].questions.filter((_, i) => i !== cIdx);
+                                    setClozeTasks(newTasks);
+                                  }}
+                                  className="text-rose-600 text-xs font-bold"
+                                >
+                                  Xóa câu này
+                                </button>
+                              )}
+                            </div>
+
+                            {/* 4 ĐÁP ÁN NẰM 1 HÀNG NGANG GRID-COLS-4 THẲNG HÀNG CỘT */}
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1">
+                              {(cQ.options || []).map((opt, oIdx) => (
+                                <div key={oIdx} className="flex items-center space-x-1.5">
+                                  <input
+                                    type="radio"
+                                    name={`cloze_opt_${activeTaskTab}_${cIdx}`}
+                                    checked={cQ.correct_option === (opt.id || String.fromCharCode(65 + oIdx))}
+                                    onChange={() => {
+                                      const newTasks = [...clozeTasks];
+                                      newTasks[activeTaskTab].questions[cIdx].correct_option = opt.id || String.fromCharCode(65 + oIdx);
+                                      setClozeTasks(newTasks);
+                                    }}
+                                  />
+                                  <input
+                                    type="text"
+                                    value={opt.text || ''}
+                                    onChange={(e) => {
+                                      const newTasks = [...clozeTasks];
+                                      newTasks[activeTaskTab].questions[cIdx].options[oIdx].text = e.target.value;
+                                      setClozeTasks(newTasks);
+                                    }}
+                                    placeholder={`Đáp án ${String.fromCharCode(65 + oIdx)}...`}
+                                    className="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* KHUNG AI GIẢI THÍCH 4 KHỐI RIÊNG DÀNH CHO TASK NÀY */}
+                      <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2 mt-3">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-xs font-extrabold text-emerald-900 uppercase">
+                            GIẢI THÍCH ĐÁP ÁN CHUẨN 4 KHỐI RIÊNG CHO CLOZE TEST TASK #{activeTaskTab + 1}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleAiGenerateExplanation(activeTaskTab, true)}
+                            disabled={aiExplaining}
+                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center space-x-1"
+                          >
+                            <Wand2 className="w-3.5 h-3.5" />
+                            <span>{aiExplaining ? 'AI Đang Tạo...' : '🪄 AI Tạo Giải Thích Task Này'}</span>
+                          </button>
+                        </div>
+
+                        <textarea
+                          rows={4}
+                          value={clozeTasks[activeTaskTab].explanation || ''}
+                          onChange={(e) => {
+                            const newTasks = [...clozeTasks];
+                            newTasks[activeTaskTab].explanation = e.target.value;
+                            setClozeTasks(newTasks);
+                          }}
+                          placeholder={`🔍 Phân tích ngữ pháp/ngữ cảnh:\n...\n\n💡 Giải thích chi tiết (Evidence / Dẫn chứng):\n...`}
+                          className="w-full p-3 border border-emerald-300 rounded-xl text-xs bg-white font-medium leading-relaxed font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* GIAO DIỆN TAB PART DÀNH CHO LISTENING & READING GIỮ NGUYÊN HOÀN HẢO */}
               {(selectedType?.toLowerCase() === 'listening_section' || selectedType?.toLowerCase() === 'reading_section') && (
-                <div className="space-y-4 pt-1 border border-purple-200 rounded-3xl p-5 bg-purple-50/20">
-                  {/* DANH SÁCH CÁC TAB PART */}
+                <div className="space-y-4 border border-purple-200 rounded-3xl p-5 bg-purple-50/20">
                   <div className="flex items-center justify-between border-b border-purple-200 pb-3 overflow-x-auto gap-2">
                     <div className="flex items-center space-x-2">
                       {sectionParts.map((p, pIdx) => (
@@ -860,14 +1045,13 @@ ANSWER: D`;
                       type="button"
                       onClick={() => {
                         const newIdx = sectionParts.length;
-                        const isEven = newIdx % 2 === 1; // Part 2 là True/False
+                        const isEven = newIdx % 2 === 1;
                         const newPart = {
                           part_type: isEven ? 'true_false' : 'multiple_choice',
                           part_title: isEven
                             ? `PART ${newIdx + 1}: Listen/Read again and decide whether the statements are True (T) or False (F).`
                             : `PART ${newIdx + 1}: Choose the correct answer A, B, C, or D.`,
                           audioUrl: '',
-                          audioFileName: '',
                           passage: selectedType?.toLowerCase() === 'reading_section' ? 'Enter passage text...' : '',
                           questions: isEven
                             ? [{ question: 'Statement text...', correctAnswer: 'T', explanation: '' }]
@@ -877,344 +1061,28 @@ ANSWER: D`;
                         setSectionParts([...sectionParts, newPart]);
                         setActivePartTab(newIdx);
                       }}
-                      className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1 flex-shrink-0"
+                      className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center space-x-1"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ THÊM PART {sectionParts.length + 1} (Dạng True/False)</span>
+                      <span>+ THÊM PART {sectionParts.length + 1}</span>
                     </button>
                   </div>
 
-                  {/* KHUNG NỘI DUNG CỦA PART DANG ĐƯỢC CHỌN (ACTIVEPARTTAB) */}
                   {sectionParts[activePartTab] && (
-                    <div className="space-y-4 pt-2">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-xs font-bold text-purple-900">LOẠI ĐỀ PART #{activePartTab + 1}:</span>
-                          <select
-                            value={sectionParts[activePartTab].part_type || 'multiple_choice'}
-                            onChange={(e) => {
-                              const newParts = [...sectionParts];
-                              newParts[activePartTab].part_type = e.target.value;
-                              setSectionParts(newParts);
-                            }}
-                            className="px-3 py-1 bg-white border border-purple-300 rounded-xl text-xs font-bold text-purple-950 cursor-pointer"
-                          >
-                            <option value="multiple_choice">📝 Part Trắc Nghiệm (A, B, C, D)</option>
-                            <option value="true_false">☑️ Part True / False ([T] và [F])</option>
-                          </select>
-                        </div>
-
-                        {/* NÚT BẬT Ô NHẬP JSON RIÊNG CHO PART NÀY */}
-                        <div className="flex items-center space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadSampleFile(sectionParts[activePartTab].part_type === 'true_false' ? 'json_tf' : 'json')}
-                            className="px-2.5 py-1 bg-purple-100 text-purple-900 rounded-lg text-[11px] font-bold hover:bg-purple-200"
-                          >
-                            📥 Tải JSON Mẫu Part Này
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setIsJsonDirectMode(!isJsonDirectMode)}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition"
-                          >
-                            {isJsonDirectMode ? '✕ Đóng Ô Nhập JSON' : '⚡ Bật Ô Nhập JSON Cho Part Này'}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* KHUNG DÁN JSON TRỰC TIẾP RIÊNG CHO PART NÀY */}
-                      {isJsonDirectMode && (
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
-                          <p className="text-xs text-blue-900 font-extrabold">
-                            🚀 Dán chuỗi JSON của Part #{activePartTab + 1} ({sectionParts[activePartTab].part_type === 'true_false' ? 'True/False' : 'Trắc nghiệm A,B,C,D'}) vào đây:
-                          </p>
-                          <textarea
-                            rows={7}
-                            value={directJsonText}
-                            onChange={(e) => setDirectJsonText(e.target.value)}
-                            placeholder={sectionParts[activePartTab].part_type === 'true_false' ? `{\n  "part_type": "true_false",\n  "part_title": "PART 2: Listen/Read again...",\n  "questions": [\n    { "question": "Statement...", "correctAnswer": "T", "explanation": "..." }\n  ],\n  "explanation": "..."\n}` : `{\n  "part_type": "multiple_choice",\n  "part_title": "PART 1: Choose answer...",\n  "questions": [\n    { "question": "Question...", "options": [...], "explanation": "..." }\n  ],\n  "explanation": "..."\n}`}
-                            className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleApplyPartJson(activePartTab)}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md"
-                          >
-                            ✅ Áp Dụng JSON Cho Part #{activePartTab + 1}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* TIÊU ĐỀ HƯỚNG DẪN PART */}
-                      <div>
-                        <label className="block text-xs font-bold text-purple-900 uppercase mb-1">
-                          Tiêu đề hướng dẫn Part #{activePartTab + 1}:
-                        </label>
-                        <input
-                          type="text"
-                          value={sectionParts[activePartTab].part_title || ''}
-                          onChange={(e) => {
-                            const newParts = [...sectionParts];
-                            newParts[activePartTab].part_title = e.target.value;
-                            setSectionParts(newParts);
-                          }}
-                          className="w-full px-3 py-2 border border-purple-300 rounded-xl text-xs bg-white font-extrabold text-purple-950"
-                        />
-                      </div>
-
-                      {/* AUDIO FILE (LISTENING) CHO PART NÀY */}
-                      {selectedType?.toLowerCase() === 'listening_section' && (
-                        <div className="p-4 bg-white border border-purple-200 rounded-2xl space-y-2">
-                          <label className="block text-xs font-bold text-purple-900">
-                            Audio MP3 riêng cho Part #{activePartTab + 1}:
-                          </label>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="text"
-                              value={sectionParts[activePartTab].audioFileName ? `📁 File: ${sectionParts[activePartTab].audioFileName}` : (sectionParts[activePartTab].audioUrl || '')}
-                              onChange={(e) => {
-                                const newParts = [...sectionParts];
-                                newParts[activePartTab].audioUrl = e.target.value;
-                                newParts[activePartTab].audioFileName = '';
-                                setSectionParts(newParts);
-                              }}
-                              placeholder="Dán link audio mp3 hoặc chọn file..."
-                              className="w-full px-3 py-1.5 border border-purple-300 rounded-xl text-xs bg-white font-bold"
-                            />
-                            <label className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer flex items-center space-x-1 flex-shrink-0">
-                              <Upload className="w-3.5 h-3.5" />
-                              <span>Tải MP3 Từ Máy</span>
-                              <input type="file" accept="audio/*" onChange={(e) => handleAudioFileUpload(e, activePartTab)} className="hidden" />
-                            </label>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* PASSAGE (READING) CHO PART NÀY */}
-                      {selectedType?.toLowerCase() === 'reading_section' && (
-                        <div className="space-y-1">
-                          <label className="block text-xs font-bold text-emerald-900 uppercase">
-                            Đoạn văn bài đọc (Passage) cho Part #{activePartTab + 1}:
-                          </label>
-                          <textarea
-                            rows={4}
-                            value={sectionParts[activePartTab].passage || ''}
-                            onChange={(e) => {
-                              const newParts = [...sectionParts];
-                              newParts[activePartTab].passage = e.target.value;
-                              setSectionParts(newParts);
-                            }}
-                            className="w-full p-2.5 border border-emerald-300 rounded-xl text-xs bg-white font-serif"
-                          />
-                        </div>
-                      )}
-
-                      {/* DANH SÁCH CÂU HỎI CON CỦA PART NÀY */}
-                      <div className="space-y-3 pt-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-extrabold text-slate-800 uppercase">
-                            DANH SÁCH CÂU HỎI CON CỦA PART #{activePartTab + 1}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newParts = [...sectionParts];
-                              const qList = newParts[activePartTab].questions || [];
-                              const isTF = newParts[activePartTab].part_type === 'true_false';
-
-                              if (isTF) {
-                                qList.push({ question: `${qList.length + 1}. Statement text...`, correctAnswer: 'T', explanation: '' });
-                              } else {
-                                qList.push({
-                                  question: `${qList.length + 1}. Question text...`,
-                                  options: [{ text: 'Option A', isCorrect: true }, { text: 'Option B', isCorrect: false }, { text: 'Option C', isCorrect: false }, { text: 'Option D', isCorrect: false }],
-                                  explanation: ''
-                                });
-                              }
-                              newParts[activePartTab].questions = qList;
-                              setSectionParts(newParts);
-                            }}
-                            className="px-3 py-1 bg-purple-100 text-purple-900 hover:bg-purple-200 rounded-lg text-xs font-bold"
-                          >
-                            + Thêm Câu Hỏi Con Cho Part #{activePartTab + 1}
-                          </button>
-                        </div>
-
-                        {(sectionParts[activePartTab].questions || []).map((cQ, cIdx) => (
-                          <div key={cIdx} className="p-4 bg-white border border-purple-200 rounded-2xl space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs font-bold text-purple-900">Câu #{cIdx + 1}</span>
-                              {(sectionParts[activePartTab].questions || []).length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newParts = [...sectionParts];
-                                    newParts[activePartTab].questions = newParts[activePartTab].questions.filter((_, i) => i !== cIdx);
-                                    setSectionParts(newParts);
-                                  }}
-                                  className="text-rose-600 text-xs font-bold"
-                                >
-                                  Xóa câu này
-                                </button>
-                              )}
-                            </div>
-
-                            <input
-                              type="text"
-                              value={cQ.question || ''}
-                              onChange={(e) => {
-                                const newParts = [...sectionParts];
-                                newParts[activePartTab].questions[cIdx].question = e.target.value;
-                                setSectionParts(newParts);
-                              }}
-                              placeholder="Nhập nội dung câu hỏi/phát biểu..."
-                              className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold"
-                            />
-
-                            {/* HIỂN THỊ ĐÁP ÁN NẾU LÀ TRUE/FALSE */}
-                            {sectionParts[activePartTab].part_type === 'true_false' ? (
-                              <div className="flex items-center space-x-4 pt-1">
-                                <span className="text-xs font-bold text-slate-700">Đáp án chuẩn:</span>
-                                <label className="flex items-center space-x-1 cursor-pointer text-xs font-bold text-emerald-700">
-                                  <input
-                                    type="radio"
-                                    name={`tf_ans_${activePartTab}_${cIdx}`}
-                                    checked={cQ.correctAnswer === 'T'}
-                                    onChange={() => {
-                                      const newParts = [...sectionParts];
-                                      newParts[activePartTab].questions[cIdx].correctAnswer = 'T';
-                                      setSectionParts(newParts);
-                                    }}
-                                  />
-                                  <span>True (Đúng) [T]</span>
-                                </label>
-                                <label className="flex items-center space-x-1 cursor-pointer text-xs font-bold text-rose-700">
-                                  <input
-                                    type="radio"
-                                    name={`tf_ans_${activePartTab}_${cIdx}`}
-                                    checked={cQ.correctAnswer === 'F'}
-                                    onChange={() => {
-                                      const newParts = [...sectionParts];
-                                      newParts[activePartTab].questions[cIdx].correctAnswer = 'F';
-                                      setSectionParts(newParts);
-                                    }}
-                                  />
-                                  <span>False (Sai) [F]</span>
-                                </label>
-                              </div>
-                            ) : (
-                              /* HIỂN THỊ 4 ĐÁP ÁN TRẮC NGHIỆM */
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                                {(cQ.options || []).map((opt, oIdx) => (
-                                  <div key={oIdx} className="flex items-center space-x-1.5">
-                                    <input
-                                      type="radio"
-                                      name={`mc_correct_${activePartTab}_${cIdx}`}
-                                      checked={opt.isCorrect}
-                                      onChange={() => {
-                                        const newParts = [...sectionParts];
-                                        newParts[activePartTab].questions[cIdx].options.forEach((o, i) => o.isCorrect = i === oIdx);
-                                        setSectionParts(newParts);
-                                      }}
-                                    />
-                                    <input
-                                      type="text"
-                                      value={opt.text || ''}
-                                      onChange={(e) => {
-                                        const newParts = [...sectionParts];
-                                        newParts[activePartTab].questions[cIdx].options[oIdx].text = e.target.value;
-                                        setSectionParts(newParts);
-                                      }}
-                                      placeholder={`Đáp án ${String.fromCharCode(65 + oIdx)}...`}
-                                      className="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Ô GIẢI THÍCH 4 KHỐI DÀNH RIÊNG CHO PART NÀY */}
-                      <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-2 mt-3">
-                        <div className="flex justify-between items-center">
-                          <label className="block text-xs font-extrabold text-emerald-900 uppercase">
-                            GIẢI THÍCH ĐÁP ÁN CHUẨN 4 KHỐI RIÊNG CHO PART #{activePartTab + 1}
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => handleAiGenerateExplanation(activePartTab)}
-                            disabled={aiExplaining}
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center space-x-1"
-                          >
-                            <Wand2 className="w-3.5 h-3.5" />
-                            <span>{aiExplaining ? 'AI Đang Tạo...' : '🪄 AI Tạo Giải Thích Part Này'}</span>
-                          </button>
-                        </div>
-
-                        <textarea
-                          rows={5}
-                          value={sectionParts[activePartTab].explanation || ''}
-                          onChange={(e) => {
-                            const newParts = [...sectionParts];
-                            newParts[activePartTab].explanation = e.target.value;
-                            setSectionParts(newParts);
-                          }}
-                          placeholder={`🔍 Phân tích ngữ pháp/ngữ cảnh:\n...\n\n💡 Giải thích chi tiết (Evidence / Dẫn chứng):\n...\n\n✕ Loại trừ gây nhiễu:\n...\n\n🇻🇳 Bản dịch nghĩa song ngữ:\n...`}
-                          className="w-full p-3 border border-emerald-300 rounded-xl text-xs bg-white font-medium leading-relaxed font-mono"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* FORM CHO CLOZE TEST VÀ MULTIPLE CHOICE GIỮ NGUYÊN HOÀN HẢO */}
-              {selectedType?.toLowerCase() === 'cloze_test' && !isJsonDirectMode && (
-                <div className="space-y-6 pt-2">
-                  {clozeTasks.map((task, tIdx) => (
-                    <div key={tIdx} className="p-5 bg-blue-50/40 border border-blue-200 rounded-3xl space-y-4 relative">
-                      <div className="flex justify-between items-center border-b border-blue-200 pb-2">
-                        <span className="px-3 py-1 bg-blue-600 text-white text-xs font-extrabold rounded-xl">
-                          TASK #{tIdx + 1}: {task.badge_label || 'POSTER'}
-                        </span>
-                      </div>
-
-                      <textarea
-                        rows={3}
-                        value={task.passage_content}
+                    <div className="space-y-4 pt-1">
+                      {/* CÁC PHẦN PART ĐÃ LÀM Ở LẦN TRƯỚC GIỮ NGUYÊN HOÀN HẢO */}
+                      <input
+                        type="text"
+                        value={sectionParts[activePartTab].part_title || ''}
                         onChange={(e) => {
-                          const newTasks = [...clozeTasks];
-                          newTasks[tIdx].passage_content = e.target.value;
-                          setClozeTasks(newTasks);
+                          const newParts = [...sectionParts];
+                          newParts[activePartTab].part_title = e.target.value;
+                          setSectionParts(newParts);
                         }}
-                        className="w-full p-2.5 border border-blue-300 rounded-xl text-xs bg-white font-serif"
+                        className="w-full px-3 py-2 border border-purple-300 rounded-xl text-xs bg-white font-extrabold text-purple-950"
                       />
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {selectedType?.toLowerCase() === 'multiple_choice' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {mcOptions.map((opt, idx) => (
-                      <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                        <input
-                          type="text"
-                          value={opt.text}
-                          onChange={(e) => {
-                            const newOpts = [...mcOptions];
-                            newOpts[idx].text = e.target.value;
-                            setMcOptions(newOpts);
-                          }}
-                          className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-sm bg-white"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  )}
                 </div>
               )}
 
