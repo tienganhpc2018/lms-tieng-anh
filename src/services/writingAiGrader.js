@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 
 /**
  * Service AI Chấm bài luận & bài viết ngắn (WRITING SECTION)
- * Tự động phân tích Ngữ pháp, Từ vựng, Mạch lạc, Hoàn thành đề bài & OCR ảnh bài làm chụp tay.
+ * Tự động phân tích Ngữ pháp, Từ vựng C2/IELTS Band 8.0, Mạch lạc, Hoàn thành đề bài & OCR ảnh bài làm chụp tay.
  */
 export async function gradeWritingSubmissionWithAI({
   questionTitle,
@@ -12,7 +12,6 @@ export async function gradeWritingSubmissionWithAI({
   studentImageUrl = null,
 }) {
   try {
-    // 1. Lấy Gemini API Key từ cấu hình hoặc Supabase settings / env
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
 
     if (!apiKey) {
@@ -31,13 +30,16 @@ export async function gradeWritingSubmissionWithAI({
         grammarFixes: [
           { original: 'She start learn', suggestion: 'She started learning', explanation: 'Thì quá khứ đơn start -> started và theo sau start là V-ing.' }
         ],
+        advancedVocabularySuggestions: [
+          { original: 'important', c2Upgrade: 'pivotal / of paramount significance', example: 'Craft villages play a pivotal role in preserving cultural heritage.' },
+          { original: 'good', c2Upgrade: 'exceptional / exemplary', example: 'The artisan showed exemplary craftsmanship.' },
+        ],
         detailedFeedback: 'Bài làm viết khá tốt, đúng trọng tâm đề bài. Cần chú ý hơn về chia thì quá khứ và cách dùng từ nối giữa các đoạn văn để đạt điểm tối đa.',
       };
     }
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-    // Chuẩn bị nội dung gửi tới Gemini Vision / Text model
     let contentsParts = [];
 
     const promptText = `
@@ -69,13 +71,19 @@ YÊU CẦU ĐẦU RA (Trả về định dạng JSON thuần túy 100%, không k
       "explanation": "Giải thích lỗi sai ngắn gọn bằng Tiếng Việt"
     }
   ],
+  "advancedVocabularySuggestions": [
+    {
+      "original": "Từ đơn giản học sinh đã dùng (ví dụ: important, think, good)",
+      "c2Upgrade": "Từ/Cụm từ C2 / Band 8.0 nâng cao đắt giá hơn",
+      "example": "Ví dụ câu hoàn chỉnh sử dụng từ nâng cao này"
+    }
+  ],
   "detailedFeedback": "Đánh giá chi tiết bằng Tiếng Việt thân thiện, khích lệ học sinh và chỉ ra các điểm cần phát huy/khắc phục."
 }
 `;
 
     contentsParts.push({ text: promptText });
 
-    // Nếu học sinh đính kèm ảnh bài làm chụp tay -> Chuyển thành inline_data base64 gửi cho Gemini OCR
     if (studentImageUrl && studentImageUrl.startsWith('data:image')) {
       const mimeType = studentImageUrl.substring(studentImageUrl.indexOf(':') + 1, studentImageUrl.indexOf(';'));
       const base64Data = studentImageUrl.substring(studentImageUrl.indexOf(',') + 1);
