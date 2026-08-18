@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizEngine({ activity }) {
@@ -9,6 +9,7 @@ export default function QuizEngine({ activity }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userAnswers, setUserAnswers] = useState({});
+  const [uploadedStudentImages, setUploadedStudentImages] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
   // Bộ đếm thời gian
@@ -116,6 +117,20 @@ export default function QuizEngine({ activity }) {
     setUserAnswers((prev) => ({ ...prev, [questionKey]: value }));
   };
 
+  // HỌC SINH TẢI ẢNH BÀI LÀM TỰ LUẬN
+  const handleStudentImageUpload = (e, questionKey) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target.result;
+      setUploadedStudentImages((prev) => ({ ...prev, [questionKey]: dataUrl }));
+      alert('📸 Đã tải ảnh bài làm thành công!');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmitQuiz = async (isAutoSubmit = false) => {
     setTimerActive(false);
 
@@ -141,10 +156,11 @@ export default function QuizEngine({ activity }) {
             }
           });
         });
-      } else if ((sectionType === 'listening_section' || sectionType === 'reading_section') && Array.isArray(q.content?.parts) && q.content.parts.length > 0) {
+      } else if (['listening_section', 'reading_section', 'writing_section', 'multiple_choice'].includes(sectionType) && Array.isArray(q.content?.parts) && q.content.parts.length > 0) {
         q.content.parts.forEach((pItem, pIdx) => {
           const pQs = pItem.questions || [];
           const isTF = pItem.part_type === 'true_false';
+          const isEssay = pItem.part_type === 'short_essay' || pItem.part_type === 'full_essay';
 
           pQs.forEach((cQ, qIdx) => {
             totalQCount += 1;
@@ -153,6 +169,11 @@ export default function QuizEngine({ activity }) {
 
             if (isTF) {
               if (selected === (cQ.correctAnswer || 'T')) {
+                correctCount += 1;
+                totalScore += 1;
+              }
+            } else if (isEssay) {
+              if (selected && selected.trim() !== '') {
                 correctCount += 1;
                 totalScore += 1;
               }
@@ -232,7 +253,7 @@ export default function QuizEngine({ activity }) {
         {
           activity_id: activity.id,
           student_id: profile.id,
-          answers_data: userAnswers,
+          answers_data: { userAnswers, uploadedStudentImages },
           score: totalScore,
           status: 'graded',
         },
@@ -240,7 +261,6 @@ export default function QuizEngine({ activity }) {
     }
   };
 
-  // HÀM HIGHLIGHT TỪ TRONG ĐOẠN VĂN PASSAGE (VD: TÔ NỀN VÀNG CHO TỪ 'facility' TRONG ĐOẠN VĂN)
   const renderPassageWithHighlights = (passageText) => {
     if (!passageText) return null;
     const parts = passageText.split(/('.*?'|".*?")/g);
@@ -283,7 +303,6 @@ export default function QuizEngine({ activity }) {
     });
   };
 
-  // HÀM RENDER GIẢI THÍCH GỌN NHẸ 1 DÒNG DUY NHẤT
   const renderCompactExplanation = (explanationText, correctText) => {
     if (!explanationText || explanationText.trim() === '') {
       return (
@@ -394,6 +413,7 @@ export default function QuizEngine({ activity }) {
       <div className="space-y-3">
         {questions.map((q, qIdx) => {
           const sectionType = (q.content?.sectionType || q.type || 'multiple_choice').toLowerCase();
+          const isWriting = sectionType === 'writing_section';
           const isReading = sectionType === 'reading_section';
           const isListening = sectionType === 'listening_section';
           const isReadingTF = sectionType === 'reading_tf';
@@ -401,13 +421,165 @@ export default function QuizEngine({ activity }) {
           const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
           const sectionParts = Array.isArray(q.content?.parts) ? q.content.parts : [];
 
-          // Link Audio MP3
-          let audioSrc = q.content?.audioUrl;
-          if ((!audioSrc || audioSrc.startsWith('blob:')) && q.content?.audioFileName) {
-            try {
-              const cachedDataUrl = localStorage.getItem(`audio_file_${q.content.audioFileName}`);
-              if (cachedDataUrl) audioSrc = cachedDataUrl;
-            } catch (errLocal) {}
+          // HIỂN THỊ DẠNG WRITING SECTION (3 PART)
+          if (isWriting && sectionParts.length > 0) {
+            return (
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-indigo-600 rounded-3xl p-5 shadow-xs border-y border-r border-slate-200 space-y-4">
+                <div className="bg-indigo-50/70 rounded-xl p-3 flex justify-between items-center">
+                  <h3 className="font-extrabold text-xs text-indigo-900 tracking-wide uppercase flex items-center space-x-2">
+                    <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-extrabold text-xs flex items-center justify-center">
+                      {qIdx + 1}
+                    </span>
+                    <span>{q.content?.title || 'WRITING SECTION'}</span>
+                  </h3>
+                  <FileText className="w-4 h-4 text-indigo-600" />
+                </div>
+
+                {sectionParts.map((pItem, pIdx) => {
+                  const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
+                  const isPart1MC = pItem.part_type === 'multiple_choice';
+                  const isPart2Short = pItem.part_type === 'short_essay';
+
+                  return (
+                    <div key={pIdx} className="space-y-3 border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
+                      <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                        {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
+                      </div>
+
+                      {pItem.passage && (
+                        <div className="p-3.5 bg-amber-50/40 border border-amber-200 rounded-xl text-xs text-amber-950 leading-relaxed font-serif">
+                          {pItem.passage}
+                        </div>
+                      )}
+
+                      <div className="space-y-3 pt-1">
+                        {pQs.map((cQ, cIdx) => {
+                          const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
+                          const selectedVal = userAnswers[childKey] || '';
+
+                          if (isPart1MC) {
+                            const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                            const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
+                            const isCorrect = submitted && selectedVal === correctOptIndex;
+                            const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
+
+                            return (
+                              <div key={cIdx} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+                                <h4 className="font-extrabold text-xs text-slate-900">{cQ.question}</h4>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {cOpts.map((opt, oIdx) => {
+                                    const isSelected = selectedVal === oIdx;
+                                    const isThisCorrect = opt?.isCorrect;
+                                    const label = String.fromCharCode(65 + oIdx);
+
+                                    let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
+                                    if (submitted) {
+                                      if (isThisCorrect) btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
+                                      else if (isSelected && !isThisCorrect) btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
+                                    } else if (isSelected) {
+                                      btnStyle = 'bg-indigo-600 text-white font-bold border-transparent shadow-xs';
+                                    }
+
+                                    return (
+                                      <button
+                                        key={oIdx}
+                                        disabled={submitted}
+                                        onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                        className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center space-x-1.5 whitespace-normal break-words ${btnStyle}`}
+                                      >
+                                        <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
+                                          isSelected ? 'bg-white text-indigo-800' : 'bg-slate-200 text-slate-600'
+                                        }`}>
+                                          {label}
+                                        </span>
+                                        <span className="leading-snug">{opt.text}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctText)}
+                              </div>
+                            );
+                          } else if (isPart2Short) {
+                            return (
+                              <div key={cIdx} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+                                <h4 className="font-extrabold text-xs text-slate-900 whitespace-pre-line">{cQ.question}</h4>
+                                <input
+                                  type="text"
+                                  disabled={submitted}
+                                  value={selectedVal}
+                                  onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                  placeholder="Gõ câu hoàn chỉnh của bạn tại đây..."
+                                  className="w-full p-2.5 border border-indigo-200 rounded-xl text-xs bg-indigo-50/20 font-medium"
+                                />
+                                {submitted && (
+                                  <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs space-y-1">
+                                    <span className="font-bold text-emerald-950">➔ GỢI Ý ĐÁP ÁN MẪU: {cQ.sample_answer || 'Đáp án mẫu chuẩn'}</span>
+                                    {renderFormattedParagraphs(cQ.explanation || pItem.explanation)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          } else {
+                            const studentImgUrl = uploadedStudentImages[childKey];
+
+                            return (
+                              <div key={cIdx} className="p-4 bg-white border border-indigo-200 rounded-2xl space-y-3 shadow-xs">
+                                <h4 className="font-extrabold text-xs text-slate-900 whitespace-pre-line">{cQ.question}</h4>
+
+                                <div className="space-y-2">
+                                  <label className="block text-[11px] font-bold text-indigo-900 uppercase">
+                                    ✍️ HỌC SINH LÀM BÀI: DÁN VĂN BẢN HOẶC CHỤP ẢNH TẢI BÀI LÀM LÊN:
+                                  </label>
+                                  <textarea
+                                    rows={6}
+                                    disabled={submitted}
+                                    value={selectedVal}
+                                    onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                    placeholder="Học sinh có thể gõ/dán bài văn trực tiếp vào ô này..."
+                                    className="w-full p-3 border border-indigo-300 rounded-xl text-xs bg-white font-serif leading-relaxed"
+                                  />
+                                </div>
+
+                                <div className="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <Camera className="w-4 h-4 text-indigo-600" />
+                                    <span className="text-xs font-extrabold text-indigo-950">Chụp ảnh / Tải ảnh bài làm từ máy:</span>
+                                  </div>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    disabled={submitted}
+                                    onChange={(e) => handleStudentImageUpload(e, childKey)}
+                                    className="text-xs"
+                                  />
+                                </div>
+
+                                {studentImgUrl && (
+                                  <div className="p-2 bg-slate-100 border rounded-xl text-center">
+                                    <span className="text-[10px] font-bold text-slate-600 block mb-1">📷 Ảnh bài làm đã tải lên:</span>
+                                    <img src={studentImgUrl} alt="Bài làm học sinh" className="max-h-48 mx-auto rounded-lg shadow-sm border" />
+                                  </div>
+                                )}
+
+                                {submitted && (
+                                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1">
+                                    <span className="font-bold text-emerald-950">💡 GỢI Ý DÀN Ý VÀ TIÊU CHUẨN CHẤM:</span>
+                                    <div className="text-slate-800">{renderFormattedParagraphs(cQ.sample_answer || cQ.explanation || pItem.explanation)}</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
           }
 
           // DẠNG 3: READING (True/False)
@@ -478,7 +650,7 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test) - ÉP NẰM 1 HÀNG 4 CỘT FIT KHUNG 100%
+          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test)
           if (isClozeTest) {
             const tasksList = Array.isArray(q.content?.tasks) && q.content.tasks.length > 0
               ? q.content.tasks
@@ -544,7 +716,6 @@ export default function QuizEngine({ activity }) {
                         </p>
                       </div>
 
-                      {/* ÉP 100% CÁC CÂU CLOZE TEST NẰM TRÊN 1 HÀNG 4 CỘT - THU NHỎ FONT VỪA KHUNG NẾU TỪ DÀI */}
                       <div className="space-y-1.5 pt-0.5">
                         {tQuestions.map((cQ, cIdx) => {
                           const childKey = `${q.id}_t${tIdx}_q${cIdx}`;
@@ -554,7 +725,6 @@ export default function QuizEngine({ activity }) {
 
                           const maxOptLen = Math.max(...opts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
 
-                          // Co cỡ chữ linh hoạt để ép vừa trọn vẹn 4 CỘT TRÊN 1 HÀNG FIT KHUNG
                           let btnFontSize = 'text-xs px-2.5 py-1.5';
                           if (maxOptLen > 22) {
                             btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
@@ -638,7 +808,6 @@ export default function QuizEngine({ activity }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instruction`}
                       </div>
 
-                      {/* CHỈ HIỂN THỊ DUY NHẤT THANH TRÌNH PHÁT AUDIO CONTROL */}
                       {isListening && (
                         <div className="bg-white p-2 rounded-xl border border-purple-200 shadow-2xs">
                           {pAudioSrc ? (
@@ -653,14 +822,12 @@ export default function QuizEngine({ activity }) {
                         </div>
                       )}
 
-                      {/* ĐOẠN VĂN PASSAGE */}
                       {isReading && pItem.passage && (
                         <div className="p-3.5 bg-white border border-emerald-200 rounded-xl text-xs text-slate-800 leading-relaxed font-serif text-justify shadow-2xs">
                           {renderPassageWithHighlights(pItem.passage)}
                         </div>
                       )}
 
-                      {/* ÉP CÁC CÂU CỦA LISTENING NẰM TRÊN 1 HÀNG 4 CỘT FIT KHUNG */}
                       <div className="space-y-1.5 pt-0.5">
                         {pQs.map((cQ, cIdx) => {
                           const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
@@ -715,7 +882,6 @@ export default function QuizEngine({ activity }) {
 
                           const maxOptLen = Math.max(...cOpts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
 
-                          // Co cỡ chữ linh hoạt để ép 4 đáp án nằm trọn vẹn 1 hàng 4 cột
                           let btnFontSize = 'text-xs px-2.5 py-1.5';
                           if (maxOptLen > 30) {
                             btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
@@ -757,7 +923,6 @@ export default function QuizEngine({ activity }) {
                                 )}
                               </div>
 
-                              {/* ÉP NẰM 1 HÀNG 4 CỘT CHO MỌI CÂU LISTENING */}
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch pt-0.5">
                                 {cOpts.map((opt, oIdx) => {
                                   const isSelected = selectedVal === oIdx;
@@ -918,16 +1083,16 @@ export default function QuizEngine({ activity }) {
             </div>
           );
         })}
-      </div>
 
-      {!submitted && (
-        <button
-          onClick={() => handleSubmitQuiz(false)}
-          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-lg transition"
-        >
-          Nộp Bài Thi Quiz Ngay
-        </button>
-      )}
+        {!submitted && (
+          <button
+            onClick={() => handleSubmitQuiz(false)}
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-lg transition"
+          >
+            Nộp Bài Thi Quiz Ngay
+          </button>
+        )}
+      </div>
     </div>
   );
 }
