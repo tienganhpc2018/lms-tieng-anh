@@ -1,7 +1,13 @@
 /**
  * Utility Xuất Đề Thi Tiếng Anh ra File Word (.doc/.docx) Chuẩn Định Dạng In Giấy
  */
-export function exportQuizToWord(questions = [], activityTitle = 'BÀI KÍỂM TRA TIẾNG ANH') {
+export function exportQuizToWord(questionsInput = [], activityTitle = 'BÀI KIỂM TRA TIẾNG ANH') {
+  const safeQuestions = Array.isArray(questionsInput)
+    ? questionsInput
+    : questionsInput
+    ? [questionsInput]
+    : [];
+
   let wordHtml = `
     <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head>
@@ -38,7 +44,8 @@ export function exportQuizToWord(questions = [], activityTitle = 'BÀI KÍỂM T
 
   const answerKeys = [];
 
-  questions.forEach((q, qIdx) => {
+  safeQuestions.forEach((q, qIdx) => {
+    if (!q) return;
     const cObj = q.content || {};
     const parts = Array.isArray(cObj.parts) ? cObj.parts : [];
 
@@ -46,83 +53,61 @@ export function exportQuizToWord(questions = [], activityTitle = 'BÀI KÍỂM T
       parts.forEach((p, pIdx) => {
         wordHtml += `<div class="part-title">${p.part_title || `PART ${pIdx + 1}`}</div>`;
         if (p.passage) {
-          wordHtml += `<div class="passage">${p.passage.replace(/\n/g, '<br>')}</div>`;
+          wordHtml += `<div class="passage">${String(p.passage).replace(/\n/g, '<br>')}</div>`;
         }
 
         (p.questions || []).forEach((cq, cIdx) => {
           const qNum = `${qIdx + 1}.${cIdx + 1}`;
-          wordHtml += `<div class="question">${cq.question}</div>`;
+          wordHtml += `<div class="question">${cq.question || ''}</div>`;
 
           if (Array.isArray(cq.options)) {
             wordHtml += `<div class="options">`;
             cq.options.forEach((opt, oIdx) => {
               const label = String.fromCharCode(65 + oIdx);
-              wordHtml += `<span>${label}. ${opt.text || opt}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`;
-              if (opt.isCorrect) {
-                answerKeys.push({ num: qNum, key: label, explanation: cq.explanation || p.explanation });
+              const txt = typeof opt === 'object' ? opt.text : opt;
+              wordHtml += `<span>${label}. ${txt || ''}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`;
+              if (typeof opt === 'object' && opt.isCorrect) {
+                answerKeys.push({ qNum, key: label });
               }
             });
             wordHtml += `</div>`;
+          } else if (cq.correctAnswer) {
+            answerKeys.push({ qNum, key: cq.correctAnswer });
           }
         });
       });
     } else {
-      wordHtml += `<div class="question">${qIdx + 1}. ${cObj.question || cObj.title || 'Câu hỏi'}</div>`;
-      if (Array.isArray(cObj.options)) {
-        wordHtml += `<div class="options">`;
-        cObj.options.forEach((opt, oIdx) => {
-          const label = String.fromCharCode(65 + oIdx);
-          wordHtml += `<span>${label}. ${opt.text || opt}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`;
-          if (opt.isCorrect) {
-            answerKeys.push({ num: `${qIdx + 1}`, key: label, explanation: cObj.explanation });
-          }
-        });
-        wordHtml += `</div>`;
+      const qText = cObj.question || cObj.title || q.type || `Câu ${qIdx + 1}`;
+      wordHtml += `<div class="question">Câu ${qIdx + 1}: ${qText}</div>`;
+      if (cObj.passage) {
+        wordHtml += `<div class="passage">${String(cObj.passage).replace(/\n/g, '<br>')}</div>`;
       }
     }
   });
 
-  // Trang Bảng Đáp Án & Hướng Dẫn Chấm ở cuối
-  wordHtml += `
-    <div class="answer-key">
-      <h3 style="text-align: center; text-transform: uppercase;">BẢNG ĐÁP ÁN & HƯỚNG DẪN CHẤM CHI TIẾT</h3>
-      <table class="key-table">
-        <thead>
-          <tr style="background-color: #f1f5f9;">
-            <th>Câu số</th>
-            <th>Đáp án đúng</th>
-            <th>Hướng dẫn giải chi tiết</th>
-          </tr>
-        </thead>
-        <tbody>
-  `;
-
-  answerKeys.forEach((item) => {
+  if (answerKeys.length > 0) {
     wordHtml += `
-      <tr>
-        <td style="font-weight: bold;">${item.num}</td>
-        <td style="font-weight: bold; color: #166534;">${item.key}</td>
-        <td style="text-align: left;">${item.explanation || 'Đáp án chính xác theo đề thi.'}</td>
-      </tr>
+      <div class="answer-key">
+        <div class="title" style="font-size: 14pt;">BẢNG ĐÁP ÁN CHÍNH THỨC</div>
+        <table class="key-table">
+          <tr>
+            ${answerKeys.map((k) => `<th>${k.qNum}</th>`).join('')}
+          </tr>
+          <tr>
+            ${answerKeys.map((k) => `<td><strong>${k.key}</strong></td>`).join('')}
+          </tr>
+        </table>
+      </div>
     `;
-  });
+  }
 
-  wordHtml += `
-        </tbody>
-      </table>
-    </div>
-    </body>
-    </html>
-  `;
+  wordHtml += `</body></html>`;
 
-  const blob = new Blob(['\ufeff', wordHtml], {
-    type: 'application/msword',
-  });
-
+  const blob = new Blob(['\ufeff' + wordHtml], { type: 'application/msword' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${activityTitle.replace(/\s+/g, '_')}_De_In_Giay.doc`;
+  a.download = `${activityTitle.replace(/\s+/g, '_')}_De_Thi_Word.doc`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
