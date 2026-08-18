@@ -11,6 +11,8 @@ import AiTutorChatModal from './AiTutorChatModal';
 import FlashcardReviewModal from './FlashcardReviewModal';
 import ClassLeaderboard from './ClassLeaderboard';
 import { speakText } from '../../utils/textToSpeech';
+import { exportQuizToWord } from '../../utils/exportQuizWord';
+import AdaptiveLearningModal from './AdaptiveLearningModal';
 
 export default function QuizEngine({ activity }) {
   const { profile } = useAuth();
@@ -28,6 +30,7 @@ export default function QuizEngine({ activity }) {
   // AI TUTOR MODAL CHAT
   const [aiTutorModalOpen, setAiTutorModalOpen] = useState(false);
   const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
+  const [adaptiveModalOpen, setAdaptiveModalOpen] = useState(false);
   const [wrongQuestionsList, setWrongQuestionsList] = useState([]);
   const [selectedQuestionForTutor, setSelectedQuestionForTutor] = useState(null);
 
@@ -527,6 +530,12 @@ export default function QuizEngine({ activity }) {
   return (
     <div className="space-y-3">
       {/* MODAL CHATBOT AI TUTOR TRỢ LÝ HỌC TẬP */}
+      <AdaptiveLearningModal
+        isOpen={adaptiveModalOpen}
+        onClose={() => setAdaptiveModalOpen(false)}
+        wrongQuestions={wrongQuestionsList}
+      />
+
       <FlashcardReviewModal
         isOpen={flashcardModalOpen}
         onClose={() => setFlashcardModalOpen(false)}
@@ -573,15 +582,24 @@ export default function QuizEngine({ activity }) {
 
             <div className="flex flex-wrap items-center gap-2">
               {wrongQuestionsList.length > 0 && (
-                <button
-                  onClick={() => setFlashcardModalOpen(true)}
-                  className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
-                >
-                  <BookOpen className="w-4 h-4 text-amber-300" />
-                  <span>🗂️ Ôn Tập {wrongQuestionsList.length} Câu Sai (Flashcards)</span>
-                </button>
-              )}
+                <>
+                  <button
+                    onClick={() => setFlashcardModalOpen(true)}
+                    className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                  >
+                    <BookOpen className="w-4 h-4 text-amber-300" />
+                    <span>🗂️ Ôn Tập {wrongQuestionsList.length} Câu Sai (Flashcards)</span>
+                  </button>
 
+                  <button
+                    onClick={() => setAdaptiveModalOpen(true)}
+                    className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                  >
+                    <Compass className="w-4 h-4 text-sky-200" />
+                    <span>🧭 Lộ Trình Ôn Tập Lỗ Hổng Kiến Thức</span>
+                  </button>
+                </>
+              )}
               <button
                 onClick={() =>
                   exportStudentPdfReport({
@@ -600,6 +618,14 @@ export default function QuizEngine({ activity }) {
             >
               <Printer className="w-4 h-4 text-sky-200" />
               <span>🖨️ Tải Báo Cáo PDF Bài Thi</span>
+            </button>
+
+            <button
+              onClick={() => exportQuizToWord(questions, activity?.title || 'BÀI KÍỂM TRA TIẾNG ANH')}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+            >
+              <FileText className="w-4 h-4 text-emerald-200" />
+              <span>🖨️ In Đề Thi Ra Giấy (Word)</span>
             </button>
           </div>
         </div>
