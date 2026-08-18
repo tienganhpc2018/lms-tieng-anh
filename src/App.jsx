@@ -9,6 +9,7 @@ import AssignmentView from './pages/AssignmentView';
 import TeacherAnalytics from './pages/TeacherAnalytics';
 import AiBuilderView from './pages/AiBuilderView';
 import QuestionBankView from './pages/QuestionBankView';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import MockExamView from './pages/MockExamView';
 import NotFound from './pages/NotFound';
 
@@ -71,7 +72,9 @@ export default function App() {
                 path="/question-bank"
                 element={
                   <ProtectedRoute>
-                    <QuestionBankView />
+                    <ErrorBoundary>
+                      <QuestionBankView />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
