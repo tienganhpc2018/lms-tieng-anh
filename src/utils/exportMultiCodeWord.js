@@ -2,7 +2,7 @@
  * Utility Xuất 4 Mã Đề Thi (101, 102, 103, 104) xáo trộn ngẫu nhiên ra file Word (.doc)
  * Kèm Bảng So Sánh Đáp Án 4 Mã Đề ở trang cuối cùng
  */
-export function exportMultiCodeWord(questions = [], activityTitle = 'BÀI KÍỂM TRA TIẾNG ANH') {
+export function exportMultiCodeWord(questions = [], activityTitle = 'BÀI KIỂM TRA TIẾNG ANH') {
   const codeList = [101, 102, 103, 104];
   const allMasterKeys = {};
 
