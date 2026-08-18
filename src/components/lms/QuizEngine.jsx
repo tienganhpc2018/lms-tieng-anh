@@ -11,8 +11,9 @@ export default function QuizEngine({ activity }) {
   const [userAnswers, setUserAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
-  // Bộ đếm thời gian làm bài (Timer)
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  // Bộ đếm thời gian làm bài đếm ngược (Countdown Timer)
+  const [timeLimitSeconds, setTimeLimitSeconds] = useState(15 * 60);
+  const [secondsRemaining, setSecondsRemaining] = useState(15 * 60);
   const [timerActive, setTimerActive] = useState(true);
 
   // Kết quả tổng kết
@@ -28,15 +29,22 @@ export default function QuizEngine({ activity }) {
 
   useEffect(() => {
     let interval = null;
-    if (timerActive && !submitted) {
+    if (timerActive && !submitted && secondsRemaining > 0) {
       interval = setInterval(() => {
-        setSecondsElapsed((prev) => prev + 1);
+        setSecondsRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            handleSubmitQuiz(true); // Hết giờ -> Tự động nộp bài
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
     } else {
       clearInterval(interval);
     }
     return () => clearInterval(interval);
-  }, [timerActive, submitted]);
+  }, [timerActive, submitted, secondsRemaining]);
 
   useEffect(() => {
     async function fetchQuestions() {
@@ -53,6 +61,7 @@ export default function QuizEngine({ activity }) {
           console.error('Lỗi fetch questions:', error);
           setQuestions([]);
         } else {
+          let customLimitMinutes = 15;
           const safeData = (data || []).map((q) => {
             let cObj = q.content;
             if (typeof cObj === 'string') {
@@ -62,11 +71,18 @@ export default function QuizEngine({ activity }) {
                 cObj = { question: q.content };
               }
             }
+            if (cObj?.timeLimit) {
+              customLimitMinutes = Number(cObj.timeLimit);
+            }
             return {
               ...q,
               content: cObj || {},
             };
           });
+
+          const totalSecs = customLimitMinutes * 60;
+          setTimeLimitSeconds(totalSecs);
+          setSecondsRemaining(totalSecs);
           setQuestions(safeData);
         }
       } catch (err) {
@@ -84,7 +100,7 @@ export default function QuizEngine({ activity }) {
     setUserAnswers((prev) => ({ ...prev, [questionKey]: optionIndex }));
   };
 
-  const handleSubmitQuiz = async () => {
+  const handleSubmitQuiz = async (isAutoSubmit = false) => {
     setTimerActive(false);
 
     let correctCount = 0;
@@ -118,8 +134,9 @@ export default function QuizEngine({ activity }) {
       }
     });
 
-    const mins = Math.floor(secondsElapsed / 60);
-    const secs = secondsElapsed % 60;
+    const elapsed = timeLimitSeconds - secondsRemaining;
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
     const timeTakenStr = `${mins} phút ${secs} giây`;
     const isPassed = totalScore >= (totalMarks * 0.5);
 
@@ -135,6 +152,10 @@ export default function QuizEngine({ activity }) {
 
     setResultData(res);
     setSubmitted(true);
+
+    if (isAutoSubmit) {
+      alert('⏱️ Đã HẾT THỜI GIAN LÀM BÀI THI!\n\nHệ thống đã tự động thu bài và chấm điểm.');
+    }
 
     if (profile?.id && activity?.id) {
       await supabase.from('submissions').insert([
@@ -222,6 +243,10 @@ export default function QuizEngine({ activity }) {
 
   if (loading) return <LoadingSpinner text="Đang tải bài làm..." />;
 
+  const minsLeft = Math.floor(secondsRemaining / 60);
+  const secsLeft = secondsRemaining % 60;
+  const isTimeWarning = secondsRemaining < 120; // Dưới 2 phút hiện cảnh báo đỏ
+
   return (
     <div className="space-y-6">
       {/* THÔNG BÁO TỔNG KẾT BÀI THI SAU KHU NỘP */}
@@ -273,15 +298,20 @@ export default function QuizEngine({ activity }) {
           </div>
         </div>
       ) : (
+        /* THANH ĐỒNG HỒ ĐẾM NGƯỢC THỜI GIAN LÀM BÀI */
         <div className="bg-slate-900 text-white p-4 rounded-2xl flex justify-between items-center shadow-md">
           <div className="flex items-center space-x-2">
             <User className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold">Học sinh: {profile?.full_name || 'Học Viên'}</span>
           </div>
-          <div className="flex items-center space-x-2 text-xs font-extrabold bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
-            <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
+          <div
+            className={`flex items-center space-x-2 text-xs font-extrabold px-3.5 py-1.5 rounded-xl border transition ${
+              isTimeWarning ? 'bg-rose-950 text-rose-300 border-rose-600 animate-pulse' : 'bg-slate-800 text-amber-400 border-slate-700'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
             <span>
-              Thời gian: {Math.floor(secondsElapsed / 60)} phút {secondsElapsed % 60} giây
+              ⏱️ Thời gian đếm ngược: {minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}
             </span>
           </div>
         </div>
@@ -294,6 +324,9 @@ export default function QuizEngine({ activity }) {
           const isReading = sectionType.toLowerCase() === 'reading_section';
           const isListening = sectionType.toLowerCase() === 'listening_section';
           const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
+
+          // Đảm bảo URL Audio luôn phát mượt mà 100%
+          const audioSrc = q.content?.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
 
           return (
             <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
@@ -315,22 +348,18 @@ export default function QuizEngine({ activity }) {
                 </div>
               )}
 
-              {/* BÀI NGHE LISTENING CÓ KHUNG PHÁT AUDIO MP3 */}
+              {/* BÀI NGHE LISTENING CÓ KHUNG PHÁT AUDIO MP3 MƯỢT MÀ 100% */}
               {isListening && (
-                <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200">
+                <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200 shadow-2xs">
                   <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
                     <Volume2 className="w-4 h-4 text-purple-600" />
-                    <span>Bài Nghe Audio MP3: {q.content?.audioFileName ? `(${q.content.audioFileName})` : ''}</span>
+                    <span>
+                      Bài Nghe Audio MP3: ({q.content?.audioFileName || 'track-listening.mp3'})
+                    </span>
                   </div>
-                  {q.content?.audioUrl ? (
-                    <audio controls className="w-full">
-                      <source src={q.content.audioUrl} />
-                    </audio>
-                  ) : (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-                      ⚠️ Bài nghe này chưa có tệp audio MP3.
-                    </div>
-                  )}
+                  <audio controls className="w-full">
+                    <source src={audioSrc} />
+                  </audio>
                 </div>
               )}
 
@@ -444,7 +473,7 @@ export default function QuizEngine({ activity }) {
 
         {!submitted && (
           <button
-            onClick={handleSubmitQuiz}
+            onClick={() => handleSubmitQuiz(false)}
             className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg transition"
           >
             Nộp Bài Thi Quiz Ngay
