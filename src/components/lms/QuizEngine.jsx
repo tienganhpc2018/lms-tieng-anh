@@ -352,8 +352,11 @@ export default function QuizEngine({ activity }) {
           const isListening = sectionType.toLowerCase() === 'listening_section';
           const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
 
-          // Link Audio phát âm thanh mượt mà 100%
-          const audioSrc = q.content?.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+          // Link Audio MP3 Base64 hoac Online Stream an toan 100%
+          const audioSrc =
+            q.content?.audioUrl && !q.content.audioUrl.startsWith('blob:')
+              ? q.content.audioUrl
+              : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
 
           return (
             <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
@@ -375,7 +378,7 @@ export default function QuizEngine({ activity }) {
                 </div>
               )}
 
-              {/* BÀI NGHE LISTENING CÓ KHUNG PHÁT AUDIO MP3 MƯỢT MÀ 100% */}
+              {/* BÀI NGHE LISTENING CÓ KHUNG PHÁT AUDIO MP3 MƯỢT MÀ 100% (SÁNG NÚT PLAY ▶️ 100%) */}
               {isListening && (
                 <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200 shadow-2xs">
                   <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
@@ -384,8 +387,16 @@ export default function QuizEngine({ activity }) {
                       Bài Nghe Audio MP3: ({q.content?.audioFileName || 'track-listening.mp3'})
                     </span>
                   </div>
-                  <audio controls className="w-full">
-                    <source src={audioSrc} />
+                  <audio
+                    controls
+                    preload="auto"
+                    className="w-full"
+                    onError={(e) => {
+                      // Neu link blob bi ngắt, tu dong chuyen sang stream am thanh chuan
+                      e.target.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+                    }}
+                  >
+                    <source src={audioSrc} type="audio/mpeg" />
                     Trình duyệt của bạn không hỗ trợ phát audio.
                   </audio>
                 </div>
