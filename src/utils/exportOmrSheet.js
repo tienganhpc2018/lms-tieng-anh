@@ -2,7 +2,7 @@
  * Utility Xuất Phiếu Trả Lời Trắc Nghiệm Tô Tròn (OMR Bubble Sheet)
  * Chuẩn định dạng Kỳ thi THPT Quốc Gia (40 - 50 câu) dùng để in ra giấy cho học sinh tô chì 2B
  */
-export function exportOmrSheet(title = 'BÀI KÍỂM TRA TIẾNG ANH', totalQuestions = 40) {
+export function exportOmrSheet(title = 'BÀI KIỂM TRA TIẾNG ANH', totalQuestions = 40) {
   let html = `
     <!DOCTYPE html>
     <html>
