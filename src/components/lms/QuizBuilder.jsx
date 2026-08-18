@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle, MessageSquareText, Clock } from 'lucide-react';
+import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle, MessageSquareText, Clock, Tag } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizBuilder({ activityId, onSaved }) {
@@ -49,8 +49,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
-  // State riêng cho Listening Section & Reading Section
+  // State riêng cho Listening, Reading, Reading T/F & Cloze Test
   const [sectionPassage, setSectionPassage] = useState('');
+  const [passageBadge, setPassageBadge] = useState('POSTER'); // Dùng cho Cloze Test (POSTER, EMAIL, ARTICLE...)
+  const [passageTitle, setPassageTitle] = useState('Harry Potter - A Magical Adventure');
   const [listeningAudioUrl, setListeningAudioUrl] = useState('');
   const [uploadedAudioFileName, setUploadedAudioFileName] = useState('');
   const [sectionChildQuestions, setSectionChildQuestions] = useState([]);
@@ -102,7 +104,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setTimeout(() => {
       const correctOpt = mcOptions.find((o) => o.isCorrect);
       setExplanation(
-        `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi kiểm tra kiến thức trọng tâm ngữ pháp và từ vựng Tiếng Anh theo chuẩn chương trình.\n\n💡 Giải thích chi tiết:\nĐề bài: "${questionText}". Đáp án chính xác là "${correctOpt?.text || 'B'}" phù hợp hoàn toàn với ngữ cảnh.\n\n✕ Loại trừ gây nhiễu:\nCác phương án còn lại sai về nghĩa hoặc không phù hợp với cấu trúc ngữ pháp Tiếng Anh.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nDịch đề bài và đáp án đúng giúp học sinh dễ dàng học thuộc và ghi nhớ sâu bài học.`
+        `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi kiểm tra kiến thức trọng tâm ngữ pháp và từ vựng Tiếng Anh theo chuẩn chương trình.\n\n💡 Giải thích chi tiết (Evidence / Dẫn chứng):\nĐề bài: "${questionText}". Đáp án chính xác là "${correctOpt?.text || 'B'}" dựa theo dẫn chứng mở đầu bài đọc.\n\n✕ Loại trừ gây nhiễu:\nCác phương án còn lại sai về nghĩa hoặc không phù hợp với ngữ cảnh đoạn văn.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nDịch đề bài và đáp án đúng giúp học sinh dễ học thuộc và ghi nhớ sâu.`
       );
       setAiExplaining(false);
     }, 1000);
@@ -115,11 +117,9 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
     setUploadedAudioFileName(file.name);
 
-    // 1. Tạo Blob Object URL để thanh nghe thử trong Modal SOẠN SÁNG NÚT PLAY ▶️ VÀ HIỆN ĐÚNG ĐỘ DÀI MP3 TỨC THÌ (VD: 1:45 / 1:45)!
     const blobUrl = URL.createObjectURL(file);
     setListeningAudioUrl(blobUrl);
 
-    // 2. Chuyển thành Data URL Base64 và lưu vĩnh viễn vào localStorage theo tên tệp để mục THI THỬ lấy âm thanh THẬT 100%!
     const reader = new FileReader();
     reader.onload = (evt) => {
       const dataUrl = evt.target.result;
@@ -139,8 +139,9 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setQuestionText(q.content?.question || '');
     setExplanation(q.content?.explanation || '');
     setSectionPassage(q.content?.passage || '');
-    
-    // Ưu tiên lấy link nghe thử hoặc dữ liệu từ localStorage
+    setPassageBadge(q.content?.badge || 'POSTER');
+    setPassageTitle(q.content?.passageTitle || 'Harry Potter - A Magical Adventure');
+
     let audioUrlToLoad = q.content?.audioUrl || '';
     if (q.content?.audioFileName) {
       try {
@@ -175,26 +176,26 @@ export default function QuizBuilder({ activityId, onSaved }) {
       content = JSON.stringify(
         [
           {
-            type: 'reading_section',
+            type: 'reading_tf',
             marks: 3.0,
             content: {
-              title: 'READING SECTION',
-              question: 'Read the passage and choose the correct answer A, B, C, or D.',
-              passage: 'Enter your reading passage here...',
+              title: '3. READING (True/False)',
+              question: 'Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F).',
+              passage: 'In Green Valley neighborhood, residents have started a community garden to grow fresh vegetables. At first, many people did not know how to grow plants, but experienced gardeners in the neighborhood volunteered to show them what to do...',
               childQuestions: [
                 {
-                  question: '1. Enter question text here...',
-                  options: [
-                    { text: 'A. Option 1', isCorrect: false },
-                    { text: 'B. Option 2', isCorrect: true },
-                    { text: 'C. Option 3', isCorrect: false },
-                    { text: 'D. Option 4', isCorrect: false },
-                  ],
-                  explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\n...\n\n💡 Giải thích chi tiết:\n...\n\n✕ Loại trừ gây nhiễu:\n...\n\n🇻🇳 Bản dịch nghĩa song ngữ:\n...`,
+                  question: '1. The community garden is used to grow flowers only.',
+                  correctAnswer: 'F',
+                  explanation: '💡 Evidence: In Green Valley neighborhood, residents have started a community garden to grow fresh vegetables.'
                 },
-              ],
-            },
-          },
+                {
+                  question: '2. Experienced gardeners showed others how to grow plants.',
+                  correctAnswer: 'T',
+                  explanation: '💡 Evidence: experienced gardeners in the neighborhood volunteered to show them what to do.'
+                }
+              ]
+            }
+          }
         ],
         null,
         2
@@ -272,30 +273,42 @@ ANSWER: D`;
     setIsTypeModalOpen(false);
     setEditingQuestion({ id: 'new', type: selectedType });
     setQuestionTitle('');
-    setQuestionText(
-      selectedType?.toLowerCase() === 'listening_section'
-        ? 'Listen to Phong, a local artisan, talking about Bat Trang pottery village. Choose the correct answer A, B, C, or D for each question.'
-        : selectedType?.toLowerCase() === 'reading_section'
-        ? 'Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D for each question.'
-        : ''
-    );
+
+    const normType = selectedType?.toLowerCase();
+    if (normType === 'listening_section') {
+      setQuestionText('Listen to Phong, a local artisan, talking about Bat Trang pottery village. Choose the correct answer A, B, C, or D for each question.');
+    } else if (normType === 'reading_section') {
+      setQuestionText('Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D for each question.');
+    } else if (normType === 'reading_tf') {
+      setQuestionText('Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F).');
+      setSectionPassage('In Green Valley neighborhood, residents have started a community garden to grow fresh vegetables. At first, many people did not know how to grow plants, but experienced gardeners in the neighborhood volunteered to show them what to do. They set up a weekly schedule to take care of the garden. The project has helped neighbors get on with each other much better. Children also join in, learning how to protect the environment. However, they sometimes have to deal with pests and bad weather. Despite these difficulties, they refuse to give up. They are looking forward to harvesting their first organic tomatoes next week. This community garden not only provides healthy food but also strengthens the connection among local residents. It is a great model for other urban areas.');
+      setSectionChildQuestions([
+        { question: '1. The community garden is used to grow flowers only.', correctAnswer: 'F', explanation: '💡 Evidence: In Green Valley neighborhood, residents have started a community garden to grow fresh vegetables.' },
+        { question: '2. Experienced gardeners showed others how to grow plants.', correctAnswer: 'T', explanation: '💡 Evidence: experienced gardeners in the neighborhood volunteered to show them what to do.' },
+        { question: '3. The project has made the relationship among neighbors worse.', correctAnswer: 'F', explanation: '💡 Evidence: The project has helped neighbors get on with each other much better.' },
+        { question: '4. The gardeners sometimes have to deal with pests and bad weather.', correctAnswer: 'T', explanation: '💡 Evidence: However, they sometimes have to deal with pests and bad weather.' },
+        { question: '5. They are looking forward to harvesting organic tomatoes next week.', correctAnswer: 'T', explanation: '💡 Evidence: They are looking forward to harvesting their first organic tomatoes next week.' }
+      ]);
+    } else if (normType === 'cloze_test') {
+      setQuestionText('PART 1: READ THE FOLLOWING POSTER AND CIRCLE THE LETTER A, B, C, OR D TO INDICATE THE CORRECT OPTION.\nChoose the best answer to fill in each blank in the movie advertisement.');
+      setPassageBadge('POSTER');
+      setPassageTitle('Harry Potter - A Magical Adventure');
+      setSectionPassage('You should (16) ______ Harry Potter if you (17) ______ exciting, magical, and thrilling films. With wonderful characters and (18) ______ visuals, this movie will transport you to a world full of wonder. Don’t miss out! You (19) ______ skip this epic journey of friendship and adventure. A must-see for (20) ______!');
+      setSectionChildQuestions([
+        { qNum: 16, options: [{ text: 'A. watch', isCorrect: true }, { text: 'B. watching', isCorrect: false }, { text: 'C. to watch', isCorrect: false }, { text: 'D. watches', isCorrect: false }], explanation: '💡 Structure: modal verb "should" + V-bare -> watch.' },
+        { qNum: 17, options: [{ text: 'A. dislike', isCorrect: false }, { text: 'B. enjoy', isCorrect: true }, { text: 'C. prefer', isCorrect: false }, { text: 'D. hate', isCorrect: false }], explanation: '💡 Meaning: enjoy exciting films.' },
+        { qNum: 18, options: [{ text: 'A. amaze', isCorrect: false }, { text: 'B. amazement', isCorrect: false }, { text: 'C. amazed', isCorrect: false }, { text: 'D. amazing', isCorrect: true }], explanation: '💡 Grammar: Adjective + Noun -> amazing visuals.' },
+        { qNum: 19, options: [{ text: 'A. isn\'t able to', isCorrect: false }, { text: 'B. should not', isCorrect: true }, { text: 'C. not should', isCorrect: false }, { text: 'D. not are able to', isCorrect: false }], explanation: '💡 Meaning: should not (không nên bỏ lỡ).' },
+        { qNum: 20, options: [{ text: 'A. fantasy lover', isCorrect: false }, { text: 'B. fantastic lovers', isCorrect: false }, { text: 'C. fantasy lovers', isCorrect: true }, { text: 'D. romantic lovers', isCorrect: false }], explanation: '💡 Collocation: fantasy lovers (người yêu thích phim kỳ ảo).' }
+      ]);
+    } else {
+      setQuestionText('');
+    }
+
     setExplanation('');
-    setSectionPassage('');
     setListeningAudioUrl('');
     setUploadedAudioFileName('');
     setTimeLimitMinutes(0);
-    setSectionChildQuestions([
-      {
-        question: '1. Nhập nội dung câu hỏi con...',
-        options: [
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: true },
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
-        ],
-        explanation: '',
-      },
-    ]);
     setMarks(1.0);
     setMcOptions([
       { text: '', isCorrect: true, feedback: '' },
@@ -319,19 +332,30 @@ ANSWER: D`;
 
   const handleAddChildQuestion = () => {
     const qNum = sectionChildQuestions.length + 1;
-    setSectionChildQuestions([
-      ...sectionChildQuestions,
-      {
-        question: `${qNum}. Nhập nội dung câu hỏi con...`,
-        options: [
-          { text: '', isCorrect: true },
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false },
-        ],
-        explanation: '',
-      },
-    ]);
+    if (selectedType?.toLowerCase() === 'reading_tf') {
+      setSectionChildQuestions([
+        ...sectionChildQuestions,
+        {
+          question: `${qNum}. Enter statement text...`,
+          correctAnswer: 'T',
+          explanation: '',
+        },
+      ]);
+    } else {
+      setSectionChildQuestions([
+        ...sectionChildQuestions,
+        {
+          question: `${qNum}. Nhập nội dung câu hỏi con...`,
+          options: [
+            { text: '', isCorrect: true },
+            { text: '', isCorrect: false },
+            { text: '', isCorrect: false },
+            { text: '', isCorrect: false },
+          ],
+          explanation: '',
+        },
+      ]);
+    }
   };
 
   const handleRemoveChildQuestion = (index) => {
@@ -357,7 +381,7 @@ ANSWER: D`;
 
       let customContent = {
         sectionType: selectedType,
-        title: questionTitle || (normType === 'reading_section' ? 'READING SECTION' : normType === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
+        title: questionTitle || (normType === 'reading_tf' ? '3. READING (True/False)' : normType === 'cloze_test' ? '4. KNOWLEDGE OF LANGUAGE (Cloze Test)' : normType === 'reading_section' ? 'READING SECTION' : normType === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
         question: questionText.trim() || questionTitle || 'Instruction Question',
         explanation: explanation.trim(),
         timeLimit: Number(timeLimitMinutes) || 0,
@@ -369,6 +393,14 @@ ANSWER: D`;
         customContent.audioFileName = uploadedAudioFileName;
         customContent.childQuestions = sectionChildQuestions;
       } else if (normType === 'reading_section') {
+        customContent.passage = sectionPassage;
+        customContent.childQuestions = sectionChildQuestions;
+      } else if (normType === 'reading_tf') {
+        customContent.passage = sectionPassage;
+        customContent.childQuestions = sectionChildQuestions;
+      } else if (normType === 'cloze_test') {
+        customContent.badge = passageBadge;
+        customContent.passageTitle = passageTitle;
         customContent.passage = sectionPassage;
         customContent.childQuestions = sectionChildQuestions;
       } else if (normType === 'multiple_choice') {
@@ -604,14 +636,15 @@ ANSWER: D`;
   };
 
   const questionTypesList = [
-    { type: 'reading_section', label: '1. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Hỏi Trắc Nghiệm Con)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu và danh sách 5 câu hỏi trắc nghiệm A, B, C, D bên dưới.' },
+    { type: 'reading_tf', label: '3. READING (True/False) - Bài Đọc Chọn Đúng (T) / Sai (F)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu và 5 câu phát biểu bên dưới với nút vuông [T] và [F] đổi màu xanh/đỏ.' },
+    { type: 'cloze_test', label: '4. KNOWLEDGE OF LANGUAGE (Cloze Test / Đọc Đục Lỗ)', desc: 'Thiết kế dạng bài đọc đục lỗ điền khuyết với huy hiệu nổi POSTER màu cam và các nút trắc nghiệm A, B, C, D hình viên thuốc.' },
+    { type: 'reading_section', label: '1. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Trắc Nghiệm)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu và danh sách câu hỏi trắc nghiệm A, B, C, D bên dưới.' },
     { type: 'listening_section', label: '2. LISTENING SECTION (Bài Nghe Audio MP3)', desc: 'Thiết kế bài nghe Audio MP3 (box dán link hoặc upload từ máy) và danh sách câu hỏi trắc nghiệm con.' },
     { type: 'multiple_choice', label: 'Multiple choice (Trắc nghiệm A, B, C, D)', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False (Đúng / Sai)', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
     { type: 'matching', label: 'Matching (Nối từ Cột A - Cột B)', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
     { type: 'short_answer', label: 'Short answer (Điền từ ngắn)', desc: 'Dạng câu hỏi nhập từ/số chính xác vào ô trống.' },
     { type: 'essay', label: 'Essay (Bài viết tự luận)', desc: 'Cho phép học sinh gõ văn bản bài viết luận hoặc nộp file.' },
-    { type: 'audio_record', label: 'Audio response (Ghi âm câu trả lời)', desc: 'Ghi âm câu trả lời nói Tiếng Anh trực tiếp từ mic.' },
   ];
 
   return (
@@ -999,7 +1032,7 @@ ANSWER: D`;
                     rows={8}
                     value={jsonInputText}
                     onChange={(e) => setJsonInputText(e.target.value)}
-                    placeholder={`[\n  {\n    "type": "reading_section",\n    "marks": 3.0,\n    "content": {\n      "title": "READING SECTION",\n      "passage": "Enter reading passage here...",\n      "childQuestions": [\n        {\n          "question": "1. Enter question content here...",\n          "options": [\n            {"text": "A. Option 1", "isCorrect": false},\n            {"text": "B. Option 2", "isCorrect": true}\n          ]\n        }\n      ]\n    }\n  }\n]`}
+                    placeholder={`[\n  {\n    "type": "reading_tf",\n    "marks": 3.0,\n    "content": {\n      "title": "3. READING (True/False)",\n      "passage": "Enter reading passage here...",\n      "childQuestions": [\n        {\n          "question": "1. Enter statement here...",\n          "correctAnswer": "T"\n        }\n      ]\n    }\n  }\n]`}
                     className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl"
                   />
                   <button
@@ -1117,7 +1150,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI (BỔ SUNG MENU SELECT XỔ XUỐNG CHỌN PHÚT THỜI GIAN THEO Ý THẦY) */}
+      {/* FORM BIÊN TẬP CÂU HỎI */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1178,12 +1211,62 @@ ANSWER: D`
                   required
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
-                  placeholder="Ví dụ: Listen to Phong, a local artisan, talking about Bat Trang pottery village. Choose the correct answer A, B, C, or D for each question."
+                  placeholder="Ví dụ: Read the passage about a community garden in Green Valley and decide whether the statements are True (T) or False (F)."
                   className="w-full p-2.5 border border-purple-300 rounded-xl text-xs font-extrabold text-purple-950 bg-white leading-relaxed focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
-              {/* FORM LISTENING SECTION - SÁNG NÚT PLAY ▶️ 100% NGAY KHI CHỌN FILE TỪ MÁY */}
+              {/* CLOZE TEST: HUY HIỆU NỔI CẤU HÌNH (POSTER / EMAIL / ARTICLE) */}
+              {selectedType?.toLowerCase() === 'cloze_test' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-amber-50/60 border border-amber-200 rounded-2xl">
+                  <div>
+                    <label className="block text-xs font-extrabold text-amber-900 uppercase mb-1 flex items-center space-x-1">
+                      <Tag className="w-4 h-4 text-amber-600" />
+                      <span>HUY HIỆU NỔI (FLOATING BADGE)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={passageBadge}
+                      onChange={(e) => setPassageBadge(e.target.value)}
+                      placeholder="POSTER, EMAIL, ARTICLE..."
+                      className="w-full px-3 py-2 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 bg-white uppercase"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-extrabold text-amber-900 uppercase mb-1">
+                      TIÊU ĐỀ BÀI ĐỌC ĐỤC LỖ (PASSAGE TITLE)
+                    </label>
+                    <input
+                      type="text"
+                      value={passageTitle}
+                      onChange={(e) => setPassageTitle(e.target.value)}
+                      placeholder="Harry Potter - A Magical Adventure..."
+                      className="w-full px-3 py-2 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* FORM READING / READING T/F / CLOZE TEST PASSAGE TEXTAREA */}
+              {(selectedType?.toLowerCase() === 'reading_section' || selectedType?.toLowerCase() === 'reading_tf' || selectedType?.toLowerCase() === 'cloze_test') && (
+                <div className="p-5 bg-emerald-50/50 border border-emerald-200 rounded-3xl space-y-3 shadow-xs">
+                  <h4 className="font-extrabold text-xs text-emerald-900 uppercase flex items-center space-x-1.5 border-b border-emerald-200 pb-2">
+                    <BookOpen className="w-4 h-4 text-emerald-600" />
+                    <span>📖 NỘI DUNG ĐOẠN VĂN BÀI ĐỌC (READING PASSAGE)</span>
+                  </h4>
+                  <div>
+                    <textarea
+                      rows={6}
+                      value={sectionPassage}
+                      onChange={(e) => setSectionPassage(e.target.value)}
+                      placeholder="Dán đoạn văn bài đọc tại đây..."
+                      className="w-full p-3 border border-emerald-300 rounded-xl text-xs bg-white font-medium leading-relaxed font-serif"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* FORM LISTENING SECTION */}
               {selectedType?.toLowerCase() === 'listening_section' && (
                 <div className="p-5 bg-purple-50 border border-purple-200 rounded-3xl space-y-4 shadow-xs">
                   <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-2 border-b border-purple-200 pb-2">
@@ -1213,7 +1296,6 @@ ANSWER: D`
                       </label>
                     </div>
 
-                    {/* NÚT BẤM NGHE THỬ AUDIO TRONG MODAL (SÁNG RỰC NÚT PLAY 100% NGAY KHI CHỌN FILE) */}
                     {listeningAudioUrl && (
                       <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
                         <span className="text-[11px] font-bold text-purple-800 flex items-center space-x-1">
@@ -1229,35 +1311,13 @@ ANSWER: D`
                 </div>
               )}
 
-              {/* FORM READING SECTION */}
-              {selectedType?.toLowerCase() === 'reading_section' && (
-                <div className="p-5 bg-sky-50 border border-sky-200 rounded-3xl space-y-3 shadow-xs">
-                  <h4 className="font-extrabold text-xs text-sky-900 uppercase flex items-center space-x-1.5 border-b border-sky-200 pb-2">
-                    <BookOpen className="w-4 h-4 text-sky-600" />
-                    <span>📖 NỘI DUNG ĐOẠN VĂN BÀI ĐỌC HIỂU (READING PASSAGE)</span>
-                  </h4>
-                  <div>
-                    <label className="block text-xs font-bold text-sky-900 mb-1">
-                      Nội dung đoạn văn bài đọc (Reading Passage Text):
-                    </label>
-                    <textarea
-                      rows={6}
-                      value={sectionPassage}
-                      onChange={(e) => setSectionPassage(e.target.value)}
-                      placeholder="Dán đoạn văn bài đọc hiểu tại đây..."
-                      className="w-full p-3 border border-sky-300 rounded-xl text-xs bg-white font-medium leading-relaxed"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* KHUNG SOẠN CÁC CÂU HỎI CON CHO READING / LISTENING SECTION */}
-              {(selectedType?.toLowerCase() === 'reading_section' || selectedType?.toLowerCase() === 'listening_section') && (
+              {/* KHUNG SOẠN CÁC CÂU HỎI CON CHO READING / READING T/F / CLOZE TEST / LISTENING */}
+              {(selectedType?.toLowerCase() === 'reading_section' || selectedType?.toLowerCase() === 'reading_tf' || selectedType?.toLowerCase() === 'cloze_test' || selectedType?.toLowerCase() === 'listening_section') && (
                 <div className="space-y-4 pt-2">
                   <div className="flex justify-between items-center border-b pb-2">
                     <h4 className="font-extrabold text-xs text-slate-800 uppercase flex items-center space-x-1.5">
                       <ListFilter className="w-4 h-4 text-emerald-600" />
-                      <span>DANH SÁCH {sectionChildQuestions.length} CÂU HỎI TRẮC NGHIỆM CON CHO BÀI NÀY</span>
+                      <span>DANH SÁCH {sectionChildQuestions.length} CÂU HỎI CON</span>
                     </h4>
                     <button
                       type="button"
@@ -1265,7 +1325,7 @@ ANSWER: D`
                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ THÊM CÂU HỎI TRẮC NGHIỆM CON</span>
+                      <span>+ THÊM CÂU HỎI CON</span>
                     </button>
                   </div>
 
@@ -1305,42 +1365,81 @@ ANSWER: D`
                           />
                         </div>
 
-                        {/* 4 PHƯƠNG ÁN A, B, C, D */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {qChild.options.map((opt, oIdx) => {
-                            const label = String.fromCharCode(65 + oIdx);
-                            return (
-                              <div key={oIdx} className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1">
-                                <div className="flex justify-between items-center text-[11px] font-bold">
-                                  <span className="text-slate-700">Đáp án {label}</span>
-                                  <label className="flex items-center space-x-1 cursor-pointer text-emerald-700">
-                                    <input
-                                      type="checkbox"
-                                      checked={opt.isCorrect}
-                                      onChange={(e) => {
-                                        const newChilds = [...sectionChildQuestions];
-                                        newChilds[qIdx].options[oIdx].isCorrect = e.target.checked;
-                                        setSectionChildQuestions(newChilds);
-                                      }}
-                                    />
-                                    <span>Đúng</span>
-                                  </label>
+                        {/* DẠNG READING TRUE / FALSE (2 NÚT T & F CHO MỖI CÂU) */}
+                        {selectedType?.toLowerCase() === 'reading_tf' ? (
+                          <div className="flex items-center space-x-4 bg-white p-3 rounded-xl border border-slate-200">
+                            <span className="text-xs font-bold text-slate-700">Đáp án đúng cho câu này:</span>
+                            <div className="flex items-center space-x-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newChilds = [...sectionChildQuestions];
+                                  newChilds[qIdx].correctAnswer = 'T';
+                                  setSectionChildQuestions(newChilds);
+                                }}
+                                className={`w-8 h-8 rounded-md font-bold text-xs transition ${
+                                  qChild.correctAnswer === 'T'
+                                    ? 'bg-emerald-100 border-2 border-emerald-500 text-emerald-700'
+                                    : 'bg-white border border-slate-200 text-slate-500'
+                                }`}
+                              >
+                                T
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newChilds = [...sectionChildQuestions];
+                                  newChilds[qIdx].correctAnswer = 'F';
+                                  setSectionChildQuestions(newChilds);
+                                }}
+                                className={`w-8 h-8 rounded-md font-bold text-xs transition ${
+                                  qChild.correctAnswer === 'F'
+                                    ? 'bg-rose-100 border-2 border-rose-500 text-rose-700'
+                                    : 'bg-white border border-slate-200 text-slate-500'
+                                }`}
+                              >
+                                F
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* DẠNG CÓ 4 LỰA CHỌN A, B, C, D */
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {qChild.options?.map((opt, oIdx) => {
+                              const label = String.fromCharCode(65 + oIdx);
+                              return (
+                                <div key={oIdx} className="p-2.5 bg-white border border-slate-200 rounded-xl space-y-1">
+                                  <div className="flex justify-between items-center text-[11px] font-bold">
+                                    <span className="text-slate-700">Đáp án {label}</span>
+                                    <label className="flex items-center space-x-1 cursor-pointer text-emerald-700">
+                                      <input
+                                        type="checkbox"
+                                        checked={opt.isCorrect}
+                                        onChange={(e) => {
+                                          const newChilds = [...sectionChildQuestions];
+                                          newChilds[qIdx].options[oIdx].isCorrect = e.target.checked;
+                                          setSectionChildQuestions(newChilds);
+                                        }}
+                                      />
+                                      <span>Đúng</span>
+                                    </label>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={opt.text}
+                                    onChange={(e) => {
+                                      const newChilds = [...sectionChildQuestions];
+                                      newChilds[qIdx].options[oIdx].text = e.target.value;
+                                      setSectionChildQuestions(newChilds);
+                                    }}
+                                    placeholder={`Nội dung ${label}...`}
+                                    className="w-full px-2.5 py-1 border border-slate-200 rounded-lg text-xs"
+                                  />
                                 </div>
-                                <input
-                                  type="text"
-                                  value={opt.text}
-                                  onChange={(e) => {
-                                    const newChilds = [...sectionChildQuestions];
-                                    newChilds[qIdx].options[oIdx].text = e.target.value;
-                                    setSectionChildQuestions(newChilds);
-                                  }}
-                                  placeholder={`Nội dung ${label}...`}
-                                  className="w-full px-2.5 py-1 border border-slate-200 rounded-lg text-xs"
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1438,7 +1537,7 @@ ANSWER: D`
                   rows={6}
                   value={explanation}
                   onChange={(e) => setExplanation(e.target.value)}
-                  placeholder={`🔍 Phân tích ngữ pháp/ngữ cảnh:\n...\n\n💡 Giải thích chi tiết:\n...\n\n✕ Loại trừ gây nhiễu:\n...\n\n🇻🇳 Bản dịch nghĩa song ngữ:\n...`}
+                  placeholder={`🔍 Phân tích ngữ pháp/ngữ cảnh:\n...\n\n💡 Giải thích chi tiết (Evidence / Dẫn chứng):\n...\n\n✕ Loại trừ gây nhiễu:\n...\n\n🇻🇳 Bản dịch nghĩa song ngữ:\n...`}
                   className="w-full p-3 border border-emerald-300 rounded-xl text-xs bg-white font-medium leading-relaxed font-mono"
                 />
               </div>
