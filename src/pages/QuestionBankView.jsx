@@ -25,7 +25,7 @@ const GLOBAL_SUCCESS_DATA = {
   ],
 };
 
-// DỮ LIỆU ĐỀ THI VỪA SOẠN CHUẨN
+// DỮ LIỆU ĐỀ THI VỪA SOẠN CHUẨN MẶC ĐỊNH
 const SAMPLE_MY_QUESTIONS = [
   {
     id: 'sample_01',
@@ -128,6 +128,7 @@ export default function QuestionBankView() {
   const fetchAllQuestions = async () => {
     setIsRefreshing(true);
     try {
+      // Gọi API Supabase an toàn 100% không bao giờ làm crash React
       const { data, error } = await supabase
         .from('questions')
         .select('*')
@@ -136,16 +137,20 @@ export default function QuestionBankView() {
       if (!error && Array.isArray(data) && data.length > 0) {
         const dbLoaded = data.map((q) => {
           let cObj = {};
-          if (q && q.content) {
-            if (typeof q.content === 'object') {
-              cObj = q.content;
-            } else if (typeof q.content === 'string') {
-              try {
-                cObj = JSON.parse(q.content);
-              } catch (e) {
-                cObj = { question: q.content };
+          try {
+            if (q && q.content) {
+              if (typeof q.content === 'object') {
+                cObj = q.content;
+              } else if (typeof q.content === 'string') {
+                try {
+                  cObj = JSON.parse(q.content);
+                } catch (e) {
+                  cObj = { title: q.content, question: q.content };
+                }
               }
             }
+          } catch (parseErr) {
+            cObj = { title: 'Câu hỏi đã soạn' };
           }
           return {
             id: q?.id || Math.random().toString(),
@@ -157,7 +162,7 @@ export default function QuestionBankView() {
         setQuestions([...dbLoaded, ...SAMPLE_MY_QUESTIONS]);
       }
     } catch (err) {
-      console.warn('Background fetch notice:', err);
+      console.warn('Background Supabase fetch notice (safe fallback used):', err);
     } finally {
       setIsRefreshing(false);
     }
@@ -193,6 +198,7 @@ export default function QuestionBankView() {
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <div className="flex items-center space-x-3">
           <button
+            type="button"
             onClick={() => navigate('/dashboard')}
             className="p-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-2xl transition flex items-center space-x-1.5 font-bold text-xs bg-white border border-slate-200 shadow-xs"
           >
@@ -211,6 +217,7 @@ export default function QuestionBankView() {
         </div>
 
         <button
+          type="button"
           onClick={fetchAllQuestions}
           disabled={isRefreshing}
           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center space-x-1.5"
@@ -285,6 +292,7 @@ export default function QuestionBankView() {
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => exportQuizToWord([q], q?.content?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
                       className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1"
                     >
