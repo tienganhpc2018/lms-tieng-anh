@@ -21,7 +21,7 @@ export function exportStudentPdfReport({
     <html lang="vi">
     <head>
       <meta charset="utf-8">
-      <title>KẾT QUẢ BÀI KÍỂM TRA - ${studentName}</title>
+      <title>KẾT QUẢ BÀI KIỂM TRA - ${studentName}</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
         body {
@@ -147,7 +147,7 @@ export function exportStudentPdfReport({
       </button>
 
       <div class="header">
-        <h1>KẾT QUẢ BÀI KÍỂM TRA ONLINE</h1>
+        <h1>KẾT QUẢ BÀI KIỂM TRA ONLINE</h1>
         <p>Hệ Thống Quản Lý Học Liệu & Đánh Giá Năng Lực Tiếng Anh LMS</p>
       </div>
 
