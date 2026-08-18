@@ -1,120 +1,182 @@
-import React from 'react';
-import { BookOpen, CheckCircle, Circle, Plus, Settings, ChevronRight, Layers, Edit2, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown, ChevronRight, BookOpen, Layers, Users, Award, FileText, Activity, CheckSquare, Sparkles, Home, Globe, Folder, PlayCircle } from 'lucide-react';
 
-export default function CourseSidebar({
-  sections = [],
-  activeSectionId,
-  onSelectSection,
-  isTeacher,
-  onAddSection,
-  onEditSection,
-  onDeleteSection,
-  progressPercentage = 0,
-}) {
+export default function CourseSidebar({ sections, activeSectionId, onSelectSection, isTeacher, courseTitle, onOpenEnrolledModal }) {
+  const [navExpanded, setNavExpanded] = useState({
+    dashboard: true,
+    myCourses: true,
+    courseContent: true,
+    unit1: true,
+  });
+
+  const toggleNav = (key) => {
+    setNavExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
-    <aside className="w-full md:w-72 bg-white border-r border-slate-200 p-4 flex flex-col h-[calc(100vh-4rem)] sticky top-16">
-      {/* Tiêu đề Sidebar */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
-        <div className="flex items-center space-x-2 text-slate-800 font-bold">
-          <Layers className="w-5 h-5 text-emerald-600" />
-          <span>Chủ Đề Khóa Học</span>
+    <aside className="w-full lg:w-72 bg-white rounded-3xl border border-slate-200 p-5 space-y-4 shadow-sm h-fit">
+      {/* KHỐI NAVIGATION MOODLE CHUẨN 100% ẢNH 3 */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2 className="text-base font-extrabold text-slate-900 tracking-tight">Navigation</h2>
+          <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Moodle LMS</span>
         </div>
-        {isTeacher && (
-          <button
-            onClick={onAddSection}
-            title="Thêm Chủ đề/Tuần học mới"
-            className="p-1 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-        )}
-      </div>
 
-      {/* Progress Bar Tiến Độ Học (Cho Học sinh) */}
-      {!isTeacher && (
-        <div className="mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-          <div className="flex justify-between items-center text-xs font-semibold text-slate-600 mb-1.5">
-            <span>Tiến độ học tập</span>
-            <span className="text-emerald-600 font-bold">{Math.round(progressPercentage)}%</span>
-          </div>
-          <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-emerald-500 h-full rounded-full transition-all duration-300"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-        </div>
-      )}
+        <div className="space-y-1 text-xs font-semibold text-slate-700">
+          {/* Dashboard */}
+          <div>
+            <button
+              onClick={() => toggleNav('dashboard')}
+              className="w-full flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition text-emerald-800 font-extrabold"
+            >
+              <div className="flex items-center space-x-2">
+                <Home className="w-4 h-4 text-emerald-600" />
+                <span>Dashboard</span>
+              </div>
+              {navExpanded.dashboard ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
 
-      {/* Danh sách Sections (Chủ đề / Tuần) */}
-      <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-        {sections.length === 0 ? (
-          <p className="text-xs text-slate-400 p-3 text-center italic">
-            Chưa có chủ đề nào được tạo.
-          </p>
-        ) : (
-          sections.map((section, idx) => {
-            const isActive = activeSectionId === section.id;
-            return (
-              <div
-                key={section.id}
-                onClick={() => onSelectSection(section.id)}
-                className={`w-full px-3 py-2.5 rounded-xl text-sm font-medium transition flex items-center justify-between cursor-pointer group ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-800 border-l-4 border-emerald-600 font-bold shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <div className="flex items-center space-x-2 truncate">
-                  <span className="text-[11px] w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center font-extrabold text-slate-500 flex-shrink-0">
-                    {idx + 1}
-                  </span>
-                  <span className="truncate">{section.title}</span>
+            {navExpanded.dashboard && (
+              <div className="pl-6 space-y-1 pt-1 text-slate-600">
+                <div className="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
+                  <Globe className="w-3.5 h-3.5 text-sky-500" />
+                  <span>Site home</span>
+                </div>
+                <div className="flex items-center space-x-2 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
+                  <Folder className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Site pages</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* My courses */}
+          <div>
+            <button
+              onClick={() => toggleNav('myCourses')}
+              className="w-full flex items-center justify-between p-2 hover:bg-slate-50 rounded-xl transition text-slate-900 font-extrabold"
+            >
+              <div className="flex items-center space-x-2">
+                <BookOpen className="w-4 h-4 text-blue-600" />
+                <span>My courses</span>
+              </div>
+              {navExpanded.myCourses ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+
+            {navExpanded.myCourses && (
+              <div className="pl-4 space-y-1 pt-1">
+                {/* Nội dung bài học */}
+                <div>
+                  <button
+                    onClick={() => toggleNav('courseContent')}
+                    className="w-full flex items-center justify-between p-1.5 hover:bg-slate-50 rounded-lg transition font-bold text-slate-800"
+                  >
+                    <span>Nội dung bài học</span>
+                    {navExpanded.courseContent ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {navExpanded.courseContent && (
+                    <div className="pl-4 space-y-1 text-[11px] font-medium text-slate-600">
+                      <div
+                        onClick={onOpenEnrolledModal}
+                        className="flex items-center space-x-2 p-1 hover:bg-emerald-50 hover:text-emerald-800 rounded cursor-pointer"
+                      >
+                        <Users className="w-3 h-3 text-emerald-600" />
+                        <span>Participants (Học viên)</span>
+                      </div>
+                      <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
+                        <Award className="w-3 h-3 text-amber-500" />
+                        <span>Badges</span>
+                      </div>
+                      <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
+                        <CheckSquare className="w-3 h-3 text-purple-500" />
+                        <span>Competencies</span>
+                      </div>
+                      <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
+                        <FileText className="w-3 h-3 text-teal-500" />
+                        <span>Grades</span>
+                      </div>
+                      <div className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
+                        <Activity className="w-3 h-3 text-rose-500" />
+                        <span>Activities</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* NÚT CHỈNH SỬA & XÓA SECTION CHO GIÁO VIÊN */}
-                {isTeacher ? (
-                  <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditSection(section);
-                      }}
-                      title="Sửa tên chủ đề"
-                      className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-100 rounded transition"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteSection(section.id, section.title);
-                      }}
-                      title="Xóa chủ đề này"
-                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded transition"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <ChevronRight className={`w-4 h-4 text-slate-400 ${isActive ? 'rotate-90 text-emerald-600' : ''}`} />
-                )}
+                <div className="pt-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  DANH SÁCH CÁC BÀI HỌC
+                </div>
+
+                {/* English 9 - UNIT 1 */}
+                <div>
+                  <button
+                    onClick={() => toggleNav('unit1')}
+                    className="w-full flex items-center justify-between p-1.5 hover:bg-slate-50 rounded-lg transition font-bold text-sky-700"
+                  >
+                    <span>English 9 - UNIT 1</span>
+                    {navExpanded.unit1 ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {navExpanded.unit1 && (
+                    <div className="pl-3 space-y-1 text-[11px] font-medium text-slate-700">
+                      <div className="p-1 hover:bg-sky-50 hover:text-sky-800 rounded cursor-pointer flex items-center space-x-1.5">
+                        <PlayCircle className="w-3 h-3 text-sky-600" />
+                        <span>Getting started</span>
+                      </div>
+                      <div className="p-1 hover:bg-sky-50 hover:text-sky-800 rounded cursor-pointer flex items-center space-x-1.5">
+                        <span className="px-1 bg-sky-100 text-sky-800 text-[9px] font-bold rounded">H5P</span>
+                        <span>Unit 1- E9 (Find the words)</span>
+                      </div>
+                      <div className="p-1 hover:bg-sky-50 hover:text-sky-800 rounded cursor-pointer flex items-center space-x-1.5">
+                        <span className="px-1 bg-purple-100 text-purple-800 text-[9px] font-bold rounded">H5P</span>
+                        <span>Vocabulary (Dialog Card)</span>
+                      </div>
+                      <div className="p-1 hover:bg-sky-50 hover:text-sky-800 rounded cursor-pointer flex items-center space-x-1.5">
+                        <span className="px-1 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded">H5P</span>
+                        <span>#Flashcard-Unit 1- E9</span>
+                      </div>
+                      <div className="p-1 hover:bg-sky-50 hover:text-sky-800 rounded cursor-pointer flex items-center space-x-1.5">
+                        <span className="px-1 bg-amber-100 text-amber-800 text-[9px] font-bold rounded">H5P</span>
+                        <span>Unit 1-E9_Speak the words set</span>
+                      </div>
+                      <div className="p-1 hover:bg-sky-50 hover:text-sky-800 rounded cursor-pointer flex items-center space-x-1.5">
+                        <span className="px-1 bg-rose-100 text-rose-800 text-[9px] font-bold rounded">H5P</span>
+                        <span>Unit 1-E9 (Cross the word)</span>
+                      </div>
+                      <div className="p-1 hover:bg-sky-50 hover:text-sky-800 rounded cursor-pointer flex items-center space-x-1.5">
+                        <span className="px-1 bg-indigo-100 text-indigo-800 text-[9px] font-bold rounded">H5P</span>
+                        <span>Unit 1- E9 (Interactive book)</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            );
-          })
-        )}
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Nút Thêm Chủ Đề Nhanh Dưới Cùng */}
-      {isTeacher && (
-        <button
-          onClick={onAddSection}
-          className="mt-3 w-full py-2.5 px-3 border border-dashed border-slate-300 text-slate-600 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-xl text-xs font-bold flex items-center justify-center space-x-1 transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ Thêm Chủ Đề / Tuần Học</span>
-        </button>
-      )}
+      {/* DANH SÁCH SECTIONS THỰC TẾ TRONG KHOÁ HỌC */}
+      <div className="border-t border-slate-100 pt-4 space-y-2">
+        <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">CHỦ ĐỀ BÀI HỌC HIỆN CÓ</h3>
+        <div className="space-y-1">
+          {sections.map((sec) => (
+            <button
+              key={sec.id}
+              onClick={() => onSelectSection(sec.id)}
+              className={`w-full text-left p-2.5 rounded-xl font-bold text-xs transition flex items-center space-x-2 ${
+                activeSectionId === sec.id
+                  ? 'bg-emerald-50 text-emerald-900 border border-emerald-300 shadow-xs'
+                  : 'hover:bg-slate-50 text-slate-700'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-emerald-600" />
+              <span className="truncate">{sec.title}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </aside>
   );
 }
