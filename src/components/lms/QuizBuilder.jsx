@@ -28,7 +28,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questionText, setQuestionText] = useState('');
   const [marks, setMarks] = useState(1.0);
 
-  // State riêng cho Multiple Choice (Trắc nghiệm)
+  // State riêng cho Multiple Choice (Trắc nghiệm A, B, C, D 2 Cột - Chuẩn Ảnh 4)
   const [mcOptions, setMcOptions] = useState([
     { text: '', isCorrect: true, feedback: '' },
     { text: '', isCorrect: false, feedback: '' },
@@ -103,6 +103,20 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }
   };
 
+  // Thêm Lựa Chọn Mới Cho Câu Hỏi Trắc Nghiệm (Add Option)
+  const handleAddOption = () => {
+    setMcOptions([...mcOptions, { text: '', isCorrect: false, feedback: '' }]);
+  };
+
+  // Xóa Lựa Chọn
+  const handleRemoveOption = (index) => {
+    if (mcOptions.length <= 2) {
+      alert('Câu hỏi trắc nghiệm cần tối thiểu 2 lựa chọn!');
+      return;
+    }
+    setMcOptions(mcOptions.filter((_, i) => i !== index));
+  };
+
   // Xử lý Lưu Câu Hỏi tùy biến theo từng loại riêng biệt
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
@@ -113,7 +127,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
       question: questionText.trim(),
     };
 
-    // Tạo cấu trúc dữ liệu chuẩn cho từng loại riêng biệt
     if (selectedType === 'multiple_choice') {
       customContent.options = mcOptions.filter(o => o.text.trim() !== '');
     } else if (selectedType === 'true_false') {
@@ -164,7 +177,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setIsImporting(true);
 
     try {
-      // Parser đơn giản định dạng Aiken (Moodle standard)
       const lines = importedText.split('\n');
       let currentQ = null;
       const parsedQuestions = [];
@@ -221,14 +233,25 @@ export default function QuizBuilder({ activityId, onSaved }) {
     await fetchQuestions();
   };
 
-  // Danh sách các Dạng Câu Hỏi Moodle (Chuẩn Ảnh 2 & 3)
+  // DANH SÁCH ĐẦY ĐỦ TOÀN BỘ 18 DẠNG CÂU HỎI CHUẨN MOODLE / GNOMIO (Chuẩn Ảnh 2 & 3)
   const questionTypesList = [
     { type: 'multiple_choice', label: 'Multiple choice', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
     { type: 'matching', label: 'Matching', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
     { type: 'short_answer', label: 'Short answer', desc: 'Dạng câu hỏi nhập từ/số chính xác vào ô trống.' },
-    { type: 'essay', label: 'Essay (Bài tập viết tự luận)', desc: 'Cho phép học sinh gõ văn bản bài viết luận hoặc nộp file.' },
+    { type: 'numerical', label: 'Numerical', desc: 'Cho phép nhập đáp án chữ số có sai số cho phép.' },
+    { type: 'essay', label: 'Essay', desc: 'Cho phép học sinh gõ văn bản bài viết luận hoặc nộp file.' },
+    { type: 'calculated', label: 'Calculated', desc: 'Câu hỏi tính toán với biến số ngẫu nhiên theo công thức.' },
+    { type: 'calculated_multichoice', label: 'Calculated multichoice', desc: 'Trắc nghiệm tính toán với giá trị số ngẫu nhiên.' },
+    { type: 'calculated_simple', label: 'Calculated simple', desc: 'Dạng toán tính toán đơn giản nhanh.' },
+    { type: 'drag_drop_text', label: 'Drag and drop into text', desc: 'Kéo thả từ tương ứng vào vị trí khuyết trong đoạn văn.' },
+    { type: 'drag_drop_markers', label: 'Drag and drop markers', desc: 'Kéo thả các điểm ghim marker lên vị trí hình ảnh.' },
+    { type: 'drag_drop_image', label: 'Drag and drop onto image', desc: 'Kéo thả ô chữ/hình ảnh vào tấm ảnh nền.' },
+    { type: 'cloze', label: 'Embedded answers (Cloze)', desc: 'Đoạn văn hỗn hợp chứa nhiều câu hỏi nhỏ điền từ/trắc nghiệm.' },
+    { type: 'ordering', label: 'Ordering', desc: 'Sắp xếp thứ tự các câu/từ theo trình tự đúng.' },
+    { type: 'random_matching', label: 'Random short-answer matching', desc: 'Khớp câu trả lời ngắn ngẫu nhiên từ bài tập.' },
     { type: 'fill_blank_dropdown', label: 'Select missing words', desc: 'Điền từ khuyết vào đoạn văn bằng hộp chọn Dropdown.' },
+    { type: 'description', label: 'Description', desc: 'Đoạn ghi chú / Hướng dẫn đề bài (không tính điểm).' },
   ];
 
   return (
@@ -261,7 +284,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
           <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
             <div>
               <h3 className="font-extrabold text-base text-slate-900">
-                Questions ({questions.length} câu hỏi)
+                Questions ({questions.length} câu hỏi trong bài)
               </h3>
               <p className="text-xs text-slate-500">
                 Total marks: {questions.reduce((acc, q) => acc + (Number(q.marks) || 1), 0)} điểm
@@ -366,7 +389,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
             Import questions from file (Nhập ngân hàng câu hỏi từ tệp)
           </h3>
 
-          {/* Khối Chọn Định Dạng File Format (Chuẩn Ảnh 1) */}
           <div className="space-y-3">
             <h4 className="text-xs font-extrabold text-slate-700 uppercase">File format (Định dạng tệp)</h4>
             <div className="space-y-2">
@@ -387,7 +409,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
             </div>
           </div>
 
-          {/* Khối Choose a file / Drag and Drop (Chuẩn Ảnh 1) */}
           <div className="space-y-3 pt-2">
             <h4 className="text-xs font-extrabold text-slate-700 uppercase">Import questions from file</h4>
             
@@ -429,10 +450,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* MODAL "Choose a question type to add" (Chuẩn Ảnh 2 & 3) */}
+      {/* MODAL "Choose a question type to add" (ĐỦ TOÀN BỘ 18 DẠNG CÂU HỎI - Chuẩn Ảnh 2 & 3) */}
       {isTypeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-scale-up">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base">Choose a question type to add</h3>
               <button onClick={() => setIsTypeModalOpen(false)} className="text-slate-400 hover:text-white">
@@ -440,18 +461,18 @@ export default function QuizBuilder({ activityId, onSaved }) {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 max-h-[60vh] overflow-y-auto">
-              <div className="space-y-1.5 border-r border-slate-100 pr-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 max-h-[65vh] overflow-y-auto">
+              <div className="space-y-1 border-r border-slate-100 pr-4">
                 <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2">
-                  QUESTIONS TYPES
+                  QUESTIONS TYPES ({questionTypesList.length} Dạng)
                 </span>
                 {questionTypesList.map((t) => (
                   <label
                     key={t.type}
                     onClick={() => setSelectedType(t.type)}
-                    className={`p-3 rounded-xl border flex items-center space-x-3 cursor-pointer transition ${
+                    className={`p-2.5 rounded-xl border flex items-center space-x-3 cursor-pointer transition ${
                       selectedType === t.type
-                        ? 'border-emerald-600 bg-emerald-50/60 text-emerald-900 font-bold'
+                        ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 font-bold'
                         : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                     }`}
                   >
@@ -461,12 +482,12 @@ export default function QuizBuilder({ activityId, onSaved }) {
                       checked={selectedType === t.type}
                       onChange={() => setSelectedType(t.type)}
                     />
-                    <span className="text-xs">{t.label}</span>
+                    <span className="text-xs font-semibold">{t.label}</span>
                   </label>
                 ))}
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 sticky top-0 h-fit">
                 <h4 className="font-extrabold text-xs text-slate-800 uppercase">Description</h4>
                 <p className="text-xs text-slate-600 leading-relaxed font-medium">
                   {questionTypesList.find((t) => t.type === selectedType)?.desc}
@@ -492,7 +513,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI TÙY BIẾN CHO TỪNG DẠNG (KHÔNG DÙNG CHUNG FORM TRẮC NGHIỆM!) */}
+      {/* FORM BIÊN TẬP CÂU HỎI TRẮC NGHIỆM GỘP 4 LỰA CHỌN THÀNH 2 CỘT A, C và B, D (Chuẩn Ảnh 4) */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -544,7 +565,77 @@ export default function QuizBuilder({ activityId, onSaved }) {
                 />
               </div>
 
-              {/* GIAO DIỆN RIÊNG CHO DẠNG ESSAY (TỰ LUẬN - KHÔNG HIỆN OPTION 1,2,3!) */}
+              {/* GIAO DIỆN TRẮC NGHIỆM MULTIPLE CHOICE GỘP 2 CỘT GỌN GÀNG (A, C & B, D - Chuẩn Ảnh 4) */}
+              {selectedType === 'multiple_choice' && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-extrabold text-xs text-slate-800 uppercase">
+                      AVAILABLE OPTIONS (CÁC LỰA CHỌN TRẮC NGHIỆM - 2 CỘT A, C & B, D)
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={handleAddOption}
+                      className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold hover:bg-emerald-200 transition"
+                    >
+                      + Thêm Lựa Chọn (Add Option)
+                    </button>
+                  </div>
+
+                  {/* GRID 2 CỘT THU HẸP SPACE NĂNG ĐỘNG (Chuẩn Ảnh 4) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {mcOptions.map((opt, idx) => {
+                      const optionLabel = String.fromCharCode(65 + idx); // A, B, C, D...
+                      return (
+                        <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 relative">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-extrabold text-slate-800">
+                              Option {idx + 1} ({optionLabel})
+                            </span>
+                            <label className="flex items-center space-x-1.5 cursor-pointer text-xs font-bold text-emerald-700">
+                              <input
+                                type="checkbox"
+                                checked={opt.isCorrect}
+                                onChange={(e) => {
+                                  const newOpts = [...mcOptions];
+                                  newOpts[idx].isCorrect = e.target.checked;
+                                  setMcOptions(newOpts);
+                                }}
+                              />
+                              <span>Correct (Đáp án đúng)</span>
+                            </label>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              value={opt.text}
+                              onChange={(e) => {
+                                const newOpts = [...mcOptions];
+                                newOpts[idx].text = e.target.value;
+                                setMcOptions(newOpts);
+                              }}
+                              placeholder={`Nhập đáp án ${optionLabel}...`}
+                              className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-sm bg-white"
+                            />
+                            {mcOptions.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveOption(idx)}
+                                className="text-slate-400 hover:text-rose-600 p-1"
+                                title="Xóa lựa chọn này"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* GIAO DIỆN ESSAY (TỰ LUẬN) */}
               {selectedType === 'essay' && (
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
                   <h4 className="font-extrabold text-xs text-emerald-900 uppercase">Giao Diện Soạn Bài Tập Tự Luận / Viết Văn</h4>
@@ -555,13 +646,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
                     onChange={(e) => setEssayInstruction(e.target.value)}
                     className="w-full p-2.5 border border-emerald-300 rounded-xl text-xs bg-white"
                   />
-                  <p className="text-[11px] text-emerald-700 italic">
-                    ✓ Học sinh sẽ có ô gõ bài viết văn bản dài và nút cho phép Tải file ảnh chụp bài làm lên.
-                  </p>
                 </div>
               )}
 
-              {/* GIAO DIỆN RIÊNG CHO DẠNG TRUE / FALSE (ĐÚNG / SAI) */}
+              {/* GIAO DIỆN TRUE / FALSE */}
               {selectedType === 'true_false' && (
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                   <h4 className="font-extrabold text-xs text-slate-800 uppercase">Correct Answer (Chọn đáp án đúng)</h4>
@@ -586,74 +674,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                       <span>False (Sai)</span>
                     </label>
                   </div>
-                </div>
-              )}
-
-              {/* GIAO DIỆN RIÊNG CHO DẠNG SHORT ANSWER (ĐIỀN TỪ NGẮN) */}
-              {selectedType === 'short_answer' && (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-                  <h4 className="font-extrabold text-xs text-slate-800 uppercase">Accepted Correct Answers (Các từ chấp nhận đáp án đúng)</h4>
-                  {shortAnswers.map((ans, aIdx) => (
-                    <div key={aIdx} className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-slate-500">Đáp án {aIdx + 1}:</span>
-                      <input
-                        type="text"
-                        value={ans}
-                        onChange={(e) => {
-                          const newAns = [...shortAnswers];
-                          newAns[aIdx] = e.target.value;
-                          setShortAnswers(newAns);
-                        }}
-                        placeholder="Ví dụ: August"
-                        className="flex-1 px-3 py-1.5 border border-slate-300 rounded-xl text-sm bg-white font-bold text-emerald-700"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setShortAnswers([...shortAnswers, ''])}
-                    className="text-xs font-bold text-emerald-600 hover:underline"
-                  >
-                    + Thêm từ chấp nhận khác
-                  </button>
-                </div>
-              )}
-
-              {/* GIAO DIỆN RIÊNG CHO DẠNG MULTIPLE CHOICE (TRẮC NGHIỆM) */}
-              {selectedType === 'multiple_choice' && (
-                <div className="space-y-3 pt-2">
-                  <h4 className="font-extrabold text-xs text-slate-800 uppercase">Available options (Các lựa chọn trắc nghiệm)</h4>
-                  {mcOptions.map((opt, idx) => (
-                    <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-extrabold text-slate-700">Option {idx + 1}</span>
-                        <label className="flex items-center space-x-1.5 cursor-pointer text-xs font-bold text-emerald-700">
-                          <input
-                            type="checkbox"
-                            checked={opt.isCorrect}
-                            onChange={(e) => {
-                              const newOpts = [...mcOptions];
-                              newOpts[idx].isCorrect = e.target.checked;
-                              setMcOptions(newOpts);
-                            }}
-                          />
-                          <span>Correct (Đáp án đúng)</span>
-                        </label>
-                      </div>
-
-                      <input
-                        type="text"
-                        value={opt.text}
-                        onChange={(e) => {
-                          const newOpts = [...mcOptions];
-                          newOpts[idx].text = e.target.value;
-                          setMcOptions(newOpts);
-                        }}
-                        placeholder="Nhập nội dung đáp án..."
-                        className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-sm bg-white"
-                      />
-                    </div>
-                  ))}
                 </div>
               )}
 
