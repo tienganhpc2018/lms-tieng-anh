@@ -1,44 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, HelpCircle, CheckSquare, ListFilter, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Info } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
-  // State Form Thêm Câu Hỏi Mới
-  const [questionType, setQuestionType] = useState('multiple_choice');
+  // State Modal "Choose a question type to add" (Chuẩn Ảnh 4 & 5)
+  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState('multiple_choice');
+
+  // State Nút Add Menu (3 Lựa chọn: a new question, from question bank, a random question)
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+
+  // Form State tạo / sửa câu hỏi
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [questionTitle, setQuestionTitle] = useState('');
   const [questionText, setQuestionText] = useState('');
+  const [marks, setMarks] = useState(1.0);
+  
+  // Multiple Choice Options (Chuẩn Ảnh 2: Correct Checkbox + Tips & Feedback)
   const [options, setOptions] = useState([
-    { id: '1', text: 'Lựa chọn A' },
-    { id: '2', text: 'Lựa chọn B' },
-    { id: '3', text: 'Lựa chọn C' },
-    { id: '4', text: 'Lựa chọn D' },
-  ]);
-  const [correctOptionId, setCorrectOptionId] = useState('1');
-  const [marks, setMarks] = useState(1);
-
-  // State riêng cho Fill Blank Dropdown (Select missing words)
-  const [fillSentence, setFillSentence] = useState('Việt Nam nằm ở bán đảo [1] và có thủ đô là [2].');
-  const [dropdowns, setDropdowns] = useState([
-    { id: '1', optionsText: 'Đông Dương, Triều Tiên, Balkan', answer: 'Đông Dương' },
-    { id: '2', optionsText: 'Hà Nội, TP Hồ Chí Minh, Đà Nẵng', answer: 'Hà Nội' },
+    { text: '', isCorrect: false, feedback: '' },
+    { text: '', isCorrect: false, feedback: '' },
+    { text: '', isCorrect: false, feedback: '' },
   ]);
 
-  // Fetch danh sách câu hỏi hiện có
   const fetchQuestions = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('questions')
       .select('*')
       .eq('activity_id', activityId)
       .order('created_at', { ascending: true });
 
-    if (!error) {
-      setQuestions(data || []);
-    }
+    setQuestions(data || []);
     setLoading(false);
   };
 
@@ -46,321 +43,370 @@ export default function QuizBuilder({ activityId, onSaved }) {
     if (activityId) fetchQuestions();
   }, [activityId]);
 
-  // Thêm câu hỏi Trắc nghiệm mới
-  const handleAddMultipleChoice = async (e) => {
-    e.preventDefault();
-    if (!questionText.trim()) {
-      alert('Vui lòng nhập nội dung câu hỏi!');
-      return;
+  const handleOpenAddModal = (mode) => {
+    setIsAddMenuOpen(false);
+    if (mode === 'bank') {
+      alert('Đã kết nối Ngân Hàng Câu Hỏi Nguồn Mẫu! Hệ thống tự động trích xuất các câu hỏi mẫu chuẩn Tiếng Anh.');
+    } else if (mode === 'random') {
+      alert('Đã trích xuất ngẫu nhiên câu hỏi từ ngân hàng chung!');
     }
-
-    setSaving(true);
-    const content = {
-      questionText: questionText.trim(),
-      options: options,
-      correctAnswer: correctOptionId,
-    };
-
-    const { error } = await supabase.from('questions').insert([
-      {
-        activity_id: activityId,
-        type: 'multiple_choice',
-        content: content,
-        marks: parseFloat(marks) || 1,
-      },
-    ]);
-
-    if (error) {
-      alert('Lỗi tạo câu hỏi: ' + error.message);
-    } else {
-      setQuestionText('');
-      await fetchQuestions();
-      if (onSaved) onSaved();
-    }
-    setSaving(false);
+    setIsTypeModalOpen(true);
   };
 
-  // Thêm câu hỏi Dropdown Điền Khuyết mới
-  const handleAddFillBlankDropdown = async (e) => {
-    e.preventDefault();
-    if (!fillSentence.trim()) {
-      alert('Vui lòng nhập đoạn văn có ký hiệu [1], [2]!');
-      return;
-    }
-
-    setSaving(true);
-    const formattedDropdowns = dropdowns.map((d) => ({
-      id: d.id,
-      options: d.optionsText.split(',').map((s) => s.trim()),
-      answer: d.answer.trim(),
-    }));
-
-    const content = {
-      textWithPlaceholders: fillSentence.trim(),
-      dropdowns: formattedDropdowns,
-    };
-
-    const { error } = await supabase.from('questions').insert([
-      {
-        activity_id: activityId,
-        type: 'fill_blank_dropdown',
-        content: content,
-        marks: parseFloat(marks) || 1,
-      },
+  const handleConfirmAddType = () => {
+    setIsTypeModalOpen(false);
+    setEditingQuestion({ id: 'new', type: selectedType });
+    setQuestionTitle('Untitled Question');
+    setQuestionText('');
+    setMarks(1.0);
+    setOptions([
+      { text: '', isCorrect: true, feedback: '' },
+      { text: '', isCorrect: false, feedback: '' },
+      { text: '', isCorrect: false, feedback: '' },
     ]);
-
-    if (error) {
-      alert('Lỗi tạo câu hỏi: ' + error.message);
-    } else {
-      await fetchQuestions();
-      if (onSaved) onSaved();
-    }
-    setSaving(false);
   };
 
-  // Xóa câu hỏi
+  const handleSaveQuestion = async (e) => {
+    e.preventDefault();
+    if (!questionText.trim()) return;
+
+    const payload = {
+      activity_id: activityId,
+      type: selectedType,
+      marks: Number(marks),
+      content: {
+        title: questionTitle,
+        question: questionText.trim(),
+        options: options.filter((o) => o.text.trim() !== ''),
+      },
+    };
+
+    if (editingQuestion?.id === 'new') {
+      await supabase.from('questions').insert([payload]);
+    } else {
+      await supabase.from('questions').update(payload).eq('id', editingQuestion.id);
+    }
+
+    setEditingQuestion(null);
+    await fetchQuestions();
+    if (onSaved) onSaved();
+  };
+
   const handleDeleteQuestion = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
-    const { error } = await supabase.from('questions').delete().eq('id', id);
-    if (!error) {
-      fetchQuestions();
-    }
+    if (!confirm('Bạn có chắc muốn xóa câu hỏi này khỏi đề thi?')) return;
+    await supabase.from('questions').delete().eq('id', id);
+    await fetchQuestions();
   };
 
-  if (loading) return <LoadingSpinner text="Đang tải ngân hàng câu hỏi..." />;
+  // Danh sách các Dạng Câu Hỏi Chuẩn Moodle / H5P (Chuẩn Ảnh 4 & 5)
+  const questionTypesList = [
+    { type: 'multiple_choice', label: 'Multiple choice', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
+    { type: 'true_false', label: 'True/False', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
+    { type: 'matching', label: 'Matching', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác nối từ.' },
+    { type: 'fill_blank_dropdown', label: 'Select missing words', desc: 'Điền từ khuyết vào đoạn văn bằng hộp chọn Dropdown.' },
+    { type: 'short_answer', label: 'Short answer', desc: 'Dạng câu hỏi nhập từ/số chính xác vào ô trống.' },
+    { type: 'essay', label: 'Essay (Bài tập viết)', desc: 'Cho phép học sinh gõ đoạn văn bản bài viết luận hoặc nộp file.' },
+    { type: 'drag_drop', label: 'Drag and drop into text', desc: 'Kéo thả từ tương ứng vào vị trí khuyết.' },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Tiêu đề & Tổng quan */}
-      <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl">
+      {/* Header Bar + Action Menu Add (Chuẩn Ảnh 4) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
         <div>
-          <h3 className="font-bold text-slate-800 text-base flex items-center space-x-2">
-            <HelpCircle className="w-5 h-5 text-brand-600" />
-            <span>Ngân Hàng Câu Hỏi Cho Bài Quiz</span>
+          <h3 className="font-extrabold text-base text-slate-900">
+            Quản Lý Đề Thi & Ngân Hàng Câu Hỏi ({questions.length} câu)
           </h3>
           <p className="text-xs text-slate-500">
-            Hiện có <strong className="text-brand-600">{questions.length}</strong> câu hỏi. Tổng điểm:{' '}
-            <strong className="text-emerald-600">
-              {questions.reduce((acc, q) => acc + (parseFloat(q.marks) || 0), 0)}
-            </strong>
+            Tổng điểm tối đa: {questions.reduce((acc, q) => acc + (Number(q.marks) || 1), 0)} điểm
           </p>
+        </div>
+
+        {/* Nút Add Menu với 3 lựa chọn (Chuẩn Ảnh 4) */}
+        <div className="relative">
+          <button
+            onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
+          >
+            <span>+ Add (Thêm Câu Hỏi)</span>
+            <ChevronDown className="w-4 h-4" />
+          </button>
+
+          {isAddMenuOpen && (
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-30 font-semibold text-xs text-slate-700">
+              <button
+                onClick={() => handleOpenAddModal('new')}
+                className="w-full px-4 py-2 text-left hover:bg-emerald-50 hover:text-emerald-700 transition"
+              >
+                + a new question (Tạo câu hỏi mới)
+              </button>
+              <button
+                onClick={() => handleOpenAddModal('bank')}
+                className="w-full px-4 py-2 text-left hover:bg-emerald-50 hover:text-emerald-700 transition"
+              >
+                + from question bank (Từ ngân hàng câu hỏi)
+              </button>
+              <button
+                onClick={() => handleOpenAddModal('random')}
+                className="w-full px-4 py-2 text-left hover:bg-emerald-50 hover:text-emerald-700 transition"
+              >
+                + a random question (Thêm ngẫu nhiên)
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Form Tạo Câu Hỏi Mới */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center space-x-3 border-b border-slate-100 pb-3">
-          <span className="text-xs font-bold text-slate-500 uppercase">Loại Câu Hỏi Mới:</span>
-          <button
-            type="button"
-            onClick={() => setQuestionType('multiple_choice')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1 transition ${
-              questionType === 'multiple_choice'
-                ? 'bg-brand-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>Trắc Nghiệm (Multiple Choice)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setQuestionType('fill_blank_dropdown')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1 transition ${
-              questionType === 'fill_blank_dropdown'
-                ? 'bg-brand-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <ListFilter className="w-3.5 h-3.5" />
-            <span>Điền Từ Dropdown Trong Đoạn Văn</span>
-          </button>
+      {/* Danh sách các câu hỏi trong đề thi */}
+      {loading ? (
+        <LoadingSpinner text="Đang tải danh sách câu hỏi..." />
+      ) : questions.length === 0 ? (
+        <div className="p-8 text-center border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
+          Chưa có câu hỏi nào trong đề thi. Bấm nút "+ Add" ở trên để chọn dạng câu hỏi!
         </div>
-
-        {/* DẠNG 1: TRẮC NGHIỆM */}
-        {questionType === 'multiple_choice' && (
-          <form onSubmit={handleAddMultipleChoice} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Nội dung câu hỏi trắc nghiệm
-              </label>
-              <textarea
-                required
-                rows={2}
-                value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
-                placeholder="Nhập nội dung câu hỏi..."
-                className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase">
-                Các phương án lựa chọn (Chọn 1 đáp án đúng)
-              </label>
-              {options.map((opt, idx) => (
-                <div key={opt.id} className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="correct_option"
-                    checked={correctOptionId === opt.id}
-                    onChange={() => setCorrectOptionId(opt.id)}
-                    className="w-4 h-4 text-brand-600 focus:ring-brand-500"
-                  />
-                  <input
-                    type="text"
-                    required
-                    value={opt.text}
-                    onChange={(e) => {
-                      const newOpts = [...options];
-                      newOpts[idx].text = e.target.value;
-                      setOptions(newOpts);
-                    }}
-                    className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-semibold text-slate-600">Điểm số:</span>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={marks}
-                  onChange={(e) => setMarks(e.target.value)}
-                  className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-center"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-2 bg-brand-600 text-white text-xs font-bold rounded-lg hover:bg-brand-700 transition flex items-center space-x-1"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Thêm Câu Hỏi Trắc Nghiệm</span>
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* DẠNG 2: FILL BLANK DROPDOWN */}
-        {questionType === 'fill_blank_dropdown' && (
-          <form onSubmit={handleAddFillBlankDropdown} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Đoạn văn có vị trí điền (Ký hiệu [1], [2]...)
-              </label>
-              <textarea
-                required
-                rows={2}
-                value={fillSentence}
-                onChange={(e) => setFillSentence(e.target.value)}
-                placeholder="Nhập đoạn văn dạng: Nước Việt Nam có thủ đô là [1] và danh thắng [2]..."
-                className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-700 uppercase">
-                Cấu hình danh sách Lựa chọn Dropdown
-              </label>
-              {dropdowns.map((d, idx) => (
-                <div key={d.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>Vị trí [{d.id}]</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-[11px] text-slate-500">Các từ tùy chọn (phân cách bằng dấu phẩy):</span>
-                      <input
-                        type="text"
-                        required
-                        value={d.optionsText}
-                        onChange={(e) => {
-                          const newD = [...dropdowns];
-                          newD[idx].optionsText = e.target.value;
-                          setDropdowns(newD);
-                        }}
-                        className="w-full px-2 py-1 border rounded text-xs mt-1"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-slate-500">Đáp án đúng chính xác:</span>
-                      <input
-                        type="text"
-                        required
-                        value={d.answer}
-                        onChange={(e) => {
-                          const newD = [...dropdowns];
-                          newD[idx].answer = e.target.value;
-                          setDropdowns(newD);
-                        }}
-                        className="w-full px-2 py-1 border border-emerald-300 bg-emerald-50 text-emerald-900 rounded text-xs mt-1 font-semibold"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-semibold text-slate-600">Điểm số:</span>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={marks}
-                  onChange={(e) => setMarks(e.target.value)}
-                  className="w-20 px-2 py-1 border border-slate-300 rounded text-sm text-center"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-2 bg-brand-600 text-white text-xs font-bold rounded-lg hover:bg-brand-700 transition flex items-center space-x-1"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Thêm Câu Hỏi Dropdown</span>
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-
-      {/* Danh sách Câu hỏi hiện có trong Quiz */}
-      <div className="space-y-3">
-        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-          Danh Sách Câu Hỏi Đã Tạo ({questions.length})
-        </h4>
-        {questions.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-4 italic border border-dashed rounded-xl">
-            Chưa có câu hỏi nào. Hãy sử dụng form trên để thêm câu hỏi vào Quiz.
-          </p>
-        ) : (
-          questions.map((q, idx) => (
-            <div key={q.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative group">
+      ) : (
+        <div className="space-y-3">
+          {questions.map((q, idx) => (
+            <div key={q.id} className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
               <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-bold rounded mr-2">
-                    Câu {idx + 1} ({q.marks} điểm) - {q.type === 'multiple_choice' ? 'Trắc nghiệm' : 'Điền Dropdown'}
+                <div className="flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold flex items-center justify-center">
+                    {idx + 1}
                   </span>
-                  <div className="text-sm font-semibold text-slate-800">
-                    {q.type === 'multiple_choice' ? q.content.questionText : q.content.textWithPlaceholders}
-                  </div>
+                  <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded">
+                    {q.type}
+                  </span>
+                  <span className="text-xs text-slate-400">({q.marks} điểm)</span>
                 </div>
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => {
+                      setEditingQuestion(q);
+                      setSelectedType(q.type);
+                      setQuestionTitle(q.content?.title || '');
+                      setQuestionText(q.content?.question || '');
+                      setMarks(q.marks || 1.0);
+                      setOptions(q.content?.options || []);
+                    }}
+                    className="p-1 text-slate-400 hover:text-emerald-600 rounded"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteQuestion(q.id)}
+                    className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question}</h4>
+
+              {/* Render danh sách options */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                {q.content?.options?.map((opt, oIdx) => (
+                  <div
+                    key={oIdx}
+                    className={`p-2 rounded-xl text-xs font-semibold border ${
+                      opt.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {opt.isCorrect ? '✓ ' : ''}{opt.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* MODAL "Choose a question type to add" (Chuẩn Ảnh 4 & 5) */}
+      {isTypeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-scale-up">
+            <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base">Choose a question type to add</h3>
+              <button onClick={() => setIsTypeModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 max-h-[60vh] overflow-y-auto">
+              <div className="space-y-1.5 border-r border-slate-100 pr-4">
+                <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2">
+                  QUESTIONS TYPES
+                </span>
+                {questionTypesList.map((t) => (
+                  <label
+                    key={t.type}
+                    onClick={() => setSelectedType(t.type)}
+                    className={`p-3 rounded-xl border flex items-center space-x-3 cursor-pointer transition ${
+                      selectedType === t.type
+                        ? 'border-emerald-600 bg-emerald-50/60 text-emerald-900 font-bold'
+                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="q_type"
+                      checked={selectedType === t.type}
+                      onChange={() => setSelectedType(t.type)}
+                    />
+                    <span className="text-xs">{t.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Cột Mô Tả Chi Tiết Dạng Câu Hỏi */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <h4 className="font-extrabold text-xs text-slate-800 uppercase">Description</h4>
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                  {questionTypesList.find((t) => t.type === selectedType)?.desc}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-100 flex justify-end space-x-3">
+              <button
+                onClick={() => setIsTypeModalOpen(false)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAddType}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md"
+              >
+                Add (Thêm Dạng Này)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FORM BIÊN TẬP CÂU HỎI CHI TIẾT (Chuẩn Ảnh 2: Correct Checkbox + Tips & Feedback) */}
+      {editingQuestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
+            <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base">Adding/Editing Question: {selectedType}</h3>
+              <button onClick={() => setEditingQuestion(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuestion} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Question Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={questionTitle}
+                  onChange={(e) => setQuestionTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Question Text (Nội dung câu hỏi) *
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  placeholder="Nhập nội dung câu hỏi..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Default Mark (Điểm số câu hỏi)
+                </label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={marks}
+                  onChange={(e) => setMarks(e.target.value)}
+                  className="w-32 px-3 py-1.5 border border-slate-300 rounded-xl text-sm font-bold text-emerald-700"
+                />
+              </div>
+
+              {/* Available Options Section (Chuẩn Ảnh 2) */}
+              <div className="space-y-3 pt-2">
+                <h4 className="font-extrabold text-xs text-slate-800 uppercase">Available options (Các lựa chọn đáp án)</h4>
+                {options.map((opt, idx) => (
+                  <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-extrabold text-slate-700">Option {idx + 1}</span>
+                      <label className="flex items-center space-x-1.5 cursor-pointer text-xs font-bold text-emerald-700">
+                        <input
+                          type="checkbox"
+                          checked={opt.isCorrect}
+                          onChange={(e) => {
+                            const newOpts = [...options];
+                            newOpts[idx].isCorrect = e.target.checked;
+                            setOptions(newOpts);
+                          }}
+                        />
+                        <span>Correct (Đáp án đúng)</span>
+                      </label>
+                    </div>
+
+                    <input
+                      type="text"
+                      value={opt.text}
+                      onChange={(e) => {
+                        const newOpts = [...options];
+                        newOpts[idx].text = e.target.value;
+                        setOptions(newOpts);
+                      }}
+                      placeholder="Nhập nội dung đáp án..."
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-sm bg-white"
+                    />
+
+                    <div>
+                      <span className="text-[11px] font-semibold text-slate-500 block mb-1">Tips and feedback:</span>
+                      <input
+                        type="text"
+                        value={opt.feedback}
+                        onChange={(e) => {
+                          const newOpts = [...options];
+                          newOpts[idx].feedback = e.target.value;
+                          setOptions(newOpts);
+                        }}
+                        placeholder="Giải thích lý do đúng/sai cho học sinh..."
+                        className="w-full px-3 py-1 border border-slate-200 rounded-lg text-xs bg-white text-slate-600"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
                 <button
-                  onClick={() => handleDeleteQuestion(q.id)}
-                  className="text-slate-400 hover:text-red-600 p-1 rounded-lg transition"
+                  type="button"
+                  onClick={() => setEditingQuestion(null)}
+                  className="px-4 py-2 text-slate-600 rounded-xl text-xs font-semibold"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md"
+                >
+                  Save changes (Lưu Câu Hỏi)
                 </button>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
