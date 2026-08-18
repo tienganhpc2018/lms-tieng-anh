@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, ArrowLeft, Search, Filter, BookOpen, Layers, Volume2, CheckCircle, Eye, AlertCircle } from 'lucide-react';
+import { Database, ArrowLeft, Search, Filter, BookOpen, Layers, Volume2, CheckCircle, Eye, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -7,15 +7,15 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 export default function QuestionBankView() {
   const navigate = useNavigate();
   const [selectedGrade, setSelectedGrade] = useState('Khối 8');
-  const [activeTab, setActiveTab] = useState('my_questions'); // 'my_questions' | 'global_success'
+  const [activeTab, setActiveTab] = useState('my_questions');
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [hasError, setHasError] = useState(false);
+  const [fetchErrorMsg, setFetchErrorMsg] = useState(null);
 
   const fetchAllQuestions = async () => {
     setLoading(true);
-    setHasError(false);
+    setFetchErrorMsg(null);
     try {
       const { data, error } = await supabase
         .from('questions')
@@ -24,19 +24,26 @@ export default function QuestionBankView() {
 
       if (error) {
         console.error('Lỗi fetch ngân hàng đề:', error);
+        setFetchErrorMsg(error.message);
         setQuestions([]);
       } else if (data) {
         const safeData = data.map((q) => {
-          let cObj = q.content;
-          if (typeof cObj === 'string') {
-            try {
-              cObj = JSON.parse(cObj);
-            } catch (e) {
-              cObj = { question: q.content };
+          let cObj = {};
+          if (q && q.content) {
+            if (typeof q.content === 'object') {
+              cObj = q.content;
+            } else if (typeof q.content === 'string') {
+              try {
+                cObj = JSON.parse(q.content);
+              } catch (e) {
+                cObj = { question: q.content };
+              }
             }
           }
           return {
-            ...q,
+            id: q?.id || Math.random().toString(),
+            type: q?.type || 'multiple_choice',
+            marks: q?.marks || 1,
             content: cObj || {},
           };
         });
@@ -44,7 +51,8 @@ export default function QuestionBankView() {
       }
     } catch (err) {
       console.error('Lỗi load ngân hàng đề:', err);
-      setHasError(true);
+      setFetchErrorMsg(err.message || 'Lỗi không xác định');
+      setQuestions([]);
     } finally {
       setLoading(false);
     }
@@ -54,12 +62,14 @@ export default function QuestionBankView() {
     fetchAllQuestions();
   }, []);
 
-  const filteredQuestions = (questions || []).filter((q) => {
+  const safeQuestions = Array.isArray(questions) ? questions : [];
+  const filteredQuestions = safeQuestions.filter((q) => {
+    if (!q || !q.content) return false;
     try {
-      const title = q.content?.title || '';
-      const qText = q.content?.question || '';
-      const passage = q.content?.passage || '';
-      const query = searchQuery.toLowerCase();
+      const title = String(q.content?.title || '');
+      const qText = String(q.content?.question || '');
+      const passage = String(q.content?.passage || '');
+      const query = (searchQuery || '').toLowerCase();
       return (
         title.toLowerCase().includes(query) ||
         qText.toLowerCase().includes(query) ||
@@ -101,7 +111,7 @@ export default function QuestionBankView() {
           }`}
         >
           <BookOpen className="w-4 h-4 text-emerald-600" />
-          <span>📚 Đề Thi Vừa Soạn Trong Bài Học ({questions.length} đề)</span>
+          <span>📚 Đề Thi Vừa Soạn Trong Bài Học ({safeQuestions.length} đề)</span>
         </button>
 
         <button
@@ -134,24 +144,33 @@ export default function QuestionBankView() {
             <h3 className="font-extrabold text-base text-slate-900">
               Danh Sách Đề Thi Giáo Viên Vừa Soạn ({filteredQuestions.length} câu)
             </h3>
+            <button
+              onClick={fetchAllQuestions}
+              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Tải lại</span>
+            </button>
           </div>
 
           {loading ? (
             <LoadingSpinner text="Đang tải ngân hàng đề thi..." />
-          ) : hasError ? (
+          ) : fetchErrorMsg ? (
             <div className="p-8 text-center bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs font-bold space-y-2">
               <AlertCircle className="w-6 h-6 text-rose-600 mx-auto" />
-              <p>Có lỗi khi nạp ngân hàng đề. Vui lòng bấm nút Tải Lại!</p>
+              <p>Thông báo: {fetchErrorMsg}</p>
               <button
                 onClick={fetchAllQuestions}
                 className="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold"
               >
-                Tải Lại Trang
+                Thử Tải Lại
               </button>
             </div>
           ) : filteredQuestions.length === 0 ? (
-            <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 text-xs font-semibold">
-              Chưa có câu hỏi hoặc bài đọc nào trong CSDL. Hãy vào bài học và bấm nút "Soạn Bài & Câu Hỏi"!
+            <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 text-xs font-semibold space-y-2">
+              <BookOpen className="w-8 h-8 text-slate-300 mx-auto" />
+              <p>Chưa có câu hỏi hoặc bài đọc nào trong Ngân hàng đề.</p>
+              <p className="text-[11px] text-slate-400">Hãy vào Bài Học và bấm nút "Soạn Bài & Câu Hỏi" để tạo đề thi đầu tiên!</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -173,7 +192,7 @@ export default function QuestionBankView() {
                       </div>
                     </div>
 
-                    <h4 className="font-extrabold text-sm text-slate-900">{q.content?.title || q.content?.question}</h4>
+                    <h4 className="font-extrabold text-sm text-slate-900">{q.content?.title || q.content?.question || 'Untitled Question'}</h4>
 
                     {/* NẾU LÀ BÀI ĐỌC READING SECTION */}
                     {q.content?.passage && (
@@ -187,7 +206,7 @@ export default function QuestionBankView() {
                       <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
                         <span className="text-[11px] font-bold text-purple-900 flex items-center space-x-1">
                           <Volume2 className="w-3.5 h-3.5 text-purple-600" />
-                          <span>File Nghe Audio MP3:</span>
+                          <span>File Nghe Audio MP3: ({q.content?.audioFileName || 'Audio Track'})</span>
                         </span>
                         <audio controls className="w-full h-8">
                           <source src={q.content.audioUrl} />
