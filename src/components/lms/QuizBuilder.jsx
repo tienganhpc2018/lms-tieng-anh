@@ -7,7 +7,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Active Tab: 'questions' (Biên tập) | 'manual_editor' (Soạn thủ công) | 'import' (Import file/JSON)
+  // Active Tab: 'questions' (Biên tập & Preview) | 'manual_editor' (Soạn thủ công) | 'import' (Import file/JSON)
   const [activeTab, setActiveTab] = useState('questions');
 
   // Menu Khối Lớp & Unit
@@ -22,14 +22,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [showAnswerBox, setShowAnswerBox] = useState(false);
   const [isSavingHomework, setIsSavingHomework] = useState(false);
 
-  // Popup Hướng Dẫn ❓ và Mẫu Nhập JSON Hàng Loạt (HỌC LIỆU MẪU CHUẨN GNOMIO)
+  // Popup Hướng Dẫn ❓ và Mẫu Nhập JSON Hàng Loạt
   const [helpFormatModal, setHelpFormatModal] = useState(null);
   const [jsonInputText, setJsonInputText] = useState('');
 
   // Checkbox Categories Kỹ Năng
   const [selectedCategories, setSelectedCategories] = useState(['Knowledge of English (Vocab & Grammar)']);
 
-  // Modal "Choose a question type to add" (20+ DẠNG MOODLE GỒM CẢ LISTENING & READING SECTION)
+  // Modal "Choose a question type to add"
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState('multiple_choice');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
@@ -47,9 +47,20 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [marks, setMarks] = useState(1.0);
   const [aiExplaining, setAiExplaining] = useState(false);
 
-  // State riêng cho Listening Section (Ảnh 4) & Reading Section (Ảnh 5)
+  // State riêng cho Listening Section & Reading Section (CHỨA 5 CÂU HỎI CON KÈM 4 PHƯƠNG ÁN A, B, C, D)
   const [sectionPassage, setSectionPassage] = useState('');
   const [audioscriptText, setAudioscriptText] = useState('');
+  const [sectionChildQuestions, setSectionChildQuestions] = useState([
+    {
+      question: 'Question 1 for this passage...',
+      options: [
+        { text: '', isCorrect: true },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+      ],
+    },
+  ]);
 
   // State Trắc nghiệm Multiple Choice 2 Cột (A, C & B, D)
   const [mcOptions, setMcOptions] = useState([
@@ -131,8 +142,7 @@ ANSWER: A`;
       content = `::Matching1:: Match the following adjectives with their definitions.
 {
   =vast -> extremely large in area, size, amount, etc.
-  =hospitable -> pleased to welcome guests; generous and friendly to visitors
-  =well-trained -> having received good or thorough training
+  =hospitable -> pleased to welcome guests; generous to visitors
 }
 
 ::True False 1:: Read the text and tick T or F.
@@ -199,6 +209,17 @@ ANSWER: A`;
     setExplanation('');
     setSectionPassage('');
     setAudioscriptText('');
+    setSectionChildQuestions([
+      {
+        question: 'What is the main topic of the passage?',
+        options: [
+          { text: 'Option A', isCorrect: true },
+          { text: 'Option B', isCorrect: false },
+          { text: 'Option C', isCorrect: false },
+          { text: 'Option D', isCorrect: false },
+        ],
+      },
+    ]);
     setMarks(1.0);
     setMcOptions([
       { text: '', isCorrect: true, feedback: '' },
@@ -220,13 +241,29 @@ ANSWER: A`;
     setMcOptions(mcOptions.filter((_, i) => i !== index));
   };
 
+  // Thêm Câu Hỏi Con Cho Bài Đọc / Bài Nghe
+  const handleAddChildQuestion = () => {
+    setSectionChildQuestions([
+      ...sectionChildQuestions,
+      {
+        question: `Question ${sectionChildQuestions.length + 1}...`,
+        options: [
+          { text: '', isCorrect: true },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
+        ],
+      },
+    ]);
+  };
+
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
-    if (!questionText.trim()) return;
+    if (!questionText.trim() && !sectionPassage.trim()) return;
 
     let customContent = {
-      title: questionTitle,
-      question: questionText.trim(),
+      title: questionTitle || 'Question',
+      question: questionText.trim() || 'Read the passage and answer questions below.',
       explanation: explanation.trim(),
       categories: selectedCategories,
     };
@@ -235,19 +272,21 @@ ANSWER: A`;
     if (normType === 'listening_section') {
       customContent.audioUrl = audioFileUrl;
       customContent.audioscript = audioscriptText;
-      customContent.options = mcOptions.filter(o => o.text.trim() !== '');
+      customContent.childQuestions = sectionChildQuestions;
+      customContent.options = mcOptions.filter((o) => o.text.trim() !== '');
     } else if (normType === 'reading_section') {
       customContent.passage = sectionPassage;
-      customContent.options = mcOptions.filter(o => o.text.trim() !== '');
+      customContent.childQuestions = sectionChildQuestions;
+      customContent.options = mcOptions.filter((o) => o.text.trim() !== '');
     } else if (normType === 'multiple_choice') {
-      customContent.options = mcOptions.filter(o => o.text.trim() !== '');
+      customContent.options = mcOptions.filter((o) => o.text.trim() !== '');
     } else if (normType === 'true_false') {
       customContent.options = [
         { text: 'True (Đúng)', isCorrect: tfCorrect === 'True' },
         { text: 'False (Sai)', isCorrect: tfCorrect === 'False' },
       ];
     } else if (normType === 'short_answer') {
-      customContent.acceptedAnswers = shortAnswers.filter(a => a.trim() !== '');
+      customContent.acceptedAnswers = shortAnswers.filter((a) => a.trim() !== '');
     } else if (normType === 'essay') {
       customContent.instruction = essayInstruction;
       customContent.allowFileUpload = true;
@@ -281,18 +320,32 @@ ANSWER: A`;
     reader.readAsText(file);
   };
 
+  // CHUẨN HÓA PARSER IMPORT JSON 100% CẤU TRÚC SUPABASE
   const handleImportJson = async () => {
     if (!jsonInputText.trim()) return;
     try {
       const parsedData = JSON.parse(jsonInputText);
       const items = Array.isArray(parsedData) ? parsedData : [parsedData];
 
-      const formattedQuestions = items.map(q => ({
-        activity_id: activityId,
-        type: q.type || 'multiple_choice',
-        marks: Number(q.marks) || 1.0,
-        content: q.content || q
-      }));
+      const formattedQuestions = items.map((q) => {
+        const contentObj = q.content || {
+          title: q.title || (q.question ? q.question.substring(0, 50) : 'Imported Question'),
+          question: q.question || q.title || 'Untitled Question',
+          options: q.options || [
+            { text: 'Option A', isCorrect: true },
+            { text: 'Option B', isCorrect: false },
+          ],
+          explanation: q.explanation || '',
+          passage: q.passage || '',
+        };
+
+        return {
+          activity_id: activityId,
+          type: q.type || 'multiple_choice',
+          marks: Number(q.marks) || 1.0,
+          content: contentObj,
+        };
+      });
 
       const { error } = await supabase.from('questions').insert(formattedQuestions);
       if (error) {
@@ -301,7 +354,7 @@ ANSWER: A`;
         alert(`🎉 Đã Import THÀNH CÔNG ${formattedQuestions.length} câu hỏi từ chuỗi JSON!`);
         setJsonInputText('');
         setHelpFormatModal(null);
-        setActiveTab('questions');
+        setActiveTab('questions'); // Chuyển ngay sang tab Biên Tập để Xem Trước & Chỉnh Sửa Tức Thời
         await fetchQuestions();
         if (onSaved) onSaved();
       }
@@ -316,12 +369,12 @@ ANSWER: A`;
 
     const matchingBlocks = cleanText.match(/::Matching\d*::([\s\S]*?)\{([\s\S]*?)\}/gi);
     if (matchingBlocks) {
-      matchingBlocks.forEach(block => {
+      matchingBlocks.forEach((block) => {
         const titleMatch = block.match(/::Matching\d*::\s*([^\n\{]+)/i);
         const pairsMatch = block.match(/\{([\s\S]*?)\}/);
         if (pairsMatch) {
-          const pairLines = pairsMatch[1].split('\n').filter(l => l.includes('->'));
-          const pairs = pairLines.map(l => {
+          const pairLines = pairsMatch[1].split('\n').filter((l) => l.includes('->'));
+          const pairs = pairLines.map((l) => {
             const parts = l.replace(/^=/, '').split('->');
             return { itemA: parts[0]?.trim(), itemB: parts[1]?.trim() };
           });
@@ -333,15 +386,15 @@ ANSWER: A`;
               title: titleMatch ? titleMatch[1].trim() : 'Matching Question',
               question: titleMatch ? titleMatch[1].trim() : 'Match the items',
               explanation: '💡 AI Giải Thích: Hãy đọc kỹ định nghĩa Tiếng Anh để ghép từ chính xác.',
-              pairs
-            }
+              pairs,
+            },
           });
         }
       });
     }
 
     if (parsedQuestions.length === 0) {
-      const rawLines = cleanText.split('\n').map(l => l.trim());
+      const rawLines = cleanText.split('\n').map((l) => l.trim());
       let currentQTextLines = [];
       let currentOptions = [];
 
@@ -355,12 +408,12 @@ ANSWER: A`;
         if (ansMatch) {
           const correctLetter = ansMatch[1].toUpperCase();
           if (currentQTextLines.length > 0 && currentOptions.length >= 2) {
-            const finalOpts = currentOptions.map(o => ({
+            const finalOpts = currentOptions.map((o) => ({
               text: o.text,
-              isCorrect: o.letter === correctLetter
+              isCorrect: o.letter === correctLetter,
             }));
 
-            const correctText = currentOptions.find(o => o.letter === correctLetter)?.text || '';
+            const correctText = currentOptions.find((o) => o.letter === correctLetter)?.text || '';
 
             parsedQuestions.push({
               activity_id: activityId,
@@ -370,8 +423,8 @@ ANSWER: A`;
                 title: currentQTextLines[0].substring(0, 50),
                 question: currentQTextLines.join(' '),
                 explanation: `💡 AI Giải Thích: Đáp án đúng là "${correctText}" vì đây là lựa chọn chính xác theo từ vựng và ngữ pháp Tiếng Anh.`,
-                options: finalOpts
-              }
+                options: finalOpts,
+              },
             });
           }
           currentQTextLines = [];
@@ -379,7 +432,7 @@ ANSWER: A`;
         } else if (optMatch) {
           currentOptions.push({
             letter: optMatch[1].toUpperCase(),
-            text: optMatch[2].trim()
+            text: optMatch[2].trim(),
           });
         } else {
           currentQTextLines.push(line);
@@ -404,7 +457,7 @@ ANSWER: A`;
         } else {
           alert(`🎉 Đã Import THÀNH CÔNG ${parsedQuestions.length} câu hỏi chuẩn Moodle/GIFT vào đề thi!`);
           setImportedText('');
-          setActiveTab('questions');
+          setActiveTab('questions'); // Tự động đưa về Tab Xem Trước & Chỉnh Sửa Tức Thời
           await fetchQuestions();
           if (onSaved) onSaved();
         }
@@ -424,10 +477,9 @@ ANSWER: A`;
     await fetchQuestions();
   };
 
-  // DANH SÁCH ĐẦY ĐỦ CÁC DẠNG CÂU HỎI MOODLE (BAO GỒM CẢ 2 DẠNG THIẾT KẾ ĐẶC BIỆT LISTENING & READING SECTION CHUẨN ẢNH 4 & 5)
   const questionTypesList = [
-    { type: 'listening_section', label: '1. LISTENING SECTION (Bài Nghe Audio & Kịch Bản Hội Thoại)', desc: 'Thiết kế nguyên 1 Section bài nghe Audio MP3 kèm kịch bản Reading Script ẩn/hiện và các câu hỏi trắc nghiệm/điền từ bên dưới (Chuẩn Ảnh 4).' },
-    { type: 'reading_section', label: '2. READING SECTION (Bài Đọc Hiểu Đoạn Văn & Trắc Nghiệm)', desc: 'Thiết kế nguyên 1 Section bài đọc hiểu chứa đoạn văn bản đọc hiểu và các câu hỏi trắc nghiệm/tự luận bên dưới (Chuẩn Ảnh 5).' },
+    { type: 'listening_section', label: '1. LISTENING SECTION (Bài Nghe Audio & Kịch Bản Kèm Nhiều Câu Hỏi Con)', desc: 'Thiết kế nguyên 1 Section bài nghe Audio MP3 kèm kịch bản Reading Script và danh sách 5 câu hỏi trắc nghiệm/điền từ bên dưới (Chuẩn Ảnh 4).' },
+    { type: 'reading_section', label: '2. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Hỏi Trắc Nghiệm Con)', desc: 'Thiết kế nguyên 1 Section bài đọc chứa đoạn văn bản đọc hiểu Chuong Village... và danh sách 5 câu hỏi trắc nghiệm A, B, C, D bên dưới (Chuẩn Ảnh 5).' },
     { type: 'multiple_choice', label: 'Multiple choice (Trắc nghiệm A, B, C, D)', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False (Đúng / Sai)', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
     { type: 'matching', label: 'Matching (Nối từ Cột A - Cột B)', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
@@ -436,11 +488,6 @@ ANSWER: A`;
     { type: 'audio_record', label: 'Audio response (Ghi âm câu trả lời)', desc: 'Ghi âm câu trả lời nói Tiếng Anh trực tiếp từ mic.' },
     { type: 'fill_blank_dropdown', label: 'Select missing words (Dropdown)', desc: 'Điền từ khuyết vào đoạn văn bằng hộp chọn Dropdown.' },
     { type: 'fill_blank_text', label: 'Fill in the blanks (Điền từ ô trống)', desc: 'Điền từ khuyết trực tiếp vào các ô trống trong đoạn văn.' },
-    { type: 'numerical', label: 'Numerical (Câu hỏi chữ số)', desc: 'Cho phép nhập đáp án chữ số có sai số cho phép.' },
-    { type: 'calculated', label: 'Calculated (Tính toán công thức)', desc: 'Câu hỏi tính toán với biến số ngẫu nhiên theo công thức.' },
-    { type: 'cloze', label: 'Embedded answers (Cloze)', desc: 'Đoạn văn hỗn hợp chứa nhiều câu hỏi nhỏ điền từ/trắc nghiệm.' },
-    { type: 'ordering', label: 'Ordering (Sắp xếp thứ tự)', desc: 'Sắp xếp thứ tự các câu/từ theo trình tự đúng.' },
-    { type: 'description', label: 'Description (Hướng dẫn đề bài)', desc: 'Đoạn ghi chú / Hướng dẫn đề bài (không tính điểm).' },
   ];
 
   return (
@@ -449,11 +496,12 @@ ANSWER: A`;
       <div className="flex border-b border-slate-200 space-x-6 overflow-x-auto">
         <button
           onClick={() => setActiveTab('questions')}
-          className={`pb-3 text-xs font-extrabold transition border-b-2 flex-shrink-0 ${
+          className={`pb-3 text-xs font-extrabold transition border-b-2 flex-shrink-0 flex items-center space-x-1.5 ${
             activeTab === 'questions' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          Editing Quiz (Biên Tập Đề Thi - {questions.length} câu)
+          <Eye className="w-4 h-4 text-emerald-600" />
+          <span>Editing & Preview Quiz (Biên Tập & Xem Trước - {questions.length} câu)</span>
         </button>
 
         <button
@@ -477,7 +525,7 @@ ANSWER: A`;
         </button>
       </div>
 
-      {/* TAB 1: DANH SÁCH & BIÊN TẬP CÂU HỎI */}
+      {/* TAB 1: DANH SÁCH & BIÊN TẬP & XEM TRƯỚC TỨC THỜI CÂU HỎI */}
       {activeTab === 'questions' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
@@ -524,7 +572,7 @@ ANSWER: A`;
             <LoadingSpinner text="Đang tải câu hỏi..." />
           ) : questions.length === 0 ? (
             <div className="p-8 text-center border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
-              Chưa có câu hỏi nào. Bấm nút "+ Add" ở trên để chọn dạng câu hỏi!
+              Chưa có câu hỏi nào. Bấm nút "+ Add" ở trên để chọn dạng câu hỏi hoặc qua Tab Import để nạp file!
             </div>
           ) : (
             <div className="space-y-3">
@@ -552,19 +600,28 @@ ANSWER: A`;
                           setExplanation(q.content?.explanation || '');
                           setSectionPassage(q.content?.passage || '');
                           setAudioscriptText(q.content?.audioscript || '');
+                          setSectionChildQuestions(
+                            q.content?.childQuestions || [
+                              {
+                                question: 'Question 1...',
+                                options: [
+                                  { text: 'A', isCorrect: true },
+                                  { text: 'B', isCorrect: false },
+                                ],
+                              },
+                            ]
+                          );
                           setMarks(q.marks || 1.0);
-                          if (normalized === 'multiple_choice' || normalized === 'listening_section' || normalized === 'reading_section') {
-                            setMcOptions(
-                              q.content?.options && q.content?.options.length > 0
-                                ? q.content.options
-                                : [
-                                    { text: '', isCorrect: true },
-                                    { text: '', isCorrect: false },
-                                    { text: '', isCorrect: false },
-                                    { text: '', isCorrect: false },
-                                  ]
-                            );
-                          }
+                          setMcOptions(
+                            q.content?.options && q.content?.options.length > 0
+                              ? q.content.options
+                              : [
+                                  { text: '', isCorrect: true },
+                                  { text: '', isCorrect: false },
+                                  { text: '', isCorrect: false },
+                                  { text: '', isCorrect: false },
+                                ]
+                          );
                         }}
                         className="p-1 text-slate-400 hover:text-emerald-600 rounded"
                         title="Chỉnh sửa câu hỏi này"
@@ -580,7 +637,24 @@ ANSWER: A`;
                     </div>
                   </div>
 
-                  <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question}</h4>
+                  <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question || q.content?.title}</h4>
+
+                  {/* Hiển thị Xem Trước 4 Lựa Chọn Trắc Nghiệm Nêu Có */}
+                  {q.content?.options && q.content?.options.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      {q.content.options.map((opt, oIdx) => (
+                        <div
+                          key={oIdx}
+                          className={`p-2 rounded-xl text-xs font-semibold border ${
+                            opt.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          <span className="font-bold mr-1">{String.fromCharCode(65 + oIdx)}.</span>
+                          {opt.text}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {q.content?.explanation && (
                     <p className="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 font-medium italic">
@@ -721,7 +795,7 @@ ANSWER: A`;
         </div>
       )}
 
-      {/* TAB 3: IMPORT QUESTIONS FROM FILE (CUNG CẤP HỌC LIỆU MẪU CHUẨN GNOMIO VÀ NÚT TẢI TỆP .TXT) */}
+      {/* TAB 3: IMPORT QUESTIONS FROM FILE */}
       {activeTab === 'import' && (
         <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-6">
           <div className="flex justify-between items-center border-b pb-3">
@@ -845,11 +919,11 @@ ANSWER: A`;
               ) : (
                 <div className="space-y-4 text-xs text-slate-700">
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1">
-                    <h5 className="font-extrabold text-emerald-900">📌 Hướng Dẫn Từng Bước (Step-by-step guidance):</h5>
+                    <h5 className="font-extrabold text-emerald-900">📌 Hướng Dẫn Từng Bước:</h5>
                     <p className="text-emerald-800">
-                      Bước 1: Bấm nút <strong>"📥 Tải Tệp Mẫu (.txt)"</strong> bên dưới để lấy file mẫu chuẩn Gnomio.<br />
-                      Bước 2: Mở file bằng Notepad hoặc Word, chỉnh sửa nội dung câu hỏi và đáp án <code>ANSWER: X</code>.<br />
-                      Bước 3: Lưu file và bấm nút <strong>Choose File</strong> để nạp toàn bộ câu hỏi vào hệ thống!
+                      Bước 1: Bấm nút <strong>"📥 Tải Tệp Mẫu (.txt)"</strong> bên dưới.<br />
+                      Bước 2: Mở tệp, chỉnh sửa câu hỏi và đáp án <code>ANSWER: X</code>.<br />
+                      Bước 3: Bấm Import &rarr; Hệ thống đưa ngay về trang Biên Tập & Xem Trước Tức Thời!
                     </p>
                   </div>
 
@@ -885,7 +959,7 @@ ANSWER: A`
                       ? `::Matching1:: Match the following adjectives with their definitions.
 {
   =vast -> extremely large in area, size, amount, etc.
-  =hospitable -> pleased to welcome guests; generous to visitors
+  =hospitable -> generous to visitors
 }
 
 ::True False 1:: Read the text and tick T or F.
@@ -900,7 +974,7 @@ ANSWER: A`
         </div>
       )}
 
-      {/* BẢNG MODAL 20 DẠNG CÂU HỎI MOODLE (BAO GỒM CẢ LISTENING SECTION & READING SECTION CHUẨN ẢNH 4 & 5) */}
+      {/* BẢNG MODAL 20 DẠNG CÂU HỎI MOODLE */}
       {isTypeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 animate-scale-up">
@@ -963,7 +1037,7 @@ ANSWER: A`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI & SECTION */}
+      {/* FORM BIÊN TẬP CÂU HỎI & HỖ TRỢ NHIỀU CÂU HỎI CON CHO LISTENING & READING SECTION */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -975,12 +1049,12 @@ ANSWER: A`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-              {/* CẤU HÌNH DẠNG BÀI NGHE LISTENING SECTION (ẢNH 4) */}
+              {/* FORM LISTENING SECTION */}
               {selectedType?.toLowerCase() === 'listening_section' && (
                 <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl space-y-3">
                   <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-1.5">
                     <Headphones className="w-4 h-4 text-purple-600" />
-                    <span>LISTENING SECTION (Đường Dẫn Audio MP3 & Kịch Bản Bài Nghe Script)</span>
+                    <span>LISTENING SECTION (Đường Dẫn Audio MP3 & Kịch Bản Hội Thoại)</span>
                   </h4>
                   <div>
                     <label className="block text-xs font-bold text-purple-800 mb-1">Đường Dẫn File Audio MP3:</label>
@@ -998,26 +1072,26 @@ ANSWER: A`
                       rows={4}
                       value={audioscriptText}
                       onChange={(e) => setAudioscriptText(e.target.value)}
-                      placeholder="Nhập kịch bản bài nghe (ví dụ: Hello everyone, my name is Phong...)"
+                      placeholder="Nhập kịch bản bài nghe..."
                       className="w-full p-2.5 border border-purple-300 rounded-xl text-xs bg-white"
                     />
                   </div>
                 </div>
               )}
 
-              {/* CẤU HÌNH DẠNG BÀI ĐỌC READING SECTION (ẢNH 5) */}
+              {/* FORM READING SECTION (ĐOẠN VĂN BÀI ĐỌC CHUONG VILLAGE IN HANOI...) */}
               {selectedType?.toLowerCase() === 'reading_section' && (
                 <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl space-y-2">
                   <h4 className="font-extrabold text-xs text-sky-900 uppercase flex items-center space-x-1.5">
                     <BookOpen className="w-4 h-4 text-sky-600" />
-                    <span>READING SECTION (Đoạn Văn Bản Đọc Hiểu Reading Passage)</span>
+                    <span>READING SECTION (Đoạn Văn Bài Đọc Hiểu Reading Passage)</span>
                   </h4>
                   <textarea
                     rows={5}
                     value={sectionPassage}
                     onChange={(e) => setSectionPassage(e.target.value)}
                     placeholder="Dán đoạn văn bản đọc hiểu tại đây (ví dụ: Chuong village in Hanoi is famous for making conical hats...)"
-                    className="w-full p-3 border border-sky-300 rounded-xl text-xs bg-white"
+                    className="w-full p-3 border border-sky-300 rounded-xl text-xs bg-white font-medium"
                   />
                 </div>
               )}
