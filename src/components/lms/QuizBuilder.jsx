@@ -45,7 +45,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questionText, setQuestionText] = useState('');
   const [explanation, setExplanation] = useState('');
   const [marks, setMarks] = useState(1.0);
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState(15); // Cài đặt thời gian đếm ngược (Phút)
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(0); // 0 = Không đếm ngược (Mặc định chạy thời gian tính tiến)
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
@@ -115,19 +115,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
     setUploadedAudioFileName(file.name);
 
-    if (file.size <= 3.5 * 1024 * 1024) {
-      // Nếu file < 3.5MB -> Chuyển thành Base64 Data URL để lưu vĩnh viễn vào DB
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        setListeningAudioUrl(evt.target.result);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      // Nếu file lớn hơn -> Tạo Object URL xem trước và gợi ý link audio mượt mà
-      const localUrl = URL.createObjectURL(file);
-      setListeningAudioUrl(localUrl);
-      alert(`📁 Đã nạp file "${file.name}"! File này sẽ phát trực tiếp trên máy của Thầy.`);
-    }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setListeningAudioUrl(evt.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   // MỞ NGUYÊN PAGE/MODAL XEM VÀ CHỈNH SỬA KHI BẤM VÀO TIÊU ĐỀ BÀI HỌC / READING SECTION
@@ -142,7 +134,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setListeningAudioUrl(q.content?.audioUrl || '');
     setUploadedAudioFileName(q.content?.audioFileName || '');
     setSectionChildQuestions(q.content?.childQuestions || []);
-    setTimeLimitMinutes(q.content?.timeLimit || 15);
+    setTimeLimitMinutes(q.content?.timeLimit || 0);
     setMarks(q.marks || 1.0);
     setMcOptions(
       q.content?.options && q.content?.options.length > 0
@@ -274,7 +266,7 @@ ANSWER: D`;
     setSectionPassage('');
     setListeningAudioUrl('');
     setUploadedAudioFileName('');
-    setTimeLimitMinutes(15);
+    setTimeLimitMinutes(0);
     setSectionChildQuestions([
       {
         question: '1. Nhập nội dung câu hỏi con...',
@@ -351,12 +343,11 @@ ANSWER: D`;
         title: questionTitle || (normType === 'reading_section' ? 'READING SECTION' : normType === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
         question: questionText.trim() || questionTitle || 'Instruction Question',
         explanation: explanation.trim(),
-        timeLimit: Number(timeLimitMinutes) || 15,
+        timeLimit: Number(timeLimitMinutes) || 0,
         categories: selectedCategories,
       };
 
       if (normType === 'listening_section') {
-        // Fallback link MP3 nếu trống
         customContent.audioUrl = listeningAudioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
         customContent.audioFileName = uploadedAudioFileName || 'track-listening.mp3';
         customContent.childQuestions = sectionChildQuestions;
@@ -1109,7 +1100,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI (CÓ CÀI ĐẶT THỜI GIAN ĐẾM NGƯỢC ĐẦY ĐỦ) */}
+      {/* FORM BIÊN TẬP CÂU HỎI (CÁC Ô THỜI GIAN VÀ AUDIO CHUẨN 100%) */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1123,7 +1114,7 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* KHUNG CÀI ĐẶT THỜI GIAN ĐẾM NGƯỢC (THỜI GIAN LÀM BÀI THI) */}
+              {/* KHUNG CÀI ĐẶT THỜI GIAN LÀM BÀI (MẶC ĐỊNH 0 = CHẠY TÍNH TIẾN BÌNH THƯỜNG TRỪ KHỦNG THẦY NHẬP PHÚT) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div>
                   <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1 flex items-center space-x-1">
@@ -1132,13 +1123,16 @@ ANSWER: D`
                   </label>
                   <input
                     type="number"
-                    min="1"
+                    min="0"
                     max="180"
                     value={timeLimitMinutes}
                     onChange={(e) => setTimeLimitMinutes(e.target.value)}
-                    placeholder="Mặc định: 15 phút..."
+                    placeholder="Mặc định: 0 (Để trống = Thời gian tăng dần bình thường)"
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-emerald-950 bg-white"
                   />
+                  <span className="text-[10px] text-slate-500 block mt-1 font-medium">
+                    * Nếu để 0: Thời gian chạy đếm tiến bình thường (00:00 → 00:01). Nếu nhập &gt; 0: Đếm ngược thời gian!
+                  </span>
                 </div>
 
                 <div>
