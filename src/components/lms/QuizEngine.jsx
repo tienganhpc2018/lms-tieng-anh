@@ -29,7 +29,7 @@ export default function QuizEngine({ activity }) {
     isPassed: false,
   });
 
-  // TIMER LOGIC: ĐẾM NGƯỢC (NẾU GV CÀI VÀO > 0) HOẶC ĐẾM TIẾN BÌNH THƯỜNG (00:00 -> 00:01)
+  // TIMER LOGIC: CỘNG DỒN TỔNG THỜI GIAN CỦA TẤT CẢ CÁC BÀI (VÍ DỤ 5P + 5P = 10P)
   useEffect(() => {
     let interval = null;
     if (timerActive && !submitted) {
@@ -70,7 +70,7 @@ export default function QuizEngine({ activity }) {
           console.error('Lỗi fetch questions:', error);
           setQuestions([]);
         } else {
-          let customLimitMinutes = 0;
+          let totalCustomMinutes = 0;
           const safeData = (data || []).map((q) => {
             let cObj = q.content;
             if (typeof cObj === 'string') {
@@ -80,8 +80,9 @@ export default function QuizEngine({ activity }) {
                 cObj = { question: q.content };
               }
             }
+            // Cộng dồn tổng thời gian của tất cả các bài con trong đề thi
             if (cObj?.timeLimit && Number(cObj.timeLimit) > 0) {
-              customLimitMinutes = Number(cObj.timeLimit);
+              totalCustomMinutes += Number(cObj.timeLimit);
             }
             return {
               ...q,
@@ -89,9 +90,9 @@ export default function QuizEngine({ activity }) {
             };
           });
 
-          if (customLimitMinutes > 0) {
+          if (totalCustomMinutes > 0) {
             setIsCountdownMode(true);
-            const totalSecs = customLimitMinutes * 60;
+            const totalSecs = totalCustomMinutes * 60;
             setTimeLimitSeconds(totalSecs);
             setSecondsRemaining(totalSecs);
           } else {
@@ -189,71 +190,118 @@ export default function QuizEngine({ activity }) {
     }
   };
 
-  // Render Khối AI Giải Thích Chuẩn 4 Phần Cho Học Sinh Yếu
+  // HÀM ĐỊNH DẠNG VĂN BẢN XUỐNG DÒNG RÕ RÀNG + BÔI ĐẬM EVIDENCE / DẪN CHỨNG DỄ ĐỌC BÀI
+  const renderFormattedParagraphs = (rawText) => {
+    if (!rawText) return null;
+    
+    // Tách dòng theo ký tự xuồng dòng hoặc các biểu tượng phân đoạn
+    const lines = rawText.split('\n').filter((l) => l.trim() !== '');
+
+    return lines.map((line, idx) => {
+      // Tự động bôi đậm các từ khóa nổi bật như Evidence, Dẫn chứng, Đáp án đúng...
+      let styledLine = line;
+      const highlightKeywords = ['Evidence:', 'Dẫn chứng:', 'Phân tích:', 'Cấu trúc:', 'Đáp án đúng:', 'Loại trừ:', 'Bản dịch:'];
+      
+      let isHeader = false;
+      highlightKeywords.forEach((kw) => {
+        if (line.toLowerCase().includes(kw.toLowerCase())) {
+          isHeader = true;
+        }
+      });
+
+      return (
+        <p key={idx} className={`leading-relaxed text-slate-700 ${idx > 0 ? 'mt-2' : ''}`}>
+          {isHeader ? (
+            <span className="font-extrabold text-slate-900 bg-amber-100/70 px-1.5 py-0.5 rounded mr-1">
+              {line}
+            </span>
+          ) : (
+            line
+          )}
+        </p>
+      );
+    });
+  };
+
+  // Render Khối AI Giải Thích Chuẩn 4 Phần Xuống Dòng Rõ Ràng Cho Học Sinh Yếu
   const renderFourBlockExplanation = (explanationText, correctText) => {
     if (!explanationText) {
       return (
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-2">
-          <p className="font-bold text-emerald-900">➔ Đáp án đúng: {correctText || 'Chính xác'}</p>
-          <p className="text-emerald-800">💡 Hãy ghi nhớ công thức và từ vựng trọng tâm bài học!</p>
+          <p className="font-extrabold text-emerald-950 text-sm">➔ Đáp án đúng: {correctText || 'Chính xác'}</p>
+          <p className="text-emerald-800">💡 Ghi nhớ từ vựng & cấu trúc trọng tâm để chọn đúng đáp án bài sau!</p>
         </div>
       );
     }
 
+    const sectionGrammar = explanationText.includes('Phân tích ngữ pháp')
+      ? explanationText.split('💡')[0].replace(/🔍/g, '').replace('Phân tích ngữ pháp/ngữ cảnh:', '').trim()
+      : 'Câu hỏi kiểm tra từ vựng & ngữ pháp trọng tâm theo bài học.';
+
+    const sectionDetail = explanationText.includes('Giải thích chi tiết')
+      ? (explanationText.split('✕')[0] || explanationText).split('💡')[1]?.replace('Giải thích chi tiết:', '').trim()
+      : explanationText;
+
+    const sectionExclude = explanationText.includes('Loại trừ gây nhiễu')
+      ? (explanationText.split('🇻🇳')[0] || '').split('✕')[1]?.replace('Loại trừ gây nhiễu:', '').trim()
+      : 'Các phương án còn lại sai về nghĩa hoặc không đúng cấu trúc ngữ pháp.';
+
+    const sectionTranslation = explanationText.includes('Bản dịch nghĩa song ngữ')
+      ? explanationText.split('🇻🇳')[1]?.replace('Bản dịch nghĩa song ngữ:', '').trim()
+      : 'Dịch câu hỏi và đáp án chuẩn Tiếng Việt giúp học sinh nắm vững nghĩa.';
+
     return (
-      <div className="p-5 bg-emerald-50/80 border border-emerald-300 rounded-3xl space-y-3 text-xs">
-        <p className="font-extrabold text-emerald-950 text-sm flex items-center space-x-1.5">
-          <CheckCircle className="w-4 h-4 text-emerald-600" />
-          <span>➔ Đáp án đúng: {correctText}</span>
-        </p>
+      <div className="p-5 bg-emerald-50/80 border border-emerald-300 rounded-3xl space-y-4 text-xs">
+        <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-xs">
+          <p className="font-extrabold text-sm flex items-center space-x-1.5">
+            <CheckCircle className="w-4 h-4 text-emerald-200" />
+            <span>➔ ĐÁP ÁN ĐÚNG: {correctText}</span>
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          <div className="p-3.5 bg-white border border-emerald-200 rounded-2xl space-y-1">
-            <span className="font-extrabold text-emerald-900 flex items-center space-x-1 text-[11px]">
+          {/* KHỐI 1: PHÂN TÍCH NGỮ PHÁP */}
+          <div className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2 shadow-2xs">
+            <span className="font-extrabold text-emerald-950 flex items-center space-x-1.5 text-[11px] border-b border-emerald-100 pb-1">
               <Search className="w-3.5 h-3.5 text-sky-600" />
-              <span>Phân tích ngữ pháp/ngữ cảnh:</span>
+              <span>📌 PHÂN TÍCH NGỮ PHÁP / NGỮ CẢNH:</span>
             </span>
-            <p className="text-slate-700 leading-relaxed font-medium">
-              {explanationText.includes('Phân tích ngữ pháp')
-                ? explanationText.split('💡')[0].replace(/🔍/g, '').replace('Phân tích ngữ pháp/ngữ cảnh:', '').trim()
-                : 'Câu hỏi kiểm tra kiến thức từ vựng & ngữ pháp trọng tâm theo bài học.'}
-            </p>
+            <div className="text-slate-700 space-y-1 font-medium leading-relaxed">
+              {renderFormattedParagraphs(sectionGrammar)}
+            </div>
           </div>
 
-          <div className="p-3.5 bg-white border border-emerald-200 rounded-2xl space-y-1">
-            <span className="font-extrabold text-emerald-900 flex items-center space-x-1 text-[11px]">
+          {/* KHỐI 2: GIẢI THÍCH CHI TIẾT & EVIDENCE */}
+          <div className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2 shadow-2xs">
+            <span className="font-extrabold text-emerald-950 flex items-center space-x-1.5 text-[11px] border-b border-emerald-100 pb-1">
               <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-              <span>Giải thích chi tiết:</span>
+              <span>💡 GIẢI THÍCH CHI TIẾT (EVIDENCE / DẪN CHỨNG):</span>
             </span>
-            <p className="text-slate-700 leading-relaxed font-medium">
-              {explanationText.includes('Giải thích chi tiết')
-                ? (explanationText.split('✕')[0] || explanationText).split('💡')[1]?.replace('Giải thích chi tiết:', '').trim()
-                : explanationText}
-            </p>
+            <div className="text-slate-700 space-y-1 font-medium leading-relaxed">
+              {renderFormattedParagraphs(sectionDetail)}
+            </div>
           </div>
 
-          <div className="p-3.5 bg-white border border-emerald-200 rounded-2xl space-y-1">
-            <span className="font-extrabold text-rose-900 flex items-center space-x-1 text-[11px]">
+          {/* KHỐI 3: LOẠI TRỪ GÂY NHIỄU */}
+          <div className="p-4 bg-white border border-rose-200 rounded-2xl space-y-2 shadow-2xs">
+            <span className="font-extrabold text-rose-950 flex items-center space-x-1.5 text-[11px] border-b border-rose-100 pb-1">
               <XCircle className="w-3.5 h-3.5 text-rose-600" />
-              <span>Loại trừ gây nhiễu:</span>
+              <span>✕ LOẠI TRỪ CÁC ĐÁP ÁN GÂY NHIỄU:</span>
             </span>
-            <p className="text-slate-700 leading-relaxed font-medium">
-              {explanationText.includes('Loại trừ gây nhiễu')
-                ? (explanationText.split('🇻🇳')[0] || '').split('✕')[1]?.replace('Loại trừ gây nhiễu:', '').trim()
-                : 'Các phương án còn lại sai về ý nghĩa hoặc không đúng ngữ pháp.'}
-            </p>
+            <div className="text-slate-700 space-y-1 font-medium leading-relaxed">
+              {renderFormattedParagraphs(sectionExclude)}
+            </div>
           </div>
 
-          <div className="p-3.5 bg-white border border-emerald-200 rounded-2xl space-y-1">
-            <span className="font-extrabold text-emerald-900 flex items-center space-x-1 text-[11px]">
+          {/* KHỐI 4: BẢN DỊCH SONG NGỮ */}
+          <div className="p-4 bg-white border border-emerald-200 rounded-2xl space-y-2 shadow-2xs">
+            <span className="font-extrabold text-emerald-950 flex items-center space-x-1.5 text-[11px] border-b border-emerald-100 pb-1">
               <span className="text-xs">🇻🇳</span>
-              <span>Bản dịch nghĩa song ngữ:</span>
+              <span>BẢN DỊCH NGHĨA SONG NGỮ TIẾNG VIỆT:</span>
             </span>
-            <p className="text-slate-700 leading-relaxed font-medium">
-              {explanationText.includes('Bản dịch nghĩa song ngữ')
-                ? explanationText.split('🇻🇳')[1]?.replace('Bản dịch nghĩa song ngữ:', '').trim()
-                : 'Dịch câu hỏi và đáp án chuẩn Tiếng Việt giúp học sinh dễ nhớ.'}
-            </p>
+            <div className="text-slate-700 space-y-1 font-medium leading-relaxed">
+              {renderFormattedParagraphs(sectionTranslation)}
+            </div>
           </div>
         </div>
       </div>
@@ -319,7 +367,7 @@ export default function QuizEngine({ activity }) {
           </div>
         </div>
       ) : (
-        /* THANH ĐỒNG HỒ THỜI GIAN LÀM BÀI: ĐẾM TIẾN BÌNH THƯỜNG TRỪ KHỦ TRƯỜNG HỢP GV CÀI ĐẾM NGƯỢC */
+        /* THANH ĐỒNG HỒ THỜI GIAN LÀM BÀI: ĐẾM TIẾN BÌNH THƯỜNG TRỪ KHỦ TRƯỜNG HỢP CÓ TỔNG THỜI GIAN CÁC BÀI > 0 */
         <div className="bg-slate-900 text-white p-4 rounded-2xl flex justify-between items-center shadow-md">
           <div className="flex items-center space-x-2">
             <User className="w-4 h-4 text-emerald-400" />
@@ -333,7 +381,7 @@ export default function QuizEngine({ activity }) {
             <Clock className="w-4 h-4 text-amber-400" />
             {isCountdownMode ? (
               <span>
-                ⏱️ Thời gian đếm ngược: {minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}
+                ⏱️ Tổng thời gian làm bài ({Math.floor(timeLimitSeconds / 60)} phút): {minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}
               </span>
             ) : (
               <span>
@@ -352,7 +400,7 @@ export default function QuizEngine({ activity }) {
           const isListening = sectionType.toLowerCase() === 'listening_section';
           const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
 
-          // LẤY CHÍNH XÁC FILE AUDIO THẬT CỦA THẦY (ƯU TIÊN DỮ LIỆU TỰ ĐỌC TỪ CSDL HOẶC LOCALSTORAGE)
+          // LẤY CHÍNH XÁC FILE AUDIO THẬT CỦA THẦY (ẨN HOÀN TOÀN TÊN FILE GÂY LỘ)
           let audioSrc = q.content?.audioUrl;
           if ((!audioSrc || audioSrc.startsWith('blob:')) && q.content?.audioFileName) {
             try {
@@ -381,14 +429,12 @@ export default function QuizEngine({ activity }) {
                 </div>
               )}
 
-              {/* BÀI NGHE LISTENING PHÁT CHÍNH XÁC 100% FILE MP3 THẬT MÀ THẦY ĐÃ TẢI LÊN */}
+              {/* BÀI NGHE LISTENING PHÁT CHÍNH XÁC 100% FILE MP3 THẬT (ĐÃ ẨN HOÀN TOÀN TÊN FILE TỆP TRONG NGOẶC CHUẨN SANG TRỌNG) */}
               {isListening && (
                 <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200 shadow-2xs">
                   <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
                     <Volume2 className="w-4 h-4 text-purple-600" />
-                    <span>
-                      Bài Nghe Audio MP3 THẬT: ({q.content?.audioFileName || 'track-listening.mp3'})
-                    </span>
+                    <span>Audio Bài Nghe (Listening Track)</span>
                   </div>
                   {audioSrc ? (
                     <audio controls preload="auto" className="w-full" src={audioSrc}>
@@ -500,7 +546,7 @@ export default function QuizEngine({ activity }) {
                         })}
                       </div>
 
-                      {/* KHỐI AI GIẢI THÍCH 4 PHẦN DÀNH CHO HỌC SINH YẾU */}
+                      {/* KHỐI AI GIẢI THÍCH 4 PHẦN TRÌNH BÀY XUỐNG DÒNG RÕ RÀNG & BÔI ĐẬM EVIDENCE / DẪN CHỨNG */}
                       {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctText)}
                     </div>
                   );
