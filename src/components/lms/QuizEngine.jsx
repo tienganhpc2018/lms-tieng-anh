@@ -56,9 +56,9 @@ export default function QuizEngine({ activity }) {
     if (activity?.id) fetchQuestions();
   }, [activity]);
 
-  const handleSelectAnswer = (questionId, optionIndex) => {
+  const handleSelectAnswer = (questionKey, optionIndex) => {
     if (submitted) return;
-    setUserAnswers((prev) => ({ ...prev, [questionId]: optionIndex }));
+    setUserAnswers((prev) => ({ ...prev, [questionKey]: optionIndex }));
   };
 
   const handleSubmitQuiz = async () => {
@@ -66,14 +66,30 @@ export default function QuizEngine({ activity }) {
 
     let correctCount = 0;
     let totalScore = 0;
+    let totalQCount = 0;
     const totalMarks = questions.reduce((acc, q) => acc + (Number(q.marks) || 1), 0);
 
     questions.forEach((q) => {
-      const selected = userAnswers[q.id];
-      const correctOptIndex = q.content?.options?.findIndex((o) => o.isCorrect);
-      if (selected === correctOptIndex) {
-        correctCount += 1;
-        totalScore += Number(q.marks) || 1;
+      const childs = q.content?.childQuestions;
+      if (childs && childs.length > 0) {
+        childs.forEach((c, cIdx) => {
+          totalQCount += 1;
+          const key = `${q.id}_c${cIdx}`;
+          const selected = userAnswers[key];
+          const correctOptIndex = c.options?.findIndex((o) => o.isCorrect);
+          if (selected === correctOptIndex) {
+            correctCount += 1;
+            totalScore += 1;
+          }
+        });
+      } else {
+        totalQCount += 1;
+        const selected = userAnswers[q.id];
+        const correctOptIndex = q.content?.options?.findIndex((o) => o.isCorrect);
+        if (selected === correctOptIndex) {
+          correctCount += 1;
+          totalScore += Number(q.marks) || 1;
+        }
       }
     });
 
@@ -86,7 +102,7 @@ export default function QuizEngine({ activity }) {
       studentName: profile?.full_name || 'Học Viên',
       timeTakenStr,
       correctCount,
-      totalQuestions: questions.length,
+      totalQuestions: totalQCount,
       score: totalScore,
       totalMarks,
       isPassed,
@@ -109,8 +125,6 @@ export default function QuizEngine({ activity }) {
   };
 
   if (loading) return <LoadingSpinner text="Đang tải đề thi..." />;
-
-  const audioUrl = activity?.settings?.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
 
   return (
     <div className="space-y-6">
@@ -175,80 +189,143 @@ export default function QuizEngine({ activity }) {
         </div>
       )}
 
-      {/* RENDER LISTENING SECTION CHUẨN ẢNH 4 NẾU CÓ */}
-      <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
-            <span className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center font-extrabold text-xs">1</span>
-            <span className="uppercase text-purple-900 tracking-tight">LISTENING SECTION</span>
-          </div>
-          <span className="text-[10px] font-extrabold bg-purple-100 text-purple-800 px-2.5 py-1 rounded-lg">
-            Student & School Supplies
-          </span>
-        </div>
+      {/* RENDER DANH SÁCH BÀI ĐỌC HIỂU & CÁC CÂU HỎI TRẮC NGHIỆM CON (CHUẨN 100% ẢNH 2) */}
+      <div className="space-y-6">
+        {questions.map((q, qIdx) => {
+          const isReading = q.type?.toLowerCase() === 'reading_section';
+          const isListening = q.type?.toLowerCase() === 'listening_section';
+          const childQuestions = q.content?.childQuestions;
 
-        <p className="text-xs text-slate-600 italic">
-          Listen to the audio recordings carefully and complete the tasks below.
-        </p>
+          if (isReading || (childQuestions && childQuestions.length > 0)) {
+            return (
+              <div key={q.id} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
+                    <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
+                      {qIdx + 1}
+                    </span>
+                    <span className="uppercase text-emerald-900 tracking-tight">READING SECTION</span>
+                  </div>
+                  <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg">
+                    Classroom & School Activity
+                  </span>
+                </div>
 
-        <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-          <audio controls className="w-full">
-            <source src={audioUrl} type="audio/mpeg" />
-            Trình duyệt của bạn không hỗ trợ phát Audio mp3.
-          </audio>
-        </div>
+                <p className="text-xs text-slate-600 italic font-medium">
+                  {q.content?.question || 'Read the passage carefully and answer the questions that follow.'}
+                </p>
 
-        {/* NÚT KỊCH BẢN HỘI THOẠI TASK 1 (READING SCRIPT) CHUẨN ẢNH 4 */}
-        <div className="p-4 bg-white border border-purple-200 rounded-2xl space-y-2">
-          <div className="flex items-center justify-between border-b pb-2">
-            <span className="text-xs font-extrabold text-purple-900 flex items-center space-x-1.5">
-              <Headphones className="w-4 h-4 text-purple-600" />
-              <span>KỊCH BẢN HỘI THOẠI TASK 1 (TEACHER'S READING SCRIPT)</span>
-            </span>
-            <button
-              onClick={() => setShowAudioscript(!showAudioscript)}
-              className="text-xs font-extrabold text-purple-700 hover:text-purple-900 px-2 py-0.5 bg-purple-50 rounded"
-            >
-              {showAudioscript ? 'Ẩn' : 'Hiện'}
-            </button>
-          </div>
+                {/* KHUNG ĐOẠN VĂN BÀI ĐỌC HIỂU CHUẨN 100% ẢNH 2 */}
+                <div className="p-5 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-medium shadow-2xs space-y-3">
+                  <h5 className="font-extrabold text-emerald-900 text-sm">
+                    {q.content?.title || 'Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D.'}
+                  </h5>
+                  <p className="text-slate-700 leading-relaxed text-justify">
+                    {q.content?.passage ||
+                      'Chuong village in Hanoi is famous for its long history of making conical hats (non la). For centuries, local artisans have passed down the craft from generation to generation. However, in recent years, the village has faced up to many challenges. Fewer young people want to learn the craft because they do not know how to make a living from it. To deal with this problem, the local community has turned the village into a tourist destination. Visitors come here to learn how to make conical hats themselves. Artisans show them where to buy the best palm leaves and how to sew the hats neatly. This initiative has helped the village avoid having to close down. Now, the locals are looking forward to welcoming more international tourists. By combining traditional crafts with tourism, Chuong village not only preserves its heritage but also improves the local economy.'}
+                  </p>
+                </div>
 
-          {showAudioscript && (
-            <p className="text-xs text-slate-700 italic leading-relaxed pt-1">
-              {activity?.settings?.audioscript ||
-                'Hello everyone, my name is Phong, and I am a third-generation artisan in Bat Trang pottery village. Many young people in our local community often ask me how to keep up with modern trends while preserving our traditional crafts...'}
-            </p>
-          )}
-        </div>
-      </div>
+                {/* DANH SÁCH 5 CÂU HỎI TRẮC NGHIỆM CON BÊN DƯỚI (TRÌNH BÀY CHUẨN 2 CỘT A, C & B, D ẢNH 2) */}
+                <div className="space-y-4 pt-2">
+                  {(childQuestions && childQuestions.length > 0
+                    ? childQuestions
+                    : [
+                        {
+                          question: '1. What traditional craft is Chuong village famous for?',
+                          options: [
+                            { text: 'A. Making pottery', isCorrect: false },
+                            { text: 'B. Making conical hats', isCorrect: true },
+                            { text: 'C. Weaving silk', isCorrect: false },
+                            { text: 'D. Carving wood', isCorrect: false },
+                          ],
+                        },
+                      ]
+                  ).map((cQ, cIdx) => {
+                    const childKey = `${q.id}_c${cIdx}`;
+                    const selectedOptIndex = userAnswers[childKey];
+                    const correctOptIndex = cQ.options?.findIndex((o) => o.isCorrect);
+                    const isCorrect = submitted && selectedOptIndex === correctOptIndex;
+                    const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
 
-      {/* RENDER READING SECTION CHUẨN ẢNH 5 NẾU CÓ */}
-      <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
-            <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">2</span>
-            <span className="uppercase text-emerald-900 tracking-tight">READING SECTION</span>
-          </div>
-          <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg">
-            Classroom & School Activity
-          </span>
-        </div>
+                    return (
+                      <div
+                        key={cIdx}
+                        className={`p-4 bg-white border rounded-2xl space-y-3 transition ${
+                          submitted
+                            ? isCorrect
+                              ? 'border-emerald-400 bg-emerald-50/20'
+                              : 'border-rose-400 bg-rose-50/20'
+                            : 'border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-extrabold text-sm text-slate-900">{cQ.question}</h4>
 
-        <p className="text-xs text-slate-600 italic">
-          Read the passages carefully and answer the questions that follow.
-        </p>
+                          {submitted && (
+                            <div>
+                              {isCorrect && (
+                                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
+                                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                                  <span>Đúng</span>
+                                </span>
+                              )}
+                              {isWrong && (
+                                <span className="px-2.5 py-1 bg-rose-100 text-rose-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
+                                  <XCircle className="w-4 h-4 text-rose-600" />
+                                  <span>Sai</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
 
-        <div className="p-4 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-medium">
-          <h5 className="font-extrabold text-emerald-900 mb-2">Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D.</h5>
-          <p className="text-slate-700">
-            Chuong village in Hanoi is famous for its long history of making conical hats (non la). For centuries, local artisans have passed down the craft from generation to generation. However, in recent years, the village has faced up to many challenges...
-          </p>
-        </div>
-      </div>
+                        {/* 4 LỰA CHỌN TRẮC NGHIỆM 2 CỘT A, C & B, D CHUẨN ẢNH 2 */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {cQ.options?.map((opt, oIdx) => {
+                            const isSelected = selectedOptIndex === oIdx;
+                            const isThisCorrect = opt.isCorrect;
 
-      {/* DANH SÁCH CÂU HỎI QUIZ & KHỐI BÁO LỖI + AI GIẢI THÍCH CHI TIẾT */}
-      <div className="space-y-4">
-        {questions.map((q, idx) => {
+                            let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
+                            if (submitted) {
+                              if (isThisCorrect) {
+                                btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
+                              } else if (isSelected && !isThisCorrect) {
+                                btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
+                              }
+                            } else if (isSelected) {
+                              btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-xs';
+                            }
+
+                            return (
+                              <button
+                                key={oIdx}
+                                onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                className={`p-3 rounded-xl text-xs font-semibold text-left border transition flex items-center space-x-2 ${btnStyle}`}
+                              >
+                                <span className="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center font-bold text-[11px] text-slate-500">
+                                  {String.fromCharCode(65 + oIdx)}
+                                </span>
+                                <span>{opt.text}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {submitted && cQ.explanation && (
+                          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-xl text-xs font-medium italic">
+                            {cQ.explanation}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+
+          // CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ KHÁC
           const selectedOptIndex = userAnswers[q.id];
           const correctOptIndex = q.content?.options?.findIndex((o) => o.isCorrect);
           const isCorrect = submitted && selectedOptIndex === correctOptIndex;
@@ -268,7 +345,7 @@ export default function QuizEngine({ activity }) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
-                    {idx + 1}
+                    {qIdx + 1}
                   </span>
                   <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question}</h4>
                 </div>
@@ -278,20 +355,19 @@ export default function QuizEngine({ activity }) {
                     {isCorrect && (
                       <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
                         <CheckCircle className="w-4 h-4 text-emerald-600" />
-                        <span>Chính xác (+{q.marks || 1} điểm)</span>
+                        <span>Chính xác</span>
                       </span>
                     )}
                     {isWrong && (
                       <span className="px-2.5 py-1 bg-rose-100 text-rose-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
                         <XCircle className="w-4 h-4 text-rose-600" />
-                        <span>Chưa đúng (0 điểm)</span>
+                        <span>Chưa đúng</span>
                       </span>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* HÀNG LỰA CHỌN TRẮC NGHIỆM */}
               {q.content?.options && q.content?.options.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                   {q.content?.options?.map((opt, oIdx) => {
@@ -323,7 +399,6 @@ export default function QuizEngine({ activity }) {
                 </div>
               )}
 
-              {/* KHỐI AI GIẢI THÍCH CHI TIẾT KHI NỘP BÀI */}
               {submitted && (
                 <div className="mt-3 p-4 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-2xl text-xs space-y-1.5 animate-fade-in">
                   <div className="flex items-center space-x-1.5 font-extrabold text-emerald-900">
@@ -332,7 +407,7 @@ export default function QuizEngine({ activity }) {
                   </div>
                   <p className="leading-relaxed font-medium">
                     {q.content?.explanation ||
-                      `Đáp án đúng là "${q.content?.options?.find((o) => o.isCorrect)?.text || 'chính xác'}". Hãy học thuộc các công thức và từ vựng Tiếng Anh liên quan để ghi nhớ sâu nhé!`}
+                      `Đáp án đúng là "${q.content?.options?.find((o) => o.isCorrect)?.text || 'chính xác'}". Hãy học thuộc công thức ngữ pháp để ghi nhớ sâu nhé!`}
                   </p>
                 </div>
               )}
