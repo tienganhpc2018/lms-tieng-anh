@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award } from 'lucide-react';
+import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Active Tab: 'questions' (Biên tập) | 'manual_editor' (Khung Soạn Thủ Công Đồ Họa Ảnh 1) | 'import' (Import Aiken/GIFT)
+  // Active Tab: 'questions' (Biên tập) | 'manual_editor' (Soạn thủ công Ảnh 1) | 'import' (Import file/JSON)
   const [activeTab, setActiveTab] = useState('questions');
 
   // Menu Khối Lớp & Unit
@@ -20,11 +20,16 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [homeworkContent, setHomeworkContent] = useState('');
   const [audioFileUrl, setAudioFileUrl] = useState('');
   const [showAnswerBox, setShowAnswerBox] = useState(false);
+  const [isSavingHomework, setIsSavingHomework] = useState(false);
+
+  // Modal / Popup Hướng Dẫn Dấu Hỏi ❓ và Mẫu Nhập JSON Hàng Loạt
+  const [helpFormatModal, setHelpFormatModal] = useState(null); // 'aiken' | 'gift' | 'xml' | 'json'
+  const [jsonInputText, setJsonInputText] = useState('');
 
   // Checkbox Categories Kỹ Năng Khi Tạo / Sửa Câu Hỏi
   const [selectedCategories, setSelectedCategories] = useState(['Knowledge of English (Vocab & Grammar)']);
 
-  // State Modal "Choose a question type to add" (HƠN 20 DẠNG CÂU HỎI MOODLE)
+  // State Modal "Choose a question type to add"
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState('multiple_choice');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
@@ -75,6 +80,43 @@ export default function QuizBuilder({ activityId, onSaved }) {
     text = text.replace(/\n+/g, '\n');
     setHomeworkContent(text);
     alert('✨ AI đã dọn dẹp sạch sẽ các dòng chữ A, B, C, D và tự động căn chỉnh chuẩn đẹp!');
+  };
+
+  // NÚT LƯU BÀI TẬP VỀ NHÀ NÀY (SAVE HOMEWORK)
+  const handleSaveHomework = async () => {
+    if (!homeworkContent.trim() && !summaryText.trim()) {
+      alert('Vui lòng nhập nội dung bài tập về nhà!');
+      return;
+    }
+    setIsSavingHomework(true);
+
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({
+          settings: {
+            grade,
+            unit,
+            category,
+            summaryText,
+            richText: homeworkContent,
+            audioUrl: audioFileUrl,
+            showAnswerBox,
+          },
+        })
+        .eq('id', activityId);
+
+      if (error) {
+        alert('Lỗi lưu bài tập: ' + error.message);
+      } else {
+        alert('🎉 Đã LƯU BÀI TẬP VỀ NHÀ thành công vào bài học!');
+        if (onSaved) onSaved();
+      }
+    } catch (err) {
+      alert('Lỗi lưu: ' + err.message);
+    } finally {
+      setIsSavingHomework(false);
+    }
   };
 
   const handleOpenAddModal = (mode) => {
@@ -160,12 +202,40 @@ export default function QuizBuilder({ activityId, onSaved }) {
     reader.readAsText(file);
   };
 
-  // BỘ PARSER ADVANCED MOODLE GIFT (GIẢI MÃ NÂNG CAO CHO MATCHING, TRUE/FALSE VÀ FILL-IN-THE-BLANK DE MAU CUA THAY)
+  // Import JSON Hàng Loạt
+  const handleImportJson = async () => {
+    if (!jsonInputText.trim()) return;
+    try {
+      const parsedData = JSON.parse(jsonInputText);
+      const items = Array.isArray(parsedData) ? parsedData : [parsedData];
+
+      const formattedQuestions = items.map(q => ({
+        activity_id: activityId,
+        type: q.type || 'multiple_choice',
+        marks: Number(q.marks) || 1.0,
+        content: q.content || q
+      }));
+
+      const { error } = await supabase.from('questions').insert(formattedQuestions);
+      if (error) {
+        alert('Lỗi nạp JSON vào CSDL: ' + error.message);
+      } else {
+        alert(`🎉 Đã Import THÀNH CÔNG ${formattedQuestions.length} câu hỏi từ chuỗi JSON!`);
+        setJsonInputText('');
+        setHelpFormatModal(null);
+        setActiveTab('questions');
+        await fetchQuestions();
+        if (onSaved) onSaved();
+      }
+    } catch (err) {
+      alert('Lỗi định dạng JSON không hợp lệ: ' + err.message);
+    }
+  };
+
   const parseAdvancedMoodleText = (text) => {
     const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const parsedQuestions = [];
 
-    // 1. Parse dạng Matching ::Matching1::
     const matchingBlocks = cleanText.match(/::Matching\d*::([\s\S]*?)\{([\s\S]*?)\}/gi);
     if (matchingBlocks) {
       matchingBlocks.forEach(block => {
@@ -191,35 +261,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
       });
     }
 
-    // 2. Parse dạng True / False ::True False 1::
-    const tfBlocks = cleanText.match(/::True False\d*::([\s\S]*?)(?=::|$)/gi);
-    if (tfBlocks) {
-      tfBlocks.forEach(block => {
-        const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        const passage = lines.slice(1).filter(l => !l.startsWith('::Q')).join(' ');
-        
-        lines.forEach(l => {
-          const qMatch = l.match(/::Q\d+::\s*(.*?)\s*\{([TF])\}/i);
-          if (qMatch) {
-            parsedQuestions.push({
-              activity_id: activityId,
-              type: 'true_false',
-              marks: 1.0,
-              content: {
-                title: qMatch[1].substring(0, 50),
-                question: passage ? `${passage}\n\nStatement: ${qMatch[1]}` : qMatch[1],
-                options: [
-                  { text: 'True (Đúng)', isCorrect: qMatch[2].toUpperCase() === 'T' },
-                  { text: 'False (Sai)', isCorrect: qMatch[2].toUpperCase() === 'F' }
-                ]
-              }
-            });
-          }
-        });
-      });
-    }
-
-    // 3. Standard Aiken Fallback
     if (parsedQuestions.length === 0) {
       const rawLines = cleanText.split('\n').map(l => l.trim());
       let currentQTextLines = [];
@@ -436,7 +477,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* TAB 2: SOẠN ĐỀ THỦ CÔNG ĐỒ HỌA (ẢNH 1 CỦA THẦY) */}
+      {/* TAB 2: SOẠN ĐỀ THỦ CÔNG ĐỒ HỌA + NÚT LƯU BÀI TẬP (ẢNH 1 THẦY YÊU CẦU) */}
       {activeTab === 'manual_editor' && (
         <div className="space-y-6">
           <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg space-y-4">
@@ -499,7 +540,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
             </div>
           </div>
 
-          <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+          <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleAiCleanText}
@@ -548,33 +589,66 @@ export default function QuizBuilder({ activityId, onSaved }) {
                 <p className="font-mono text-[11px] text-emerald-400">[HƯỚNG DẪN ĐÁP ÁN: 1. A, 2. B, 3. C, 4. D]</p>
               </div>
             )}
+
+            {/* NÚT LƯU BÀI TẬP NỔI BẬT THEO YÊU CẦU CỦA THẦY */}
+            <div className="pt-2">
+              <button
+                onClick={handleSaveHomework}
+                disabled={isSavingHomework}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center space-x-2"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingHomework ? 'Đang Lưu Bài Tập...' : '💾 LƯU BÀI TẬP VỀ NHÀ NÀY VÀO BÀI HỌC'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* TAB 3: IMPORT QUESTIONS FROM FILE */}
+      {/* TAB 3: IMPORT QUESTIONS FROM FILE + DẤU HỎI ❓ HƯỚNG DẪN & NHẬP JSON HÀNG LOẠT (ẢNH 2 THẦY YÊU CẦU) */}
       {activeTab === 'import' && (
         <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-6">
-          <h3 className="text-base font-extrabold text-slate-900 border-b pb-3">
-            Import questions from file (Nhập ngân hàng câu hỏi từ tệp)
-          </h3>
+          <div className="flex justify-between items-center border-b pb-3">
+            <h3 className="text-base font-extrabold text-slate-900">
+              Import questions from file (Nhập ngân hàng câu hỏi từ tệp)
+            </h3>
+            <button
+              onClick={() => setHelpFormatModal('json')}
+              className="px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-xl text-xs font-bold transition flex items-center space-x-1.5"
+            >
+              <Code className="w-4 h-4" />
+              <span>❓ Mẫu Nhập JSON Hàng Loạt</span>
+            </button>
+          </div>
+
           <div className="space-y-3">
-            <h4 className="text-xs font-extrabold text-slate-700 uppercase">File format (Định dạng tệp)</h4>
+            <h4 className="text-xs font-extrabold text-slate-700 uppercase">FILE FORMAT (ĐỊNH DẠNG TỆP)</h4>
             <div className="space-y-2">
-              {['Aiken format', 'GIFT format', 'Moodle XML format'].map((fmt) => {
-                const val = fmt.toLowerCase().split(' ')[0];
-                return (
-                  <label key={fmt} className="flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer">
+              {[
+                { id: 'aiken', label: 'Aiken format' },
+                { id: 'gift', label: 'GIFT format' },
+                { id: 'xml', label: 'Moodle XML format' }
+              ].map((fmt) => (
+                <div key={fmt.id} className="flex items-center space-x-3 text-xs font-semibold text-slate-700">
+                  <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="radio"
                       name="file_fmt"
-                      checked={fileFormat === val}
-                      onChange={() => setFileFormat(val)}
+                      checked={fileFormat === fmt.id}
+                      onChange={() => setFileFormat(fmt.id)}
                     />
-                    <span>{fmt}</span>
+                    <span>{fmt.label}</span>
                   </label>
-                );
-              })}
+                  {/* BIỂU TƯỢNG DẤU HỎI ❓ THEO ĐÚNG YÊU CẦU CỦA THẦY */}
+                  <button
+                    onClick={() => setHelpFormatModal(fmt.id)}
+                    className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 hover:bg-emerald-600 hover:text-white font-extrabold text-[11px] flex items-center justify-center transition"
+                    title={`Xem hướng dẫn & ví dụ mẫu cho ${fmt.label}`}
+                  >
+                    ?
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -612,7 +686,57 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI & CHECKBOX CATEGORIES KỸ NĂNG */}
+      {/* POPUP HƯỚNG DẪN ❓ VÀ MẪU NHẬP JSON HÀNG LOẠT */}
+      {helpFormatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-scale-up">
+            <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base uppercase">
+                ❓ Hướng Dẫn Mẫu Cho Định Dạng: {helpFormatModal.toUpperCase()}
+              </h3>
+              <button onClick={() => setHelpFormatModal(null)} className="text-slate-400 hover:text-white font-bold">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {helpFormatModal === 'json' ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                    Dán chuỗi JSON cấu trúc câu hỏi bên dưới để hệ thống tự động đưa lên hàng loạt:
+                  </p>
+                  <textarea
+                    rows={8}
+                    value={jsonInputText}
+                    onChange={(e) => setJsonInputText(e.target.value)}
+                    placeholder={`[\n  {\n    "type": "multiple_choice",\n    "marks": 1.0,\n    "content": {\n      "title": "Câu 1",\n      "question": "The children in my home village used to go _______",\n      "options": [\n        {"text": "on foot", "isCorrect": false},\n        {"text": "bare-footed", "isCorrect": true}\n      ]\n    }\n  }\n]`}
+                    className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl"
+                  />
+                  <button
+                    onClick={handleImportJson}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md"
+                  >
+                    🚀 Import Chuỗi JSON Hàng Loạt Ngay
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3 text-xs text-slate-700">
+                  <h4 className="font-extrabold text-slate-900">Mẫu Đơn Giản Cho {helpFormatModal.toUpperCase()}:</h4>
+                  <pre className="p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl overflow-x-auto">
+                    {helpFormatModal === 'aiken'
+                      ? `The children in my home village used to go _______.\nA. on foot\nB. bare-footed\nANSWER: B`
+                      : helpFormatModal === 'gift'
+                      ? `::Matching1:: Match adjectives with definitions {\n  =vast -> extremely large\n  =hospitable -> generous to visitors\n}`
+                      : `<quiz>\n  <question type="category">\n    <category><text>Grammar</text></category>\n  </question>\n</quiz>`}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FORM BIÊN TẬP CÂU HỎI */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -624,37 +748,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-              {/* CHECKBOX CATEGORIES KỸ NĂNG */}
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                <label className="block text-xs font-extrabold text-slate-800 uppercase">
-                  TICK PHÂN LOẠI CATEGORIES KỸ NĂNG *
-                </label>
-                <div className="flex flex-wrap gap-3 pt-1">
-                  {[
-                    'Knowledge of English (Vocab & Grammar)',
-                    'Listening',
-                    'Reading',
-                    'Writing',
-                    'Speaking'
-                  ].map((cat) => (
-                    <label key={cat} className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedCategories.includes(cat)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedCategories([...selectedCategories, cat]);
-                          } else {
-                            setSelectedCategories(selectedCategories.filter(c => c !== cat));
-                          }
-                        }}
-                      />
-                      <span>{cat}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                   Question Text (Nội dung đề bài câu hỏi) *
