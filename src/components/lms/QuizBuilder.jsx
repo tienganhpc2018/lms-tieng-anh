@@ -108,17 +108,21 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
-  // CHUYỂN FILE MP3 TẢI TỪ MÁY THÀNH BASE64 DATA URL CHUẨN LƯU VĨNH VIỄN
+  // CHUYỂN BÀI NGHE MP3 TẢI TỪ MÁY THÀNH BASE64 DATA URL THẬT 100%
   const handleAudioFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setUploadedAudioFileName(file.name);
 
-    // Chuyển file thành Base64 Data URL để khi lưu vào DB, trang Thi Thử phát lại RẤT NGON 100%!
     const reader = new FileReader();
     reader.onload = (evt) => {
-      setListeningAudioUrl(evt.target.result);
+      const dataUrl = evt.target.result;
+      setListeningAudioUrl(dataUrl);
+      // Lưu trữ dự phòng vào localStorage theo tên file để trang Thi Thử luôn lấy đúng âm thanh THẬT của Thầy!
+      try {
+        localStorage.setItem(`audio_file_${file.name}`, dataUrl);
+      } catch (errLocal) {}
     };
     reader.readAsDataURL(file);
   };
@@ -349,8 +353,8 @@ ANSWER: D`;
       };
 
       if (normType === 'listening_section') {
-        customContent.audioUrl = listeningAudioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-        customContent.audioFileName = uploadedAudioFileName || 'track-listening.mp3';
+        customContent.audioUrl = listeningAudioUrl;
+        customContent.audioFileName = uploadedAudioFileName;
         customContent.childQuestions = sectionChildQuestions;
       } else if (normType === 'reading_section') {
         customContent.passage = sectionPassage;
