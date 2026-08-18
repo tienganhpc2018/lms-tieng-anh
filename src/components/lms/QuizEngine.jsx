@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function QuizEngine({ activity }) {
@@ -56,7 +56,6 @@ export default function QuizEngine({ activity }) {
           console.error('Lỗi fetch questions:', error);
           setQuestions([]);
         } else {
-          // Chuẩn hóa safe content object
           const safeData = (data || []).map((q) => {
             let cObj = q.content;
             if (typeof cObj === 'string') {
@@ -153,9 +152,78 @@ export default function QuizEngine({ activity }) {
     }
   };
 
-  if (loading) return <LoadingSpinner text="Đang tải bài làm..." />;
+  // Render Khối AI Giải Thích Chuẩn 4 Phần Cho Học Sinh Yếu (Chuẩn 100% Ảnh 2)
+  const renderFourBlockExplanation = (explanationText, correctText) => {
+    if (!explanationText) {
+      return (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-2">
+          <p className="font-bold text-emerald-900">➔ Đáp án đúng: {correctText || 'Chính xác'}</p>
+          <p className="text-emerald-800">💡 Hãy ghi nhớ công thức và từ vựng trọng tâm bài học!</p>
+        </div>
+      );
+    }
 
-  const audioUrl = activity?.settings?.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    return (
+      <div className="p-5 bg-emerald-50/80 border border-emerald-300 rounded-3xl space-y-3 text-xs">
+        <p className="font-extrabold text-emerald-950 text-sm flex items-center space-x-1.5">
+          <CheckCircle className="w-4 h-4 text-emerald-600" />
+          <span>➔ Đáp án đúng: {correctText}</span>
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div className="p-3.5 bg-white border border-emerald-200 rounded-2xl space-y-1">
+            <span className="font-extrabold text-emerald-900 flex items-center space-x-1 text-[11px]">
+              <Search className="w-3.5 h-3.5 text-sky-600" />
+              <span>Phân tích ngữ pháp/ngữ cảnh:</span>
+            </span>
+            <p className="text-slate-700 leading-relaxed font-medium">
+              {explanationText.includes('Phân tích ngữ pháp')
+                ? explanationText.split('💡')[0].replace(/🔍/g, '').replace('Phân tích ngữ pháp/ngữ cảnh:', '').trim()
+                : 'Câu hỏi kiểm tra kiến thức từ vựng & ngữ pháp trọng tâm theo bài học.'}
+            </p>
+          </div>
+
+          <div className="p-3.5 bg-white border border-emerald-200 rounded-2xl space-y-1">
+            <span className="font-extrabold text-emerald-900 flex items-center space-x-1 text-[11px]">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+              <span>Giải thích chi tiết:</span>
+            </span>
+            <p className="text-slate-700 leading-relaxed font-medium">
+              {explanationText.includes('Giải thích chi tiết')
+                ? (explanationText.split('✕')[0] || explanationText).split('💡')[1]?.replace('Giải thích chi tiết:', '').trim()
+                : explanationText}
+            </p>
+          </div>
+
+          <div className="p-3.5 bg-white border border-emerald-200 rounded-2xl space-y-1">
+            <span className="font-extrabold text-rose-900 flex items-center space-x-1 text-[11px]">
+              <XCircle className="w-3.5 h-3.5 text-rose-600" />
+              <span>Loại trừ gây nhiễu:</span>
+            </span>
+            <p className="text-slate-700 leading-relaxed font-medium">
+              {explanationText.includes('Loại trừ gây nhiễu')
+                ? (explanationText.split('🇻🇳')[0] || '').split('✕')[1]?.replace('Loại trừ gây nhiễu:', '').trim()
+                : 'Các phương án còn lại sai về ý nghĩa hoặc không đúng ngữ pháp.'}
+            </p>
+          </div>
+
+          <div className="p-3.5 bg-white border border-emerald-200 rounded-2xl space-y-1">
+            <span className="font-extrabold text-emerald-900 flex items-center space-x-1 text-[11px]">
+              <span className="text-xs">🇻🇳</span>
+              <span>Bản dịch nghĩa song ngữ:</span>
+            </span>
+            <p className="text-slate-700 leading-relaxed font-medium">
+              {explanationText.includes('Bản dịch nghĩa song ngữ')
+                ? explanationText.split('🇻🇳')[1]?.replace('Bản dịch nghĩa song ngữ:', '').trim()
+                : 'Dịch câu hỏi và đáp án chuẩn Tiếng Việt giúp học sinh dễ nhớ.'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (loading) return <LoadingSpinner text="Đang tải bài làm..." />;
 
   return (
     <div className="space-y-6">
@@ -222,249 +290,259 @@ export default function QuizEngine({ activity }) {
         </div>
       )}
 
-      {/* NẾU CHƯA CÓ CÂU HỎI */}
-      {questions.length === 0 ? (
-        <div className="p-8 text-center bg-white border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs">
-          Bài học này hiện chưa có câu hỏi trắc nghiệm nào. Giáo viên vui lòng bấm nút "Soạn Đề Thi / Ngân Hàng Câu Hỏi" ở trên để bổ sung!
-        </div>
-      ) : (
-        /* DANH SÁCH CÂU HỎI */
-        <div className="space-y-6">
-          {questions.map((q, qIdx) => {
-            const isReading = q.type?.toLowerCase() === 'reading_section';
-            const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
+      {/* DANH SÁCH CÂU HỎI */}
+      <div className="space-y-6">
+        {questions.map((q, qIdx) => {
+          const isReading = q.type?.toLowerCase() === 'reading_section';
+          const isListening = q.type?.toLowerCase() === 'listening_section';
+          const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
 
-            if (isReading || childQuestions.length > 0) {
-              return (
-                <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
-                      <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
-                        {qIdx + 1}
-                      </span>
-                      <span className="uppercase text-emerald-900 tracking-tight">READING SECTION</span>
-                    </div>
-                    <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg">
-                      Classroom & School Activity
+          if (isReading || isListening || childQuestions.length > 0) {
+            return (
+              <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
+                    <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
+                      {qIdx + 1}
+                    </span>
+                    <span className="uppercase text-emerald-900 tracking-tight">
+                      {isListening ? 'PHẦN 1: LISTENING SECTION' : 'PHẦN 2: READING SECTION'}
                     </span>
                   </div>
+                </div>
 
-                  <p className="text-xs text-slate-600 italic font-medium">
-                    {q.content?.question || 'Read the passage carefully and answer the questions that follow.'}
-                  </p>
+                {/* NẾU LÀ BÀI NGHE LISTENING CÓ AUDIO MP3 (CHUẨN ẢNH 3) */}
+                {isListening && (
+                  <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200">
+                    <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
+                      <Volume2 className="w-4 h-4 text-purple-600" />
+                      <span>Bài Nghe Audio MP3:</span>
+                    </div>
+                    <audio controls className="w-full">
+                      <source src={q.content?.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'} type="audio/mpeg" />
+                    </audio>
 
-                  {/* KHUNG ĐOẠN VĂN BÀI ĐỌC HIỂU */}
-                  <div className="p-5 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-medium shadow-2xs space-y-3">
+                    {q.content?.audioscript && (
+                      <div className="pt-2">
+                        <button
+                          onClick={() => setShowAudioscript(!showAudioscript)}
+                          className="px-3 py-1 bg-purple-100 text-purple-800 font-bold text-xs rounded-lg flex items-center space-x-1"
+                        >
+                          <Headphones className="w-3.5 h-3.5" />
+                          <span>{showAudioscript ? 'Ẩn Kịch Bản Script' : 'Xem Kịch Bản Script'}</span>
+                        </button>
+                        {showAudioscript && (
+                          <p className="mt-2 p-3 bg-purple-50 text-xs italic text-slate-700 rounded-xl leading-relaxed">
+                            {q.content.audioscript}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* NẾU LÀ BÀI ĐỌC READING CÓ ĐOẠN VĂN (CHUẨN ẢNH 2) */}
+                {isReading && (
+                  <div className="p-5 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-medium space-y-3">
                     <h5 className="font-extrabold text-emerald-900 text-sm">
-                      {q.content?.title || 'Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D.'}
+                      {q.content?.title || 'Read the passage carefully and choose the correct answer.'}
                     </h5>
                     <p className="text-slate-700 leading-relaxed text-justify">
                       {q.content?.passage ||
-                        'Chuong village in Hanoi is famous for its long history of making conical hats (non la). For centuries, local artisans have passed down the craft from generation to generation. However, in recent years, the village has faced up to many challenges. Fewer young people want to learn the craft because they do not know how to make a living from it. To deal with this problem, the local community has turned the village into a tourist destination...'}
+                        'Chuong village in Hanoi is famous for its long history of making conical hats (non la)...'}
                     </p>
                   </div>
+                )}
 
-                  {/* DANH SÁCH CÂU HỎI TRẮC NGHIỆM CON */}
-                  <div className="space-y-4 pt-2">
-                    {(childQuestions.length > 0
-                      ? childQuestions
-                      : [
-                          {
-                            question: '1. What traditional craft is Chuong village famous for?',
-                            options: [
-                              { text: 'A. Making pottery', isCorrect: false },
-                              { text: 'B. Making conical hats', isCorrect: true },
-                              { text: 'C. Weaving silk', isCorrect: false },
-                              { text: 'D. Carving wood', isCorrect: false },
-                            ],
-                          },
-                        ]
-                    ).map((cQ, cIdx) => {
-                      const childKey = `${q.id}_c${cIdx}`;
-                      const selectedOptIndex = userAnswers[childKey];
-                      const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
-                      const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
-                      const isCorrect = submitted && selectedOptIndex === correctOptIndex;
-                      const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
+                {/* DANH SÁCH CÂU HỎI TRẮC NGHIỆM CON KÈM AI GIẢI THÍCH 4 KHỐI CHUẨN ẢNH 2 */}
+                <div className="space-y-4 pt-2">
+                  {(childQuestions.length > 0
+                    ? childQuestions
+                    : [
+                        {
+                          question: '1. What traditional craft is Chuong village famous for?',
+                          options: [
+                            { text: 'A. Making pottery', isCorrect: false },
+                            { text: 'B. Making conical hats', isCorrect: true },
+                            { text: 'C. Weaving silk', isCorrect: false },
+                            { text: 'D. Carving wood', isCorrect: false },
+                          ],
+                        },
+                      ]
+                  ).map((cQ, cIdx) => {
+                    const childKey = `${q.id}_c${cIdx}`;
+                    const selectedOptIndex = userAnswers[childKey];
+                    const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                    const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
+                    const isCorrect = submitted && selectedOptIndex === correctOptIndex;
+                    const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
+                    const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
 
-                      return (
-                        <div
-                          key={cIdx}
-                          className={`p-4 bg-white border rounded-2xl space-y-3 transition ${
-                            submitted
-                              ? isCorrect
-                                ? 'border-emerald-400 bg-emerald-50/20'
-                                : 'border-rose-400 bg-rose-50/20'
-                              : 'border-slate-200'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-extrabold text-sm text-slate-900">{cQ.question}</h4>
+                    return (
+                      <div
+                        key={cIdx}
+                        className={`p-5 bg-white border rounded-2xl space-y-3 transition ${
+                          submitted
+                            ? isCorrect
+                              ? 'border-emerald-400 bg-emerald-50/20'
+                              : 'border-rose-400 bg-rose-50/20'
+                            : 'border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-extrabold text-sm text-slate-900">{cQ.question}</h4>
 
-                            {submitted && (
-                              <div>
-                                {isCorrect && (
-                                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
-                                    <CheckCircle className="w-4 h-4 text-emerald-600" />
-                                    <span>Đúng</span>
-                                  </span>
-                                )}
-                                {isWrong && (
-                                  <span className="px-2.5 py-1 bg-rose-100 text-rose-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
-                                    <XCircle className="w-4 h-4 text-rose-600" />
-                                    <span>Sai</span>
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* 4 LỰA CHỌN TRẮC NGHIỆM */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            {cOpts.map((opt, oIdx) => {
-                              const isSelected = selectedOptIndex === oIdx;
-                              const isThisCorrect = opt?.isCorrect;
-
-                              let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
-                              if (submitted) {
-                                if (isThisCorrect) {
-                                  btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
-                                } else if (isSelected && !isThisCorrect) {
-                                  btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
-                                }
-                              } else if (isSelected) {
-                                btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-xs';
-                              }
-
-                              return (
-                                <button
-                                  key={oIdx}
-                                  onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                  className={`p-3 rounded-xl text-xs font-semibold text-left border transition flex items-center space-x-2 ${btnStyle}`}
-                                >
-                                  <span className="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center font-bold text-[11px] text-slate-500">
-                                    {String.fromCharCode(65 + oIdx)}
-                                  </span>
-                                  <span>{opt.text}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {submitted && cQ.explanation && (
-                            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-xl text-xs font-medium italic">
-                              {cQ.explanation}
+                          {submitted && (
+                            <div>
+                              {isCorrect && (
+                                <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
+                                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                                  <span>Đúng</span>
+                                </span>
+                              )}
+                              {isWrong && (
+                                <span className="px-2.5 py-1 bg-rose-100 text-rose-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
+                                  <XCircle className="w-4 h-4 text-rose-600" />
+                                  <span>Sai</span>
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        {/* 4 LỰA CHỌN TRẮC NGHIỆM */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {cOpts.map((opt, oIdx) => {
+                            const isSelected = selectedOptIndex === oIdx;
+                            const isThisCorrect = opt?.isCorrect;
+
+                            let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
+                            if (submitted) {
+                              if (isThisCorrect) {
+                                btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
+                              } else if (isSelected && !isThisCorrect) {
+                                btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
+                              }
+                            } else if (isSelected) {
+                              btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-xs';
+                            }
+
+                            return (
+                              <button
+                                key={oIdx}
+                                onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                className={`p-3 rounded-xl text-xs font-semibold text-left border transition flex items-center space-x-2 ${btnStyle}`}
+                              >
+                                <span className="w-5 h-5 rounded-full border border-slate-300 flex items-center justify-center font-bold text-[11px] text-slate-500">
+                                  {String.fromCharCode(65 + oIdx)}
+                                </span>
+                                <span>{opt.text}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* KHỐI AI GIẢI THÍCH 4 PHẦN DÀNH CHO HỌC SINH YẾU CHUẨN ẢNH 2 */}
+                        {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctText)}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            }
+              </div>
+            );
+          }
 
-            // CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ
-            const selectedOptIndex = userAnswers[q.id];
-            const qOpts = Array.isArray(q.content?.options) ? q.content.options : [];
-            const correctOptIndex = qOpts.findIndex((o) => o?.isCorrect);
-            const isCorrect = submitted && selectedOptIndex === correctOptIndex;
-            const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
+          // CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ
+          const selectedOptIndex = userAnswers[q.id];
+          const qOpts = Array.isArray(q.content?.options) ? q.content.options : [];
+          const correctOptIndex = qOpts.findIndex((o) => o?.isCorrect);
+          const isCorrect = submitted && selectedOptIndex === correctOptIndex;
+          const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
+          const correctText = qOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
 
-            return (
-              <div
-                key={q.id || qIdx}
-                className={`p-5 bg-white border rounded-2xl shadow-xs space-y-3 transition ${
-                  submitted
-                    ? isCorrect
-                      ? 'border-emerald-400 bg-emerald-50/20'
-                      : 'border-rose-400 bg-rose-50/20'
-                    : 'border-slate-200'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
-                      {qIdx + 1}
-                    </span>
-                    <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question || q.content?.title || 'Question'}</h4>
-                  </div>
-
-                  {submitted && (
-                    <div>
-                      {isCorrect && (
-                        <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
-                          <CheckCircle className="w-4 h-4 text-emerald-600" />
-                          <span>Chính xác</span>
-                        </span>
-                      )}
-                      {isWrong && (
-                        <span className="px-2.5 py-1 bg-rose-100 text-rose-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
-                          <XCircle className="w-4 h-4 text-rose-600" />
-                          <span>Chưa đúng</span>
-                        </span>
-                      )}
-                    </div>
-                  )}
+          return (
+            <div
+              key={q.id || qIdx}
+              className={`p-5 bg-white border rounded-2xl shadow-xs space-y-3 transition ${
+                submitted
+                  ? isCorrect
+                    ? 'border-emerald-400 bg-emerald-50/20'
+                    : 'border-rose-400 bg-rose-50/20'
+                  : 'border-slate-200'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
+                    {qIdx + 1}
+                  </span>
+                  <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question || q.content?.title || 'Question'}</h4>
                 </div>
-
-                {qOpts.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                    {qOpts.map((opt, oIdx) => {
-                      const isSelected = selectedOptIndex === oIdx;
-                      const isThisCorrect = opt?.isCorrect;
-
-                      let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
-                      if (submitted) {
-                        if (isThisCorrect) {
-                          btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
-                        } else if (isSelected && !isThisCorrect) {
-                          btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
-                        }
-                      } else if (isSelected) {
-                        btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-xs';
-                      }
-
-                      return (
-                        <button
-                          key={oIdx}
-                          onClick={() => handleSelectAnswer(q.id, oIdx)}
-                          className={`p-3 rounded-xl text-xs font-semibold text-left border transition ${btnStyle}`}
-                        >
-                          <span className="mr-2 font-bold text-slate-500">{String.fromCharCode(65 + oIdx)}.</span>
-                          {opt.text}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
 
                 {submitted && (
-                  <div className="mt-3 p-4 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-2xl text-xs space-y-1.5 animate-fade-in">
-                    <div className="flex items-center space-x-1.5 font-extrabold text-emerald-900">
-                      <Lightbulb className="w-4 h-4 text-amber-500" />
-                      <span>💡 AI GIẢI THÍCH CHI TIẾT ĐÁP ÁN:</span>
-                    </div>
-                    <p className="leading-relaxed font-medium">
-                      {q.content?.explanation ||
-                        `Đáp án đúng là "${qOpts.find((o) => o?.isCorrect)?.text || 'chính xác'}". Hãy học thuộc công thức ngữ pháp để ghi nhớ sâu nhé!`}
-                    </p>
+                  <div>
+                    {isCorrect && (
+                      <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        <span>Chính xác</span>
+                      </span>
+                    )}
+                    {isWrong && (
+                      <span className="px-2.5 py-1 bg-rose-100 text-rose-800 text-xs font-extrabold rounded-lg flex items-center space-x-1">
+                        <XCircle className="w-4 h-4 text-rose-600" />
+                        <span>Chưa đúng</span>
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
-            );
-          })}
 
-          {!submitted && (
-            <button
-              onClick={handleSubmitQuiz}
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg transition"
-            >
-              Nộp Bài Thi Quiz Ngay
-            </button>
-          )}
-        </div>
-      )}
+              {qOpts.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  {qOpts.map((opt, oIdx) => {
+                    const isSelected = selectedOptIndex === oIdx;
+                    const isThisCorrect = opt?.isCorrect;
+
+                    let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
+                    if (submitted) {
+                      if (isThisCorrect) {
+                        btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold';
+                      } else if (isSelected && !isThisCorrect) {
+                        btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
+                      }
+                    } else if (isSelected) {
+                      btnStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold shadow-xs';
+                    }
+
+                    return (
+                      <button
+                        key={oIdx}
+                        onClick={() => handleSelectAnswer(q.id, oIdx)}
+                        className={`p-3 rounded-xl text-xs font-semibold text-left border transition ${btnStyle}`}
+                      >
+                        <span className="mr-2 font-bold text-slate-500">{String.fromCharCode(65 + oIdx)}.</span>
+                        {opt.text}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* KHỐI AI GIẢI THÍCH 4 PHẦN CHUẨN ẢNH 2 */}
+              {submitted && renderFourBlockExplanation(q.content?.explanation, correctText)}
+            </div>
+          );
+        })}
+
+        {!submitted && (
+          <button
+            onClick={handleSubmitQuiz}
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg transition"
+          >
+            Nộp Bài Thi Quiz Ngay
+          </button>
+        )}
+      </div>
     </div>
   );
 }
