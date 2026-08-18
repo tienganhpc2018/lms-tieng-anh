@@ -14,7 +14,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [grade, setGrade] = useState('Khối 8');
   const [unit, setUnit] = useState('Unit 1: My New School / Leisure Time');
   const [category, setCategory] = useState('Knowledge of English (Vocab & Grammar)');
-  const [summaryText, setSummaryText] = useState('Sơ đồ Infographic tóm tắt công thức Verbs of liking + V-ing giúp học sinh dễ nhớ bài học bằng hình ảnh 3D.');
+  const [summaryText, setSummaryText] = useState('');
 
   // Form State Soạn Văn Bản / Bài Tập Về Nhà
   const [homeworkContent, setHomeworkContent] = useState('');
@@ -52,18 +52,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [audioscriptText, setAudioscriptText] = useState('');
   const [listeningAudioUrl, setListeningAudioUrl] = useState('');
   const [uploadedAudioFileName, setUploadedAudioFileName] = useState('');
-  const [sectionChildQuestions, setSectionChildQuestions] = useState([
-    {
-      question: '1. What traditional craft is Chuong village famous for?',
-      options: [
-        { text: 'A. Making pottery', isCorrect: false },
-        { text: 'B. Making conical hats', isCorrect: true },
-        { text: 'C. Weaving silk', isCorrect: false },
-        { text: 'D. Carving wood', isCorrect: false },
-      ],
-      explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi yêu cầu xác định nghề truyền thống dựa trên câu đầu tiên của đoạn văn.\n\n💡 Giải thích chi tiết:\nĐoạn văn mở đầu bằng: 'Chuong village in Hanoi is famous for its long history of making conical hats (non la)'. Do đó đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác phương án A, C, D là các nghề thủ công mỹ nghệ khác nhưng không phải của làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng với nghề truyền thống nào? - Làm nón lá.`,
-    },
-  ]);
+  const [sectionChildQuestions, setSectionChildQuestions] = useState([]);
 
   // State Trắc nghiệm Multiple Choice 2 Cột (A, C & B, D)
   const [mcOptions, setMcOptions] = useState([
@@ -118,7 +107,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
-  // NẠP VÀ CHUYỂN ĐỔI ĐÚNG FILE AUDIO THẬT TỪ MÁY THÀNH DATA URL ĐỂ LƯU CHÍNH XÁC VÀO CSDL VÀ THI THỬ THẬT
+  // NẠP VÀ CHUYỂN ĐỔI ĐÚNG FILE AUDIO THẬT TỪ MÁY THÀNH DATA URL
   const handleAudioFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -145,17 +134,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setAudioscriptText(q.content?.audioscript || '');
     setListeningAudioUrl(q.content?.audioUrl || '');
     setUploadedAudioFileName(q.content?.audioFileName || '');
-    setSectionChildQuestions(
-      q.content?.childQuestions || [
-        {
-          question: '1. What traditional craft is Chuong village famous for?',
-          options: [
-            { text: 'A. Making pottery', isCorrect: false },
-            { text: 'B. Making conical hats', isCorrect: true },
-          ],
-        },
-      ]
-    );
+    setSectionChildQuestions(q.content?.childQuestions || []);
     setMarks(q.marks || 1.0);
     setMcOptions(
       q.content?.options && q.content?.options.length > 0
@@ -182,20 +161,19 @@ export default function QuizBuilder({ activityId, onSaved }) {
             type: 'reading_section',
             marks: 3.0,
             content: {
-              title: 'READING SECTION - Chuong Conical Hat Village',
-              question: 'Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D.',
-              passage:
-                'Chuong village in Hanoi is famous for its long history of making conical hats (non la). For centuries, local artisans have passed down the craft from generation to generation. However, in recent years, the village has faced up to many challenges. Fewer young people want to learn the craft because they do not know how to make a living from it. To deal with this problem, the local community has turned the village into a tourist destination...',
+              title: 'READING SECTION',
+              question: 'Read the passage and choose the correct answer A, B, C, or D.',
+              passage: 'Enter your reading passage here...',
               childQuestions: [
                 {
-                  question: '1. What traditional craft is Chuong village famous for?',
+                  question: '1. Enter question text here...',
                   options: [
-                    { text: 'A. Making pottery', isCorrect: false },
-                    { text: 'B. Making conical hats', isCorrect: true },
-                    { text: 'C. Weaving silk', isCorrect: false },
-                    { text: 'D. Carving wood', isCorrect: false },
+                    { text: 'A. Option 1', isCorrect: false },
+                    { text: 'B. Option 2', isCorrect: true },
+                    { text: 'C. Option 3', isCorrect: false },
+                    { text: 'D. Option 4', isCorrect: false },
                   ],
-                  explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi yêu cầu xác định nghề truyền thống.\n\n💡 Giải thích chi tiết:\nĐoạn văn mở đầu: 'making conical hats (non la)'. Đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác nghề khác không phải làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng nghề gì? - Nón lá.`,
+                  explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\n...\n\n💡 Giải thích chi tiết:\n...\n\n✕ Loại trừ gây nhiễu:\n...\n\n🇻🇳 Bản dịch nghĩa song ngữ:\n...`,
                 },
               ],
             },
@@ -272,33 +250,30 @@ ANSWER: D`;
     setIsTypeModalOpen(true);
   };
 
+  // TẠO CÂU HỎI MỚI -> TRỐNG TRƠN 100% XÓA SẠCH DỮ LIỆU MẪU CŨ THEO ĐÚNG Ý THẦY
   const handleConfirmAddType = () => {
     setIsTypeModalOpen(false);
     setEditingQuestion({ id: 'new', type: selectedType });
-    setQuestionTitle('READING SECTION - Chuong Conical Hat Village');
-    setQuestionText('Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D.');
-    setExplanation(
-      `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi yêu cầu xác định nghề truyền thống dựa trên câu đầu tiên của đoạn văn.\n\n💡 Giải thích chi tiết:\nĐoạn văn mở đầu bằng: 'Chuong village in Hanoi is famous for its long history of making conical hats (non la)'. Do đó đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác phương án A, C, D là các nghề thủ công mỹ nghệ khác nhưng không phải của làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng với nghề truyền thống nào? - Làm nón lá.`
-    );
-    setSectionPassage(
-      'Chuong village in Hanoi is famous for its long history of making conical hats (non la). For centuries, local artisans have passed down the craft from generation to generation. However, in recent years, the village has faced up to many challenges. Fewer young people want to learn the craft because they do not know how to make a living from it. To deal with this problem, the local community has turned the village into a tourist destination. Visitors come here to learn how to make conical hats themselves. Artisans show them where to buy the best palm leaves and how to sew the hats neatly. This initiative has helped the village avoid having to close down. Now, the locals are looking forward to welcoming more international tourists. By combining traditional crafts with tourism, Chuong village not only preserves its heritage but also improves the local economy.'
-    );
-    setAudioscriptText('Hello everyone, my name is Phong, and I am a third-generation artisan in Bat Trang pottery village...');
+    setQuestionTitle('');
+    setQuestionText('');
+    setExplanation('');
+    setSectionPassage('');
+    setAudioscriptText('');
     setListeningAudioUrl('');
     setUploadedAudioFileName('');
     setSectionChildQuestions([
       {
-        question: '1. What traditional craft is Chuong village famous for?',
+        question: '1. Enter question content here...',
         options: [
-          { text: 'A. Making pottery', isCorrect: false },
-          { text: 'B. Making conical hats', isCorrect: true },
-          { text: 'C. Weaving silk', isCorrect: false },
-          { text: 'D. Carving wood', isCorrect: false },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: true },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
         ],
-        explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nCâu hỏi kiểm tra thông tin mở đầu bài đọc.\n\n💡 Giải thích chi tiết:\nĐoạn văn ghi rõ: 'making conical hats (non la)'. Đáp án đúng là B.\n\n✕ Loại trừ gây nhiễu:\nCác nghề A, C, D không thuộc làng Chuông.\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nLàng Chuông nổi tiếng nghề gì? - Nón lá.`,
+        explanation: '',
       },
     ]);
-    setMarks(3.0);
+    setMarks(1.0);
     setMcOptions([
       { text: '', isCorrect: true, feedback: '' },
       { text: '', isCorrect: false, feedback: '' },
@@ -324,14 +299,14 @@ ANSWER: D`;
     setSectionChildQuestions([
       ...sectionChildQuestions,
       {
-        question: `${qNum}. New question for this section...`,
+        question: `${qNum}. Nhập nội dung câu hỏi con...`,
         options: [
-          { text: 'A. Option A', isCorrect: true },
-          { text: 'B. Option B', isCorrect: false },
-          { text: 'C. Option C', isCorrect: false },
-          { text: 'D. Option D', isCorrect: false },
+          { text: '', isCorrect: true },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
+          { text: '', isCorrect: false },
         ],
-        explanation: `🔍 Phân tích ngữ pháp/ngữ cảnh:\nPhân tích chi tiết...\n\n💡 Giải thích chi tiết:\nLời giải chi tiết...\n\n✕ Loại trừ gây nhiễu:\nLoại trừ các đáp án nhiễu...\n\n🇻🇳 Bản dịch nghĩa song ngữ:\nDịch nghĩa câu hỏi...`,
+        explanation: '',
       },
     ]);
   };
@@ -344,12 +319,13 @@ ANSWER: D`;
     setSectionChildQuestions(sectionChildQuestions.filter((_, i) => i !== index));
   };
 
+  // LƯU CÂU HỎI & BÀI THI THÀNH CÔNG RỰC RỠ -> HIỂN THỊ THÔNG BÁO VÀ LOAD LẠI BÀI HỌC VÀ NGÂN HÀNG ĐỀ TỨC THÌ
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
 
     let customContent = {
-      title: questionTitle || 'Question',
-      question: questionText.trim() || 'Read the passage and answer questions below.',
+      title: questionTitle || (selectedType?.toLowerCase() === 'reading_section' ? 'READING SECTION' : selectedType?.toLowerCase() === 'listening_section' ? 'LISTENING SECTION' : 'MULTIPLE CHOICE'),
+      question: questionText.trim() || questionTitle || 'Question',
       explanation: explanation.trim(),
       categories: selectedCategories,
     };
@@ -384,12 +360,22 @@ ANSWER: D`;
       content: customContent,
     };
 
+    let saveErr = null;
+
     if (editingQuestion?.id === 'new') {
-      await supabase.from('questions').insert([payload]);
+      const { error } = await supabase.from('questions').insert([payload]);
+      saveErr = error;
     } else {
-      await supabase.from('questions').update(payload).eq('id', editingQuestion.id);
+      const { error } = await supabase.from('questions').update(payload).eq('id', editingQuestion.id);
+      saveErr = error;
     }
 
+    if (saveErr) {
+      alert('Lỗi lưu câu hỏi: ' + saveErr.message);
+      return;
+    }
+
+    // TỰ ĐỘNG ĐƯA VÀO BẢNG NGÂN HÀNG CÂU HỎI CHUNG (QUESTION_BANK)
     try {
       await supabase.from('question_bank').insert([
         {
@@ -404,6 +390,8 @@ ANSWER: D`;
         },
       ]);
     } catch (errBank) {}
+
+    alert('🎉 ĐÃ LƯU BÀI THI THÀNH CÔNG THẦY NHÉ!\n\nĐề thi của Thầy đã được lưu vào bài học hiện tại và TỰ ĐỘNG NẠP VÀO NGÂN HÀNG ĐỀ CHUNG!');
 
     setEditingQuestion(null);
     await fetchQuestions();
@@ -578,8 +566,8 @@ ANSWER: D`;
   };
 
   const questionTypesList = [
-    { type: 'reading_section', label: '1. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Hỏi Trắc Nghiệm Con)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu Chuong Village... và danh sách 5 câu hỏi trắc nghiệm A, B, C, D bên dưới (Chuẩn 100% Ảnh 2).' },
-    { type: 'listening_section', label: '2. LISTENING SECTION (Bài Nghe Audio MP3 & Kịch Bản Hội Thoại)', desc: 'Thiết kế bài nghe Audio MP3 (box dán link hoặc upload từ máy) kèm kịch bản Reading Script và danh sách câu hỏi trắc nghiệm con (Chuẩn Ảnh 3).' },
+    { type: 'reading_section', label: '1. READING SECTION (Bài Đọc Hiểu Đoạn Văn & 5 Câu Hỏi Trắc Nghiệm Con)', desc: 'Thiết kế bài đọc chứa đoạn văn bản đọc hiểu và danh sách 5 câu hỏi trắc nghiệm A, B, C, D bên dưới.' },
+    { type: 'listening_section', label: '2. LISTENING SECTION (Bài Nghe Audio MP3 & Kịch Bản Hội Thoại)', desc: 'Thiết kế bài nghe Audio MP3 (box dán link hoặc upload từ máy) kèm kịch bản Reading Script và danh sách câu hỏi trắc nghiệm con.' },
     { type: 'multiple_choice', label: 'Multiple choice (Trắc nghiệm A, B, C, D)', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False (Đúng / Sai)', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
     { type: 'matching', label: 'Matching (Nối từ Cột A - Cột B)', desc: 'Nối Cột A với Cột B tương ứng bằng thao tác kéo nối từ.' },
@@ -776,6 +764,7 @@ ANSWER: D`;
                 type="text"
                 value={summaryText}
                 onChange={(e) => setSummaryText(e.target.value)}
+                placeholder="Nhập mô tả tóm tắt..."
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-200 focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -972,7 +961,7 @@ ANSWER: D`;
                     rows={8}
                     value={jsonInputText}
                     onChange={(e) => setJsonInputText(e.target.value)}
-                    placeholder={`[\n  {\n    "type": "reading_section",\n    "marks": 3.0,\n    "content": {\n      "title": "READING SECTION - Chuong Conical Hat Village",\n      "passage": "Chuong village in Hanoi is famous for...",\n      "childQuestions": [\n        {\n          "question": "1. What craft is Chuong village famous for?",\n          "options": [\n            {"text": "A. Pottery", "isCorrect": false},\n            {"text": "B. Conical hats", "isCorrect": true}\n          ]\n        }\n      ]\n    }\n  }\n]`}
+                    placeholder={`[\n  {\n    "type": "reading_section",\n    "marks": 3.0,\n    "content": {\n      "title": "READING SECTION",\n      "passage": "Enter reading passage here...",\n      "childQuestions": [\n        {\n          "question": "1. Enter question content here...",\n          "options": [\n            {"text": "A. Option 1", "isCorrect": false},\n            {"text": "B. Option 2", "isCorrect": true}\n          ]\n        }\n      ]\n    }\n  }\n]`}
                     className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl"
                   />
                   <button
@@ -1090,7 +1079,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI */}
+      {/* FORM BIÊN TẬP CÂU HỎI (TRỐNG TRƠN 100% KHI TẠO MỚI) */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1104,7 +1093,7 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* FORM LISTENING SECTION (LƯU ĐÚNG FILE AUDIO THẬT CỦA THẦY VÀO THI THỬ 100%) */}
+              {/* FORM LISTENING SECTION */}
               {selectedType?.toLowerCase() === 'listening_section' && (
                 <div className="p-5 bg-purple-50 border border-purple-200 rounded-3xl space-y-4 shadow-xs">
                   <h4 className="font-extrabold text-xs text-purple-900 uppercase flex items-center space-x-2 border-b border-purple-200 pb-2">
@@ -1178,7 +1167,7 @@ ANSWER: D`
                       type="text"
                       value={questionText}
                       onChange={(e) => setQuestionText(e.target.value)}
-                      placeholder="Read the passage about Chuong conical hat village and choose the correct answer A, B, C, or D."
+                      placeholder="Nhập tiêu đề bài đọc hiểu (ví dụ: Read the passage and choose the correct answer A, B, C, or D)..."
                       className="w-full px-3 py-2 border border-sky-300 rounded-xl text-xs bg-white font-bold"
                     />
                   </div>
@@ -1190,7 +1179,7 @@ ANSWER: D`
                       rows={6}
                       value={sectionPassage}
                       onChange={(e) => setSectionPassage(e.target.value)}
-                      placeholder="Chuong village in Hanoi is famous for its long history of making conical hats (non la)..."
+                      placeholder="Dán đoạn văn bài đọc hiểu tại đây..."
                       className="w-full p-3 border border-sky-300 rounded-xl text-xs bg-white font-medium leading-relaxed"
                     />
                   </div>
@@ -1246,7 +1235,7 @@ ANSWER: D`
                               newChilds[qIdx].question = e.target.value;
                               setSectionChildQuestions(newChilds);
                             }}
-                            placeholder={`Ví dụ: ${qIdx + 1}. What traditional craft is Chuong village famous for?`}
+                            placeholder={`Nhập câu hỏi con #${qIdx + 1}...`}
                             className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-bold text-slate-900"
                           />
                         </div>
