@@ -55,6 +55,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [isMatrixModalOpen, setIsMatrixModalOpen] = useState(false);
   const [isExamTimerOpen, setIsExamTimerOpen] = useState(false);
   const [passcode, setPasscode] = useState('');
+  const [openTime, setOpenTime] = useState('');
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
@@ -190,6 +191,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
       setMaxTabSwitches(q.content?.maxTabSwitches !== undefined ? q.content.maxTabSwitches : 3);
       setIsRandomized(q.content?.isRandomized || false);
       setPasscode(q.content?.passcode || '');
+      setOpenTime(q.content?.openTime || '');
     setMarks(q.marks || 1.0);
     setMcOptions(
       q.content?.options && q.content?.options.length > 0
@@ -579,6 +581,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         maxTabSwitches: Number(maxTabSwitches) || 3,
         isRandomized: isRandomized,
         passcode: passcode.trim(),
+        openTime: openTime,
         categories: selectedCategories,
       };
 
@@ -890,6 +893,18 @@ export default function QuizBuilder({ activityId, onSaved }) {
                   >
                     <span>{isRandomized ? '🔀 Đã bật trộn ngẫu nhiên' : 'Tắt trộn đề'}</span>
                   </button>
+                </div>
+
+                <div>
+                  <label className="block font-extrabold text-sky-950 uppercase mb-1">
+                    ⏰ HẸN GIỜ MỞ ĐỀ THI
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={openTime}
+                    onChange={(e) => setOpenTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-sky-300 rounded-xl text-xs font-bold bg-white"
+                  />
                 </div>
 
                 <div>
