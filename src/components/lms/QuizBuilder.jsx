@@ -10,7 +10,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   // Active Tab: 'questions' (Danh sách câu hỏi) | 'import' (Import từ file chuẩn Ảnh 1)
   const [activeTab, setActiveTab] = useState('questions');
 
-  // State Modal "Choose a question type to add" (Chuẩn Ảnh 2 & 3)
+  // State Modal "Choose a question type to add"
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState('multiple_choice');
 
@@ -28,7 +28,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questionText, setQuestionText] = useState('');
   const [marks, setMarks] = useState(1.0);
 
-  // State riêng cho Multiple Choice (Trắc nghiệm A, B, C, D 2 Cột - Chuẩn Ảnh 4)
+  // State riêng cho Multiple Choice (Trắc nghiệm A, B, C, D 2 Cột)
   const [mcOptions, setMcOptions] = useState([
     { text: '', isCorrect: true, feedback: '' },
     { text: '', isCorrect: false, feedback: '' },
@@ -84,7 +84,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setQuestionText('');
     setMarks(1.0);
 
-    // Reset state theo từng dạng
     if (selectedType === 'true_false') {
       setTfCorrect('True');
     } else if (selectedType === 'short_answer') {
@@ -161,7 +160,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     if (onSaved) onSaved();
   };
 
-  // Xử lý Import File Định Dạng Aiken / GIFT (Chuẩn Ảnh 1)
+  // Xử lý đọc file text khi giáo viên chọn file
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -172,56 +171,84 @@ export default function QuizBuilder({ activityId, onSaved }) {
     reader.readAsText(file);
   };
 
+  // BỘ PARSER AIKEN SIÊU THÔNG MINH (ROBUST MOODLE AIKEN PARSER)
+  const parseAikenText = (text) => {
+    const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // Tách câu hỏi theo dòng trống hoặc theo dòng ANSWER:
+    const rawLines = cleanText.split('\n').map(l => l.trim());
+    const parsedQuestions = [];
+
+    let currentQTextLines = [];
+    let currentOptions = [];
+
+    for (let i = 0; i < rawLines.length; i++) {
+      const line = rawLines[i];
+      if (!line) continue;
+
+      const ansMatch = line.match(/^ANSWER:\s*([A-Z])/i);
+      const optMatch = line.match(/^([A-Z])[\.\)]\s*(.+)/i);
+
+      if (ansMatch) {
+        const correctLetter = ansMatch[1].toUpperCase();
+        if (currentQTextLines.length > 0 && currentOptions.length >= 2) {
+          // Gán đáp án đúng
+          const finalOpts = currentOptions.map(o => ({
+            text: o.text,
+            isCorrect: o.letter === correctLetter
+          }));
+
+          parsedQuestions.push({
+            activity_id: activityId,
+            type: 'multiple_choice',
+            marks: 1.0,
+            content: {
+              title: currentQTextLines[0].substring(0, 50),
+              question: currentQTextLines.join(' '),
+              options: finalOpts
+            }
+          });
+        }
+        // Reset cho câu tiếp theo
+        currentQTextLines = [];
+        currentOptions = [];
+      } else if (optMatch) {
+        currentOptions.push({
+          letter: optMatch[1].toUpperCase(),
+          text: optMatch[2].trim()
+        });
+      } else {
+        currentQTextLines.push(line);
+      }
+    }
+
+    return parsedQuestions;
+  };
+
+  // Xử lý Bấm nút Import
   const handleProcessImport = async () => {
     if (!importedText.trim()) return;
     setIsImporting(true);
 
     try {
-      const lines = importedText.split('\n');
-      let currentQ = null;
-      const parsedQuestions = [];
-
-      lines.forEach((line) => {
-        const trimmed = line.trim();
-        if (!trimmed) return;
-
-        if (trimmed.startsWith('ANSWER:')) {
-          if (currentQ) {
-            const ansChar = trimmed.replace('ANSWER:', '').trim();
-            const charIdx = ansChar.charCodeAt(0) - 65;
-            if (currentQ.options[charIdx]) {
-              currentQ.options[charIdx].isCorrect = true;
-            }
-            parsedQuestions.push(currentQ);
-            currentQ = null;
-          }
-        } else if (/^[A-Z][\.\)]\s/.test(trimmed)) {
-          if (currentQ) {
-            currentQ.options.push({ text: trimmed.replace(/^[A-Z][\.\)]\s/, ''), isCorrect: false });
-          }
-        } else {
-          if (!currentQ) {
-            currentQ = {
-              activity_id: activityId,
-              type: 'multiple_choice',
-              marks: 1.0,
-              content: { title: 'Imported Question', question: trimmed, options: [] }
-            };
-          }
-        }
-      });
+      const parsedQuestions = parseAikenText(importedText);
 
       if (parsedQuestions.length > 0) {
-        await supabase.from('questions').insert(parsedQuestions);
-        alert(`Đã Import thành công ${parsedQuestions.length} câu hỏi vào đề thi!`);
-        setImportedText('');
-        setActiveTab('questions');
-        await fetchQuestions();
+        const { error } = await supabase.from('questions').insert(parsedQuestions);
+        if (error) {
+          alert('Lỗi lưu câu hỏi vào CSDL: ' + error.message);
+        } else {
+          alert(`🎉 Đã Import THÀNH CÔNG ${parsedQuestions.length} câu hỏi chuẩn Aiken vào đề thi!`);
+          setImportedText('');
+          setActiveTab('questions');
+          await fetchQuestions();
+          if (onSaved) onSaved();
+        }
       } else {
-        alert('Không tìm thấy câu hỏi đúng định dạng Aiken. Ví dụ định dạng Aiken:\n\nWhat is the capital of Vietnam?\nA. Hanoi\nB. Hue\nANSWER: A');
+        alert('Không tìm thấy câu hỏi đúng cấu trúc Aiken. Định dạng chuẩn Aiken:\n\nThe children in my home village used to go _______, even in winter.\nA. on foot\nB. bare-footed\nC. playing around\nANSWER: B');
       }
     } catch (err) {
-      alert('Lỗi import file: ' + err.message);
+      alert('Lỗi xử lý file import: ' + err.message);
     } finally {
       setIsImporting(false);
     }
@@ -233,7 +260,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
     await fetchQuestions();
   };
 
-  // DANH SÁCH ĐẦY ĐỦ TOÀN BỘ 18 DẠNG CÂU HỎI CHUẨN MOODLE / GNOMIO (Chuẩn Ảnh 2 & 3)
+  // DANH SÁCH ĐẦY ĐỦ TOÀN BỘ 18 DẠNG CÂU HỎI CHUẨN MOODLE / GNOMIO
   const questionTypesList = [
     { type: 'multiple_choice', label: 'Multiple choice', desc: 'Cho phép chọn 1 hoặc nhiều đáp án đúng (Single/Multiple Choice).' },
     { type: 'true_false', label: 'True/False', desc: 'Dạng câu hỏi Đúng / Sai đơn giản cho từng ý.' },
@@ -256,7 +283,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
   return (
     <div className="space-y-6">
-      {/* Tab Header Bar (Chuẩn Ảnh 1) */}
+      {/* Tab Header Bar */}
       <div className="flex border-b border-slate-200 space-x-6">
         <button
           onClick={() => setActiveTab('questions')}
@@ -274,7 +301,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
           }`}
         >
           <FileUp className="w-4 h-4 text-emerald-600" />
-          <span>Import questions from file (Nhập từ file - Ảnh 1)</span>
+          <span>Import questions from file (Nhập từ file)</span>
         </button>
       </div>
 
@@ -291,7 +318,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
               </p>
             </div>
 
-            {/* Nút Add Menu 3 Lựa Chọn (Chuẩn Ảnh 4) */}
+            {/* Nút Add Menu 3 Lựa Chọn */}
             <div className="relative">
               <button
                 onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
@@ -347,7 +374,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                       <span className="text-xs text-slate-400">({q.marks} điểm)</span>
                     </div>
 
-                    {/* Nút Sửa & Xóa trực tiếp trong từng câu hỏi */}
                     <div className="flex items-center space-x-1">
                       <button
                         onClick={() => {
@@ -375,6 +401,23 @@ export default function QuizBuilder({ activityId, onSaved }) {
                   </div>
 
                   <h4 className="font-extrabold text-sm text-slate-900">{q.content?.question}</h4>
+
+                  {/* Render 2 Cột Lựa Chọn A, B, C, D */}
+                  {q.type === 'multiple_choice' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      {q.content?.options?.map((opt, oIdx) => (
+                        <div
+                          key={oIdx}
+                          className={`p-2 rounded-xl text-xs font-semibold border ${
+                            opt.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          <span className="font-extrabold mr-1">{String.fromCharCode(65 + oIdx)}.</span>
+                          {opt.text}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -382,7 +425,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* TAB 2: IMPORT QUESTIONS FROM FILE (Chuẩn Ảnh 1) */}
+      {/* TAB 2: IMPORT QUESTIONS FROM FILE */}
       {activeTab === 'import' && (
         <div className="p-6 bg-white rounded-2xl border border-slate-200 space-y-6">
           <h3 className="text-base font-extrabold text-slate-900 border-b pb-3">
@@ -410,10 +453,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
           </div>
 
           <div className="space-y-3 pt-2">
-            <h4 className="text-xs font-extrabold text-slate-700 uppercase">Import questions from file</h4>
+            <h4 className="text-xs font-extrabold text-slate-700 uppercase">IMPORT QUESTIONS FROM FILE</h4>
             
-            <div className="p-8 border-2 border-dashed border-slate-300 rounded-2xl text-center hover:border-emerald-500 transition bg-slate-50">
-              <Upload className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+            <div className="p-8 border-2 border-dashed border-emerald-500/50 rounded-2xl text-center hover:border-emerald-500 transition bg-emerald-50/10">
+              <Upload className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
               <p className="text-xs text-slate-600 font-bold mb-3">
                 You can drag and drop files here to add them.
               </p>
@@ -450,7 +493,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* MODAL "Choose a question type to add" (ĐỦ TOÀN BỘ 18 DẠNG CÂU HỎI - Chuẩn Ảnh 2 & 3) */}
+      {/* MODAL "Choose a question type to add" (ĐỦ TOÀN BỘ 18 DẠNG CÂU HỎI) */}
       {isTypeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 animate-scale-up">
@@ -513,7 +556,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI TRẮC NGHIỆM GỘP 4 LỰA CHỌN THÀNH 2 CỘT A, C và B, D (Chuẩn Ảnh 4) */}
+      {/* FORM BIÊN TẬP CÂU HỎI TRẮC NGHIỆM GỘP 4 LỰA CHỌN THÀNH 2 CỘT A, C và B, D */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -565,7 +608,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                 />
               </div>
 
-              {/* GIAO DIỆN TRẮC NGHIỆM MULTIPLE CHOICE GỘP 2 CỘT GỌN GÀNG (A, C & B, D - Chuẩn Ảnh 4) */}
+              {/* GIAO DIỆN TRẮC NGHIỆM MULTIPLE CHOICE GỘP 2 CỘT GỌN GÀNG (A, C & B, D) */}
               {selectedType === 'multiple_choice' && (
                 <div className="space-y-3 pt-2">
                   <div className="flex justify-between items-center">
@@ -581,7 +624,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                     </button>
                   </div>
 
-                  {/* GRID 2 CỘT THU HẸP SPACE NĂNG ĐỘNG (Chuẩn Ảnh 4) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {mcOptions.map((opt, idx) => {
                       const optionLabel = String.fromCharCode(65 + idx); // A, B, C, D...
