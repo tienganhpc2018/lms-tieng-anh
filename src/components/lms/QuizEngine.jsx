@@ -657,7 +657,7 @@ export default function QuizEngine({ activity }) {
                 <Award className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-lg font-extrabold tracking-tight">KẾT QUẢ BÀI KÍỂM TRA</h3>
+                <h3 className="text-lg font-extrabold tracking-tight">KẾT QUẢ BÀI KIỂM TRA</h3>
                 <p className="text-[11px] text-slate-300">Học sinh: {resultData.studentName}</p>
               </div>
             </div>
@@ -719,7 +719,7 @@ export default function QuizEngine({ activity }) {
             </button>
 
             <button
-              onClick={() => exportQuizToWord(questions, activity?.title || 'BÀI KÍỂM TRA TIẾNG ANH')}
+              onClick={() => exportQuizToWord(questions, activity?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
             >
               <FileText className="w-4 h-4 text-emerald-200" />
