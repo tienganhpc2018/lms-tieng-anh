@@ -271,7 +271,7 @@ export default function QuizEngine({ activity }) {
       : 'Dịch câu hỏi và đáp án chuẩn Tiếng Việt giúp học sinh nắm vững nghĩa.';
 
     return (
-      <div className="p-5 bg-emerald-50/80 border border-emerald-300 rounded-3xl space-y-4 text-xs">
+      <div className="p-5 bg-emerald-50/80 border border-emerald-300 rounded-3xl space-y-4 text-xs col-span-full">
         <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-xs">
           <p className="font-extrabold text-sm flex items-center space-x-1.5">
             <CheckCircle className="w-4 h-4 text-emerald-200" />
@@ -495,7 +495,7 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test Gộp Task 1 & Task 2 - SỬA HÀNG KHÍT VỪA VẶN THEO Ý THẦY)
+          // DẠNG 4: KNOWLEDGE OF LANGUAGE (Cloze Test Gộp Task 1 & Task 2)
           if (isClozeTest) {
             const tasksList = Array.isArray(q.content?.tasks) && q.content.tasks.length > 0
               ? q.content.tasks
@@ -517,7 +517,7 @@ export default function QuizEngine({ activity }) {
 
             return (
               <div key={q.id || qIdx} className="bg-white border-l-4 border-blue-600 rounded-3xl p-6 shadow-sm border-y border-r border-slate-200 space-y-5">
-                {/* Header Bar Chuẩn 100% Ảnh 2 & 3 (Không chữ "Phần 1, Phần 2") */}
+                {/* Header Bar Chuẩn 100% */}
                 <div className="bg-blue-50/70 rounded-xl p-3.5 flex justify-between items-center">
                   <h3 className="font-extrabold text-sm text-blue-900 tracking-wide uppercase flex items-center space-x-2">
                     <span className="w-7 h-7 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center">
@@ -546,7 +546,7 @@ export default function QuizEngine({ activity }) {
                         )}
                       </div>
 
-                      {/* Passage Container Vừa Vặn Không Bị Giãn Ngang Quá Mức */}
+                      {/* Passage Container */}
                       <div className="border border-slate-300 rounded-2xl bg-amber-50/20 p-5 relative space-y-2 mt-3">
                         <span className={`text-white text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase absolute -top-3 left-4 shadow-xs ${
                           tIdx === 1 ? 'bg-teal-600' : 'bg-amber-500'
@@ -565,7 +565,7 @@ export default function QuizEngine({ activity }) {
                         </p>
                       </div>
 
-                      {/* HÀNG CÂU HỎI CLOZE TEST: KHÍT SÁT VỚI BOX VÀ GỌN GÀNG KHÔNG TRẢI RỘNG THỪA THÃI */}
+                      {/* HÀNG CÂU HỎI CLOZE TEST */}
                       <div className="space-y-2 pt-1">
                         {tQuestions.map((cQ, cIdx) => {
                           const childKey = `${q.id}_t${tIdx}_q${cIdx}`;
@@ -575,13 +575,11 @@ export default function QuizEngine({ activity }) {
 
                           return (
                             <div key={cIdx} className="space-y-1.5">
-                              {/* inline-flex + w-fit: Ô bọc vừa khít sát với 4 nút đáp án A, B, C, D */}
                               <div className="inline-flex flex-wrap items-center gap-2.5 border border-slate-200 bg-white rounded-2xl py-1.5 px-3 shadow-2xs w-fit max-w-full">
                                 <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 font-extrabold text-xs flex items-center justify-center flex-shrink-0">
                                   {cQ.question_number || (16 + cIdx)}
                                 </span>
 
-                                {/* 4 lựa chọn A, B, C, D nằm thẳng trên cùng 1 hàng ngang, ôm vừa vặn khít chữ */}
                                 <div className="flex flex-row items-center gap-2 overflow-x-auto flex-nowrap py-0.5">
                                   {opts.map((opt, oIdx) => {
                                     const optVal = opt.id || String.fromCharCode(65 + oIdx);
@@ -618,10 +616,9 @@ export default function QuizEngine({ activity }) {
             );
           }
 
-          // DẠNG CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ / LISTENING SECTION (ẢNH 3: 4 ĐÁP ÁN NẰM TRÊN 1 HÀNG NGANG NHỎ GỌN)
+          // DẠNG CÂU HỎI TRẮC NGHIỆM ĐƠN LẺ / LISTENING SECTION - THIẾT KẾ BỐ CỤC KHUNG LƯỚI CSS GRID NĂM THẲNG HÀNG CỘT TẤT CẢ 4 CÂU
           return (
             <div key={q.id || qIdx} className="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4 shadow-xs">
-              {/* Tiêu đề Section chuẩn gọn (Không ghi chữ Phần 1, Phần 2) */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
                   <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
@@ -692,7 +689,7 @@ export default function QuizEngine({ activity }) {
                   return (
                     <div
                       key={cIdx}
-                      className={`p-4 bg-white border rounded-2xl space-y-2.5 transition ${
+                      className={`p-5 bg-white border rounded-2xl space-y-3 transition ${
                         submitted
                           ? isCorrect
                             ? 'border-emerald-400 bg-emerald-50/20'
@@ -721,8 +718,8 @@ export default function QuizEngine({ activity }) {
                         )}
                       </div>
 
-                      {/* 4 ĐÁP ÁN NẰM TRÊN CÙNG 1 HÀNG NGANG (HOẶC WRAP GỌN KHÍT BỐX NHỎ VỪA ĐỦ CHỮ CHUẨN ĐÚNG 100% Ý THẦY) */}
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {/* 🎯 ÁP DỤNG CỘT KHUNG LƯỚI CSS GRID CHUẨN ĐÚNG PROMPT VÀ Ý THẦY YÊU CẦU: grid grid-cols-1 md:grid-cols-2 gap-4 w-full */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full pt-1">
                         {cOpts.map((opt, oIdx) => {
                           const isSelected = selectedOptIndex === oIdx;
                           const isThisCorrect = opt?.isCorrect;
@@ -744,14 +741,14 @@ export default function QuizEngine({ activity }) {
                               key={oIdx}
                               disabled={submitted}
                               onClick={() => handleSelectAnswer(childKey, oIdx)}
-                              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition flex items-center space-x-1.5 ${btnStyle}`}
+                              className={`w-full text-left p-3 rounded-2xl border text-xs font-semibold flex items-center space-x-2.5 transition ${btnStyle}`}
                             >
-                              <span className={`w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px] ${
+                              <span className={`w-5 h-5 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
                                 isSelected ? 'bg-white text-emerald-800' : 'bg-slate-200 text-slate-600'
                               }`}>
                                 {label}
                               </span>
-                              <span>{opt.text}</span>
+                              <span className="truncate">{opt.text}</span>
                             </button>
                           );
                         })}
