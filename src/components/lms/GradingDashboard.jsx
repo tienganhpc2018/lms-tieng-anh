@@ -5,6 +5,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import { exportClassExcelReport } from '../../utils/exportQuizReport';
 import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
 import { sendQuizScoreEmail } from '../../services/emailNotificationService';
+import ClassLeaderboard from './ClassLeaderboard';
 
 export default function GradingDashboard({ activityId, activityTitle }) {
   const [submissions, setSubmissions] = useState([]);
@@ -181,6 +182,9 @@ export default function GradingDashboard({ activityId, activityTitle }) {
           </button>
         </div>
       </div>
+
+      {/* BẢNG XẾP HẠNG TOP HỌC SINH XUẤT SẮC CẢ LỚP */}
+      <ClassLeaderboard submissions={submissions} activityTitle={activityTitle} />
 
       {/* KHỐI BIỂU ĐỒ PHỔ ĐIỂM & PHÂN TÍCH ĐỀ THI (ANALYTICS & ITEM ANALYSIS) */}
       {submissions.length > 0 && (
