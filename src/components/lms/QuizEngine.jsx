@@ -11,9 +11,11 @@ export default function QuizEngine({ activity }) {
   const [userAnswers, setUserAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
-  // Bộ đếm thời gian làm bài đếm ngược (Countdown Timer)
-  const [timeLimitSeconds, setTimeLimitSeconds] = useState(15 * 60);
-  const [secondsRemaining, setSecondsRemaining] = useState(15 * 60);
+  // Bộ đếm thời gian
+  const [isCountdownMode, setIsCountdownMode] = useState(false);
+  const [timeLimitSeconds, setTimeLimitSeconds] = useState(0);
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
 
   // Kết quả tổng kết
@@ -27,24 +29,31 @@ export default function QuizEngine({ activity }) {
     isPassed: false,
   });
 
+  // TIMER LOGIC: ĐẾM NGƯỢC (NẾU GV CÀI VÀO > 0) HOẶC ĐẾM TIẾN BÌNH THƯỜNG (00:00 -> 00:01)
   useEffect(() => {
     let interval = null;
-    if (timerActive && !submitted && secondsRemaining > 0) {
-      interval = setInterval(() => {
-        setSecondsRemaining((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            handleSubmitQuiz(true); // Hết giờ -> Tự động nộp bài
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    if (timerActive && !submitted) {
+      if (isCountdownMode && secondsRemaining > 0) {
+        interval = setInterval(() => {
+          setSecondsRemaining((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              handleSubmitQuiz(true);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else if (!isCountdownMode) {
+        interval = setInterval(() => {
+          setSecondsElapsed((prev) => prev + 1);
+        }, 1000);
+      }
     } else {
       clearInterval(interval);
     }
     return () => clearInterval(interval);
-  }, [timerActive, submitted, secondsRemaining]);
+  }, [timerActive, submitted, isCountdownMode, secondsRemaining]);
 
   useEffect(() => {
     async function fetchQuestions() {
@@ -61,7 +70,7 @@ export default function QuizEngine({ activity }) {
           console.error('Lỗi fetch questions:', error);
           setQuestions([]);
         } else {
-          let customLimitMinutes = 15;
+          let customLimitMinutes = 0;
           const safeData = (data || []).map((q) => {
             let cObj = q.content;
             if (typeof cObj === 'string') {
@@ -71,7 +80,7 @@ export default function QuizEngine({ activity }) {
                 cObj = { question: q.content };
               }
             }
-            if (cObj?.timeLimit) {
+            if (cObj?.timeLimit && Number(cObj.timeLimit) > 0) {
               customLimitMinutes = Number(cObj.timeLimit);
             }
             return {
@@ -80,9 +89,16 @@ export default function QuizEngine({ activity }) {
             };
           });
 
-          const totalSecs = customLimitMinutes * 60;
-          setTimeLimitSeconds(totalSecs);
-          setSecondsRemaining(totalSecs);
+          if (customLimitMinutes > 0) {
+            setIsCountdownMode(true);
+            const totalSecs = customLimitMinutes * 60;
+            setTimeLimitSeconds(totalSecs);
+            setSecondsRemaining(totalSecs);
+          } else {
+            setIsCountdownMode(false);
+            setSecondsElapsed(0);
+          }
+
           setQuestions(safeData);
         }
       } catch (err) {
@@ -134,7 +150,10 @@ export default function QuizEngine({ activity }) {
       }
     });
 
-    const elapsed = timeLimitSeconds - secondsRemaining;
+    let elapsed = secondsElapsed;
+    if (isCountdownMode) {
+      elapsed = timeLimitSeconds - secondsRemaining;
+    }
     const mins = Math.floor(elapsed / 60);
     const secs = elapsed % 60;
     const timeTakenStr = `${mins} phút ${secs} giây`;
@@ -245,7 +264,9 @@ export default function QuizEngine({ activity }) {
 
   const minsLeft = Math.floor(secondsRemaining / 60);
   const secsLeft = secondsRemaining % 60;
-  const isTimeWarning = secondsRemaining < 120; // Dưới 2 phút hiện cảnh báo đỏ
+  const minsElapsed = Math.floor(secondsElapsed / 60);
+  const secsElapsed = secondsElapsed % 60;
+  const isTimeWarning = isCountdownMode && secondsRemaining < 120;
 
   return (
     <div className="space-y-6">
@@ -298,7 +319,7 @@ export default function QuizEngine({ activity }) {
           </div>
         </div>
       ) : (
-        /* THANH ĐỒNG HỒ ĐẾM NGƯỢC THỜI GIAN LÀM BÀI */
+        /* THANH ĐỒNG HỒ THỜI GIAN LÀM BÀI: ĐẾM TIẾN BÌNH THƯỜNG TRỪ KHỦ TRƯỜNG HỢP GV CÀI ĐẾM NGƯỢC */
         <div className="bg-slate-900 text-white p-4 rounded-2xl flex justify-between items-center shadow-md">
           <div className="flex items-center space-x-2">
             <User className="w-4 h-4 text-emerald-400" />
@@ -306,13 +327,19 @@ export default function QuizEngine({ activity }) {
           </div>
           <div
             className={`flex items-center space-x-2 text-xs font-extrabold px-3.5 py-1.5 rounded-xl border transition ${
-              isTimeWarning ? 'bg-rose-950 text-rose-300 border-rose-600 animate-pulse' : 'bg-slate-800 text-amber-400 border-slate-700'
+              isTimeWarning ? 'bg-rose-950 text-rose-300 border-rose-600 animate-pulse' : 'bg-slate-800 text-emerald-400 border-slate-700'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>
-              ⏱️ Thời gian đếm ngược: {minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}
-            </span>
+            <Clock className="w-4 h-4 text-amber-400" />
+            {isCountdownMode ? (
+              <span>
+                ⏱️ Thời gian đếm ngược: {minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}
+              </span>
+            ) : (
+              <span>
+                ⏱️ Thời gian làm bài: {minsElapsed < 10 ? `0${minsElapsed}` : minsElapsed}:{secsElapsed < 10 ? `0${secsElapsed}` : secsElapsed}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -325,7 +352,7 @@ export default function QuizEngine({ activity }) {
           const isListening = sectionType.toLowerCase() === 'listening_section';
           const childQuestions = Array.isArray(q.content?.childQuestions) ? q.content.childQuestions : [];
 
-          // Đảm bảo URL Audio luôn phát mượt mà 100%
+          // Link Audio phát âm thanh mượt mà 100%
           const audioSrc = q.content?.audioUrl || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
 
           return (
@@ -359,6 +386,7 @@ export default function QuizEngine({ activity }) {
                   </div>
                   <audio controls className="w-full">
                     <source src={audioSrc} />
+                    Trình duyệt của bạn không hỗ trợ phát audio.
                   </audio>
                 </div>
               )}
