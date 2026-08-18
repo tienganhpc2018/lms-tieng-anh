@@ -8,6 +8,9 @@ import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
 import { exportStudentPdfReport } from '../../utils/exportQuizReport';
 import { calculateGamificationBadges } from '../../utils/gamificationBadges';
 import AiTutorChatModal from './AiTutorChatModal';
+import FlashcardReviewModal from './FlashcardReviewModal';
+import ClassLeaderboard from './ClassLeaderboard';
+import { speakText } from '../../utils/textToSpeech';
 
 export default function QuizEngine({ activity }) {
   const { profile } = useAuth();
@@ -24,6 +27,8 @@ export default function QuizEngine({ activity }) {
 
   // AI TUTOR MODAL CHAT
   const [aiTutorModalOpen, setAiTutorModalOpen] = useState(false);
+  const [flashcardModalOpen, setFlashcardModalOpen] = useState(false);
+  const [wrongQuestionsList, setWrongQuestionsList] = useState([]);
   const [selectedQuestionForTutor, setSelectedQuestionForTutor] = useState(null);
 
   // WEB SPEECH API (SPEAKING TEST RECOGNITION)
@@ -385,6 +390,32 @@ export default function QuizEngine({ activity }) {
     };
 
     setResultData(res);
+
+    // THU THẬP TẤT CẢ CÂU LÀM SAI ĐỂ ĐƯA VÀO FLASHCARDS
+    const wrongQs = [];
+    questions.forEach((q) => {
+      const sectionType = (q.content?.sectionType || q.type || '').toLowerCase();
+      if (Array.isArray(q.content?.parts)) {
+        q.content.parts.forEach((p, pIdx) => {
+          (p.questions || []).forEach((cQ, cIdx) => {
+            const key = `${q.id}_p${pIdx}_q${cIdx}`;
+            const selected = userAnswers[key];
+            const correctText = cQ.options?.find(o => o.isCorrect)?.text || cQ.correctAnswer || 'Đáp án đúng';
+            const userSelectedText = cQ.options?.[selected]?.text || selected || 'Chưa chọn';
+
+            if (selected !== undefined && cQ.options && selected !== cQ.options.findIndex(o => o.isCorrect)) {
+              wrongQs.push({
+                question: cQ.question || 'Câu hỏi',
+                userAnswer: userSelectedText,
+                correctAnswer: correctText,
+                explanation: cQ.explanation || p.explanation,
+              });
+            }
+          });
+        });
+      }
+    });
+    setWrongQuestionsList(wrongQs);
     setSubmitted(true);
 
     if (isAutoSubmit) {
@@ -496,6 +527,12 @@ export default function QuizEngine({ activity }) {
   return (
     <div className="space-y-3">
       {/* MODAL CHATBOT AI TUTOR TRỢ LÝ HỌC TẬP */}
+      <FlashcardReviewModal
+        isOpen={flashcardModalOpen}
+        onClose={() => setFlashcardModalOpen(false)}
+        wrongQuestions={wrongQuestionsList}
+      />
+
       <AiTutorChatModal
         isOpen={aiTutorModalOpen}
         onClose={() => setAiTutorModalOpen(false)}
@@ -534,9 +571,20 @@ export default function QuizEngine({ activity }) {
               </div>
             </div>
 
-            <button
-              onClick={() =>
-                exportStudentPdfReport({
+            <div className="flex flex-wrap items-center gap-2">
+              {wrongQuestionsList.length > 0 && (
+                <button
+                  onClick={() => setFlashcardModalOpen(true)}
+                  className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                >
+                  <BookOpen className="w-4 h-4 text-amber-300" />
+                  <span>🗂️ Ôn Tập {wrongQuestionsList.length} Câu Sai (Flashcards)</span>
+                </button>
+              )}
+
+              <button
+                onClick={() =>
+                  exportStudentPdfReport({
                   studentName: resultData.studentName,
                   activityTitle: activity?.title || 'Bài Thi Quiz Online',
                   score: resultData.score,
@@ -554,8 +602,9 @@ export default function QuizEngine({ activity }) {
               <span>🖨️ Tải Báo Cáo PDF Bài Thi</span>
             </button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 space-y-0.5">
               <span className="text-[10px] font-bold text-slate-400 uppercase block">Thời Gian Làm</span>
               <span className="text-xs font-extrabold text-white flex items-center justify-center space-x-1">
