@@ -45,7 +45,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [questionText, setQuestionText] = useState('');
   const [explanation, setExplanation] = useState('');
   const [marks, setMarks] = useState(1.0);
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState(0); // 0 = Không đếm ngược (Mặc định chạy thời gian tính tiến)
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(0); // 0 = Không đếm ngược (Mặc định chạy đếm tiến)
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
@@ -108,13 +108,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
     }, 1000);
   };
 
-  // XỬ LÝ NẠP FILE MP3 AUDIO VÀ LƯU CHUẨN ĐỂ MỤC THI THỬ PHÁT MƯỢT 100%
+  // CHUYỂN FILE MP3 TẢI TỪ MÁY THÀNH BASE64 DATA URL CHUẨN LƯU VĨNH VIỄN
   const handleAudioFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setUploadedAudioFileName(file.name);
 
+    // Chuyển file thành Base64 Data URL để khi lưu vào DB, trang Thi Thử phát lại RẤT NGON 100%!
     const reader = new FileReader();
     reader.onload = (evt) => {
       setListeningAudioUrl(evt.target.result);
@@ -1100,7 +1101,7 @@ ANSWER: D`
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI (CÁC Ô THỜI GIAN VÀ AUDIO CHUẨN 100%) */}
+      {/* FORM BIÊN TẬP CÂU HỎI (BỔ SUNG MENU SELECT XỔ XUỐNG CHỌN PHÚT THỜI GIAN THEO Ý THẦY) */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8 animate-scale-up">
@@ -1114,25 +1115,25 @@ ANSWER: D`
             </div>
 
             <form onSubmit={handleSaveQuestion} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* KHUNG CÀI ĐẶT THỜI GIAN LÀM BÀI (MẶC ĐỊNH 0 = CHẠY TÍNH TIẾN BÌNH THƯỜNG TRỪ KHỦNG THẦY NHẬP PHÚT) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              {/* KHUNG CÀI ĐẶT THỜI GIAN BẰNG MENU DROPDOWN XỔ XUỐNG DỄ BẤM CHỌN CHUẨN ĐÚNG Ý THẦY */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200">
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1 flex items-center space-x-1">
+                  <label className="block text-xs font-extrabold text-emerald-950 uppercase mb-1 flex items-center space-x-1">
                     <Clock className="w-4 h-4 text-emerald-600" />
-                    <span>⏱️ THỜI GIAN LÀM BÀI THI (ĐẾM NGƯỢC - PHÚT)</span>
+                    <span>⏱️ CÀI ĐẶT THỜI GIAN LÀM BÀI (SELECT CHỌN PHÚT)</span>
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="180"
+                  <select
                     value={timeLimitMinutes}
-                    onChange={(e) => setTimeLimitMinutes(e.target.value)}
-                    placeholder="Mặc định: 0 (Để trống = Thời gian tăng dần bình thường)"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-emerald-950 bg-white"
-                  />
-                  <span className="text-[10px] text-slate-500 block mt-1 font-medium">
-                    * Nếu để 0: Thời gian chạy đếm tiến bình thường (00:00 → 00:01). Nếu nhập &gt; 0: Đếm ngược thời gian!
-                  </span>
+                    onChange={(e) => setTimeLimitMinutes(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-950 bg-white focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  >
+                    <option value={0}>⏱️ Không tính giờ (Đếm tiến bình thường: 00:00 → 00:01)</option>
+                    <option value={5}>⚡ 5 phút (Bài kiểm tra nhanh)</option>
+                    <option value={15}>📝 15 phút (Bài kiểm tra 15 phút)</option>
+                    <option value={45}>🏫 45 phút (Bài kiểm tra 1 tiết / Giữa kỳ)</option>
+                    <option value={60}>🎓 60 phút (Thi Học Kỳ)</option>
+                    <option value={90}>🏆 90 phút (Thi Thử THPT Quốc Gia / IELTS)</option>
+                  </select>
                 </div>
 
                 <div>
@@ -1196,7 +1197,7 @@ ANSWER: D`
                       </label>
                     </div>
 
-                    {/* NÚT BẤM NGHE THỬ AUDIO */}
+                    {/* NÚT BẤM NGHE THỬ AUDIO TRONG MODAL (RẤT NGON) */}
                     {listeningAudioUrl && (
                       <div className="p-3 bg-white border border-purple-200 rounded-xl space-y-1">
                         <span className="text-[11px] font-bold text-purple-800 flex items-center space-x-1">
