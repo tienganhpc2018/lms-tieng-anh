@@ -88,6 +88,7 @@ export default function Dashboard() {
   };
 
   // Tạo Khóa Học Mới & Tự Động Sinh Mã Gia Nhập
+  // Tạo Khóa Học Mới & Tự Động Sinh Mã Gia Nhập (Triệt Để Lỗi Schema)
   const handleCreateCourse = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -96,80 +97,91 @@ export default function Dashboard() {
     const finalJoinCode = (customJoinCode.trim() || generateRandomCode()).toUpperCase();
     const newCover = coverImage || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=60';
 
-    let data = null;
-    let error = null;
+    try {
+      let createdCourse = null;
 
-    // Thử Insert có join_code trước
-    const res1 = await supabase
-      .from('courses')
-      .insert([
-        {
-          title: title.trim(),
-          description: description.trim(),
-          cover_image: newCover,
-          join_code: finalJoinCode,
-          teacher_id: user.id,
-        },
-      ])
-      .select()
-      .maybeSingle();
+      // 1. Thử insert có join_code
+      try {
+        const { data, error } = await supabase
+          .from('courses')
+          .insert([
+            {
+              title: title.trim(),
+              description: description.trim(),
+              cover_image: newCover,
+              join_code: finalJoinCode,
+              teacher_id: user.id,
+            },
+          ])
+          .select()
+          .single();
 
-    if (res1.error && res1.error.message?.includes('join_code')) {
-      // Fallback nếu database Supabase chưa có cột join_code
-      const res2 = await supabase
-        .from('courses')
-        .insert([
-          {
-            title: title.trim(),
-            description: `[MÃ: ${finalJoinCode}] ${description.trim()}`,
-            cover_image: newCover,
-            teacher_id: user.id,
-          },
-        ])
-        .select()
-        .single();
-      data = res2.data;
-      error = res2.error;
-    } else {
-      data = res1.data;
-      error = res1.error;
-    }
+        if (!error && data) {
+          createdCourse = data;
+        }
+      } catch (err1) {
+        console.warn('DB chưa có join_code, nảy sang Fallback:', err1);
+      }
 
-    if (error) {
-      showToast('error', 'Lỗi Tạo Khóa Học', error.message);
+      // 2. Fallback nếu DB chưa có cột join_code
+      if (!createdCourse) {
+        const { data: fbData, error: fbError } = await supabase
+          .from('courses')
+          .insert([
+            {
+              title: title.trim(),
+              description: `[MÃ: ${finalJoinCode}] ${description.trim()}`,
+              cover_image: newCover,
+              teacher_id: user.id,
+            },
+          ])
+          .select()
+          .single();
+
+        if (fbError) {
+          throw fbError;
+        }
+        createdCourse = fbData;
+      }
+
+      if (createdCourse) {
+        // Tự động Ghi danh Giáo viên vào khóa học
+        try {
+          await supabase.from('course_enrollments').insert([
+            {
+              course_id: createdCourse.id,
+              user_id: user.id,
+              role: 'teacher',
+            },
+          ]);
+        } catch (e1) {}
+
+        // Tạo sẵn Chủ đề 1 mặc định
+        try {
+          await supabase.from('course_sections').insert([
+            {
+              course_id: createdCourse.id,
+              title: 'Chủ Đề 1: Unit 1 - Overview & Getting Started',
+              order_index: 0,
+            },
+          ]);
+        } catch (e2) {}
+
+        showToast('success', 'Thành Công', 'Đã tạo khóa học thành công!');
+        setIsModalOpen(false);
+        setTitle('');
+        setDescription('');
+        setCoverImage('');
+        setCustomJoinCode('');
+        await fetchCourses();
+      }
+    } catch (finalErr) {
+      console.error('Lỗi khi tạo khóa học:', finalErr);
+      showToast('error', 'Lỗi Tạo Khóa Học', finalErr.message || 'Không thể tạo khóa học. Vui lòng thử lại!');
+    } finally {
       setCreating(false);
-    } else if (data) {
-      // Tự động Ghi danh Giáo viên vào khóa học
-      await supabase.from('course_enrollments').insert([
-        {
-          course_id: data.id,
-          user_id: user.id,
-          role: 'teacher',
-        },
-      ]);
-
-      // Tạo sẵn Chủ đề 1 mặc định
-      await supabase.from('course_sections').insert([
-        {
-          course_id: data.id,
-          title: 'Chủ Đề 1: Unit 1 - Overview & Getting Started',
-          order_index: 0,
-        },
-      ]);
-
-      setIsModalOpen(false);
-      setTitle('');
-      setDescription('');
-      setCoverImage('');
-      setCustomJoinCode('');
-      setCreating(false);
-
-      // TỰ ĐỘNG ĐIỀU HƯỚNG SANG TRANG KHÓA HỌC VỪA TẠO
-      navigate(`/course/${data.id}`);
     }
   };
-
-  // Học Sinh Gia Nhập Khóa Học Bằng Mã Join Code 6 Ký Tự
   const handleJoinCourseByCode = async (e) => {
     e.preventDefault();
     if (!inputJoinCode.trim()) return;
