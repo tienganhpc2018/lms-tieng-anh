@@ -25,13 +25,23 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
-        await signUp(email, password, fullName, role);
+        await signUp(email.trim(), password.trim(), fullName.trim(), role);
       } else {
-        await signIn(email, password);
+        await signIn(email.trim(), password.trim());
       }
       navigate(from, { replace: true });
     } catch (err) {
-      setErrorMsg(err.message || 'Thao tác không thành công. Vui lòng kiểm tra lại!');
+      console.error('Lỗi Auth:', err);
+      const msg = err.message || '';
+      if (msg.includes('already registered') || msg.includes('User already registered')) {
+        setErrorMsg('Tài khoản Email này đã được đăng ký! Vui lòng chọn tab "Đăng Nhập" bên trên để vào hệ thống.');
+      } else if (msg.includes('Invalid login credentials')) {
+        setErrorMsg('Email hoặc Mật khẩu không chính xác. Vui lòng thử lại!');
+      } else if (msg.includes('Password should be at least')) {
+        setErrorMsg('Mật khẩu phải có ít nhất 6 ký tự!');
+      } else {
+        setErrorMsg('Không thể đăng ký: ' + msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -42,10 +52,10 @@ export default function Auth() {
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200">
         {/* Banner Logo Header */}
         <div className="bg-navy-900 text-white p-8 text-center relative">
-          <div className="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+          <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
             <BookOpen className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">LMS HỌC LIỆU</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">LMS HỌC LIỆU</h1>
           <p className="text-xs text-slate-300 mt-1">
             Nền tảng Quản lý Học tập & Bài giảng E-learning chuẩn SCORM / H5P
           </p>
@@ -54,17 +64,25 @@ export default function Auth() {
         {/* Tab Đăng Nhập / Đăng Ký */}
         <div className="flex border-b border-slate-200">
           <button
-            onClick={() => setIsSignUp(false)}
-            className={`flex-1 py-3 text-sm font-bold transition ${
-              !isSignUp ? 'text-brand-600 border-b-2 border-brand-600 bg-white' : 'text-slate-500 bg-slate-50'
+            type="button"
+            onClick={() => {
+              setIsSignUp(false);
+              setErrorMsg('');
+            }}
+            className={`flex-1 py-3.5 text-sm font-bold transition ${
+              !isSignUp ? 'text-emerald-600 border-b-2 border-emerald-600 bg-white' : 'text-slate-500 bg-slate-50'
             }`}
           >
             Đăng Nhập
           </button>
           <button
-            onClick={() => setIsSignUp(true)}
-            className={`flex-1 py-3 text-sm font-bold transition ${
-              isSignUp ? 'text-brand-600 border-b-2 border-brand-600 bg-white' : 'text-slate-500 bg-slate-50'
+            type="button"
+            onClick={() => {
+              setIsSignUp(true);
+              setErrorMsg('');
+            }}
+            className={`flex-1 py-3.5 text-sm font-bold transition ${
+              isSignUp ? 'text-emerald-600 border-b-2 border-emerald-600 bg-white' : 'text-slate-500 bg-slate-50'
             }`}
           >
             Đăng Ký Tài Khoản
@@ -74,7 +92,7 @@ export default function Auth() {
         {/* Form Đăng Nhập / Đăng Ký */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold leading-relaxed">
               {errorMsg}
             </div>
           )}
@@ -89,8 +107,8 @@ export default function Auth() {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ví dụ: Nguyen Van A"
-                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  placeholder="Ví dụ: Nguyen Van Hai"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -105,8 +123,8 @@ export default function Auth() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                placeholder="nguyensea106@gmail.com"
+                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>
           </div>
@@ -121,7 +139,7 @@ export default function Auth() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>
           </div>
@@ -136,7 +154,7 @@ export default function Auth() {
                   onClick={() => setRole('student')}
                   className={`p-3 rounded-xl border flex items-center justify-center space-x-2 text-xs font-bold transition ${
                     role === 'student'
-                      ? 'border-brand-600 bg-brand-50 text-brand-700'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                       : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
@@ -148,7 +166,7 @@ export default function Auth() {
                   onClick={() => setRole('teacher')}
                   className={`p-3 rounded-xl border flex items-center justify-center space-x-2 text-xs font-bold transition ${
                     role === 'teacher'
-                      ? 'border-brand-600 bg-brand-50 text-brand-700'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                       : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
@@ -162,7 +180,7 @@ export default function Auth() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow-md transition disabled:opacity-50 mt-2"
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition disabled:opacity-50 mt-2"
           >
             {loading ? 'Đang xử lý...' : isSignUp ? 'Đăng Ký Tài Khoản' : 'Đăng Nhập'}
           </button>
