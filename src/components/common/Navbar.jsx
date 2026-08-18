@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { BookOpen, BarChart2, LogOut, User, ShieldCheck, GraduationCap, Wand2, Award, Database } from 'lucide-react';
+import { BookOpen, BarChart2, LogOut, User, ShieldCheck, GraduationCap, Award } from 'lucide-react';
 
 export default function Navbar() {
   const { user, profile, isTeacher, signOut } = useAuth();
@@ -14,7 +14,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-navy-900 text-white sticky top-0 z-40 shadow-md border-b border-slate-800">
+    <nav className="bg-navy-900 text-white sticky top-0 z-40 shadow-md border-b border-slate-800 font-sans select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo & Branding */}
@@ -32,13 +32,13 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* MENU NGANG TRÊN CÙNG THEO YÊU CẦU CỦA THẦY */}
-          <div className="hidden md:flex items-center space-x-1">
+          {/* MENU NGANG TRÊN CÙNG ĐÃ LOẠI BỎ TAB SOẠN ĐỀ AI VÀ NGÂN HÀNG CÂU HỎI THEO CHỈ ĐẠO CỦA THẦY */}
+          <div className="hidden md:flex items-center space-x-2">
             <Link
               to="/dashboard"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center space-x-2 ${
                 location.pathname === '/dashboard'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400/30'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >
@@ -46,38 +46,12 @@ export default function Navbar() {
               <span>Khóa Học</span>
             </Link>
 
-            {/* TAB MENU 1: SOẠN ĐỀ AI */}
-            <Link
-              to="/ai-builder"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
-                location.pathname === '/ai-builder'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Wand2 className="w-4 h-4 text-amber-400" />
-              <span>Soạn Đề AI</span>
-            </Link>
-
-            {/* TAB MENU 2: NGÂN HÀNG CÂU HỎI */}
-            <Link
-              to="/question-bank"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
-                location.pathname === '/question-bank'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Database className="w-4 h-4 text-sky-400" />
-              <span>Ngân Hàng Câu Hỏi</span>
-            </Link>
-
-            {/* TAB MENU 3: THI THỬ */}
+            {/* TAB MENU: THI THỬ */}
             <Link
               to="/mock-exam"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center space-x-2 ${
                 location.pathname === '/mock-exam'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400/30'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >
@@ -89,9 +63,9 @@ export default function Navbar() {
             {isTeacher && (
               <Link
                 to="/analytics"
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center space-x-2 ${
                   location.pathname === '/analytics'
-                    ? 'bg-emerald-600 text-white shadow-sm'
+                    ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400/30'
                     : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >
@@ -101,41 +75,43 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Profile Badge & Đăng Xuất */}
-          {user ? (
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2 px-3 py-1.5 bg-slate-800 rounded-xl border border-slate-700">
-                {isTeacher ? (
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                ) : (
-                  <GraduationCap className="w-4 h-4 text-sky-400" />
-                )}
-                <div className="text-left">
-                  <span className="text-xs font-bold text-white block leading-tight">
-                    {profile?.full_name || 'Người dùng'}
-                  </span>
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold">
-                    {profile?.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}
-                  </span>
+          {/* User Info / Profile Button */}
+          <div className="flex items-center space-x-3">
+            {user ? (
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
+                  {isTeacher ? (
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  ) : (
+                    <GraduationCap className="w-4 h-4 text-sky-400" />
+                  )}
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-slate-100 block leading-tight">
+                      {profile?.full_name || user.email}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block font-medium uppercase">
+                      {isTeacher ? 'Giáo Viên' : 'Học Sinh'}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                onClick={handleSignOut}
-                title="Đăng xuất"
-                className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition"
+                <button
+                  onClick={handleSignOut}
+                  className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition"
+                  title="Đăng xuất"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/auth"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition"
               >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
-          ) : (
-            <Link
-              to="/auth"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow transition"
-            >
-              Đăng Nhập
-            </Link>
-          )}
+                Đăng Nhập
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </nav>
