@@ -5,6 +5,8 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import AiQuizGeneratorModal from './AiQuizGeneratorModal';
 import CommunityExamBankModal from './CommunityExamBankModal';
 import { exportQuizToWord } from '../../utils/exportQuizWord';
+import { exportMultiCodeWord } from '../../utils/exportMultiCodeWord';
+import ExamMatrixModal from './ExamMatrixModal';
 
 export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
@@ -48,6 +50,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [isRandomized, setIsRandomized] = useState(false);
   const [isAiGenModalOpen, setIsAiGenModalOpen] = useState(false);
   const [isCommunityBankOpen, setIsCommunityBankOpen] = useState(false);
+  const [isMatrixModalOpen, setIsMatrixModalOpen] = useState(false);
   const [aiExplaining, setAiExplaining] = useState(false);
   const [isSavingQuestion, setIsSavingQuestion] = useState(false);
 
@@ -690,10 +693,24 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
             <div className="flex flex-wrap items-center gap-2">
               <button
+                onClick={() => setIsMatrixModalOpen(true)}
+                className="px-3 py-2 bg-purple-700 hover:bg-purple-800 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
+              >
+                <span>📊 Ma Trận Đề (TOS)</span>
+              </button>
+
+              <button
+                onClick={() => exportMultiCodeWord(questions, questionTitle || 'BÀI KÍỂM TRA TIẾNG ANH')}
+                className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
+              >
+                <span>🖨️ Xuất 4 Mã Đề (101-104)</span>
+              </button>
+
+              <button
                 onClick={() => exportQuizToWord(questions, questionTitle || 'BÀI KÍỂM TRA TIẾNG ANH')}
                 className="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
               >
-                <span>🖨️ In Đề Ra Giấy (Word)</span>
+                <span>🖨️ In Đề 1 Mã (Word)</span>
               </button>
 
               <button
