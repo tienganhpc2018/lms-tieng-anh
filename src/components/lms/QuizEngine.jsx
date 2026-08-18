@@ -26,9 +26,6 @@ export default function QuizEngine({ activity }) {
     isPassed: false,
   });
 
-  // Toggle Ẩn / Hiện Đáp Án & Audioscript
-  const [showAudioscript, setShowAudioscript] = useState(false);
-
   useEffect(() => {
     let interval = null;
     if (timerActive && !submitted) {
@@ -152,7 +149,7 @@ export default function QuizEngine({ activity }) {
     }
   };
 
-  // Render Khối AI Giải Thích Chuẩn 4 Phần Cho Học Sinh Yếu (Chuẩn 100% Ảnh 2)
+  // Render Khối AI Giải Thích Chuẩn 4 Phần Cho Học Sinh Yếu
   const renderFourBlockExplanation = (explanationText, correctText) => {
     if (!explanationText) {
       return (
@@ -311,7 +308,7 @@ export default function QuizEngine({ activity }) {
                   </div>
                 </div>
 
-                {/* NẾU LÀ BÀI NGHE LISTENING CÓ AUDIO MP3 (PHÁT ĐÚNG 100% FILE CỦA THẦY UPLOAD) */}
+                {/* BÀI NGHE LISTENING CÓ KHUNG PHÁT AUDIO MP3 */}
                 {isListening && (
                   <div className="space-y-3 bg-white p-4 rounded-2xl border border-purple-200">
                     <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs">
@@ -324,38 +321,20 @@ export default function QuizEngine({ activity }) {
                       </audio>
                     ) : (
                       <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-                        ⚠️ Chưa có file audio được tải lên cho bài nghe này.
-                      </div>
-                    )}
-
-                    {q.content?.audioscript && (
-                      <div className="pt-2">
-                        <button
-                          onClick={() => setShowAudioscript(!showAudioscript)}
-                          className="px-3 py-1 bg-purple-100 text-purple-800 font-bold text-xs rounded-lg flex items-center space-x-1"
-                        >
-                          <Headphones className="w-3.5 h-3.5" />
-                          <span>{showAudioscript ? 'Ẩn Kịch Bản Script' : 'Xem Kịch Bản Script'}</span>
-                        </button>
-                        {showAudioscript && (
-                          <p className="mt-2 p-3 bg-purple-50 text-xs italic text-slate-700 rounded-xl leading-relaxed">
-                            {q.content.audioscript}
-                          </p>
-                        )}
+                        ⚠️ Bài nghe này chưa có tệp audio MP3.
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* NẾU LÀ BÀI ĐỌC READING CÓ ĐOẠN VĂN */}
+                {/* BÀI ĐỌC READING SECTION CÓ ĐOẠN VĂN */}
                 {isReading && (
                   <div className="p-5 bg-white border border-emerald-200 rounded-2xl text-xs text-slate-800 leading-relaxed font-medium space-y-3">
                     <h5 className="font-extrabold text-emerald-900 text-sm">
                       {q.content?.title || 'Read the passage carefully and choose the correct answer.'}
                     </h5>
                     <p className="text-slate-700 leading-relaxed text-justify">
-                      {q.content?.passage ||
-                        'Chuong village in Hanoi is famous for its long history of making conical hats (non la)...'}
+                      {q.content?.passage || 'Nội dung đoạn văn bài đọc hiểu...'}
                     </p>
                   </div>
                 )}
@@ -448,7 +427,7 @@ export default function QuizEngine({ activity }) {
                           })}
                         </div>
 
-                        {/* KHỐI AI GIẢI THÍCH 4 PHẦN DÀNH CHO HỌC SINH YẾU CHUẨN ẢNH 2 */}
+                        {/* KHỐI AI GIẢI THÍCH 4 PHẦN DÀNH CHO HỌC SINH YẾU */}
                         {submitted && renderFourBlockExplanation(cQ.explanation || q.content?.explanation, correctText)}
                       </div>
                     );
