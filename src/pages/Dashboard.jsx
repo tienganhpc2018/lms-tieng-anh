@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase, uploadLMSFile } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import CenterToastModal from '../components/common/CenterToastModal';
 import UserManagementModal from '../components/lms/UserManagementModal';
-import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check, Eye, EyeOff, ShieldCheck, Crown, Sparkles, Home, ChevronDown, ChevronRight, Folder, FileText, BarChart2, GraduationCap, Palette } from 'lucide-react';
+import { 
+  BookOpen, Plus, Users, Search, Key, Sparkles, FolderOpen, Crown, ChevronRight, 
+  ChevronDown, Home, Lock, BarChart3, HelpCircle, FileText, CheckCircle2, Copy, 
+  Check, Palette, Layers, Award, FileQuestion, ArrowRight, X, Clock
+} from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function Dashboard() {
@@ -16,87 +20,102 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // State Trạng thái Ẩn/Hiện Mã của Giáo viên
-  const [visibleCodeIds, setVisibleCodeIds] = useState([]);
-
-  // State Modal Site Admin Users Management
-  const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
-
-  // Toast Center Modal State
-  const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
-  const showToast = (type, title, message) => setToast({ isOpen: true, type, title, message });
-
-  // State Modal Tạo Khóa Học Mới Chuẩn Moodle Gnomio
+  // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
+  const [isQuestionBankOpen, setIsQuestionBankOpen] = useState(false); // Modal Ngân hàng câu hỏi & Đề thi
+
+  // Form Tạo Khóa Học
   const [courseFullName, setCourseFullName] = useState('');
   const [courseShortName, setCourseShortName] = useState('');
-  const [courseCategory, setCourseCategory] = useState('Danh mục các bài học');
-  const [courseVisibility, setCourseVisibility] = useState('Show');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0]);
   const [courseIdNumber, setCourseIdNumber] = useState('');
+  const [courseCategory, setCategory] = useState('Tiếng Anh THCS (CV7991)');
+  const [courseVisibility, setVisibility] = useState('Show');
   const [description, setDescription] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [creating, setCreating] = useState(false);
 
-  // State Modal Gia Nhập Khóa Học Bằng Mã (Join Code) cho Học sinh
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const [inputJoinCode, setInputJoinCode] = useState('');
+  // Form Gia Nhập Khóa Học
+  const [joinCodeInput, setJoinCodeInput] = useState('');
   const [joining, setJoining] = useState(false);
 
-  // State Navigation Accordion
+  // Ngân Hàng Đề Thi State
+  const [questionBankActivities, setQuestionBankActivities] = useState([]);
+  const [loadingQB, setLoadingQB] = useState(false);
+
+  // Accordion Navigation Tree States
   const [isDashboardOpen, setIsDashboardOpen] = useState(true);
   const [isSitePagesOpen, setIsSitePagesOpen] = useState(true);
   const [isMyCoursesOpen, setIsMyCoursesOpen] = useState(true);
 
+  // Code Hướng Dẫn & Toast
+  const [visibleCodeIds, setVisibleCodeIds] = useState([]);
   const [copiedCode, setCopiedCode] = useState('');
+  const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
 
-  const generateRandomCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
+  const showToast = (type, title, message) => {
+    setToast({ isOpen: true, type, title, message });
   };
 
   const fetchCourses = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('courses')
-      .select('*, teacher:teacher_id (full_name, email)')
-      .order('created_at', { ascending: false });
+    try {
+      const { data: cData, error: cErr } = await supabase
+        .from('courses')
+        .select('*, teacher:teacher_id (full_name, email)')
+        .order('created_at', { ascending: false });
 
-    if (!error) {
-      const updatedCourses = (data || []).map((c, idx) => {
-        if (!c.join_code) {
-          const sampleCodes = ['K6L841', '7B9X2M', 'E9G82K', '3M5P9R', '8H4L2W'];
-          c.join_code = sampleCodes[idx % sampleCodes.length] || generateRandomCode();
-        }
-        return c;
-      });
-      setCourses(updatedCourses);
-    }
+      if (!cErr && cData) {
+        setCourses(cData);
+      }
 
-    if (user?.id) {
-      try {
+      if (user) {
         const { data: eData } = await supabase
           .from('course_enrollments')
           .select('course_id')
           .eq('user_id', user.id);
+
         if (eData) {
           setUserEnrollments(eData.map((e) => e.course_id));
         }
-      } catch (err) {}
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const fetchQuestionBank = async () => {
+    setLoadingQB(true);
+    try {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*, section:section_id (title, course:course_id (title))')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setQuestionBankActivities(data);
+      }
+    } catch (e) {}
+    setLoadingQB(false);
   };
 
   useEffect(() => {
     fetchCourses();
   }, [user]);
 
-  const toggleShowCode = (courseId, e) => {
+  const generateRandomCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let res = 'LMS-';
+    for (let i = 0; i < 6; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return res;
+  };
+
+  const toggleCodeVisibility = (courseId, e) => {
     e.stopPropagation();
     setVisibleCodeIds((prev) =>
       prev.includes(courseId) ? prev.filter((id) => id !== courseId) : [...prev, courseId]
@@ -158,75 +177,76 @@ export default function Dashboard() {
         setCoverImage('');
         await fetchCourses();
       }
-    } catch (finalErr) {
-      showToast('error', 'Không thể tạo khóa học', finalErr.message);
+    } catch (err) {
+      showToast('error', 'Lỗi', err.message);
     } finally {
       setCreating(false);
     }
   };
 
-  const handleJoinCourseByCode = async (e) => {
+  const handleJoinCourse = async (e) => {
     e.preventDefault();
-    if (!inputJoinCode.trim()) return;
+    const code = joinCodeInput.trim().toUpperCase();
+    if (!code) return;
+
     setJoining(true);
-
-    const codeUpper = inputJoinCode.trim().toUpperCase();
-
-    const targetCourse = courses.find((c) => {
-      if (!c) return false;
-      const cJoinCode = (c.join_code || '').toUpperCase();
-      const cDesc = (c.description || '').toUpperCase();
-
-      return cJoinCode === codeUpper || cDesc.includes(`[MÃ GIA NHẬP: ${codeUpper}]`);
-    });
-
-    if (!targetCourse) {
-      showToast('error', 'Mã Khóa Học Không Đúng', `Không tìm thấy khóa học với mã bảo mật "${inputJoinCode}". Vui lòng kiểm tra lại chính xác mã 6 ký tự do Giáo viên cung cấp!`);
-      setJoining(false);
-      return;
-    }
-
     try {
-      await supabase.from('course_enrollments').upsert([
+      const { data: targetCourse, error: searchErr } = await supabase
+        .from('courses')
+        .select('*')
+        .or(`id.eq.${code},title.ilike.%${code}%`)
+        .maybeSingle();
+
+      const matchedCourse = targetCourse || courses.find((c) => c.title.toLowerCase().includes(code.toLowerCase()));
+
+      if (!matchedCourse) {
+        showToast('error', 'Không Thấy Khóa Học', 'Mã mã bảo mật hoặc tên khóa học không chính xác.');
+        setJoining(false);
+        return;
+      }
+
+      const { data: existing } = await supabase
+        .from('course_enrollments')
+        .select('*')
+        .eq('course_id', matchedCourse.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        showToast('info', 'Đã Gia Nhập', 'Bạn đã là học viên của khóa học này rồi!');
+        setIsJoinModalOpen(false);
+        setJoining(false);
+        navigate(`/course/${matchedCourse.id}`);
+        return;
+      }
+
+      const { error: enrollErr } = await supabase.from('course_enrollments').insert([
         {
-          course_id: targetCourse.id,
+          course_id: matchedCourse.id,
           user_id: user.id,
-          role: profile?.role || 'student',
+          role: 'student',
         },
       ]);
 
-      showToast('success', 'Gia Nhập Thành Công', `Bạn đã mở khóa thành công: "${targetCourse.title}"`);
+      if (enrollErr) throw enrollErr;
+
+      showToast('success', 'Gia Nhập Thành Công!', `Chào mừng bạn đến với khóa học: ${matchedCourse.title}`);
       setIsJoinModalOpen(false);
-      setInputJoinCode('');
+      setJoinCodeInput('');
       await fetchCourses();
-      navigate(`/course/${targetCourse.id}`);
+      navigate(`/course/${matchedCourse.id}`);
     } catch (err) {
-      showToast('error', 'Lỗi Gia Nhập Khóa Học', err.message);
+      showToast('error', 'Lỗi Gia Nhập', err.message);
     } finally {
       setJoining(false);
     }
   };
 
-  const handleDeleteCourse = async (courseId, courseTitle, e) => {
+  const handleCopyCode = (code, e) => {
     e.stopPropagation();
-    if (!window.confirm(`Bạn có chắc chắn muốn XÓA khóa học "${courseTitle}"? Tất cả bài giảng và dữ liệu liên quan sẽ bị xóa vĩnh viễn!`)) {
-      return;
-    }
-
-    try {
-      await supabase.from('courses').delete().eq('id', courseId);
-      showToast('success', 'Đã Xóa Khóa Học', `Đã xóa thành công khóa học: ${courseTitle}`);
-      await fetchCourses();
-    } catch (err) {
-      showToast('error', 'Không Thể Xóa Khóa Học', err.message);
-    }
-  };
-
-  const copyToClipboard = (text, e) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(text);
-    setCopiedCode(text);
-    showToast('success', 'Đã Sao Chép', 'Đã sao chép Mã Gia Nhập vào bộ nhớ tạm!');
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    showToast('info', 'Đã Coppy', `Đã sao chép mã khóa học: ${code}`);
     setTimeout(() => setCopiedCode(''), 2000);
   };
 
@@ -255,7 +275,7 @@ export default function Dashboard() {
       />
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* BANNER HEADER CHUYÊN NGHIỆP SANG TRỌNG VỚI ẢNH NỀN VÀ LỚP PHỦ MỜ 15% */}
+        {/* BANNER HEADER */}
         <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900 text-white min-h-[200px] flex items-center">
           <div
             className="absolute inset-0 bg-cover bg-center opacity-25 scale-105 transition duration-700 hover:scale-100"
@@ -352,7 +372,20 @@ export default function Dashboard() {
 
                       {isSitePagesOpen && (
                         <div className="pl-4 space-y-1.5 mt-1 border-l-2 border-slate-100 ml-1.5">
-                          {/* 1. BẢNG TƯƠNG TÁC GIẢNG DẠY WHITEBOARD THÔNG MINH (CHỈ HIỂN THỊ DÀNH CHO GIÁO VIÊN) */}
+                          {/* 1. NGÂN HÀNG CÂU HỎI & ĐỀ THI (DÀNH CHO THẦY & HỌC SINH) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              fetchQuestionBank();
+                              setIsQuestionBankOpen(true);
+                            }}
+                            className="w-full flex items-center space-x-2 text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-1.5 rounded-xl border border-indigo-200 transition font-extrabold text-left shadow-2xs"
+                          >
+                            <FileQuestion className="w-4 h-4 text-indigo-600" />
+                            <span>📚 Ngân Hàng Câu Hỏi & Đề Thi</span>
+                          </button>
+
+                          {/* 2. BẢNG TƯƠNG TÁC GIẢNG DẠY WHITEBOARD */}
                           {isTeacher && (
                             <Link
                               to="/whiteboard"
@@ -363,7 +396,7 @@ export default function Dashboard() {
                             </Link>
                           )}
 
-                          {/* 2. TAB KHÓA HỌC (MY COURSES) */}
+                          {/* 3. TAB KHÓA HỌC (MY COURSES) */}
                           <Link
                             to="/dashboard"
                             className="flex items-center space-x-2 text-slate-600 hover:text-emerald-600 py-1 transition font-semibold"
@@ -372,7 +405,7 @@ export default function Dashboard() {
                             <span>My courses (Khóa học)</span>
                           </Link>
 
-                          {/* 3. TAB QUẢN LÝ HỌC SINH (USERS - SITE ADMIN DÀNH CHO GIÁO VIÊN) */}
+                          {/* 4. TAB QUẢN LÝ HỌC SINH (USERS) */}
                           {isTeacher && (
                             <button
                               type="button"
@@ -384,55 +417,45 @@ export default function Dashboard() {
                             </button>
                           )}
 
-                          {/* 4. TAB BẢNG ĐIỂM & ANALYTICS (GRADES DÀNH CHO GIÁO VIÊN) */}
+                          {/* 5. TAB BẢNG ĐIỂM & ANALYTICS */}
                           {isTeacher && (
                             <Link
                               to="/analytics"
-                              className="flex items-center space-x-2 text-teal-700 hover:text-teal-900 py-1 transition font-extrabold"
+                              className="flex items-center space-x-2 text-sky-700 hover:text-sky-900 py-1 transition font-extrabold"
                             >
-                              <BarChart2 className="w-3.5 h-3.5 text-teal-600" />
-                              <span>Bảng Điểm & Analytics</span>
+                              <BarChart3 className="w-3.5 h-3.5 text-sky-600" />
+                              <span>Analytics & Bảng Điểm</span>
                             </Link>
                           )}
-
-                          {/* 5. PRIVATE FILES */}
-                          <Link
-                            to="/profile"
-                            className="flex items-center space-x-2 text-slate-600 hover:text-amber-700 py-1 transition font-semibold"
-                          >
-                            <Folder className="w-3.5 h-3.5 text-amber-600" />
-                            <span>Private files (Tài liệu cá nhân)</span>
-                          </Link>
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+              </div>
 
-                    {/* My courses Accordion */}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setIsMyCoursesOpen(!isMyCoursesOpen)}
-                        className="w-full flex items-center space-x-1.5 text-slate-700 hover:text-slate-900 py-1 transition text-left"
+              {/* LEVEL 2: MY COURSES ACCORDION TREE */}
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsMyCoursesOpen(!isMyCoursesOpen)}
+                  className="w-full flex items-center space-x-1.5 text-slate-800 hover:text-emerald-700 py-1 transition font-extrabold text-left uppercase text-[11px]"
+                >
+                  {isMyCoursesOpen ? <ChevronDown className="w-3.5 h-3.5 text-emerald-600" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-600" />}
+                  <span>My courses ({courses.length})</span>
+                </button>
+
+                {isMyCoursesOpen && (
+                  <div className="pl-3 space-y-1 mt-1 border-l-2 border-slate-100 ml-1">
+                    {courses.map((c) => (
+                      <Link
+                        key={c.id}
+                        to={`/course/${c.id}`}
+                        className="block py-1 px-2 hover:bg-emerald-50 rounded-lg text-slate-700 hover:text-emerald-800 font-bold truncate transition text-xs"
                       >
-                        <GraduationCap className="w-4 h-4 text-sky-600" />
-                        <span>My courses</span>
-                      </button>
-
-                      {isMyCoursesOpen && (
-                        <div className="pl-4 space-y-1 mt-1 border-l-2 border-slate-100 ml-1.5">
-                          {courses.slice(0, 5).map((c) => (
-                            <Link
-                              key={c.id}
-                              to={`/course/${c.id}`}
-                              className="flex items-center space-x-1.5 text-slate-600 hover:text-emerald-600 py-1 transition font-medium truncate block"
-                            >
-                              <span className="text-slate-400 font-mono text-[10px]">›</span>
-                              <span className="truncate">{c.title}</span>
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                        • {c.title}
+                      </Link>
+                    ))}
                   </div>
                 )}
               </div>
@@ -441,169 +464,204 @@ export default function Dashboard() {
 
           {/* CỘT PHẢI: MAIN CONTENT DANH SÁCH KHÓA HỌC */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <h2 className="text-base font-extrabold text-slate-800 tracking-tight">
-                Danh Sách Khóa Học ({filteredCourses.length})
-              </h2>
-              <div className="relative w-full sm:w-80">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Tìm theo tên khóa học..."
-                  className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
-                />
-              </div>
-            </div>
+            <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Khóa Học Của Tôi & Hệ Thống</h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Hiển thị {filteredCourses.length} khóa học E-learning
+                  </p>
+                </div>
 
-            {/* Grid Danh Sách Khóa Học */}
-            {loading ? (
-              <LoadingSpinner text="Đang tải danh sách khóa học..." />
-            ) : filteredCourses.length === 0 ? (
-              <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-sm">
-                <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <h3 className="font-bold text-slate-700 text-lg">Chưa có khóa học nào</h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                  {isTeacher
-                    ? 'Bấm nút "+ Add a new course" ở trên để tạo khóa học mới chuẩn Moodle!'
-                    : 'Bấm nút "🔑 Nhập Mã Gia Nhập Lớp" để nhập mã do Giáo viên cung cấp.'}
-                </p>
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Tìm kiếm khóa học..."
+                    className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {filteredCourses.map((course) => {
-                  const isOwnerOrAdmin = isTeacher && (course.teacher_id === user?.id || profile?.role === 'teacher');
-                  const isEnrolled = userEnrollments.includes(course.id);
-                  const courseCode = course.join_code || 'K6L841';
-                  const isCodeVisible = visibleCodeIds.includes(course.id);
 
-                  return (
+              {loading ? (
+                <LoadingSpinner text="Đang tải danh sách khóa học..." />
+              ) : filteredCourses.length === 0 ? (
+                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl space-y-3">
+                  <p className="text-xs text-slate-400 font-semibold">Chưa có khóa học nào khớp với tìm kiếm.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredCourses.map((courseItem) => (
                     <div
-                      key={course.id}
-                      className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between group relative"
+                      key={courseItem.id}
+                      onClick={() => navigate(`/course/${courseItem.id}`)}
+                      className="p-5 bg-slate-50 hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-300 rounded-3xl transition duration-200 cursor-pointer group space-y-3 shadow-2xs hover:shadow-md"
                     >
-                      <div>
-                        {/* Thumbnail Image */}
-                        <div className="h-44 bg-slate-100 relative overflow-hidden">
-                          <img
-                            src={course.cover_image}
-                            alt={course.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-
-                          <span className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm text-slate-800 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center space-x-1 shadow-sm">
-                            <User className="w-3 h-3 text-emerald-600" />
-                            <span>GV: {course.teacher?.full_name || 'Giáo viên'}</span>
-                          </span>
-
-                          {isOwnerOrAdmin && (
-                            <div className="absolute top-3 right-3 flex items-center space-x-1 bg-slate-900/80 backdrop-blur-sm p-1 rounded-xl shadow-lg border border-slate-700">
-                              <button
-                                onClick={(e) => handleDeleteCourse(course.id, course.title, e)}
-                                title="Xóa khóa học này"
-                                className="p-1.5 text-slate-300 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Nội dung Card */}
-                        <div className="p-5 space-y-2">
-                          <h3 className="font-extrabold text-slate-900 text-base line-clamp-1 group-hover:text-emerald-600 transition">
-                            {course.title}
-                          </h3>
-
-                          {!isOwnerOrAdmin && !isEnrolled ? (
-                            <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                              Khóa học này đang giới hạn danh sách học viên. Vui lòng nhập mã do Ban tổ chức cung cấp để mở khóa bài giảng & bài tập.
-                            </p>
-                          ) : (
-                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                              {course.description?.replace(/\[.*?\]/g, '').trim() || 'Khóa học Tiếng Anh E-learning cung cấp đầy đủ bài tập tương tác.'}
-                            </p>
-                          )}
-
-                          {isOwnerOrAdmin && (
-                            <div className="p-2.5 bg-slate-900 text-white rounded-2xl flex items-center justify-between text-xs mt-2 border border-slate-800">
-                              <div className="flex items-center space-x-1.5 font-bold">
-                                <Key className="w-3.5 h-3.5 text-amber-400" />
-                                <span className="text-[11px] text-slate-300">Mã Lớp:</span>
-                                <span className="px-2 py-0.5 bg-slate-800 text-amber-300 font-mono rounded text-xs tracking-widest font-extrabold">
-                                  {isCodeVisible ? courseCode : '••••••'}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center space-x-1">
-                                <button
-                                  type="button"
-                                  onClick={(e) => toggleShowCode(course.id, e)}
-                                  className="p-1 text-slate-400 hover:text-amber-400 transition rounded-lg"
-                                  title={isCodeVisible ? 'Ẩn mã khỏi màn hình' : 'Hiện mã trên màn hình'}
-                                >
-                                  {isCodeVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => copyToClipboard(courseCode, e)}
-                                  className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-lg text-[10px] flex items-center space-x-1 shadow-2xs"
-                                >
-                                  {copiedCode === courseCode ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                  <span>{copiedCode === courseCode ? 'Đã sao chép' : 'Sao chép'}</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-lg uppercase">
+                          Tiếng Anh THCS
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
                       </div>
 
-                      {/* Action Button vào khóa học */}
-                      <div className="px-5 pb-5 pt-2 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-slate-400">
-                          {new Date(course.created_at).toLocaleDateString('vi-VN')}
-                        </span>
+                      <div>
+                        <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition">
+                          {courseItem.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium line-clamp-2 mt-1">
+                          {courseItem.description?.replace(/\[.*?\]/g, '').trim() || 'Khóa học tiếng Anh THCS chuẩn ma trận CV7991'}
+                        </p>
+                      </div>
 
-                        {isOwnerOrAdmin || isEnrolled ? (
-                          <Link
-                            to={`/course/${course.id}`}
-                            className="px-4 py-2 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl text-xs font-extrabold transition flex items-center space-x-1 shadow-sm"
-                          >
-                            <span>Vào Học</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setInputJoinCode('');
-                              setIsJoinModalOpen(true);
-                            }}
-                            className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-extrabold transition flex items-center space-x-1.5 shadow-md border border-purple-400/40"
-                          >
-                            <Key className="w-4 h-4 text-purple-200" />
-                            <span>🔑 Nhập Mã Mở Khóa</span>
-                          </button>
-                        )}
+                      <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 border-t border-slate-200/60 pt-2.5">
+                        <span className="flex items-center space-x-1">
+                          <Users className="w-3.5 h-3.5 text-slate-400" />
+                          <span>GV: {courseItem.teacher?.full_name || 'Nguyễn Văn Hải'}</span>
+                        </span>
+                        <span className="text-emerald-600 group-hover:underline flex items-center space-x-1">
+                          <span>Vào Học</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* MODAL SITE ADMINISTRATION USER MANAGEMENT */}
-        <UserManagementModal
-          isOpen={isUserMgmtOpen}
-          onClose={() => setIsUserMgmtOpen(false)}
-        />
       </div>
+
+      {/* MODAL NGÂN HÀNG CÂU HỎI & ĐỀ THI (THƯ MỤC NGÂN HÀNG ĐỀ THƯƠNG HIỆU) */}
+      {isQuestionBankOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 font-sans">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-scale-up">
+            <div className="bg-indigo-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base flex items-center space-x-2 text-indigo-300">
+                <FileQuestion className="w-5 h-5 text-indigo-400" />
+                <span>📚 Ngân Hàng Câu Hỏi & Danh Sách Đề Thi Thử</span>
+              </h3>
+              <button onClick={() => setIsQuestionBankOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[450px] overflow-y-auto">
+              {loadingQB ? (
+                <LoadingSpinner text="Đang tải ngân hàng đề thi..." />
+              ) : questionBankActivities.length === 0 ? (
+                <p className="text-xs text-slate-500 text-center py-8">Chưa có đề thi nào trong ngân hàng.</p>
+              ) : (
+                <div className="space-y-3">
+                  {questionBankActivities.map((act) => (
+                    <div
+                      key={act.id}
+                      className="p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-2xl flex items-center justify-between transition"
+                    >
+                      <div>
+                        <h4 className="font-extrabold text-sm text-slate-900">{act.title.replace('[WHITEBOARD]', '').trim()}</h4>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <span className="text-[10px] font-extrabold text-indigo-700 uppercase bg-indigo-100 px-2 py-0.5 rounded-md">
+                            {act.type === 'whiteboard' ? '🎨 Whiteboard' : act.type === 'quiz' ? '📝 Đề Thi Thử Quiz' : act.type}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            Khóa học: {act.section?.course?.title || 'English'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setIsQuestionBankOpen(false);
+                          navigate(`/assignment/${act.id}`);
+                        }}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center space-x-1"
+                      >
+                        <span>{isTeacher ? '👑 Soạn / Chỉnh Sửa' : '🚀 Thi Thử Ngay'}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN USER MANAGEMENT MODAL */}
+      {isUserMgmtOpen && (
+        <UserManagementModal isOpen={isUserMgmtOpen} onClose={() => setIsUserMgmtOpen(false)} />
+      )}
+
+      {/* CREATE COURSE MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up">
+            <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base">+ Add a new course</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <form onSubmit={handleCreateCourse} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Course full name</label>
+                <input
+                  type="text"
+                  required
+                  value={courseFullName}
+                  onChange={(e) => setCourseFullName(e.target.value)}
+                  placeholder="Ví dụ: Tiếng Anh 9 - Global Success"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 text-xs font-bold">Hủy</button>
+                <button type="submit" disabled={creating} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md">
+                  {creating ? 'Đang Tạo...' : 'Save and display'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* JOIN COURSE MODAL */}
+      {isJoinModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 font-sans">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up">
+            <div className="bg-amber-600 text-slate-950 px-6 py-4 flex justify-between items-center font-bold">
+              <h3 className="font-extrabold text-base flex items-center space-x-2 text-slate-950">
+                <Key className="w-5 h-5 text-slate-950" />
+                <span>🔑 Gia Nhập Lớp Học Bằng Mã Bảo Mật</span>
+              </h3>
+              <button onClick={() => setIsJoinModalOpen(false)} className="hover:text-white">✕</button>
+            </div>
+            <form onSubmit={handleJoinCourse} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Mã Khóa Học Hoặc Tên Lớp</label>
+                <input
+                  type="text"
+                  required
+                  value={joinCodeInput}
+                  onChange={(e) => setJoinCodeInput(e.target.value)}
+                  placeholder="Ví dụ: LMS-X8A2K9 hoặc Tiếng Anh 9..."
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-extrabold tracking-wider focus:ring-2 focus:ring-amber-500 uppercase bg-amber-50/50"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button type="button" onClick={() => setIsJoinModalOpen(false)} className="px-4 py-2 text-slate-600 text-xs font-bold">Hủy</button>
+                <button type="submit" disabled={joining} className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-md">
+                  {joining ? 'Đang Gia Nhập...' : '🚀 XÁC NHẬN GIA NHẬP'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
