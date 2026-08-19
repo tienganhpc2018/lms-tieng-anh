@@ -1,254 +1,340 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Users, UserPlus, Upload, Search, X, CheckCircle, Shield, GraduationCap, Lock, Trash2 } from 'lucide-react';
+import { Users, UserPlus, Upload, Search, X, CheckCircle, Shield, GraduationCap, Lock, Trash2, CheckSquare, Filter } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeacher }) {
   const [users, setUsers] = useState([]);
+  const [allStudentsList, setAllStudentsList] = useState([]);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('list'); // 'list' | 'manual' | 'file'
-
-  // State Thêm Thủ Công
-  const [searchEmail, setSearchEmail] = useState('');
-  const [assignRole, setAssignRole] = useState('student');
+  const [isEnrolPopupOpen, setIsEnrolPopupOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [letterFilter, setLetterFilter] = useState('All');
   const [enrolling, setEnrolling] = useState(false);
-
-  // State Upload File CSV
-  const [fileContent, setFileContent] = useState('');
 
   const fetchEnrolledUsers = async () => {
     setLoading(true);
-    // Fetch Enrollments kèm Profile
-    const { data, error } = await supabase
-      .from('course_enrollments')
-      .select('*, profile:user_id (*)')
-      .eq('course_id', courseId)
-      .order('enrolled_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('course_enrollments')
+        .select('*, profile:user_id (*)')
+        .eq('course_id', courseId)
+        .order('enrolled_at', { ascending: false });
 
-    if (!error) {
-      setUsers(data || []);
+      if (!error && data) {
+        setUsers(data || []);
+      }
+    } catch (err) {
+      console.warn('Fetch enrolled error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const fetchAllSchoolStudents = async () => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'student')
+        .order('full_name', { ascending: true });
+
+      if (data) setAllStudentsList(data);
+    } catch (err) {}
   };
 
   useEffect(() => {
-    if (isOpen && courseId) fetchEnrolledUsers();
+    if (isOpen && courseId) {
+      fetchEnrolledUsers();
+      fetchAllSchoolStudents();
+    }
   }, [isOpen, courseId]);
 
   if (!isOpen) return null;
 
-  // Thêm Người Học Thủ Công
-  const handleEnrolManual = async (e) => {
-    e.preventDefault();
-    if (!searchEmail.trim()) return;
-    setEnrolling(true);
-
-    // 1. Tìm profile theo email
-    const { data: targetProfile, error: pErr } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', searchEmail.trim())
-      .maybeSingle();
-
-    if (pErr || !targetProfile) {
-      alert(`Không tìm thấy tài khoản người dùng với email "${searchEmail}". Học viên cần đăng ký tài khoản trước!`);
-      setEnrolling(false);
+  // GHI DANH HÀNG LOẠT HỌC SINH ĐƯỢC CHỌN VÀO KHÓA HỌC (ENROL USERS)
+  const handleEnrolSelectedUsers = async () => {
+    if (selectedUserIds.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 học sinh để ghi danh vào khóa học!');
       return;
     }
+    setEnrolling(true);
 
-    // 2. Ghi danh (Enrol)
-    const { error: eErr } = await supabase.from('course_enrollments').upsert([
-      {
+    try {
+      const newEntries = selectedUserIds.map((uid) => ({
         course_id: courseId,
-        user_id: targetProfile.id,
-        role: assignRole,
+        user_id: uid,
+        role: 'student',
         status: 'active',
-      },
-    ]);
+      }));
 
-    if (eErr) {
-      alert('Lỗi thêm người học: ' + eErr.message);
-    } else {
-      alert(`Đã thêm thành công "${targetProfile.full_name}" vào khóa học!`);
-      setSearchEmail('');
-      setActiveTab('list');
+      await supabase.from('course_enrollments').upsert(newEntries);
+      alert(`🎉 ĐÃ GHI DANH THÀNH CÔNG ${selectedUserIds.length} HỌC SINH VÀO KHÓA HỌC NÀY!`);
+      setSelectedUserIds([]);
+      setIsEnrolPopupOpen(false);
       await fetchEnrolledUsers();
+    } catch (err) {
+      alert('Lỗi ghi danh: ' + err.message);
+    } finally {
+      setEnrolling(false);
     }
-    setEnrolling(false);
   };
 
   // Xóa Người Học Khỏi Khóa Học
   const handleRemoveUser = async (enrollmentId, userName) => {
-    if (!confirm(`Bạn có chắc muốn xóa người học "${userName}" khỏi khóa học?`)) return;
+    if (!confirm(`Bạn có chắc muốn xóa học sinh "${userName}" khỏi khóa học này?`)) return;
 
-    await supabase.from('course_enrollments').delete().eq('id', enrollmentId);
-    await fetchEnrolledUsers();
+    try {
+      await supabase.from('course_enrollments').delete().eq('id', enrollmentId);
+      await fetchEnrolledUsers();
+      alert('Đã xóa học sinh khỏi khóa học!');
+    } catch (err) {
+      alert('Lỗi xóa: ' + err.message);
+    }
   };
 
+  const toggleSelectUser = (uid) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
+    );
+  };
+
+  const alphabet = ['All', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+
+  const filteredEnrolledUsers = users.filter((u) => {
+    const p = u.profile || {};
+    const name = (p.full_name || p.username || '').toLowerCase();
+    const matchesSearch = name.includes(searchQuery.toLowerCase()) || (p.email || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (letterFilter === 'All') return matchesSearch;
+    return matchesSearch && name.toUpperCase().startsWith(letterFilter);
+  });
+
+  const enrolledUserIdsSet = new Set(users.map((u) => u.user_id));
+  const availableStudentsToEnrol = allStudentsList.filter((s) => !enrolledUserIdsSet.has(s.id));
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-8">
-        {/* Header Modal */}
-        <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <Users className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-extrabold text-base">Quản Lý Người Học Khóa Học (Enrolled Users)</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in font-sans select-none">
+      <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden">
+        {/* HEADER QUẢN LÝ HỌC VIÊN NGUYÊN BẢN MOODLE GNOMIO */}
+        <div className="p-6 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
+          <div>
+            <div className="flex items-center space-x-2 text-xs text-emerald-400 font-extrabold uppercase tracking-wide">
+              <span>My courses</span>
+              <span>/</span>
+              <span>Participants</span>
+              <span>/</span>
+              <span>Enrolled users</span>
+            </div>
+            <h2 className="text-xl font-extrabold text-white flex items-center space-x-2.5 mt-1">
+              <Users className="w-6 h-6 text-emerald-400" />
+              <span>Enrolled users ({users.length} học viên trong khóa)</span>
+            </h2>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
-        {/* Tab Selection Bar */}
-        <div className="flex border-b border-slate-200 bg-slate-50 px-6 pt-3 space-x-4">
-          <button
-            onClick={() => setActiveTab('list')}
-            className={`pb-3 text-xs font-bold transition flex items-center space-x-1.5 border-b-2 ${
-              activeTab === 'list'
-                ? 'border-emerald-600 text-emerald-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Danh Sách Người Học ({users.length})</span>
-          </button>
-
-          {isTeacher && (
-            <button
-              onClick={() => setActiveTab('manual')}
-              className={`pb-3 text-xs font-bold transition flex items-center space-x-1.5 border-b-2 ${
-                activeTab === 'manual'
-                  ? 'border-emerald-600 text-emerald-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Enrol Users (Thêm Thủ Công)</span>
-            </button>
-          )}
-        </div>
-
-        {/* TAB 1: DANH SÁCH ENROLLED USERS */}
-        {activeTab === 'list' && (
-          <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-            {loading ? (
-              <LoadingSpinner text="Đang tải danh sách người học..." />
-            ) : users.length === 0 ? (
-              <div className="p-8 text-center border border-dashed rounded-2xl text-slate-400 text-xs">
-                Chưa có người học nào trong khóa học này. Bấm "Enrol Users" để thêm học sinh!
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-600 text-[11px] uppercase font-bold border-b border-slate-200">
-                      <th className="py-3 px-4">Người Học (Avatar)</th>
-                      <th className="py-3 px-4">Email Address</th>
-                      <th className="py-3 px-4">Vai Trò (Role)</th>
-                      <th className="py-3 px-4">Trạng Thái</th>
-                      {isTeacher && <th className="py-3 px-4 text-right">Thao Tác</th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs font-medium">
-                    {users.map((item) => {
-                      const p = item.profile;
-                      return (
-                        <tr key={item.id} className="hover:bg-slate-50 transition">
-                          <td className="py-3 px-4 flex items-center space-x-3">
-                            <img
-                              src={p?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${p?.email || 'user'}`}
-                              alt={p?.full_name}
-                              className="w-8 h-8 rounded-full bg-slate-200 border"
-                            />
-                            <div>
-                              <span className="font-bold text-slate-900 block">{p?.full_name || 'Người dùng'}</span>
-                              <span className="text-[10px] text-slate-400">{p?.class_name || 'Học viên'}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-slate-600">{p?.email}</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              item.role === 'teacher' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'
-                            }`}>
-                              {item.role === 'teacher' ? 'Teacher' : 'Student'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[10px] font-bold uppercase">
-                              {item.status}
-                            </span>
-                          </td>
-                          {isTeacher && (
-                            <td className="py-3 px-4 text-right">
-                              <button
-                                onClick={() => handleRemoveUser(item.id, p?.full_name)}
-                                title="Xóa khỏi khóa học"
-                                className="p-1 text-slate-400 hover:text-rose-600 rounded"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+          <div className="flex items-center space-x-3">
+            {isTeacher && (
+              <button
+                type="button"
+                onClick={() => setIsEnrolPopupOpen(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-2 border border-blue-400/40"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Enrol users (Thêm Học Sinh Vào Khóa)</span>
+              </button>
             )}
-          </div>
-        )}
 
-        {/* TAB 2: THÊM NGƯỜI HỌC THỦ CÔNG (ENROL USERS) */}
-        {activeTab === 'manual' && (
-          <form onSubmit={handleEnrolManual} className="p-6 space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Nhập Email Người Học Cần Thêm *
-              </label>
+            <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* BỘ LỌC TÌM KIẾM & CHỮ CÁI A-Z NGUYÊN BẢN CHUẨN MOODLE */}
+        <div className="p-5 border-b border-slate-200 bg-slate-50 space-y-3">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
-                type="email"
-                required
-                value={searchEmail}
-                onChange={(e) => setSearchEmail(e.target.value)}
-                placeholder="nguyenvana@gmail.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm theo Tên hoặc Email học sinh..."
+                className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium shadow-2xs"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                Gán Vai Trò Trong Khóa Học (Assign Role)
-              </label>
-              <select
-                value={assignRole}
-                onChange={(e) => setAssignRole(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            <div className="text-xs font-bold text-slate-600">
+              Hiển thị: <strong className="text-emerald-700">{filteredEnrolledUsers.length}</strong> / {users.length} học sinh
+            </div>
+          </div>
+
+          {/* LỌC THEO TÊN A-Z NGUYÊN BẢN MOODLE */}
+          <div className="flex items-center space-x-1 text-[11px] font-bold overflow-x-auto pb-1 pt-1">
+            <span className="text-slate-400 mr-1">First name:</span>
+            {alphabet.map((letter) => (
+              <button
+                key={letter}
+                type="button"
+                onClick={() => setLetterFilter(letter)}
+                className={`px-2 py-0.5 rounded font-extrabold transition ${
+                  letterFilter === letter ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                }`}
               >
-                <option value="student">Student (Học Sinh)</option>
-                <option value="teacher">Teacher (Giáo Viên Phụ Trách)</option>
-              </select>
+                {letter}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* CONTENT BODY BẢNG DANH SÁCH PARTICIPANTS CHUẨN MOODLE (ẢNH 4) */}
+        <div className="p-6 overflow-y-auto flex-1">
+          {loading ? (
+            <LoadingSpinner text="Đang tải danh sách học viên trong khóa..." />
+          ) : filteredEnrolledUsers.length === 0 ? (
+            <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-200">
+              <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="font-extrabold text-slate-700 text-sm">Chưa có học sinh nào được thêm vào khóa học này!</p>
+              <p className="text-xs text-slate-400 mt-1">Bấm nút "Enrol users" màu xanh ở góc trên để chọn và thêm học sinh vào khóa.</p>
+            </div>
+          ) : (
+            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-100 text-slate-800 font-extrabold uppercase border-b border-slate-200">
+                  <tr>
+                    <th className="p-3">First name / Last name</th>
+                    <th className="p-3">Email address</th>
+                    <th className="p-3">Roles</th>
+                    <th className="p-3">Status</th>
+                    {isTeacher && <th className="p-3 text-right">Thao tác</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {filteredEnrolledUsers.map((u) => {
+                    const p = u.profile || {};
+                    const name = p.full_name || p.username || 'Học viên';
+                    const email = p.email || `${p.username}@lms.edu.vn`;
+                    const roleName = u.role === 'teacher' ? 'Teacher' : 'Student';
+
+                    return (
+                      <tr key={u.id} className="hover:bg-slate-50 transition">
+                        <td className="p-3 font-extrabold text-slate-900 flex items-center space-x-2.5">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-extrabold flex items-center justify-center text-xs">
+                            {name[0].toUpperCase()}
+                          </div>
+                          <span>{name}</span>
+                        </td>
+                        <td className="p-3 text-slate-600 font-medium">{email}</td>
+                        <td className="p-3 font-bold text-slate-800">{roleName}</td>
+                        <td className="p-3">
+                          <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold rounded-md text-[10px] uppercase">
+                            Active
+                          </span>
+                        </td>
+                        {isTeacher && (
+                          <td className="p-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveUser(u.id, name)}
+                              className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition"
+                              title="Xóa khỏi khóa học"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* POPUP GHI DANH HỌC SINH VÀO KHÓA HỌC (ENROL USERS POPUP MODAL) */}
+      {isEnrolPopupOpen && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-xl w-full space-y-4 border border-slate-200 shadow-2xl animate-scale-up">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center space-x-2">
+                <UserPlus className="w-5 h-5 text-blue-600" />
+                <span>Enrol users - Chọn Học Sinh Thêm Vào Khóa</span>
+              </h3>
+              <button onClick={() => setIsEnrolPopupOpen(false)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="pt-2 flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => setActiveTab('list')}
-                className="px-4 py-2 text-slate-600 rounded-xl text-xs font-semibold"
-              >
-                Hủy Bỏ
-              </button>
-              <button
-                type="submit"
-                disabled={enrolling}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition disabled:opacity-50"
-              >
-                {enrolling ? 'Đang thêm...' : 'Enrol Users (Ghi Danh)'}
-              </button>
+            <p className="text-xs text-slate-500">
+              Đánh dấu tích chọn các học sinh dưới đây và bấm nút <strong className="text-blue-700">"Enrol selected users"</strong> để nạp các em vào khóa học này:
+            </p>
+
+            <div className="border border-slate-200 rounded-2xl max-h-64 overflow-y-auto divide-y divide-slate-100 bg-slate-50/50">
+              {availableStudentsToEnrol.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-500 font-bold">
+                  Tất cả học sinh trong trường đã được thêm vào khóa học này!
+                </div>
+              ) : (
+                availableStudentsToEnrol.map((st) => {
+                  const isChecked = selectedUserIds.includes(st.id);
+                  return (
+                    <div
+                      key={st.id}
+                      onClick={() => toggleSelectUser(st.id)}
+                      className={`p-3 flex items-center justify-between cursor-pointer transition ${
+                        isChecked ? 'bg-blue-50 border-l-4 border-blue-600' : 'hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="font-extrabold text-slate-900 text-xs block">{st.full_name || st.username}</span>
+                          <span className="text-[11px] text-slate-500 font-mono">@{st.username} • {st.email}</span>
+                        </div>
+                      </div>
+
+                      {isChecked && <CheckCircle className="w-4 h-4 text-blue-600" />}
+                    </div>
+                  );
+                })
+              )}
             </div>
-          </form>
-        )}
-      </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-xs font-bold text-slate-600">
+                Đã chọn: <strong className="text-blue-700">{selectedUserIds.length}</strong> học sinh
+              </span>
+
+              <div className="space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEnrolPopupOpen(false)}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl"
+                >
+                  Hủy
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleEnrolSelectedUsers}
+                  disabled={enrolling || selectedUserIds.length === 0}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md transition"
+                >
+                  {enrolling ? 'Đang Ghi Danh...' : `🚀 Enrol selected users (${selectedUserIds.length})`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
