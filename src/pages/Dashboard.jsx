@@ -255,7 +255,7 @@ export default function Dashboard() {
       />
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* BANNER HEADER CHUYÊN NGHIỆP SANG TRỌNG VỚI ẢNH NỀN VÀ LỚP PHỦ MỜ 15% (ẢNH 3) */}
+        {/* BANNER HEADER CHUYÊN NGHIỆP SANG TRỌNG VỚI ẢNH NỀN VÀ LỚP PHỦ MỜ 15% */}
         <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900 text-white min-h-[200px] flex items-center">
           <div
             className="absolute inset-0 bg-cover bg-center opacity-25 scale-105 transition duration-700 hover:scale-100"
@@ -308,9 +308,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* BỐ CỤC 2 CỘT: SIDEBAR NAVIGATION NGUYÊN BẢN CHUẨN MOODLE (ẢNH 1) + MAIN CONTENT */}
+        {/* BỐ CỤC 2 CỘT: SIDEBAR NAVIGATION NGUYÊN BẢN CHUẨN MOODLE + MAIN CONTENT */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-          {/* CỘT TRÁI: NAVIGATION BLOCK CỐ ĐỊNH CHUẨN MOODLE 100% (ẢNH 1) */}
+          {/* CỘT TRÁI: NAVIGATION BLOCK CỐ ĐỊNH CHUẨN MOODLE 100% */}
           <div className="lg:col-span-1 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 font-sans text-xs">
             <h2 className="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2.5 flex items-center justify-between">
               <span>Navigation</span>
@@ -352,14 +352,16 @@ export default function Dashboard() {
 
                       {isSitePagesOpen && (
                         <div className="pl-4 space-y-1.5 mt-1 border-l-2 border-slate-100 ml-1.5">
-                          {/* 1. BẢNG TƯƠNG TÁC GIẢNG DẠY WHITEBOARD THÔNG MINH */}
-                          <Link
-                            to="/whiteboard"
-                            className="flex items-center space-x-2 text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-300/50 transition font-extrabold shadow-2xs"
-                          >
-                            <Palette className="w-4 h-4 text-amber-600" />
-                            <span>🎨 Bảng Tương Tác (Whiteboard)</span>
-                          </Link>
+                          {/* 1. BẢNG TƯƠNG TÁC GIẢNG DẠY WHITEBOARD THÔNG MINH (CHỈ HIỂN THỊ DÀNH CHO GIÁO VIÊN) */}
+                          {isTeacher && (
+                            <Link
+                              to="/whiteboard"
+                              className="flex items-center space-x-2 text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-300/50 transition font-extrabold shadow-2xs"
+                            >
+                              <Palette className="w-4 h-4 text-amber-600" />
+                              <span>🎨 Bảng Tương Tác (Whiteboard)</span>
+                            </Link>
+                          )}
 
                           {/* 2. TAB KHÓA HỌC (MY COURSES) */}
                           <Link
