@@ -11,6 +11,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const [courses, setCourses] = useState([]);
+  const [userEnrollments, setUserEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -61,6 +62,18 @@ export default function Dashboard() {
 
     if (!error) {
       setCourses(data || []);
+    }
+
+    if (user?.id) {
+      try {
+        const { data: eData } = await supabase
+          .from('course_enrollments')
+          .select('course_id')
+          .eq('user_id', user.id);
+        if (eData) {
+          setUserEnrollments(eData.map((e) => e.course_id));
+        }
+      } catch (err) {}
     }
     setLoading(false);
   };
@@ -406,13 +419,33 @@ export default function Dashboard() {
                   <span className="text-[11px] font-semibold text-slate-400">
                     {new Date(course.created_at).toLocaleDateString('vi-VN')}
                   </span>
-                  <Link
-                    to={`/course/${course.id}`}
-                    className="px-4 py-2 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-sm"
-                  >
-                    <span>Vào Học</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  {(() => {
+                    const isEnrolled = userEnrollments.includes(course.id);
+                    if (isOwnerOrAdmin || isEnrolled) {
+                      return (
+                        <Link
+                          to={`/course/${course.id}`}
+                          className="px-4 py-2 bg-slate-900 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-sm"
+                        >
+                          <span>Vào Học</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      );
+                    }
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInputJoinCode('');
+                          setIsJoinModalOpen(true);
+                        }}
+                        className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-sm"
+                      >
+                        <Key className="w-3.5 h-3.5 text-amber-200" />
+                        <span>🔒 Nhập Mã Gia Nhập</span>
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             );
