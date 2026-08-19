@@ -29,7 +29,8 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const displayName = profile?.full_name || profile?.username || user?.email?.split('@')[0] || 'User';
+  // Ưu tiên hiển thị Họ và Tên đầy đủ thay vì Username
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || profile?.username || user?.email?.split('@')[0] || 'User';
   const avatarImage = profile?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
   return (
@@ -93,7 +94,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO (ẢNH 2) */}
+          {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO */}
           <div className="flex items-center space-x-3" ref={dropdownRef}>
             {user ? (
               <div className="relative">
@@ -113,7 +114,7 @@ export default function Navbar() {
                   <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* DROPDOWN MENU CHUẨN MOODLE GNOMIO (ẢNH 2) */}
+                {/* DROPDOWN MENU CHUẨN MOODLE GNOMIO */}
                 {isUserDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 text-xs font-bold text-slate-700 animate-scale-up">
                     <div className="px-4 py-2 border-b border-slate-100 bg-slate-50">
