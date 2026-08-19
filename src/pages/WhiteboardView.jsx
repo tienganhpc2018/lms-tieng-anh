@@ -77,15 +77,98 @@ export default function WhiteboardView() {
   const [selectedStudent, setSelectedStudent] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
 
-  // HỘT XÚC XẮC KHEN THƯỞNG HỌC SINH (ẢNH 3)
-  const [diceCount, setDiceCount] = useState(1);
-  const [diceValues, setDiceValues] = useState([4]);
+  // YÊU CẦU 1: CẤU HÌNH ĐỒNG BỘ NÚT + / - HỘT XÚC XẮC (ẢNH 1)
+  const [diceCount, setDiceCount] = useState(1); // Mặc định ĐÚNG CHÍNH XÁC 1 HỘT
+  const [diceValues, setDiceValues] = useState([4]); // Mảng điểm có độ dài đúng bằng diceCount
   const [isRollingDice, setIsRollingDice] = useState(false);
 
-  // ĐỒNG HỒ ĐẾM NGƯỢC
+  // Cập nhật mảng diceValues mỗi khi Thầy bấm nút + hoặc -
+  const handleIncreaseDice = () => {
+    if (diceCount < 6) {
+      const newCount = diceCount + 1;
+      setDiceCount(newCount);
+      setDiceValues((prev) => [...prev, Math.floor(Math.random() * 6) + 1]);
+    }
+  };
+
+  const handleDecreaseDice = () => {
+    if (diceCount > 1) {
+      const newCount = diceCount - 1;
+      setDiceCount(newCount);
+      setDiceValues((prev) => prev.slice(0, newCount));
+    }
+  };
+
+  // YÊU CẦU 2: ĐỒNG HỒ ĐẾM NGƯỢC CÓ ÂM THANH TICK TOCK VÀ CHUÔNG REO
   const [timerSeconds, setTimerSeconds] = useState(300);
   const [timerRemaining, setTimerRemaining] = useState(300);
   const [timerRunning, setTimerRunning] = useState(false);
+
+  // HEPER PHÁT ÂM THANH SINH ĐỘNG
+  const playSoundEffect = (type) => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      if (type === 'tick') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+      } else if (type === 'tictoc') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.03);
+      } else if (type === 'win' || type === 'alarm') {
+        const now = ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+          gain.gain.setValueAtTime(0.2, now + idx * 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.1);
+          osc.stop(now + idx * 0.1 + 0.25);
+        });
+      }
+    } catch (e) {}
+  };
+
+  // LOGIC ĐỒNG HỒ ĐẾM NGƯỢC CÓ ÂM THANH TICK TOCK VÀ CHUÔNG REO
+  useEffect(() => {
+    let timerInterval = null;
+    if (timerRunning && timerRemaining > 0) {
+      timerInterval = setInterval(() => {
+        setTimerRemaining((prev) => {
+          if (prev <= 1) {
+            setTimerRunning(false);
+            playSoundEffect('alarm');
+            alert('⏰ ĐÃ HẾT GIỜ BÀI LÀM / THỜI GIAN THẢO LUẬN!');
+            return 0;
+          }
+          playSoundEffect('tictoc');
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      clearInterval(timerInterval);
+    }
+    return () => clearInterval(timerInterval);
+  }, [timerRunning, timerRemaining]);
 
   // Lưu & Mở Bài Dạy
   const [savedLessons, setSavedLessons] = useState([]);
@@ -100,27 +183,6 @@ export default function WhiteboardView() {
     '#ff66a1', '#ff944d', '#ffe680', '#80ffaa', '#6680ff', '#b366ff', '#808080', '#4d4d4d',
     '#ffb3d1', '#ffd9b3', '#ffffcc', '#d9ffb3', '#80d4ff', '#d9b3ff', '#cccccc', '#333333'
   ];
-
-  // LOGIC ĐỒNG HỒ ĐẾM NGƯỢC (TIMER)
-  useEffect(() => {
-    let timerInterval = null;
-    if (timerRunning && timerRemaining > 0) {
-      timerInterval = setInterval(() => {
-        setTimerRemaining((prev) => {
-          if (prev <= 1) {
-            setTimerRunning(false);
-            playSoundEffect('win');
-            alert('⏰ ĐÃ HẾT GIỜ BÀI LÀM / THỜI GIAN THẢO LUẬN!');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      clearInterval(timerInterval);
-    }
-    return () => clearInterval(timerInterval);
-  }, [timerRunning, timerRemaining]);
 
   // NẠP TỰ ĐỘNG BÀI DẠY TỪ KHÓA HỌC
   useEffect(() => {
@@ -198,37 +260,7 @@ export default function WhiteboardView() {
     return () => window.removeEventListener('paste', handlePaste);
   }, [panOffset, currentPageIndex]);
 
-  // SOUND EFFECTS
-  const playSoundEffect = (type) => {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      if (type === 'tick') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(440, ctx.currentTime);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.05);
-      } else if (type === 'win') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.4);
-      }
-    } catch (e) {}
-  };
-
-  // LẮC HỘT XÚC XẮC KHEN THƯỞNG HỌC SINH
+  // YÊU CẦU 1: LẮC HỘT XÚC XẮC CÓ ÂM THANH
   const rollDice = () => {
     setIsRollingDice(true);
     let count = 0;
@@ -245,7 +277,7 @@ export default function WhiteboardView() {
     }, 80);
   };
 
-  // VÒNG QUAY HỌC SINH
+  // YÊU CẦU 2: VÒNG QUAY HỌC SINH CÓ ÂM THANH VÒNG QUAY VÀ NHẠC CHIẾN THẮNG
   const spinRandomStudent = () => {
     const allList = rawStudentInput.split('\n').map((s) => s.trim()).filter((s) => s.length > 0);
     const availableList = removeCalled
@@ -775,10 +807,9 @@ export default function WhiteboardView() {
       {/* KHU VỰC VẼ CANVAS VÀ LỚP VẬT THỂ */}
       <div
         onClick={() => {
-          if (tool === 'pointer') {
-            setSelectedTextId(null);
-            setSelectedObjId(null);
-          }
+          // Khi thả chuột ra ngoài vùng bảng trống -> TỰ ĐỘNG ẨN CÁC NÚT LỆNH BỎ CHỌN VẬT THỂ (ẢNH 2)
+          setSelectedTextId(null);
+          setSelectedObjId(null);
         }}
         style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px)` }}
         className="relative w-full h-full"
@@ -813,7 +844,7 @@ export default function WhiteboardView() {
           />
         )}
 
-        {/* LỚP 2: ẢNH CHỤP SNIPPING TOOL VỚI Z-INDEX 30 NỔI PHÍA TRÊN CANVAS DỄ DÀNG NHẤP CHỌN VÀ KÉO RÊ DI CHUYỂN (ẢNH 1) */}
+        {/* LỚP 2: ẢNH CHỤP SNIPPING TOOL VỚI Z-INDEX 30 - NHẤP CHỌN CỰC KỲ DỄ DÀNG VÀ TỰ ĐỘNG ẨN 4 NÚT LỆNH KHI THẢ CHUỘT (ẢNH 2) */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
           const imgWidth = obj.width || 700;
@@ -832,53 +863,55 @@ export default function WhiteboardView() {
               onMouseDown={(e) => handleStartDragElement(obj.id, true, e)}
               className={`absolute transition duration-75 cursor-grab active:cursor-grabbing ${
                 isSelected
-                  ? 'ring-4 ring-emerald-500 rounded-2xl p-1 bg-white/30 shadow-2xl'
-                  : 'p-1 border border-transparent hover:border-emerald-400'
+                  ? 'ring-4 ring-emerald-500 rounded-2xl p-1 bg-white/20 shadow-2xl'
+                  : 'p-1 border border-transparent hover:border-emerald-400/60'
               }`}
             >
-              {/* THANH THUỘC TÍNH ĐÍNH CỐ ĐỊNH NGAY GÓC TRÊN CỦA ẢNH CHỤP (ẢNH 1) */}
-              <div className="absolute -top-12 left-0 bg-white border-2 border-emerald-500 rounded-2xl p-1.5 shadow-2xl flex items-center space-x-2 z-50 text-xs font-extrabold animate-fade-in">
-                <div
-                  className="px-2.5 py-1 bg-amber-500 text-slate-950 rounded-xl flex items-center space-x-1 cursor-grab"
-                  title="Nhấp giữ để rê di chuyển ảnh"
-                >
-                  <Hand className="w-3.5 h-3.5" />
-                  <span>🤚 Rê Di Chuyển</span>
+              {/* CHI THIỂN THỊ THANH LỆNH KHI ĐƯỢC CHỌN - TỰ ĐỘNG ẨN MẤT KHI THẢ CHUỘT RA NGOÀI (ẢNH 2) */}
+              {isSelected && (
+                <div className="absolute -top-14 left-0 bg-white border-2 border-emerald-600 rounded-2xl p-1.5 shadow-2xl flex items-center space-x-2 z-50 text-xs font-extrabold animate-fade-in">
+                  <div
+                    className="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-xl flex items-center space-x-1 cursor-grab shadow-xs"
+                    title="Nhấp giữ để rê di chuyển ảnh"
+                  >
+                    <Hand className="w-4 h-4" />
+                    <span>🤚 Rê Di Chuyển</span>
+                  </div>
+
+                  <button
+                    onClick={(e) => handleBringForward(obj.id, e)}
+                    className="px-2.5 py-1 bg-purple-100 text-purple-800 hover:bg-purple-200 rounded-xl flex items-center space-x-0.5"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                    <span>Lên Trên Nét Vẽ</span>
+                  </button>
+
+                  <button
+                    onClick={(e) => handleSendBackward(obj.id, e)}
+                    className="px-2.5 py-1 bg-slate-100 text-slate-800 hover:bg-slate-200 rounded-xl flex items-center space-x-0.5"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                    <span>Xuống Dưới</span>
+                  </button>
+
+                  <button
+                    onClick={(e) => handleResizeImage(obj.id, 200, 150, e)}
+                    className="px-3 py-1 bg-sky-600 text-white hover:bg-sky-500 rounded-xl font-extrabold shadow-xs"
+                  >
+                    ➕ Phóng To Cực Đại
+                  </button>
+
+                  <button
+                    onClick={(e) => handleDeleteImageObj(obj.id, e)}
+                    className="p-1 hover:bg-rose-100 rounded-xl text-rose-600"
+                    title="Xóa ảnh"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
+              )}
 
-                <button
-                  onClick={(e) => handleBringForward(obj.id, e)}
-                  className="px-2.5 py-1 bg-purple-100 text-purple-800 hover:bg-purple-200 rounded-xl flex items-center space-x-0.5"
-                >
-                  <ArrowUp className="w-3.5 h-3.5" />
-                  <span>Lên Trên Nét Vẽ</span>
-                </button>
-
-                <button
-                  onClick={(e) => handleSendBackward(obj.id, e)}
-                  className="px-2.5 py-1 bg-slate-100 text-slate-800 hover:bg-slate-200 rounded-xl flex items-center space-x-0.5"
-                >
-                  <ArrowDown className="w-3.5 h-3.5" />
-                  <span>Xuống Dưới</span>
-                </button>
-
-                <button
-                  onClick={(e) => handleResizeImage(obj.id, 200, 150, e)}
-                  className="px-3 py-1 bg-sky-600 text-white hover:bg-sky-500 rounded-xl font-extrabold shadow-xs"
-                >
-                  ➕ Phóng To Cực Đại
-                </button>
-
-                <button
-                  onClick={(e) => handleDeleteImageObj(obj.id, e)}
-                  className="p-1 hover:bg-rose-100 rounded-xl text-rose-600"
-                  title="Xóa ảnh"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* NÚT KÉO CO GIÃN 4 GÓC ẢNH */}
+              {/* NÚT KÉO CO GIÃN 4 GÓC ẢNH CHỈ HIỆN KHI ĐƯỢC CHỌN */}
               {isSelected && (
                 <div
                   onMouseDown={(e) => handleResizeImage(obj.id, 120, 90, e)}
@@ -912,7 +945,7 @@ export default function WhiteboardView() {
               onMouseDown={(e) => handleStartDragElement(box.id, false, e)}
               className="absolute z-40 group cursor-move p-1 rounded-xl transition"
             >
-              {/* THANH THUỘC TÍNH RÊ, SỬA, XÓA */}
+              {/* THANH THUỘC TÍNH CHỈ HIỆN KHI ĐƯỢC CHỌN - TỰ ĐỘNG ẨN KHI THẢ CHUỘT */}
               {isSelected && (
                 <div className="absolute -top-11 left-0 bg-white border border-slate-300 rounded-xl p-1 shadow-2xl flex items-center space-x-1.5 z-50 text-xs font-bold animate-fade-in">
                   <div
@@ -1031,7 +1064,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* FIX TRIỆT ĐỂ: POPUP HỘP CÔNG CỤ DẠY HỌC ĐA NĂNG MAGIC BOX CỐ ĐỊNH VÀO CHÍNH GIỮA MÀN HÌNH NỔI TRÊN TẤT CẢ (Z-INDEX 100) */}
+      {/* POPUP HỘP CÔNG CỤ DẠY HỌC ĐA NĂNG MAGIC BOX NỔI CHÍNH GIỮA MÀN HÌNH (Z-INDEX 100) */}
       {activeWindow === 'tools' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-[#e4dec3] border-4 border-[#b8af91] rounded-3xl shadow-2xl p-6 w-[450px] space-y-5 animate-scale-up">
           <div className="flex justify-between items-center border-b border-[#c4bb9c] pb-3 font-extrabold text-base text-slate-900">
@@ -1058,7 +1091,7 @@ export default function WhiteboardView() {
               className="p-4 bg-white hover:bg-rose-50 rounded-2xl border-2 border-rose-300 shadow-md flex flex-col items-center space-y-2 transition transform hover:scale-105"
             >
               <Dices className="w-8 h-8 text-rose-600" />
-              <span className="text-xs font-extrabold text-slate-900">Hột Xúc Xắc (Ảnh 3)</span>
+              <span className="text-xs font-extrabold text-slate-900">Hột Xúc Xắc (Ảnh 1)</span>
             </button>
 
             <button
@@ -1072,7 +1105,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP ĐỒNG HỒ BẤM GIỜ ĐẾM NGƯỢC */}
+      {/* POPUP ĐỒNG HỒ BẤM GIỜ ĐẾM NGƯỢC CÓ ÂM THANH TICK TOCK VÀ CHUÔNG REO */}
       {activeWindow === 'timer' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-amber-500/50 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-800 pb-2">
@@ -1130,9 +1163,9 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP HỘT XÚC XẮC KHEN THƯỞNG HỌC SINH */}
+      {/* YÊU CẦU 1: POPUP HỘT XÚC XẮC ĐỒNG BỘ 100% SỐ LƯỢNG HỘT VỚI NÚT + / - (ẢNH 1) */}
       {activeWindow === 'dice' && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-[#e5e5e5] text-slate-900 rounded-3xl shadow-2xl p-6 w-[420px] space-y-4 border-4 border-slate-400 animate-scale-up font-sans">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-[#e5e5e5] text-slate-900 rounded-3xl shadow-2xl p-6 w-[440px] space-y-4 border-4 border-slate-400 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-300 pb-2">
             <h3 className="font-extrabold text-base flex items-center space-x-2 text-slate-900">
               <Dices className="w-6 h-6 text-rose-600" />
@@ -1141,25 +1174,29 @@ export default function WhiteboardView() {
             <button onClick={() => setActiveWindow(null)} className="text-slate-500 hover:text-slate-900"><X className="w-5 h-5" /></button>
           </div>
 
+          {/* NÚT TĂNG GIẢM HỘT XÚC XẮC ĐỒNG BỘ 100% SỐ HỘT HIỂN THỊ (ẢNH 1) */}
           <div className="flex items-center justify-between bg-slate-200/80 p-2.5 rounded-2xl border border-slate-300">
             <span className="text-xs font-extrabold text-slate-800">Số Lượng Hột Xúc Xắc:</span>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <button
-                onClick={() => setDiceCount(Math.max(1, diceCount - 1))}
-                className="w-8 h-8 bg-slate-400 hover:bg-slate-500 text-white rounded-full font-extrabold text-base flex items-center justify-center shadow-xs"
+                onClick={handleDecreaseDice}
+                disabled={diceCount <= 1}
+                className="w-8 h-8 bg-slate-500 hover:bg-slate-600 disabled:opacity-40 text-white rounded-full font-extrabold text-base flex items-center justify-center shadow-xs"
               >
                 -
               </button>
-              <span className="w-8 text-center font-mono font-extrabold text-base text-slate-900">{diceCount}</span>
+              <span className="w-6 text-center font-mono font-extrabold text-base text-slate-900">{diceCount}</span>
               <button
-                onClick={() => setDiceCount(Math.min(6, diceCount + 1))}
-                className="w-8 h-8 bg-rose-600 hover:bg-rose-500 text-white rounded-full font-extrabold text-base flex items-center justify-center shadow-xs"
+                onClick={handleIncreaseDice}
+                disabled={diceCount >= 6}
+                className="w-8 h-8 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white rounded-full font-extrabold text-base flex items-center justify-center shadow-xs"
               >
                 +
               </button>
             </div>
           </div>
 
+          {/* HIỂN THỊ SỐ LƯỢNG HỘT XÚC XẮC CHUẨN XÁC ĐÚNG BẰNG DICECOUNT (ẢNH 1) */}
           <div className="p-6 bg-slate-100 rounded-3xl border-2 border-slate-300 flex flex-wrap items-center justify-center gap-4 min-h-[140px] shadow-inner">
             {diceValues.map((val, i) => (
               <div
@@ -1168,6 +1205,7 @@ export default function WhiteboardView() {
                   isRollingDice ? 'animate-spin scale-110 border-rose-600' : 'hover:scale-105'
                 }`}
               >
+                {/* VẼ CÁC NÚT ĐIỂM XÚC XẮC (1 - 6 NÚT) */}
                 <div className="grid grid-cols-3 gap-1.5 p-2 w-full h-full items-center justify-items-center">
                   {val === 1 && <div className="col-start-2 row-start-2 w-4 h-4 bg-rose-600 rounded-full shadow-xs" />}
                   {val === 2 && (
@@ -1226,7 +1264,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP VÒNG QUAY GỌI TÊN HỌC SINH */}
+      {/* POPUP VÒNG QUAY GỌI TÊN HỌC SINH CÓ ÂM THANH */}
       {activeWindow === 'picker' && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[100] bg-slate-950 text-white rounded-3xl shadow-2xl p-6 w-[560px] space-y-4 border-2 border-purple-500/50 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -1407,7 +1445,7 @@ export default function WhiteboardView() {
 
       {/* THANH TOOLBAR DỌC NẰM PHÍA TRONG CÙNG BÊN TRÁI (FIXED TOP-16 LEFT-3 - GIAO DIỆN NHỎ GỌN TINH TẾ) */}
       <div className="fixed top-16 left-3 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-1.5">
-        {/* NÚT CON TRỎ MŨI TÊN (SELECT TOOL - ẢNH 3: DỪNG TẤT CẢ HOẠT ĐỘNG VẼ/GÕ) */}
+        {/* NÚT CON TRỎ MŨI TÊN (SELECT TOOL - DỪNG TẤT CẢ HOẠT ĐỘNG VẼ/GÕ) */}
         <button
           onClick={() => {
             setTool('pointer');
