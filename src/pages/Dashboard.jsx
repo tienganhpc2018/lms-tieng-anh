@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase, uploadLMSFile } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import CenterToastModal from '../components/common/CenterToastModal';
-import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check } from 'lucide-react';
+import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function Dashboard() {
@@ -14,6 +14,9 @@ export default function Dashboard() {
   const [userEnrollments, setUserEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // State Trạng thái Ẩn/Hiện Mã của Giáo viên
+  const [visibleCodeIds, setVisibleCodeIds] = useState([]);
 
   // Toast Center Modal State
   const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
@@ -49,7 +52,6 @@ export default function Dashboard() {
 
   const [copiedCode, setCopiedCode] = useState('');
 
-  // Sinh Mã Gia Nhập 6 Ký Tự Ngẫu Nhiên Kết Hợp Cả Chữ Cái In Hoa & Chữ Số Bảo Mật Tuyệt Đối (VD: K6L841)
   const generateRandomCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
@@ -67,7 +69,6 @@ export default function Dashboard() {
       .order('created_at', { ascending: false });
 
     if (!error) {
-      // Đảm bảo mỗi khóa học có 1 mã bảo mật phức tạp ngẫu nhiên nếu chưa có
       const updatedCourses = (data || []).map((c, idx) => {
         if (!c.join_code) {
           const sampleCodes = ['K6L841', '7B9X2M', 'E9G82K', '3M5P9R', '8H4L2W'];
@@ -96,25 +97,13 @@ export default function Dashboard() {
     fetchCourses();
   }, [user]);
 
-  const handleImageUpload = async (e, isEdit = false) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadLMSFile(file, 'course-covers');
-      if (isEdit) {
-        setEditCoverImage(url);
-      } else {
-        setCoverImage(url);
-      }
-    } catch (err) {
-      showToast('error', 'Lỗi Upload Ảnh', err.message);
-    } finally {
-      setUploading(false);
-    }
+  const toggleShowCode = (courseId, e) => {
+    e.stopPropagation();
+    setVisibleCodeIds((prev) =>
+      prev.includes(courseId) ? prev.filter((id) => id !== courseId) : [...prev, courseId]
+    );
   };
 
-  // Tạo Khóa Học Mới Chuẩn Moodle Gnomio với Mã Bảo Mật Chữ & Số
   const handleCreateCourse = async (e) => {
     e.preventDefault();
     if (!courseFullName.trim()) return;
@@ -177,7 +166,6 @@ export default function Dashboard() {
     }
   };
 
-  // BẮT BUỘC HỌC SINH PHẢI NHẬP CHÍNH XÁC MÃ BẢO MẬT CHỮ & SỐ (VD: K6L841) DO GIÁO VIÊN CUNG CẤP
   const handleJoinCourseByCode = async (e) => {
     e.preventDefault();
     if (!inputJoinCode.trim()) return;
@@ -194,7 +182,7 @@ export default function Dashboard() {
     });
 
     if (!targetCourse) {
-      showToast('error', 'Mã Khóa Học Không Đúng', `Không tìm thấy khóa học với mã bảo mật "${inputJoinCode}". Vui lòng kiểm tra lại chính xác mã 6 ký tự (chữ & số) do Giáo viên cung cấp!`);
+      showToast('error', 'Mã Khóa Học Không Đúng', `Không tìm thấy khóa học với mã bảo mật "${inputJoinCode}". Vui lòng kiểm tra lại chính xác mã 6 ký tự do Giáo viên cung cấp!`);
       setJoining(false);
       return;
     }
@@ -230,35 +218,6 @@ export default function Dashboard() {
     setEditVisibility(course.description?.includes('[VISIBILITY: Hide]') ? 'Hide' : 'Show');
   };
 
-  const handleUpdateCourse = async (e) => {
-    e.preventDefault();
-    if (!editingCourse || !editTitle.trim()) return;
-    setUpdating(true);
-
-    const fullDesc = `[VISIBILITY: ${editVisibility}] ${editDescription.trim()}`;
-
-    try {
-      const { error } = await supabase
-        .from('courses')
-        .update({
-          title: editTitle.trim(),
-          description: fullDesc,
-          cover_image: editCoverImage,
-        })
-        .eq('id', editingCourse.id);
-
-      if (error) throw error;
-
-      showToast('success', 'Cập Nhật Thành Công', 'Đã cập nhật thông tin khóa học!');
-      setEditingCourse(null);
-      await fetchCourses();
-    } catch (err) {
-      showToast('error', 'Lỗi Cập Nhật', err.message);
-    } finally {
-      setUpdating(false);
-    }
-  };
-
   const handleDeleteCourse = async (courseId, courseTitle, e) => {
     e.stopPropagation();
     if (!window.confirm(`Bạn có chắc chắn muốn XÓA khóa học "${courseTitle}"? Tất cả bài giảng và dữ liệu liên quan sẽ bị xóa vĩnh viễn!`)) {
@@ -278,6 +237,7 @@ export default function Dashboard() {
     e.stopPropagation();
     navigator.clipboard.writeText(text);
     setCopiedCode(text);
+    showToast('success', 'Đã Sao Chép', 'Đã sao chép Mã Gia Nhập vào bộ nhớ tạm!');
     setTimeout(() => setCopiedCode(''), 2000);
   };
 
@@ -379,6 +339,7 @@ export default function Dashboard() {
               const isOwnerOrAdmin = isTeacher && (course.teacher_id === user?.id || profile?.role === 'teacher');
               const isEnrolled = userEnrollments.includes(course.id);
               const courseCode = course.join_code || 'K6L841';
+              const isCodeVisible = visibleCodeIds.includes(course.id);
 
               return (
                 <div
@@ -427,7 +388,6 @@ export default function Dashboard() {
                         {course.title}
                       </h3>
 
-                      {/* CHỈ HỌC SINH CHƯA GIẢI MÃ: HIỂN THỊ MÔ TẢ GIỚI HẠN NHƯ ẢNH 2 */}
                       {!isOwnerOrAdmin && !isEnrolled ? (
                         <p className="text-xs text-slate-600 leading-relaxed font-medium">
                           Khóa học này đang giới hạn danh sách học viên. Vui lòng nhập mã do Ban tổ chức cung cấp để mở khóa bài giảng & bài tập.
@@ -438,33 +398,36 @@ export default function Dashboard() {
                         </p>
                       )}
 
-                      {/* CHỈ GIÁO VIÊN (ADMIN) MỚI NHÌN THẤY MÃ GỬI HỌC SINH! HỌC SINH BỊ ẨN HOÀN TOÀN (ẢNH 1 & ẢNH 2) */}
+                      {/* BẢO MẬT MÃ KHI CHIẾU MÁY CHIẾU TRÊN LỚP (ẢNH 2 KHẮC PHỤC): MÃ ĐƯỢC GIẤU DẠNG •••••• KHI CHƯA BẤM MẮT 👁️ */}
                       {isOwnerOrAdmin && (
-                        <div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl flex items-center justify-between text-xs mt-2">
-                          <div className="flex items-center space-x-1.5 font-extrabold text-amber-900">
-                            <Key className="w-4 h-4 text-amber-600" />
-                            <span>MÃ GỬI HỌC SINH:</span>
-                            <span className="px-2 py-0.5 bg-amber-200 text-amber-950 font-mono rounded text-sm tracking-wider font-extrabold">
-                              {courseCode}
+                        <div className="p-2.5 bg-slate-900 text-white rounded-2xl flex items-center justify-between text-xs mt-2 border border-slate-800">
+                          <div className="flex items-center space-x-1.5 font-bold">
+                            <Key className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-[11px] text-slate-300">Mã Lớp:</span>
+                            <span className="px-2 py-0.5 bg-slate-800 text-amber-300 font-mono rounded text-xs tracking-widest font-extrabold">
+                              {isCodeVisible ? courseCode : '••••••'}
                             </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={(e) => copyToClipboard(courseCode, e)}
-                            className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] flex items-center space-x-1 shadow-2xs"
-                          >
-                            {copiedCode === courseCode ? (
-                              <>
-                                <Check className="w-3 h-3" />
-                                <span>Đã chép</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="w-3 h-3" />
-                                <span>Sao chép mã</span>
-                              </>
-                            )}
-                          </button>
+
+                          <div className="flex items-center space-x-1">
+                            <button
+                              type="button"
+                              onClick={(e) => toggleShowCode(course.id, e)}
+                              className="p-1 text-slate-400 hover:text-amber-400 transition rounded-lg"
+                              title={isCodeVisible ? 'Ẩn mã khỏi màn hình' : 'Hiện mã trên màn hình'}
+                            >
+                              {isCodeVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => copyToClipboard(courseCode, e)}
+                              className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-lg text-[10px] flex items-center space-x-1 shadow-2xs"
+                            >
+                              {copiedCode === courseCode ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                              <span>{copiedCode === courseCode ? 'Đã sao chép' : 'Sao chép'}</span>
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -476,7 +439,6 @@ export default function Dashboard() {
                       {new Date(course.created_at).toLocaleDateString('vi-VN')}
                     </span>
 
-                    {/* NÚT TÍM/CAM NHẬP MÃ MỞ KHÓA CHUẨN ẢNH 2 NẾU HỌC SINH CHƯA GIA NHẬP */}
                     {isOwnerOrAdmin || isEnrolled ? (
                       <Link
                         to={`/course/${course.id}`}
