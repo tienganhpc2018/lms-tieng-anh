@@ -65,6 +65,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
   const [showAllParts, setShowAllParts] = useState(true);
   const [directJsonText, setDirectJsonText] = useState('');
   const [isJsonDirectMode, setIsJsonDirectMode] = useState(false);
+  const [partJsonModalIndex, setPartJsonModalIndex] = useState(null);
+  const [partJsonInputText, setPartJsonInputText] = useState('');
 
   // State riêng cho Listening, Reading, Writing
   const [sectionPassage, setSectionPassage] = useState('');
@@ -723,14 +725,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
               </button>
 
               <button
-                onClick={() => exportMultiCodeWord(questions, questionTitle || 'BÀI KÍỂM TRA TIẾNG ANH')}
+                onClick={() => exportMultiCodeWord(questions, questionTitle || 'BÀI KIỂM TRA TIẾNG ANH')}
                 className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
               >
                 <span>🖨️ Xuất 4 Mã Đề (101-104)</span>
               </button>
 
               <button
-                onClick={() => exportQuizToWord(questions, questionTitle || 'BÀI KÍỂM TRA TIẾNG ANH')}
+                onClick={() => exportQuizToWord(questions, questionTitle || 'BÀI KIỂM TRA TIẾNG ANH')}
                 className="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1"
               >
                 <span>🖨️ In Đề 1 Mã (Word)</span>
@@ -1018,6 +1020,17 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           <div className="flex items-center space-x-2">
                             <button
                               type="button"
+                              onClick={() => {
+                                setPartJsonModalIndex(pIdx);
+                                setPartJsonInputText('');
+                              }}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1 shadow-xs"
+                            >
+                              <FileCode className="w-3.5 h-3.5" />
+                              <span>📥 Nhập / Dán JSON</span>
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => handleDownloadSampleFile(isWriting ? 'json_writing_part' : isCloze ? 'json_cloze_part' : 'json')}
                               className="px-2.5 py-1 bg-blue-50 text-blue-900 rounded-lg text-[11px] font-bold hover:bg-blue-100"
                             >
@@ -1233,6 +1246,67 @@ export default function QuizBuilder({ activityId, onSaved }) {
           </div>
         </div>
       )}
-    </div>
+    
+      {/* MODAL DÁN MÃ JSON CHO PART */}
+      {partJsonModalIndex !== null && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full space-y-4 border border-slate-200 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center space-x-2">
+                <FileCode className="w-5 h-5 text-emerald-600" />
+                <span>NHẬP / DÁN MÃ JSON CHO PART #{partJsonModalIndex + 1}</span>
+              </h3>
+              <button
+                onClick={() => setPartJsonModalIndex(null)}
+                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 font-medium">
+              Thầy dán đoạn mã JSON chứa danh sách câu hỏi hoặc bài đọc/bài nghe của Part tại đây, hệ thống sẽ tự động điền trọn bộ vào Part #{partJsonModalIndex + 1}:
+            </p>
+
+            <textarea
+              rows={10}
+              value={partJsonInputText}
+              onChange={(e) => setPartJsonInputText(e.target.value)}
+              placeholder='Paste JSON code here...
+Ví dụ:
+[
+  {
+    "question": "1. Choose the correct option...",
+    "options": [
+      {"text": "Option A", "isCorrect": true},
+      {"text": "Option B", "isCorrect": false}
+    ],
+    "explanation": "Dẫn chứng..."
+  }
+]'
+              className="w-full p-3 font-mono text-xs border border-slate-300 rounded-2xl bg-slate-50 text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+            />
+
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPartJsonModalIndex(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={() => handleApplyPartJson(partJsonModalIndex)}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs shadow-md flex items-center space-x-1.5"
+              >
+                <span>⚡ ÁP DỤNG MÃ JSON NÀY</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+</div>
   );
 }
