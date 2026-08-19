@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, MessageSquare, Sparkles, Award, Bot, HelpCircle, Users, Bell, PhoneCall } from 'lucide-react';
+import { ArrowLeft, MessageSquare } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import ClassFeed from '../features/community/ClassFeed';
 import DirectChatModal from '../features/community/DirectChatModal';
 import QaForum from '../features/community/QaForum';
@@ -10,6 +11,7 @@ import CertificateGenerator from '../features/ai-advanced/CertificateGenerator';
 import AdvancedToolsPanel from '../features/ai-advanced/AdvancedToolsPanel';
 
 export default function CommunityModuleView() {
+  const { isTeacher } = useAuth();
   const navigate = useNavigate();
   const params = useParams();
   const courseId = params.courseId || 'default_course';
@@ -17,6 +19,29 @@ export default function CommunityModuleView() {
   const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'qa' | 'ai' | 'cert' | 'advanced'
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false); // CHỨC NĂNG 2: DARK MODE CHẾ ĐỘ BAN ĐÊM
+
+  // PHÂN QUYỀN BẢO MẬT 100%: NẾU LÀ HỌC SINH -> KHÓA KHÔNG CHO VÀO TRANG NÀY ĐỂ TỰ IN CHỨNG NHẬN HAY XEM ĐỀ THI
+  if (!isTeacher) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-6 font-sans select-none">
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl max-w-md text-center space-y-4">
+          <div className="w-16 h-16 mx-auto bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-extrabold text-2xl">
+            🔒
+          </div>
+          <h2 className="text-lg font-extrabold text-slate-900">TRANG DÀNH RIÊNG CHO GIÁO VIÊN</h2>
+          <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+            Học sinh không có quyền truy cập trang quản trị này. Các em vui lòng xem thông báo dặn dò bài tập của Thầy trực tiếp tại Trang Chủ Dashboard!
+          </p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition"
+          >
+            🏠 Quay Về Trang Chủ Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen transition-colors duration-300 p-4 sm:p-6 lg:p-8 font-sans select-none ${
