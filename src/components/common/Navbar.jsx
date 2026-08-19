@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { BookOpen, BarChart2, LogOut, ShieldCheck, GraduationCap, Users, User } from 'lucide-react';
+import { BookOpen, BarChart2, LogOut, ShieldCheck, GraduationCap, Users, User, ChevronDown, Calendar, Folder, FileText, Settings, Award } from 'lucide-react';
 import UserManagementModal from '../lms/UserManagementModal';
 
 export default function Navbar() {
@@ -9,11 +9,28 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const handleSignOut = async () => {
+    setIsUserDropdownOpen(false);
     await signOut();
     navigate('/auth');
   };
+
+  // Đóng dropdown khi nhấp ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const displayName = profile?.full_name || profile?.username || user?.email?.split('@')[0] || 'User';
+  const avatarImage = profile?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
   return (
     <nav className="bg-navy-900 text-white sticky top-0 z-40 shadow-md border-b border-slate-800 font-sans select-none">
@@ -76,43 +93,102 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* User Info / Profile Button: BẤM VÀO TÊN HOẶC AVATAR MỞ TRANG PROFILE CÁ NHÂN CHUẨN MOODLE GNOMIO */}
-          <div className="flex items-center space-x-3">
+          {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO (ẢNH 2) */}
+          <div className="flex items-center space-x-3" ref={dropdownRef}>
             {user ? (
-              <div className="flex items-center space-x-3">
-                <Link
-                  to="/profile"
-                  className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-750 px-3 py-1.5 rounded-xl border border-slate-700 transition cursor-pointer group"
-                  title="Bấm để xem & chỉnh sửa Hồ sơ cá nhân (User Profile)"
-                >
-                  {profile?.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt="Avatar"
-                      className="w-7 h-7 rounded-full object-cover border border-emerald-400"
-                    />
-                  ) : isTeacher ? (
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  ) : (
-                    <GraduationCap className="w-4 h-4 text-sky-400" />
-                  )}
-                  <div className="text-left">
-                    <span className="text-xs font-bold text-slate-100 block leading-tight group-hover:text-emerald-400 transition">
-                      {profile?.full_name || user.email}
-                    </span>
-                    <span className="text-[10px] text-slate-400 block font-medium uppercase">
-                      {isTeacher ? 'Giáo Viên' : 'Học Sinh'}
-                    </span>
-                  </div>
-                </Link>
-
+              <div className="relative">
                 <button
-                  onClick={handleSignOut}
-                  className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition"
-                  title="Đăng xuất"
+                  type="button"
+                  onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                  className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-750 px-3 py-1.5 rounded-2xl border border-slate-700 transition cursor-pointer group shadow-sm"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <img
+                    src={avatarImage}
+                    alt={displayName}
+                    className="w-7 h-7 rounded-full object-cover border border-emerald-400 shadow-2xs"
+                  />
+                  <span className="text-xs font-extrabold text-slate-100 group-hover:text-emerald-400 transition">
+                    {displayName}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
+
+                {/* DROPDOWN MENU CHUẨN MOODLE GNOMIO (ẢNH 2) */}
+                {isUserDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 text-xs font-bold text-slate-700 animate-scale-up">
+                    <div className="px-4 py-2 border-b border-slate-100 bg-slate-50">
+                      <span className="text-slate-900 font-extrabold block truncate">{displayName}</span>
+                      <span className="text-[10px] text-slate-400 font-medium uppercase block">
+                        {isTeacher ? 'Giáo Viên' : 'Học Sinh'}
+                      </span>
+                    </div>
+
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800 flex items-center space-x-2 transition"
+                    >
+                      <User className="w-4 h-4 text-emerald-600" />
+                      <span>Profile (Hồ sơ cá nhân)</span>
+                    </Link>
+
+                    <Link
+                      to="/analytics"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800 flex items-center space-x-2 transition"
+                    >
+                      <Award className="w-4 h-4 text-purple-600" />
+                      <span>Grades (Bảng điểm)</span>
+                    </Link>
+
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800 flex items-center space-x-2 transition"
+                    >
+                      <Calendar className="w-4 h-4 text-sky-600" />
+                      <span>Calendar (Lịch học)</span>
+                    </Link>
+
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800 flex items-center space-x-2 transition"
+                    >
+                      <Folder className="w-4 h-4 text-amber-600" />
+                      <span>Private files (Tài liệu cá nhân)</span>
+                    </Link>
+
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800 flex items-center space-x-2 transition"
+                    >
+                      <FileText className="w-4 h-4 text-teal-600" />
+                      <span>Reports (Báo cáo)</span>
+                    </Link>
+
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800 flex items-center space-x-2 transition"
+                    >
+                      <Settings className="w-4 h-4 text-slate-500" />
+                      <span>Preferences (Cài đặt)</span>
+                    </Link>
+
+                    <div className="border-t border-slate-100 my-1 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="w-full text-left px-4 py-2 hover:bg-rose-50 text-rose-600 flex items-center space-x-2 transition font-bold"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Log out (Đăng xuất)</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Link
