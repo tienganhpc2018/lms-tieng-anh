@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, BookOpen, Users, Award, FileText, Activity, CheckSquare, Home, Globe, Folder, PlayCircle, HelpCircle, Layers, Video, Database, Headphones, Type, Edit3, Globe as GlobeIcon, Settings, UserPlus, Upload, ShieldCheck } from 'lucide-react';
+import { ChevronDown, ChevronRight, BookOpen, Users, Award, FileText, Activity, CheckSquare, Home, Globe, Folder, PlayCircle, HelpCircle, Layers, Video, Settings, UserPlus, Upload, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import UserManagementModal from './UserManagementModal';
 
@@ -18,7 +18,6 @@ export default function CourseSidebar({
   const [navExpanded, setNavExpanded] = useState({
     dashboard: true,
     myCourses: true,
-    questionBank: true,
     siteAdmin: true,
     units: {},
   });
@@ -159,67 +158,9 @@ export default function CourseSidebar({
               </div>
             )}
           </div>
-
-          {/* 3. QUESTION BANK (NGÂN HÀNG CÂU HỎI & ĐỀ THI DƯỚI NAVIGATION SIDEBAR) */}
-          <div className="pt-2 border-t border-slate-100">
-            <button
-              onClick={() => toggleNav('questionBank')}
-              className="w-full flex items-center justify-between p-2 hover:bg-sky-50 rounded-xl transition text-sky-900 font-extrabold bg-sky-50/50"
-            >
-              <div className="flex items-center space-x-2">
-                <Database className="w-4 h-4 text-sky-600" />
-                <span>Question Bank (Ngân Hàng Đề)</span>
-              </div>
-              {navExpanded.questionBank ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            </button>
-
-            {navExpanded.questionBank && (
-              <div className="pl-4 space-y-1.5 pt-2 text-[11px] font-bold">
-                <div
-                  onClick={() => navigate('/question-bank')}
-                  className="flex items-center space-x-2 p-1.5 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg cursor-pointer text-slate-800"
-                >
-                  <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>📖 1. READING SECTION (Bài Đọc)</span>
-                </div>
-
-                <div
-                  onClick={() => navigate('/question-bank')}
-                  className="flex items-center space-x-2 p-1.5 hover:bg-purple-50 hover:text-purple-800 rounded-lg cursor-pointer text-slate-800"
-                >
-                  <Headphones className="w-3.5 h-3.5 text-purple-600" />
-                  <span>🎧 2. LISTENING SECTION (Bài Nghe)</span>
-                </div>
-
-                <div
-                  onClick={() => navigate('/question-bank')}
-                  className="flex items-center space-x-2 p-1.5 hover:bg-sky-50 hover:text-sky-800 rounded-lg cursor-pointer text-slate-800"
-                >
-                  <Type className="w-3.5 h-3.5 text-sky-600" />
-                  <span>🔤 3. KNOWLEDGE (Cloze Test Đục Lỗ)</span>
-                </div>
-
-                <div
-                  onClick={() => navigate('/question-bank')}
-                  className="flex items-center space-x-2 p-1.5 hover:bg-amber-50 hover:text-amber-800 rounded-lg cursor-pointer text-slate-800"
-                >
-                  <Edit3 className="w-3.5 h-3.5 text-amber-600" />
-                  <span>✍️ 4. WRITING SECTION (3 Parts)</span>
-                </div>
-
-                <div
-                  onClick={() => navigate('/question-bank')}
-                  className="flex items-center space-x-2 p-1.5 hover:bg-teal-50 hover:text-teal-800 rounded-lg cursor-pointer text-slate-800"
-                >
-                  <GlobeIcon className="w-3.5 h-3.5 text-teal-600" />
-                  <span>🌐 5. GLOBAL SUCCESS (Khối 6-9)</span>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* 4. ADMINISTRATION (QUẢN TRỊ VIÊN SITE ADMINISTRATION NGUYÊN BẢN CHUẨN MOODLE GNOMIO) */}
+        {/* 3. ADMINISTRATION (QUẢN TRỊ VIÊN SITE ADMINISTRATION NGUYÊN BẢN CHUẨN MOODLE GNOMIO) */}
         {isTeacher && (
           <div className="pt-3 border-t border-slate-200">
             <button
