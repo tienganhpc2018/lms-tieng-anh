@@ -10,6 +10,7 @@ import TeacherAnalytics from './pages/TeacherAnalytics';
 import UserProfileView from './pages/UserProfileView';
 import WhiteboardView from './pages/WhiteboardView';
 import MockExamView from './pages/MockExamView';
+import CommunityModuleView from './pages/CommunityModuleView';
 import NotFound from './pages/NotFound';
 
 function ProtectedRoute({ children }) {
@@ -117,6 +118,24 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <MockExamView />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/community"
+                element={
+                  <ProtectedRoute>
+                    <CommunityModuleView />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/community/:courseId"
+                element={
+                  <ProtectedRoute>
+                    <CommunityModuleView />
                   </ProtectedRoute>
                 }
               />
