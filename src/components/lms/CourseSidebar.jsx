@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, BookOpen, Users, Award, FileText, Activity, CheckSquare, Home, Globe, Folder, PlayCircle, HelpCircle, Layers, Video, Database, Headphones, Type, Edit3, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronRight, BookOpen, Users, Award, FileText, Activity, CheckSquare, Home, Globe, Folder, PlayCircle, HelpCircle, Layers, Video, Database, Headphones, Type, Edit3, Globe as GlobeIcon, Settings, UserPlus, Upload, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import UserManagementModal from './UserManagementModal';
 
 export default function CourseSidebar({
   courseTitle = 'English 9',
@@ -17,9 +18,12 @@ export default function CourseSidebar({
   const [navExpanded, setNavExpanded] = useState({
     dashboard: true,
     myCourses: true,
-    questionBank: true, // MẶC ĐỊNH MỞ QUESTION BANK TRONG NAVIGATION SIDEBAR
+    questionBank: true,
+    siteAdmin: true,
     units: {},
   });
+
+  const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
 
   const toggleNav = (key) => {
     setNavExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -33,7 +37,7 @@ export default function CourseSidebar({
   };
 
   return (
-    <aside className="w-full lg:w-72 bg-white rounded-3xl border border-slate-200 p-5 space-y-4 shadow-sm h-fit">
+    <aside className="w-full lg:w-72 bg-white rounded-3xl border border-slate-200 p-5 space-y-4 shadow-sm h-fit font-sans select-none">
       {/* KHỐI NAVIGATION MOODLE DỮ LIỆU ĐỘNG THẬT 100% */}
       <div className="space-y-3">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -207,14 +211,69 @@ export default function CourseSidebar({
                   onClick={() => navigate('/question-bank')}
                   className="flex items-center space-x-2 p-1.5 hover:bg-teal-50 hover:text-teal-800 rounded-lg cursor-pointer text-slate-800"
                 >
-                  <Globe className="w-3.5 h-3.5 text-teal-600" />
+                  <GlobeIcon className="w-3.5 h-3.5 text-teal-600" />
                   <span>🌐 5. GLOBAL SUCCESS (Khối 6-9)</span>
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {/* 4. ADMINISTRATION (QUẢN TRỊ VIÊN SITE ADMINISTRATION NGUYÊN BẢN CHUẨN MOODLE GNOMIO) */}
+        {isTeacher && (
+          <div className="pt-3 border-t border-slate-200">
+            <button
+              onClick={() => toggleNav('siteAdmin')}
+              className="w-full flex items-center justify-between p-2 hover:bg-purple-50 rounded-xl transition text-purple-950 font-extrabold bg-purple-50/60 border border-purple-200/60"
+            >
+              <div className="flex items-center space-x-2">
+                <Settings className="w-4 h-4 text-purple-600" />
+                <span>Administration</span>
+              </div>
+              {navExpanded.siteAdmin ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            </button>
+
+            {navExpanded.siteAdmin && (
+              <div className="pl-4 space-y-1 pt-2 text-[11px] font-bold text-slate-700">
+                <div className="text-[10px] uppercase font-extrabold text-purple-800 tracking-wider flex items-center space-x-1">
+                  <ShieldCheck className="w-3 h-3 text-purple-600" />
+                  <span>Site administration</span>
+                </div>
+
+                <div
+                  onClick={() => setIsUserMgmtOpen(true)}
+                  className="flex items-center space-x-2 p-1.5 hover:bg-purple-100 hover:text-purple-900 rounded-lg cursor-pointer text-slate-800 font-extrabold"
+                >
+                  <Users className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Browse list of users</span>
+                </div>
+
+                <div
+                  onClick={() => setIsUserMgmtOpen(true)}
+                  className="flex items-center space-x-2 p-1.5 hover:bg-purple-100 hover:text-purple-900 rounded-lg cursor-pointer text-slate-700"
+                >
+                  <UserPlus className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Add a new user</span>
+                </div>
+
+                <div
+                  onClick={() => setIsUserMgmtOpen(true)}
+                  className="flex items-center space-x-2 p-1.5 hover:bg-purple-100 hover:text-purple-900 rounded-lg cursor-pointer text-slate-700"
+                >
+                  <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Upload users via CSV</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* MODAL QUẢN LÝ TÀI KHOẢN HỌC SINH */}
+      <UserManagementModal
+        isOpen={isUserMgmtOpen}
+        onClose={() => setIsUserMgmtOpen(false)}
+      />
     </aside>
   );
 }
