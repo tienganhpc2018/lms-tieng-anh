@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { BookOpen, BarChart2, LogOut, ShieldCheck, GraduationCap, Users, User, ChevronDown, Calendar, Folder, FileText, Settings, Award } from 'lucide-react';
+import { BookOpen, LogOut, User, ChevronDown, Calendar, Folder, FileText, Settings, Award, Menu } from 'lucide-react';
 import UserManagementModal from '../lms/UserManagementModal';
 
 export default function Navbar() {
@@ -52,49 +52,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* MENU NGANG TRÊN CÙNG */}
-          <div className="hidden md:flex items-center space-x-2">
-            <Link
-              to="/dashboard"
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center space-x-2 ${
-                location.pathname === '/dashboard'
-                  ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400/30'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Khóa Học</span>
-            </Link>
-
-            {/* QUẢN LÝ HỌC SINH & TÀI KHOẢN (SITE ADMIN FOR TEACHERS) */}
-            {isTeacher && (
-              <button
-                type="button"
-                onClick={() => setIsUserMgmtOpen(true)}
-                className="px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center space-x-2 bg-purple-950/40 text-purple-300 border border-purple-500/30 hover:bg-purple-900 hover:text-white"
-              >
-                <Users className="w-4 h-4 text-purple-400" />
-                <span>Quản Lý Học Sinh (Users)</span>
-              </button>
-            )}
-
-            {/* Trang Analytics cho Giáo viên */}
-            {isTeacher && (
-              <Link
-                to="/analytics"
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center space-x-2 ${
-                  location.pathname === '/analytics'
-                    ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400/30'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <BarChart2 className="w-4 h-4 text-teal-400" />
-                <span>Bảng Điểm & Analytics</span>
-              </Link>
-            )}
-          </div>
-
-          {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO */}
+          {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO (GÓC PHẢI NAV BAR) */}
           <div className="flex items-center space-x-3" ref={dropdownRef}>
             {user ? (
               <div className="relative">
