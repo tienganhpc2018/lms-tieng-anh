@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase, uploadLMSFile } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Upload, Send, ArrowLeft, CheckCircle, Clock } from 'lucide-react';
+import QuizBuilder from '../components/lms/QuizBuilder';
+import QuizEngine from '../components/lms/QuizEngine';
+import { FileText, Upload, Send, ArrowLeft, CheckCircle, Clock, BookOpen, PenTool } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function AssignmentView() {
-  const { activityId } = useParams();
-  const { user } = useAuth();
+  const params = useParams();
+  const targetActivityId = params.id || params.activityId;
+  const { user, isTeacher } = useAuth();
   const navigate = useNavigate();
 
   const [activity, setActivity] = useState(null);
@@ -20,37 +23,40 @@ export default function AssignmentView() {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = async () => {
+    if (!targetActivityId) return;
     setLoading(true);
-    // 1. Activity detail
-    const { data: act } = await supabase
-      .from('activities')
-      .select('*')
-      .eq('id', activityId)
-      .single();
+    try {
+      // 1. Chi tiết bài học / Hoạt động Quiz
+      const { data: act } = await supabase
+        .from('activities')
+        .select('*, section:section_id (course_id)')
+        .eq('id', targetActivityId)
+        .single();
 
-    setActivity(act);
+      setActivity(act);
 
-    // 2. Existing submission
-    if (user) {
-      const { data: sub } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('activity_id', activityId)
-        .eq('student_id', user.id)
-        .maybeSingle();
+      // 2. Submission của bài tập tự luận
+      if (user) {
+        const { data: sub } = await supabase
+          .from('submissions')
+          .select('*')
+          .eq('activity_id', targetActivityId)
+          .eq('student_id', user.id)
+          .maybeSingle();
 
-      if (sub) {
-        setSubmission(sub);
-        setTextAnswer(sub.answers_data?.textAnswer || '');
-        setFileUrl(sub.file_url || '');
+        if (sub) {
+          setSubmission(sub);
+          setTextAnswer(sub.answers_data?.textAnswer || '');
+          setFileUrl(sub.file_url || '');
+        }
       }
-    }
+    } catch (e) {}
     setLoading(false);
   };
 
   useEffect(() => {
     fetchData();
-  }, [activityId]);
+  }, [targetActivityId]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -66,7 +72,7 @@ export default function AssignmentView() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmitAssignment = async (e) => {
     e.preventDefault();
     if (!textAnswer.trim() && !fileUrl) {
       alert('Vui lòng nhập nội dung bài làm hoặc tải file đính kèm!');
@@ -74,131 +80,151 @@ export default function AssignmentView() {
     }
 
     setSubmitting(true);
+    try {
+      const { error } = await supabase.from('submissions').upsert([
+        {
+          activity_id: targetActivityId,
+          student_id: user.id,
+          answers_data: { textAnswer: textAnswer },
+          file_url: fileUrl,
+          status: 'submitted',
+          submitted_at: new Date().toISOString(),
+        },
+      ]);
 
-    const { error } = await supabase.from('submissions').upsert([
-      {
-        activity_id: activityId,
-        student_id: user.id,
-        answers_data: { textAnswer: textAnswer },
-        file_url: fileUrl,
-        status: 'submitted',
-        submitted_at: new Date().toISOString(),
-      },
-    ]);
-
-    if (error) {
-      alert('Lỗi nộp bài: ' + error.message);
-    } else {
-      alert('Đã nộp bài tập thành công!');
-      await fetchData();
+      if (error) {
+        alert('Lỗi nộp bài: ' + error.message);
+      } else {
+        alert('🎉 ĐÃ NỘP BÀI TẬP THÀNH CÔNG!');
+        await fetchData();
+      }
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
-  if (loading) return <LoadingSpinner text="Đang chuẩn bị trang nộp bài tập..." />;
+  if (loading) return <LoadingSpinner text="Đang tải nội dung bài học & đề thi..." />;
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      <button
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center space-x-1 text-xs font-bold text-slate-500 hover:text-slate-900"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Quay lại bài học</span>
-      </button>
+  // XÁC ĐỊNH LOẠI BÀI HỌC
+  const isWhiteboard = activity?.type === 'whiteboard' || (activity?.title && activity.title.includes('[WHITEBOARD]'));
+  const isAssignmentType = activity?.type === 'page' || activity?.type === 'assignment';
 
-      {/* Header Đề Bài */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-            <FileText className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">{activity?.title}</h1>
-            {activity?.settings?.deadline && (
-              <span className="inline-flex items-center space-x-1 text-xs text-rose-600 font-semibold mt-1">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Hạn nộp: {new Date(activity.settings.deadline).toLocaleString('vi-VN')}</span>
+  // NẾU LÀ BÀI WHITEBOARD -> MỞ BẢNG WHITEBOARD
+  if (isWhiteboard) {
+    navigate(`/whiteboard?activityId=${targetActivityId}`);
+    return null;
+  }
+
+  // NẾU KHÔNG PHẢI TỰ LUẬN PAGE -> KHÔI PHỤC NGAY TRÌNH SOẠN ĐỀ QUIZ 20 DẠNG CÂU HỎI VÀ THI THỬ (ẢNH 3 & ẢNH 4)!
+  if (!isAssignmentType) {
+    return (
+      <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* HEADER NAV */}
+          <div className="flex items-center justify-between bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2.5 hover:bg-slate-100 rounded-2xl transition text-slate-700 flex items-center space-x-2 font-bold text-xs"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Quay lại bài học</span>
+              </button>
+              <div>
+                <span className="text-[10px] font-extrabold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-md">
+                  {isTeacher ? 'Trình Soạn Đề Thi 20 Dạng Câu Hỏi' : 'Đề Thi Thử Trực Tuyến'}
+                </span>
+                <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
+                  {activity?.title || 'Đề Thi Trắc Nghiệm'}
+                </h1>
+              </div>
+            </div>
+
+            {isTeacher && (
+              <span className="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-2xs">
+                👑 Chế Độ Giáo Viên Soạn Đề
               </span>
             )}
           </div>
-        </div>
 
-        <div className="pt-4 border-t border-slate-100">
-          <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Đề Bài & Yêu Cầu</h4>
-          <div
-            className="prose prose-sm max-w-none text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200"
-            dangerouslySetInnerHTML={{ __html: activity?.settings?.richText || 'Làm bài và tải file nộp bài bên dưới.' }}
-          />
+          {/* NẾU LÀ GIÁO VIÊN -> MỞ TRÌNH SOẠN ĐỀ QUIZ 20 DẠNG CÂU HỎI (QUIZ BUILDER) */}
+          {isTeacher ? (
+            <QuizBuilder activityId={targetActivityId} />
+          ) : (
+            /* NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI THI THỬ TRỰC TUYẾN (QUIZ ENGINE) */
+            <QuizEngine activityId={targetActivityId} />
+          )}
         </div>
       </div>
+    );
+  }
 
-      {/* Kết Quả Điểm Số & Phản Hồi Từ Giáo Viên (Nếu Đã Chấm) */}
-      {submission?.status === 'graded' && (
-        <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl space-y-2">
-          <div className="flex items-center space-x-2 text-emerald-800 font-bold">
-            <CheckCircle className="w-5 h-5 text-emerald-600" />
-            <span>Bài tập đã được chấm điểm!</span>
-          </div>
-          <div className="text-2xl font-extrabold text-emerald-600">
-            {submission.score} <span className="text-xs font-semibold text-slate-600">/ 10 điểm</span>
-          </div>
-          {submission.feedback && (
-            <div className="mt-3 p-3 bg-white border border-emerald-200 rounded-xl text-xs text-slate-700">
-              <strong className="block text-slate-900 mb-1">Nhận xét từ Giáo viên:</strong>
-              {submission.feedback}
-            </div>
-          )}
-        </div>
-      )}
+  // GIAO DIỆN BÀI TẬP TỰ LUẬN NỘP FILE DÀNH CHO BÀI DẠNG PAGE / ASSIGNMENT
+  return (
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center space-x-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Quay lại bài học</span>
+        </button>
 
-      {/* Form Nộp Bài Tập */}
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-        <h3 className="font-bold text-slate-900 text-base border-b border-slate-100 pb-3">Bài Làm Của Bạn</h3>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-            Nội dung bài làm (Nhập văn bản)
-          </label>
-          <textarea
-            rows={5}
-            value={textAnswer}
-            onChange={(e) => setTextAnswer(e.target.value)}
-            placeholder="Nhập nội dung trả lời bài tập..."
-            className="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-            Tải File Bài Làm (.pdf, .docx, .zip, .png)
-          </label>
-          <div className="flex items-center space-x-3">
-            <input
-              type="file"
-              onChange={handleFileUpload}
-              className="text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-            />
-            {uploading && <span className="text-xs text-blue-600 font-medium">Đang tải file...</span>}
-          </div>
-          {fileUrl && (
-            <p className="text-xs text-emerald-600 mt-2 truncate font-semibold">
-              ✓ Đã đính kèm: {fileUrl}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <h2 className="text-xl font-extrabold text-slate-900">{activity?.title || 'Bài Tập Tự Luận'}</h2>
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+            <h3 className="text-xs font-extrabold text-slate-700 uppercase mb-1">ĐỀ BÀI & YÊU CẦU</h3>
+            <p className="text-sm text-slate-800 leading-relaxed font-semibold">
+              Làm bài và tải file nộp bài bên dưới.
             </p>
-          )}
+          </div>
         </div>
 
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={submitting || uploading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center space-x-2"
-          >
-            <Send className="w-4 h-4" />
-            <span>{submission ? 'Cập Nhật Bài Nộp' : 'Nộp Bài Tập'}</span>
-          </button>
-        </div>
-      </form>
+        <form onSubmit={handleSubmitAssignment} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <h3 className="text-base font-extrabold text-slate-900">Bài Làm Của Bạn</h3>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">NỘI DUNG BÀI LÀM (NHẬP VĂN BẢN)</label>
+            <textarea
+              rows={5}
+              value={textAnswer}
+              onChange={(e) => setTextAnswer(e.target.value)}
+              placeholder="Nhập nội dung trả lời bài tập..."
+              className="w-full p-3 border border-slate-300 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1">TẢI FILE BÀI LÀM (.PDF, .DOCX, .ZIP, .PNG)</label>
+            <div className="flex items-center space-x-3">
+              <input
+                type="file"
+                onChange={handleFileUpload}
+                className="text-xs font-semibold text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+              />
+              {uploading && <span className="text-xs text-amber-600 font-bold animate-pulse">Đang tải file...</span>}
+            </div>
+            {fileUrl && (
+              <a href={fileUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-sky-600 underline mt-2 block">
+                📎 File đã tải lên thành công (Bấm để xem)
+              </a>
+            )}
+          </div>
+
+          <div className="pt-2 flex justify-end">
+            <button
+              type="submit"
+              disabled={submitting || uploading}
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition"
+            >
+              {submitting ? 'Đang Nộp Bài...' : '🚀 NỘP BÀI TẬP'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
