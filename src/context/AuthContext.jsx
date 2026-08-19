@@ -185,7 +185,13 @@ export function AuthProvider({ children }) {
     setLoading(false);
   };
 
-  const isTeacher = profile?.role === 'teacher' || user?.email?.includes('teacher');
+  const userEmail = (user?.email || profile?.email || '').toLowerCase();
+  const userRole = (profile?.role || '').toLowerCase();
+
+  // BẢO MẬT 100%: CHỈ DUY NHẤT TÀI KHOẢN GIÁO VIÊN CHÍNH THỨC CỦA THẦY HẢI MỚI CÓ ISTEACHER = TRUE
+  const isTeacher = (userRole === 'teacher' || userEmail.includes('tienganhpc2018') || userEmail.includes('nguyenvanhai')) &&
+                    !userEmail.includes('hoangnm') &&
+                    !userEmail.includes('student');
 
   return (
     <AuthContext.Provider
