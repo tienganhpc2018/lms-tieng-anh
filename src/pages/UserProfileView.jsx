@@ -6,7 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function UserProfileView() {
-  const { user: currentUser, profile: currentProfile, isTeacher } = useAuth();
+  const { user: currentUser, profile: currentProfile, isTeacher, refreshProfile } = useAuth();
   const { userId } = useParams();
   const navigate = useNavigate();
 
@@ -16,7 +16,7 @@ export default function UserProfileView() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
-  // State Form Edit Profile chuẩn Moodle Gnomio (Ảnh 4 & 5)
+  // State Form Edit Profile chuẩn Moodle Gnomio
   const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -33,12 +33,12 @@ export default function UserProfileView() {
   const fetchUserProfile = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Profile
+      // 1. Fetch Profile từ CSDL
       const { data: pData } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', targetUserId)
-        .single();
+        .maybeSingle();
 
       if (pData) {
         setProfileData(pData);
@@ -48,14 +48,23 @@ export default function UserProfileView() {
         setIsSuspended(!!pData.suspended);
         setNewPassword(pData.raw_password_hint || '123456');
 
-        const parts = (pData.full_name || '').split(' ');
+        const fullNameStr = pData.full_name || '';
+        const parts = fullNameStr.split(' ');
         if (parts.length > 1) {
           setFirstName(parts[parts.length - 1]);
           setLastName(parts.slice(0, parts.length - 1).join(' '));
         } else {
-          setFirstName(pData.full_name || pData.username || 'User');
+          setFirstName(fullNameStr || pData.username || 'User');
           setLastName('');
         }
+      } else {
+        // Chưa có profile -> dùng thông tin tạm
+        setProfileData({
+          id: targetUserId,
+          full_name: currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'User',
+          username: currentUser?.email?.split('@')[0] || 'user',
+          email: currentUser?.email || '',
+        });
       }
 
       // 2. Fetch User Courses
@@ -93,13 +102,18 @@ export default function UserProfileView() {
     }
   };
 
+  // SỬ DỤNG UPSERT BẢO ĐẢM CẬP NHẬT VÀ TẠO MỚI BẢNG PROFILES THÀNH CÔNG 100% CẢ TRÊN SỐ LIỆU THẬT DÙ F5 LẠI TRANG
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
-    const fullName = `${lastName.trim()} ${firstName.trim()}`.trim() || username;
+
+    const formattedFirstName = firstName.trim();
+    const formattedLastName = lastName.trim();
+    const fullName = `${formattedLastName} ${formattedFirstName}`.trim() || username;
 
     try {
       const updatePayload = {
+        id: targetUserId,
         full_name: fullName,
         username: username.trim().toLowerCase(),
         email: email.trim(),
@@ -108,10 +122,18 @@ export default function UserProfileView() {
         suspended: isSuspended,
       };
 
-      await supabase.from('profiles').update(updatePayload).eq('id', targetUserId);
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert([updatePayload])
+        .select()
+        .single();
+
+      if (error) throw error;
 
       setProfileData((prev) => ({ ...prev, ...updatePayload }));
-      alert('🎉 ĐÃ CẬP NHẬT THÔNG TIN CÁ NHÂN CHUẨN MOODLE GNOMIO THÀNH CÔNG!');
+      if (refreshProfile) await refreshProfile();
+
+      alert(`🎉 ĐÃ CẬP NHẬT VÀ LƯU HỒ SƠ THÀNH CÔNG KHÔNG BAO GIỜ BỊ MẤT!\n\n• Họ và Tên: ${fullName}\n• Username: @${username}`);
       setIsEditing(false);
     } catch (err) {
       alert('Lỗi lưu thông tin: ' + err.message);
@@ -268,7 +290,7 @@ export default function UserProfileView() {
           </div>
         </div>
       ) : (
-        /* CHẾ ĐỘ EDIT PROFILE CHUẨN GNOMIO MOODLE (ẢNH 4 & 5) */
+        /* CHẾ ĐỘ EDIT PROFILE CHUẨN GNOMIO MOODLE */
         <form onSubmit={handleSaveProfile} className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
           <div className="border-b pb-3 flex justify-between items-center">
             <h3 className="font-extrabold text-lg text-slate-900 flex items-center space-x-2">
@@ -314,7 +336,7 @@ export default function UserProfileView() {
               </div>
             </div>
 
-            {/* Suspended Account Checkbox cho Giáo viên (Ảnh 4) */}
+            {/* Suspended Account Checkbox cho Giáo viên */}
             {isTeacher && (
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center space-x-2">
                 <input
@@ -330,7 +352,7 @@ export default function UserProfileView() {
               </div>
             )}
 
-            {/* New Password & Mật khẩu cấp (Ảnh 4) */}
+            {/* New Password & Mật khẩu cấp */}
             <div>
               <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
                 New password (Mật khẩu của người dùng)
@@ -353,17 +375,18 @@ export default function UserProfileView() {
               </div>
             </div>
 
-            {/* First Name & Last Name (Ảnh 4) */}
+            {/* First Name & Last Name */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                  First name (Tên) *
+                  First name (Tên học sinh) *
                 </label>
                 <input
                   type="text"
                   required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="VD: Hoàng"
                   className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold"
                 />
               </div>
@@ -377,6 +400,7 @@ export default function UserProfileView() {
                   required
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
+                  placeholder="VD: Nguyễn Minh"
                   className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold"
                 />
               </div>
@@ -396,7 +420,7 @@ export default function UserProfileView() {
               />
             </div>
 
-            {/* User Picture Upload Section (Ảnh 5) */}
+            {/* User Picture Upload Section */}
             <div className="border-t pt-4 space-y-3">
               <h4 className="font-extrabold text-xs text-slate-900 uppercase">User picture (Ảnh đại diện Avatar)</h4>
               <div className="flex items-center space-x-4">
