@@ -372,7 +372,7 @@ export default function Dashboard() {
 
                       {isSitePagesOpen && (
                         <div className="pl-4 space-y-1.5 mt-1 border-l-2 border-slate-100 ml-1.5">
-                          {/* 1. NGÂN HÀNG CÂU HỎI & ĐỀ THI (DÀNH CHO THẦY & HỌC SINH) */}
+                          {/* 1. NGÂN HÀNG CÂU HỎI & ĐỀ THI */}
                           <button
                             type="button"
                             onClick={() => {
@@ -384,6 +384,15 @@ export default function Dashboard() {
                             <FileQuestion className="w-4 h-4 text-indigo-600" />
                             <span>📚 Ngân Hàng Câu Hỏi & Đề Thi</span>
                           </button>
+
+                          {/* 2. CỘNG ĐỒNG LỚP HỌC & AI NÂNG CAO (MODULE 9 & 10) */}
+                          <Link
+                            to="/community"
+                            className="flex items-center space-x-2 text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-xl border border-emerald-300/50 transition font-extrabold shadow-2xs"
+                          >
+                            <Sparkles className="w-4 h-4 text-emerald-600" />
+                            <span>💬 Bảng Tin & AI Trợ Giảng (Module 9-10)</span>
+                          </Link>
 
                           {/* 2. BẢNG TƯƠNG TÁC GIẢNG DẠY WHITEBOARD */}
                           {isTeacher && (
