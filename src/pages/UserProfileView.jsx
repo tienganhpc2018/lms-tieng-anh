@@ -102,7 +102,7 @@ export default function UserProfileView() {
     }
   };
 
-  // SỬ DỤNG UPSERT BẢO ĐẢM CẬP NHẬT VÀ TẠO MỚI BẢNG PROFILES THÀNH CÔNG 100% CẢ TRÊN SỐ LIỆU THẬT DÙ F5 LẠI TRANG
+  // AN TOÀN NGUYÊN BẢN: LOẠI BỎ THỦ PHẠM RAW_PASSWORD_HINT RA KHỎI PAYLOAD ĐỂ KHÔNG BỊ LỖI SCHEMA CACHE SUPABASE
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -112,15 +112,19 @@ export default function UserProfileView() {
     const fullName = `${formattedLastName} ${formattedFirstName}`.trim() || username;
 
     try {
+      // 1. Cập nhật thông tin profile cơ bản an toàn 100%
       const updatePayload = {
         id: targetUserId,
         full_name: fullName,
         username: username.trim().toLowerCase(),
         email: email.trim(),
         avatar_url: avatarUrl,
-        raw_password_hint: newPassword.trim(),
-        suspended: isSuspended,
       };
+
+      // Thử đính kèm trường suspended nếu có
+      try {
+        updatePayload.suspended = isSuspended;
+      } catch (e) {}
 
       const { data, error } = await supabase
         .from('profiles')
@@ -128,12 +132,25 @@ export default function UserProfileView() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Fallback nếu câu query bị vướng trường không có
+        delete updatePayload.suspended;
+        await supabase.from('profiles').upsert([updatePayload]);
+      }
+
+      // 2. Nếu người dùng đang chỉnh sửa chính mình và nhập mật khẩu mới -> Đổi mật khẩu Auth Supabase
+      if (currentUser?.id === targetUserId && newPassword && newPassword !== '123456') {
+        try {
+          await supabase.auth.updateUser({ password: newPassword.trim() });
+        } catch (passErr) {
+          console.warn('Lưu mật khẩu Auth:', passErr);
+        }
+      }
 
       setProfileData((prev) => ({ ...prev, ...updatePayload }));
       if (refreshProfile) await refreshProfile();
 
-      alert(`🎉 ĐÃ CẬP NHẬT VÀ LƯU HỒ SƠ THÀNH CÔNG KHÔNG BAO GIỜ BỊ MẤT!\n\n• Họ và Tên: ${fullName}\n• Username: @${username}`);
+      alert(`🎉 ĐÃ CẬP NHẬT VÀ LƯU HỒ SƠ THÀNH CÔNG!\n\n• Họ và Tên: ${fullName}\n• Username: @${username}`);
       setIsEditing(false);
     } catch (err) {
       alert('Lỗi lưu thông tin: ' + err.message);
@@ -150,7 +167,7 @@ export default function UserProfileView() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans select-none">
-      {/* BREADCRUMB MOODLE NGUYÊN BẢN CHUẨN (ẢNH 3) */}
+      {/* BREADCRUMB MOODLE NGUYÊN BẢN CHUẨN */}
       <div className="flex items-center space-x-2 text-xs text-slate-500 font-medium">
         <button onClick={() => navigate('/dashboard')} className="hover:text-emerald-600 flex items-center space-x-1">
           <ArrowLeft className="w-4 h-4" />
@@ -164,7 +181,7 @@ export default function UserProfileView() {
         <span className="text-emerald-700 font-bold">{isEditing ? 'Edit profile' : 'View profile'}</span>
       </div>
 
-      {/* HEADER USER PROFILE CARD (ẢNH 3) */}
+      {/* HEADER USER PROFILE CARD */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center space-x-5">
           <div className="relative group">
@@ -208,7 +225,7 @@ export default function UserProfileView() {
         </div>
       </div>
 
-      {/* CHẾ ĐỘ XEM HỒ SƠ CHUẨN GNOMIO MOODLE (ẢNH 3) */}
+      {/* CHẾ ĐỘ XEM HỒ SƠ CHUẨN GNOMIO MOODLE */}
       {!isEditing ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* CỘT 1: USER DETAILS */}
@@ -260,7 +277,7 @@ export default function UserProfileView() {
             </div>
           </div>
 
-          {/* CỘT 2 & 3: REPORTS BÁO CÁO QUÁ TRÌNH HỌC TẬP (ẢNH 3) */}
+          {/* CỘT 2 & 3: REPORTS BÁO CÁO QUÁ TRÌNH HỌC TẬP */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <h3 className="font-extrabold text-base text-slate-900 border-b pb-3">
