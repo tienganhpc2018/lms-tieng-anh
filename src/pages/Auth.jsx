@@ -24,49 +24,85 @@ export default function Auth() {
     setErrorMsg('');
     setLoading(true);
 
-    let targetEmail = emailOrUsername.trim();
+    const inputVal = emailOrUsername.trim();
+    const passVal = password.trim();
 
     try {
       if (isSignUp) {
-        if (!targetEmail.includes('@')) {
-          targetEmail = `${targetEmail.toLowerCase()}@lms.edu.vn`;
+        let regEmail = inputVal;
+        if (!regEmail.includes('@')) {
+          regEmail = `${regEmail.toLowerCase()}@lms.edu.vn`;
         }
-        await signUp(targetEmail, password.trim(), fullName.trim(), role);
+        await signUp(regEmail, passVal, fullName.trim(), role);
       } else {
-        // NẾU LÀ ĐĂNG NHẬP BẰNG USERNAME
-        if (!targetEmail.includes('@')) {
-          // Tra cứu Username trong DB profiles
-          try {
-            const { data } = await supabase
-              .from('profiles')
-              .select('email')
-              .eq('username', targetEmail.toLowerCase())
-              .single();
+        let targetEmail = inputVal;
+        let matchedStudentProfile = null;
 
-            if (data && data.email) {
-              targetEmail = data.email;
-            } else {
-              targetEmail = `${targetEmail.toLowerCase()}@lms.edu.vn`;
-            }
-          } catch (lookupErr) {
-            targetEmail = `${targetEmail.toLowerCase()}@lms.edu.vn`;
+        // 1. TRA CỨU TÀI KHOẢN TRONG BẢNG PROFILES BẰNG USERNAME HOẶC EMAIL
+        try {
+          let query = supabase.from('profiles').select('*');
+          if (inputVal.includes('@')) {
+            query = query.eq('email', inputVal);
+          } else {
+            query = query.eq('username', inputVal.toLowerCase());
+          }
+
+          const { data: profData } = await query;
+          if (profData && profData.length > 0) {
+            matchedStudentProfile = profData[0];
+            targetEmail = matchedStudentProfile.email || `${matchedStudentProfile.username}@lms.edu.vn`;
+          } else if (!inputVal.includes('@')) {
+            targetEmail = `${inputVal.toLowerCase()}@lms.edu.vn`;
+          }
+        } catch (lookupErr) {
+          if (!inputVal.includes('@')) {
+            targetEmail = `${inputVal.toLowerCase()}@lms.edu.vn`;
           }
         }
 
-        await signIn(targetEmail, password.trim());
+        // 2. THỬ ĐĂNG NHẬP QUA SUPABASE AUTH
+        try {
+          await signIn(targetEmail, passVal);
+        } catch (signInErr) {
+          const errText = signInErr.message || '';
+          
+          // NẾU TÀI KHOẢN ĐƯỢC GIÁO VIÊN TẠO TRONG PROFILES NHƯNG CHƯA CÓ TRONG AUTH.USERS
+          if (matchedStudentProfile || errText.includes('Invalid login credentials')) {
+            const studentName = matchedStudentProfile?.full_name || inputVal;
+            const studentRole = matchedStudentProfile?.role || 'student';
+
+            // TỰ ĐỘNG ĐĂNG KÝ (AUTO-SYNC) VÀO SUPABASE AUTH CHO HỌC SINH DỰA TRÊN MẬT KHẨU CẤP
+            try {
+              await signUp(targetEmail, passVal, studentName, studentRole);
+              // Đăng nhập lại sau khi auto-sync thành công
+              await signIn(targetEmail, passVal);
+            } catch (autoSyncErr) {
+              // Nếu đã tồn tại hoặc lỗi mật khẩu
+              if (matchedStudentProfile && matchedStudentProfile.raw_password_hint === passVal) {
+                // Đăng nhập hợp lệ theo mật khẩu Giáo viên cấp
+                await signIn(targetEmail, passVal);
+              } else {
+                throw signInErr;
+              }
+            }
+          } else {
+            throw signInErr;
+          }
+        }
       }
+
       navigate(from, { replace: true });
     } catch (err) {
       console.error('Lỗi Auth:', err);
       const msg = err.message || '';
       if (msg.includes('already registered') || msg.includes('User already registered')) {
-        setErrorMsg('Tài khoản này đã được đăng ký! Vui lòng chọn tab "Đăng Nhập" bên trên.');
+        setErrorMsg('Tài khoản này đã được đăng ký! Vui lòng kiểm tra lại mật khẩu hoặc chọn tab "Đăng Nhập".');
       } else if (msg.includes('Invalid login credentials')) {
         setErrorMsg('Tên đăng nhập / Email hoặc Mật khẩu không chính xác. Vui lòng kiểm tra lại!');
       } else if (msg.includes('Password should be at least')) {
         setErrorMsg('Mật khẩu phải có ít nhất 6 ký tự!');
       } else {
-        setErrorMsg('Không thể đăng nhập: ' + msg);
+        setErrorMsg('Lỗi đăng nhập: ' + msg);
       }
     } finally {
       setLoading(false);
@@ -136,7 +172,7 @@ export default function Auth() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="VD: Nguyễn Văn Hải"
-                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500"
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 font-medium"
                 />
               </div>
             </div>
@@ -144,7 +180,7 @@ export default function Auth() {
 
           <div>
             <label className="block text-xs font-extrabold text-slate-700 mb-1 uppercase">
-              {isSignUp ? 'Tên đăng nhập hoặc Email' : 'Tên Đăng Nhập (Username) / Email'}
+              {isSignUp ? 'Tên đăng nhập hoặc Email' : 'TÊN ĐĂNG NHẬP (USERNAME) / EMAIL'}
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -153,7 +189,7 @@ export default function Auth() {
                 required
                 value={emailOrUsername}
                 onChange={(e) => setEmailOrUsername(e.target.value)}
-                placeholder={isSignUp ? 'VD: nhondt hay nhondt@gmail.com' : 'Gõ Username (VD: nhondt) hoặc Email...'}
+                placeholder={isSignUp ? 'VD: nhondt hay nhondt@gmail.com' : 'Gõ Username (VD: hoangnm) hoặc Email...'}
                 className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500 font-bold"
               />
             </div>
@@ -161,7 +197,7 @@ export default function Auth() {
 
           <div>
             <label className="block text-xs font-extrabold text-slate-700 mb-1 uppercase">
-              Mật khẩu
+              MẬT KHẨU
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
