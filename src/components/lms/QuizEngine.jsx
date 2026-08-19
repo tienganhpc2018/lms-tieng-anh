@@ -120,13 +120,17 @@ export default function QuizEngine({ activity }) {
 
   useEffect(() => {
     async function fetchQuestions() {
-      if (!activity?.id) return;
+      const actId = activity?.id || (typeof activity === 'string' ? activity : null);
+      if (!actId) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         const { data, error } = await supabase
           .from('questions')
           .select('*')
-          .eq('activity_id', activity.id)
+          .eq('activity_id', actId)
           .order('created_at', { ascending: true });
 
         if (error) {
