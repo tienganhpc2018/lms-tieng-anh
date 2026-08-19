@@ -132,9 +132,15 @@ export default function CourseView() {
         setActiveSectionId(newSec.id);
       }
 
-      // Đảm bảo type thích ứng 100% với DB Supabase: lưu type = 'resource' cho Whiteboard kèm tiền tố [WHITEBOARD]
-      const dbType = newActType === 'whiteboard' ? 'resource' : newActType;
-      const formattedTitle = newActType === 'whiteboard'
+      // Đảm bảo dbType luôn thuộc 1 trong 4 enum chuẩn của DB Supabase (resource, quiz, page, assignment)
+      let dbType = 'resource';
+      if (newActType === 'quiz') dbType = 'quiz';
+      else if (newActType === 'assignment') dbType = 'assignment';
+      else if (newActType === 'page') dbType = 'page';
+      else dbType = 'resource';
+
+      const isWhiteboardAct = newActType === 'whiteboard';
+      const formattedTitle = isWhiteboardAct && !newActTitle.includes('[WHITEBOARD]')
         ? `[WHITEBOARD] ${newActTitle.trim()}`
         : newActTitle.trim();
 
