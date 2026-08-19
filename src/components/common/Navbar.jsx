@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { BookOpen, BarChart2, LogOut, ShieldCheck, GraduationCap, Users } from 'lucide-react';
+import { BookOpen, BarChart2, LogOut, ShieldCheck, GraduationCap, Users, User } from 'lucide-react';
 import UserManagementModal from '../lms/UserManagementModal';
 
 export default function Navbar() {
@@ -34,7 +34,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* MENU NGANG TRÊN CÙNG: XÓA HOÀN TOÀN MỤC THI THỬ THEO MỆNH LỆNH THÉP */}
+          {/* MENU NGANG TRÊN CÙNG */}
           <div className="hidden md:flex items-center space-x-2">
             <Link
               to="/dashboard"
@@ -76,25 +76,35 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* User Info / Profile Button */}
+          {/* User Info / Profile Button: BẤM VÀO TÊN HOẶC AVATAR MỞ TRANG PROFILE CÁ NHÂN CHUẨN MOODLE GNOMIO */}
           <div className="flex items-center space-x-3">
             {user ? (
               <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700">
-                  {isTeacher ? (
+                <Link
+                  to="/profile"
+                  className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-750 px-3 py-1.5 rounded-xl border border-slate-700 transition cursor-pointer group"
+                  title="Bấm để xem & chỉnh sửa Hồ sơ cá nhân (User Profile)"
+                >
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt="Avatar"
+                      className="w-7 h-7 rounded-full object-cover border border-emerald-400"
+                    />
+                  ) : isTeacher ? (
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
                   ) : (
                     <GraduationCap className="w-4 h-4 text-sky-400" />
                   )}
                   <div className="text-left">
-                    <span className="text-xs font-bold text-slate-100 block leading-tight">
+                    <span className="text-xs font-bold text-slate-100 block leading-tight group-hover:text-emerald-400 transition">
                       {profile?.full_name || user.email}
                     </span>
                     <span className="text-[10px] text-slate-400 block font-medium uppercase">
                       {isTeacher ? 'Giáo Viên' : 'Học Sinh'}
                     </span>
                   </div>
-                </div>
+                </Link>
 
                 <button
                   onClick={handleSignOut}
