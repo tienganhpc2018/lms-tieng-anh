@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { 
@@ -8,13 +8,15 @@ import {
   CheckCircle2, XCircle, Clock, Dices, Link as LinkIcon, Grid, Layout, 
   Maximize2, Minimize2, Sparkles, X, Play, RotateCcw, Volume2, Ruler, 
   Highlighter, Bold, Italic, Underline, Search, ZoomIn, ZoomOut, Check, ChevronLeft, ChevronRight,
-  Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand
+  Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand, Minus
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function WhiteboardView() {
   const { user, profile, isTeacher } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const activityId = searchParams.get('activityId'); // Nhận ID bài học Whiteboard từ Khóa học
   const canvasRef = useRef(null);
 
   // BẢO VỆ PHÂN QUYỀN HỌC SINH
@@ -25,7 +27,7 @@ export default function WhiteboardView() {
     }
   }, [user, isTeacher, navigate]);
 
-  // ĐỊNH NGHĨA TRANG BẢNG CHUẨN (NHƯ QUYỂN VỞ TRẮNG)
+  // CẤU TRÚC TRANG BẢNG CHUẨN (NHƯ QUYỂN VỞ TRẮNG)
   const createEmptyPage = () => ({
     canvasData: '',
     textElements: [],
@@ -35,20 +37,19 @@ export default function WhiteboardView() {
   const [pages, setPages] = useState([createEmptyPage()]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
-  // Công cụ active: 'hand' (Select Tool chuẩn Ảnh 1) | 'text' | 'pen' | 'highlighter' | 'eraser' | 'shape_rect' | 'shape_circle' | 'underline_box'
-  const [tool, setTool] = useState('hand');
+  // Công cụ active: 'hand' | 'text' | 'pen' | 'highlighter' | 'eraser' | 'shape_rect' | 'shape_circle' | 'line' | 'underline_box'
+  const [tool, setTool] = useState('text');
   const [color, setColor] = useState('#dc2626');
   const [fontSize, setFontSize] = useState(28);
   const [isBold, setIsBold] = useState(true);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
 
-  // Quản lý Text Objects & Edit Objects
+  // Quản lý Text Objects & Selected State
   const [selectedTextId, setSelectedTextId] = useState(null);
   const [editingTextId, setEditingTextId] = useState(null);
-  const [editingContent, setEditingContent] = useState('');
 
-  // Quản lý Ảnh chụp từ Snipping Tool & Kéo rê di chuyển
+  // Quản lý Ảnh chụp từ Snipping Tool & Thu Phóng Kích Thước (Resize Handles - Ảnh 1)
   const [selectedObjId, setSelectedObjId] = useState(null);
   const [draggingObjId, setDraggingObjId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -56,7 +57,7 @@ export default function WhiteboardView() {
   // Pan Canvas
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
-  // Trạng thái vẽ Canvas & PREVIEW NÉT VẼ KHUNG KHOANH TRÒN / GẠCH CHÂN CHÍNH XÁC
+  // Trạng thái vẽ Canvas & LINE KẺ ĐƯỜNG THẲNG GẠCH CHÂN (ẢNH 2)
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [currentMousePos, setCurrentMousePos] = useState({ x: 0, y: 0 });
@@ -82,7 +83,7 @@ export default function WhiteboardView() {
   const [timerSeconds, setTimerSeconds] = useState(300);
   const [timerRunning, setTimerRunning] = useState(false);
 
-  // Lưu & Mở Bài Dạy
+  // Lưu & Mở Bài Dạy Theo Khóa Học
   const [savedLessons, setSavedLessons] = useState([]);
   const [loadingSavedLessons, setLoadingSavedLessons] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState('Unit 1: Local Community');
@@ -95,6 +96,32 @@ export default function WhiteboardView() {
     '#ff66a1', '#ff944d', '#ffe680', '#80ffaa', '#6680ff', '#b366ff', '#808080', '#4d4d4d',
     '#ffb3d1', '#ffd9b3', '#ffffcc', '#d9ffb3', '#80d4ff', '#d9b3ff', '#cccccc', '#333333'
   ];
+
+  // NẠP TỰ ĐỘNG BÀI DẠY TỪ KHÓA HỌC (NẾU MỞ TỪ MỤC THÊM BÀI HỌC MỚI - ẢNH 4)
+  useEffect(() => {
+    if (activityId) {
+      const fetchActivityLesson = async () => {
+        const { data, error } = await supabase
+          .from('activities')
+          .select('*')
+          .eq('id', activityId)
+          .single();
+
+        if (!error && data && data.content) {
+          setLessonTitle(data.title.replace('[WHITEBOARD]', '').trim());
+          try {
+            const parsed = JSON.parse(data.content);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setPages(parsed);
+              setCurrentPageIndex(0);
+              setTimeout(() => renderPageCanvas(parsed[0]), 100);
+            }
+          } catch (e) {}
+        }
+      };
+      fetchActivityLesson();
+    }
+  }, [activityId]);
 
   // KHỞI TẠO VÀ LẮNG NGHE SỰ KIỆN PASTE TỪ SNIPPING TOOL (CTRL + V DÁN BÀI TẬP VÀO)
   useEffect(() => {
@@ -118,10 +145,10 @@ export default function WhiteboardView() {
               id: 'img_' + Date.now(),
               type: 'image',
               src: event.target.result,
-              x: 300 - panOffset.x,
+              x: 250 - panOffset.x,
               y: 150 - panOffset.y,
-              width: 550,
-              height: 380,
+              width: 500,
+              height: 350,
             };
             setPages((prev) => {
               const copy = [...prev];
@@ -133,7 +160,6 @@ export default function WhiteboardView() {
               return copy;
             });
             setSelectedObjId(newObj.id);
-            setTool('hand'); // Chuyển sang Nút Bàn Tay Select Tool để kéo rê ngay
           };
           reader.readAsDataURL(blob);
         }
@@ -273,7 +299,6 @@ export default function WhiteboardView() {
       setCurrentPageIndex(newIndex);
       setSelectedTextId(null);
       setSelectedObjId(null);
-      setEditingTextId(null);
       renderPageCanvas(pages[newIndex]);
     }
   };
@@ -283,7 +308,6 @@ export default function WhiteboardView() {
     const newIndex = currentPageIndex + 1;
     setSelectedTextId(null);
     setSelectedObjId(null);
-    setEditingTextId(null);
     if (newIndex >= pages.length) {
       const newEmpty = createEmptyPage();
       setPages([...pages, newEmpty]);
@@ -299,7 +323,6 @@ export default function WhiteboardView() {
     saveCurrentPageCanvas();
     setSelectedTextId(null);
     setSelectedObjId(null);
-    setEditingTextId(null);
     const newEmpty = createEmptyPage();
     const newIndex = pages.length;
     setPages([...pages, newEmpty]);
@@ -345,18 +368,18 @@ export default function WhiteboardView() {
     };
   };
 
-  // TẠO Ô VĂN BẢN TRẮNG TINH
-  const handleCreateNewText = (e) => {
+  // TẠO VÀ CHỌN VĂN BẢN TRỰC TIẾP NHẢY TRỎ CHUỘT (YÊU CẦU 3: NHẤP ĐÂU TRỎ CHUỘT Ở ĐÓ VÀ LUÔN CÓ NÚT RÊ/SỬA/XÓA - ẢNH 3)
+  const handleCanvasClickToCreateText = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = (e ? e.clientX - rect.left : 250) - panOffset.x;
-    const y = (e ? e.clientY - rect.top : 200) - panOffset.y;
+    const x = e.clientX - rect.left - panOffset.x;
+    const y = e.clientY - rect.top - panOffset.y;
 
     const newId = 'text_' + Date.now();
     const newBox = {
       id: newId,
       x,
       y,
-      text: '',
+      text: 'Gõ nội dung bài giảng tại đây...',
       color: color,
       fontSize: fontSize,
       isBold: isBold,
@@ -374,28 +397,32 @@ export default function WhiteboardView() {
       return copy;
     });
 
-    setEditingTextId(newId);
-    setEditingContent('');
     setSelectedTextId(newId);
+    setEditingTextId(newId);
   };
 
-  const handleSaveEditingText = (id) => {
+  // PHÓNG TO / THU NHỎ KÍCH THƯỚC ẢNH CHỤP SNIPPING TOOL (RESIZE HANDLES - ẢNH 1)
+  const handleResizeImage = (id, deltaWidth, deltaHeight, e) => {
+    e.stopPropagation();
     setPages((prev) => {
       const copy = [...prev];
       const cur = copy[currentPageIndex] || createEmptyPage();
-      const updated = (cur.textElements || []).map((b) =>
-        b.id === id ? { ...b, text: editingContent } : b
-      );
-      copy[currentPageIndex] = { ...cur, textElements: updated };
+      const updated = (cur.objectElements || []).map((o) => {
+        if (o.id === id) {
+          const newW = Math.max(150, (o.width || 500) + deltaWidth);
+          const newH = Math.max(100, (o.height || 350) + deltaHeight);
+          return { ...o, width: newW, height: newH };
+        }
+        return o;
+      });
+      copy[currentPageIndex] = { ...cur, objectElements: updated };
       return copy;
     });
-    setEditingTextId(null);
   };
 
-  // KÉO RÊ BÀN TAY DI CHUYỂN CẢ VĂN BẢN VÀ ẢNH CHỤP (SELECT TOOL - CHUẨN 100% ẢNH 1)
+  // KÉO RÊ BÀN TAY DI CHUYỂN
   const handleStartDragElement = (id, isImage, e) => {
     e.stopPropagation();
-    if (tool !== 'hand') return;
     setDraggingObjId(id);
 
     const curPage = pages[currentPageIndex] || createEmptyPage();
@@ -477,7 +504,7 @@ export default function WhiteboardView() {
     if (selectedObjId === id) setSelectedObjId(null);
   };
 
-  // CANVAS DRAWING LOGIC
+  // CANVAS DRAWING LOGIC & LINE KẺ ĐƯỜNG THẲNG GẠCH CHÂN (ẢNH 2)
   const startDrawing = (e) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -534,6 +561,23 @@ export default function WhiteboardView() {
       ctx.strokeStyle = color === '#000000' ? '#dc2626' : color;
       ctx.lineWidth = tool === 'underline_box' ? 2 : 3;
       ctx.strokeRect(startPos.x, startPos.y, x - startPos.x, y - startPos.y);
+    } else if (tool === 'line' && e) {
+      // VẼ ĐƯỜNG THẲNG KẺ GẠCH CHÂN (CÓ HỖ TRỢ PHÍM SHIFT KẺ THẲNG HÀNG TĂM TẮP - ẢNH 2)
+      const rect = canvas.getBoundingClientRect();
+      let x = e.clientX - rect.left - panOffset.x;
+      let y = e.clientY - rect.top - panOffset.y;
+
+      if (e.shiftKey) {
+        // Đè phím Shift để ép đường kẻ vuông góc nằm ngang tuyệt đối
+        y = startPos.y;
+      }
+
+      ctx.strokeStyle = color === '#000000' ? '#dc2626' : color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(startPos.x, startPos.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
     } else if (tool === 'shape_circle' && e) {
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left - panOffset.x;
@@ -549,20 +593,32 @@ export default function WhiteboardView() {
     saveCanvasState();
   };
 
-  // LƯU BÀI DẠY
+  // LƯU BÀI DẠY (TỰ ĐỘNG CẬP NHẬT VÀO HỆ THỐNG / BÀI HỌC KHÓA HỌC)
   const handleSaveLesson = async () => {
     setSavingLesson(true);
     saveCurrentPageCanvas();
     try {
-      await supabase.from('activities').insert([
-        {
-          title: `[WHITEBOARD: ${selectedUnit}] ${lessonTitle.trim()}`,
-          type: 'resource',
-          content: JSON.stringify(pages),
-        },
-      ]);
+      if (activityId) {
+        // Cập nhật lại bài học Whiteboard trong Khóa học
+        await supabase
+          .from('activities')
+          .update({
+            content: JSON.stringify(pages),
+          })
+          .eq('id', activityId);
 
-      alert(`🎉 ĐÃ LƯU BÀI DẠY THEO UNiT VÀO HỆ THỐNG THÀNH CÔNG!\n\n• Unit: ${selectedUnit}\n• Tên bài: ${lessonTitle}`);
+        alert(`🎉 ĐÃ LƯU THÀNH CÔNG BÀI GIẢNG WHITEBOARD VÀO MỤC KHÓA HỌC!`);
+      } else {
+        await supabase.from('activities').insert([
+          {
+            title: `[WHITEBOARD: ${selectedUnit}] ${lessonTitle.trim()}`,
+            type: 'resource',
+            content: JSON.stringify(pages),
+          },
+        ]);
+
+        alert(`🎉 ĐÃ LƯU BÀI DẠY THEO UNiT VÀO HỆ THỐNG THÀNH CÔNG!\n\n• Unit: ${selectedUnit}\n• Tên bài: ${lessonTitle}`);
+      }
       setActiveWindow(null);
     } catch (err) {
       alert('Lỗi lưu bài dạy: ' + err.message);
@@ -604,7 +660,7 @@ export default function WhiteboardView() {
       {/* HEADER BAR CHUẨN MYVIEWBOARD (ẢNH 1) */}
       <div className="bg-[#d5ceb3] text-slate-800 px-4 py-2 flex justify-between items-center border-b border-[#b8af91] shadow-xs text-xs font-bold z-40 relative">
         <div className="flex items-center space-x-3">
-          <button onClick={() => navigate('/dashboard')} className="p-1 hover:bg-[#c4bb9c] rounded-lg transition flex items-center space-x-1">
+          <button onClick={() => navigate(-1)} className="p-1 hover:bg-[#c4bb9c] rounded-lg transition flex items-center space-x-1">
             <ArrowLeft className="w-4 h-4" />
             <span>Thoát Bảng</span>
           </button>
@@ -625,11 +681,12 @@ export default function WhiteboardView() {
           </button>
 
           <button
-            onClick={() => setActiveWindow('save')}
-            className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold rounded-xl shadow-xs transition flex items-center space-x-1 border border-emerald-600/40"
+            onClick={handleSaveLesson}
+            disabled={savingLesson}
+            className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold rounded-xl shadow-xs transition flex items-center space-x-1 border border-emerald-600/40"
           >
             <Save className="w-4 h-4" />
-            <span>💾 Lưu Bài Dạy</span>
+            <span>{savingLesson ? 'Đang Lưu...' : '💾 Lưu Bài Dạy'}</span>
           </button>
 
           <button
@@ -649,10 +706,8 @@ export default function WhiteboardView() {
       {/* KHU VỰC VẼ CANVAS CHÍNH VỚI PAN OFFSET */}
       <div
         onClick={() => {
-          if (tool === 'hand') {
-            setSelectedTextId(null);
-            setSelectedObjId(null);
-          }
+          setSelectedTextId(null);
+          setSelectedObjId(null);
         }}
         style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px)` }}
         className="relative w-full h-full"
@@ -661,28 +716,33 @@ export default function WhiteboardView() {
         <canvas
           ref={canvasRef}
           onMouseDown={(e) => {
-            if (tool !== 'hand' && tool !== 'text') startDrawing(e);
+            if (tool === 'text') {
+              handleCanvasClickToCreateText(e);
+            } else {
+              startDrawing(e);
+            }
           }}
-          className="w-full h-[calc(100vh-110px)] cursor-default block"
+          className="w-full h-[calc(100vh-110px)] cursor-crosshair block"
         />
 
-        {/* PREVIEW KHUNG KHOANH TRÒN / GẠCH CHÂN CÂU TRỰC TIẾP TRONG KHI ĐANG KÉO RÊ CHUỘT */}
-        {isDrawing && (tool === 'shape_rect' || tool === 'underline_box') && (
+        {/* PREVIEW KHUNG KHOANH TRÒN / GẠCH CHÂN / ĐƯỜNG THẲNG TRỰC TIẾP KHI KÉO RÊ CHUỘT (ẢNH 2) */}
+        {isDrawing && (tool === 'shape_rect' || tool === 'underline_box' || tool === 'line') && (
           <div
             style={{
               left: Math.min(startPos.x, currentMousePos.x),
-              top: Math.min(startPos.y, currentMousePos.y),
+              top: tool === 'line' ? startPos.y - 2 : Math.min(startPos.y, currentMousePos.y),
               width: Math.max(10, Math.abs(currentMousePos.x - startPos.x)),
-              height: tool === 'underline_box' ? Math.max(8, Math.abs(currentMousePos.y - startPos.y)) : Math.max(10, Math.abs(currentMousePos.y - startPos.y)),
+              height: tool === 'line' ? 4 : Math.max(8, Math.abs(currentMousePos.y - startPos.y)),
             }}
-            className="absolute border-2 border-rose-500 rounded-md border-dashed pointer-events-none z-30 bg-rose-500/10"
+            className={`absolute border-2 border-rose-500 rounded-md pointer-events-none z-30 ${
+              tool === 'line' ? 'bg-rose-500 h-1 border-none' : 'border-dashed bg-rose-500/10'
+            }`}
           />
         )}
 
-        {/* VĂN BẢN TRONG TRANG */}
+        {/* CÁC Ô VĂN BẢN VỚI THANH NÚT RÊ, SỬA, XÓA LUÔN LUÔN HIỂN THỊ CHUẨN 100% ẢNH 3 */}
         {(currentPage.textElements || []).map((box) => {
           const isSelected = selectedTextId === box.id;
-          const isEditing = editingTextId === box.id;
 
           return (
             <div
@@ -690,152 +750,163 @@ export default function WhiteboardView() {
               style={{ left: box.x, top: box.y }}
               onClick={(e) => {
                 e.stopPropagation();
-                if (tool === 'hand') setSelectedTextId(box.id);
+                setSelectedTextId(box.id);
               }}
               onMouseDown={(e) => handleStartDragElement(box.id, false, e)}
-              className={`absolute z-30 group transition duration-75 ${
-                tool === 'hand' ? 'cursor-grab active:cursor-grabbing' : 'cursor-text'
-              } ${
-                isSelected
-                  ? 'ring-2 ring-amber-400 bg-amber-500/10 rounded-xl p-1.5 shadow-lg'
-                  : 'p-1 hover:ring-1 hover:ring-slate-400 rounded-xl'
+              className={`absolute z-30 group cursor-move p-2 rounded-2xl transition ${
+                isSelected ? 'ring-2 ring-amber-400 bg-amber-500/10 shadow-xl' : 'hover:ring-1 hover:ring-slate-400/60'
               }`}
             >
-              {isSelected && tool === 'hand' && (
-                <div className="absolute -top-11 left-0 bg-white border border-slate-300 rounded-xl p-1 shadow-xl flex items-center space-x-1.5 z-50 text-xs font-bold animate-fade-in">
-                  <div className="px-2 py-0.5 bg-amber-500 text-slate-950 font-extrabold text-[10px] rounded flex items-center space-x-1">
-                    <Hand className="w-3 h-3" />
-                    <span>Rê Di Chuyển</span>
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingTextId(box.id);
-                      setEditingContent(box.text);
-                    }}
-                    className="p-1 hover:bg-slate-100 rounded text-sky-700 flex items-center space-x-1"
-                    title="Chỉnh sửa chữ"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span className="text-[10px]">Sửa</span>
-                  </button>
-
-                  <button
-                    onClick={(e) => handleDeleteTextObj(box.id, e)}
-                    className="p-1 hover:bg-rose-100 rounded text-rose-600 flex items-center space-x-1"
-                    title="Xóa ô văn bản này"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span className="text-[10px]">Xóa</span>
-                  </button>
-                </div>
-              )}
-
-              {isEditing ? (
-                <div className="bg-white p-2.5 rounded-2xl shadow-2xl border-2 border-emerald-500 min-w-[400px]">
-                  <div className="flex items-center space-x-2 mb-2 pb-1.5 border-b text-xs font-bold">
-                    <button onClick={() => setIsBold(!isBold)} className={`p-1 rounded ${isBold ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}><Bold className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => setIsItalic(!isItalic)} className={`p-1 rounded ${isItalic ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}><Italic className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => setIsUnderline(!isUnderline)} className={`p-1 rounded ${isUnderline ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}><Underline className="w-3.5 h-3.5" /></button>
-                    
-                    <select value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} className="p-1 text-xs border rounded font-bold">
-                      <option value={20}>20px</option>
-                      <option value={28}>28px (Chuẩn)</option>
-                      <option value={36}>36px</option>
-                      <option value={48}>48px (Lớn)</option>
-                    </select>
-
-                    <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-5 h-5 rounded cursor-pointer border-none" />
-
-                    <button
-                      onClick={() => handleSaveEditingText(box.id)}
-                      className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-extrabold ml-auto shadow-2xs"
-                    >
-                      ✓ Hoàn Thành
-                    </button>
-                  </div>
-
-                  <textarea
-                    autoFocus
-                    rows={3}
-                    value={editingContent}
-                    onChange={(e) => setEditingContent(e.target.value)}
-                    style={{
-                      color: color,
-                      fontSize: `${fontSize}px`,
-                      fontWeight: isBold ? 'bold' : 'normal',
-                      fontStyle: isItalic ? 'italic' : 'normal',
-                    }}
-                    className="w-full p-2 border-none outline-none resize bg-transparent font-sans text-slate-900"
-                  />
-                </div>
-              ) : (
+              {/* THANH THUỘC TÍNH RÊ, SỬA, XÓA LUÔN CỐ ĐỊNH PHÍA TRÊN ẢNH 3 */}
+              <div className="absolute -top-11 left-0 bg-white border border-slate-300 rounded-xl p-1 shadow-2xl flex items-center space-x-1.5 z-50 text-xs font-bold animate-fade-in">
                 <div
-                  style={{
-                    color: box.color || color,
-                    fontSize: `${box.fontSize || fontSize}px`,
-                    fontWeight: box.isBold ? 'bold' : 'normal',
-                    fontStyle: box.isItalic ? 'italic' : 'normal',
-                    textDecoration: box.isUnderline ? 'underline' : 'none',
-                  }}
-                  className="whitespace-pre-wrap leading-relaxed font-sans select-none tracking-tight"
+                  className="px-2 py-0.5 bg-amber-500 text-slate-950 font-extrabold text-[10px] rounded flex items-center space-x-1 cursor-grab"
+                  title="Giữ nút này để rê di chuyển"
                 >
-                  {box.text || 'Nhấp để gõ văn bản...'}
+                  <Hand className="w-3 h-3" />
+                  <span>Rê Di Chuyển</span>
                 </div>
-              )}
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newText = prompt('Sửa lại nội dung văn bản:', box.text);
+                    if (newText !== null) {
+                      setPages((prev) => {
+                        const copy = [...prev];
+                        const cur = copy[currentPageIndex] || createEmptyPage();
+                        const updated = (cur.textElements || []).map((b) =>
+                          b.id === box.id ? { ...b, text: newText } : b
+                        );
+                        copy[currentPageIndex] = { ...cur, textElements: updated };
+                        return copy;
+                      });
+                    }
+                  }}
+                  className="p-1 hover:bg-slate-100 rounded text-sky-700 flex items-center space-x-1"
+                  title="Chỉnh sửa văn bản"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span className="text-[10px]">Sửa</span>
+                </button>
+
+                <button
+                  onClick={(e) => handleDeleteTextObj(box.id, e)}
+                  className="p-1 hover:bg-rose-100 rounded text-rose-600 flex items-center space-x-1"
+                  title="Xóa ô văn bản này"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="text-[10px]">Xóa</span>
+                </button>
+              </div>
+
+              {/* VĂN BẢN GÕ VẬN HÀNH TRẮNG TINH MỊN ĐẸP KHÔNG DÒNG CHỮ MỜ */}
+              <textarea
+                rows={2}
+                value={box.text}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPages((prev) => {
+                    const copy = [...prev];
+                    const cur = copy[currentPageIndex] || createEmptyPage();
+                    const updated = (cur.textElements || []).map((b) =>
+                      b.id === box.id ? { ...b, text: val } : b
+                    );
+                    copy[currentPageIndex] = { ...cur, textElements: updated };
+                    return copy;
+                  });
+                }}
+                style={{
+                  color: box.color || color,
+                  fontSize: `${box.fontSize || fontSize}px`,
+                  fontWeight: box.isBold ? 'bold' : 'normal',
+                  fontStyle: box.isItalic ? 'italic' : 'normal',
+                }}
+                className="bg-transparent border border-sky-400 focus:border-emerald-500 rounded-xl p-2 outline-none resize min-w-[350px] font-sans shadow-xs text-slate-900"
+              />
             </div>
           );
         })}
 
-        {/* ẢNH BÀI TẬP CHỤP SNIPPING TOOL (KÉO RÊ DI CHUYỂN KHÔNG BỊ ĐƠ - ẢNH 1) */}
+        {/* ẢNH CHỤP SNIPPING TOOL (KÈM NÚT KÉO RÊ VÀ NÚT TĂNG/GIẢM KÍCH THƯỚC 4 GÓC - ẢNH 1) */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
+          const imgWidth = obj.width || 550;
+          const imgHeight = obj.height || 380;
 
           return (
             <div
               key={obj.id}
-              style={{ left: obj.x, top: obj.y }}
+              style={{ left: obj.x, top: obj.y, width: imgWidth, height: imgHeight }}
               onClick={(e) => {
                 e.stopPropagation();
-                if (tool === 'hand') setSelectedObjId(obj.id);
+                setSelectedObjId(obj.id);
               }}
               onMouseDown={(e) => handleStartDragElement(obj.id, true, e)}
-              className={`absolute z-20 transition duration-75 ${
-                tool === 'hand' ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
-              } ${
+              className={`absolute z-20 transition duration-75 cursor-grab active:cursor-grabbing ${
                 isSelected
                   ? 'ring-4 ring-emerald-500 rounded-2xl p-1 bg-white/50 shadow-2xl'
                   : 'p-1 border-2 border-dashed border-sky-400/60 rounded-2xl hover:border-emerald-400'
               }`}
             >
-              {isSelected && tool === 'hand' && (
-                <div className="absolute -top-11 right-0 bg-white border border-slate-300 rounded-xl p-1 shadow-xl flex items-center space-x-1.5 z-50 text-xs font-bold animate-fade-in">
-                  <div className="px-2 py-0.5 bg-amber-500 text-slate-950 font-extrabold text-[10px] rounded flex items-center space-x-1">
-                    <Hand className="w-3 h-3" />
-                    <span>Kéo Di Chuyển Ảnh</span>
+              {/* THANH THUỘC TÍNH VÀ NÚT CO GIÃN THU PHÓNG KÍCH THƯỚC ẢNH CHỤP (ẢNH 1) */}
+              {isSelected && (
+                <>
+                  <div className="absolute -top-11 right-0 bg-white border border-slate-300 rounded-xl p-1 shadow-xl flex items-center space-x-1.5 z-50 text-xs font-bold animate-fade-in">
+                    <div className="px-2 py-0.5 bg-amber-500 text-slate-950 font-extrabold text-[10px] rounded flex items-center space-x-1">
+                      <Hand className="w-3 h-3" />
+                      <span>Kéo Di Chuyển Ảnh</span>
+                    </div>
+
+                    <button
+                      onClick={(e) => handleResizeImage(obj.id, 80, 50, e)}
+                      className="px-2 py-0.5 bg-sky-100 text-sky-800 hover:bg-sky-200 rounded text-[10px] flex items-center space-x-0.5"
+                      title="Phóng to kích thước"
+                    >
+                      <ZoomIn className="w-3 h-3" />
+                      <span>Phóng To</span>
+                    </button>
+
+                    <button
+                      onClick={(e) => handleResizeImage(obj.id, -80, -50, e)}
+                      className="px-2 py-0.5 bg-amber-100 text-amber-800 hover:bg-amber-200 rounded text-[10px] flex items-center space-x-0.5"
+                      title="Thu nhỏ kích thước"
+                    >
+                      <ZoomOut className="w-3 h-3" />
+                      <span>Thu Nhỏ</span>
+                    </button>
+
+                    <button
+                      onClick={(e) => handleDeleteImageObj(obj.id, e)}
+                      className="p-1 hover:bg-rose-100 rounded text-rose-600 flex items-center space-x-1"
+                      title="Xóa ảnh này"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="text-[10px]">Xóa</span>
+                    </button>
                   </div>
 
-                  <button
-                    onClick={(e) => handleDeleteImageObj(obj.id, e)}
-                    className="p-1 hover:bg-rose-100 rounded text-rose-600 flex items-center space-x-1"
-                    title="Xóa ảnh này"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span className="text-[10px]">Xóa Ảnh</span>
-                  </button>
-                </div>
+                  {/* 4 NÚT TRÒN GÓC KÉO CO GIÃN ẢNH CHUYÊN NGHIỆP (ẢNH 1) */}
+                  <div
+                    onMouseDown={(e) => handleResizeImage(obj.id, 50, 40, e)}
+                    className="absolute -bottom-2 -right-2 w-5 h-5 bg-emerald-600 border-2 border-white rounded-full cursor-se-resize shadow-lg hover:scale-125 transition z-50"
+                  />
+                  <div
+                    onMouseDown={(e) => handleResizeImage(obj.id, -50, -40, e)}
+                    className="absolute -top-2 -left-2 w-5 h-5 bg-emerald-600 border-2 border-white rounded-full cursor-nw-resize shadow-lg hover:scale-125 transition z-50"
+                  />
+                </>
               )}
 
               {obj.type === 'image' && (
-                <img src={obj.src} alt="Snipped task" className="max-w-xl max-h-[500px] object-contain rounded-xl shadow-md pointer-events-none" />
+                <img src={obj.src} alt="Snipped task" className="w-full h-full object-contain rounded-xl shadow-md pointer-events-none" />
               )}
             </div>
           );
         })}
       </div>
 
-      {/* POPUP BẢNG MÀU & SHAPES KHOANH TRÒN NGUYÊN BẢN (ẢNH 2) */}
+      {/* POPUP BẢNG MÀU & SHAPES KHOANH TRÒN NGUYÊN BẢN (ẢNH 2 - THÊM CÔNG CỤ ĐƯỜNG THẲNG GẠCH CHÂN PHÍM SHIFT) */}
       {activeWindow === 'shapes' && (
         <div className="absolute top-16 right-16 z-50 bg-[#e4dec3] border-2 border-[#b8af91] rounded-2xl shadow-2xl p-4 w-80 space-y-4 animate-scale-up">
           <div className="flex justify-between items-center border-b border-[#c4bb9c] pb-2 font-extrabold text-xs text-slate-800">
@@ -860,21 +931,21 @@ export default function WhiteboardView() {
           </div>
 
           <div className="space-y-2 border-t pt-2">
-            <span className="text-[11px] font-bold text-slate-700 block uppercase">Khoanh Vùng Công Thức & Gạch Chân Câu Văn:</span>
+            <span className="text-[11px] font-bold text-slate-700 block uppercase">KHOANH VÙNG CÔNG THỨC & GẠCH CHÂN CÂU VĂN:</span>
             <div className="grid grid-cols-2 gap-2 text-xs font-extrabold">
+              <button
+                onClick={() => { setTool('line'); setActiveWindow(null); }}
+                className="p-2.5 bg-white hover:bg-emerald-50 border border-emerald-400 rounded-xl text-emerald-900 flex items-center space-x-1.5 justify-center shadow-2xs"
+              >
+                <Minus className="w-4 h-4 text-emerald-600" />
+                <span>📏 Đường Thẳng (Shift)</span>
+              </button>
               <button
                 onClick={() => { setTool('underline_box'); setActiveWindow(null); }}
                 className="p-2.5 bg-white hover:bg-rose-50 border border-rose-400 rounded-xl text-rose-800 flex items-center space-x-1.5 justify-center shadow-2xs"
               >
                 <Square className="w-4 h-4 text-rose-600" />
-                <span>▭ Khung Gạch Chân Câu</span>
-              </button>
-              <button
-                onClick={() => { setTool('shape_circle'); setActiveWindow(null); }}
-                className="p-2.5 bg-white hover:bg-sky-50 border border-sky-400 rounded-xl text-sky-800 flex items-center space-x-1.5 justify-center shadow-2xs"
-              >
-                <Circle className="w-4 h-4 text-sky-600" />
-                <span>Khoanh Tròn</span>
+                <span>▭ Khung Gạch Chân</span>
               </button>
             </div>
           </div>
@@ -1129,7 +1200,7 @@ export default function WhiteboardView() {
 
         {/* CÁC CÔNG CỤ NGUYÊN BẢN CHUẨN 100% ẢNH 1 MYVIEWBOARD */}
         <div className="flex items-center space-x-1">
-          {/* NÚT BÀN TAY SELECT TOOL BẠN BÈ VỚI GIÁO VIÊN (ẢNH 1) */}
+          {/* NÚT BÀN TAY SELECT TOOL DÙNG ĐỂ CHỌN VÀ RÊ KÉO SẮP XẾP BÀI GIẢNG (ẢNH 1) */}
           <button
             onClick={() => setTool('hand')}
             className={`p-2.5 rounded-xl transition ${tool === 'hand' ? 'bg-amber-500 text-slate-950 shadow-md font-bold ring-2 ring-amber-300' : 'hover:bg-[#c4bb9c] text-slate-800'}`}
@@ -1138,7 +1209,7 @@ export default function WhiteboardView() {
             <Hand className="w-5 h-5" />
           </button>
 
-          {/* Gõ Văn Bản Nhảy Trỏ Chuột Trực Tiếp */}
+          {/* Gõ Văn Bản Nhảy Trỏ Chuột Trực Tiếp (Bấm nút T tạo ô text ngay vị trí trỏ chuột) */}
           <button
             onClick={(e) => {
               setTool('text');
@@ -1177,11 +1248,11 @@ export default function WhiteboardView() {
             <Eraser className="w-5 h-5" />
           </button>
 
-          {/* Bảng Màu & Shapes Khoanh Vùng / Gạch Chân Câu Văn */}
+          {/* Bảng Màu & Shapes Khoanh Vùng / Đường Thẳng Gạch Chân (Ảnh 2) */}
           <button
             onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
             className="p-2.5 hover:bg-[#c4bb9c] rounded-xl transition text-slate-800"
-            title="Bảng màu & Khung gạch chân câu / khoanh tròn"
+            title="Bảng màu & Đường thẳng kẻ gạch chân / Khoanh tròn (Ảnh 2)"
           >
             <Square className="w-5 h-5 text-purple-700" />
           </button>
