@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase, uploadLMSFile } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import CenterToastModal from '../components/common/CenterToastModal';
-import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check, Eye, EyeOff, ShieldCheck, Crown, Sparkles } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function Dashboard() {
@@ -266,40 +266,61 @@ export default function Dashboard() {
       />
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Banner Header Dashboard */}
-        <div className="bg-navy-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-slate-800">
-          <div className="space-y-2 max-w-2xl">
-            <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-xl inline-block">
-              LMS TIẾNG ANH - SMART E-LEARNING
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Xin chào, {profile?.full_name || user?.email?.split('@')[0]}!
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Tham gia các khóa học Tiếng Anh E-learning tương tác, nhập Mã Khóa Học do Giáo viên cung cấp để gia nhập lớp và làm bài thi tự động.
-            </p>
-          </div>
+        {/* BANNER HEADER CHUYÊN NGHIỆP SANG TRỌNG CÓ ẢNH NỀN VÀ OVERLAY 15% CHUẨN ẢNH 3 */}
+        <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900 text-white min-h-[220px] flex items-center">
+          {/* Background Image lớp phủ mờ 15% */}
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-25 scale-105 transition duration-700 hover:scale-100"
+            style={{
+              backgroundImage: `url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&auto=format&fit=crop&q=80')`,
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/80 to-slate-900/40" />
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Nút Nhập Mã Gia Nhập Lớp cho Học sinh */}
-            <button
-              onClick={() => setIsJoinModalOpen(true)}
-              className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center space-x-2 border border-amber-300/40"
-            >
-              <Key className="w-4 h-4 text-slate-950" />
-              <span>🔑 Nhập Mã Gia Nhập Lớp</span>
-            </button>
+          {/* Banner Content */}
+          <div className="relative z-10 p-6 sm:p-10 w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] font-extrabold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-xl flex items-center space-x-1.5 backdrop-blur-xs">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>SỔ TAY DẠY HỌC THCS • GLOBAL SUCCESS</span>
+                </span>
+              </div>
 
-            {/* Nút Tạo Khóa Học Mới dành cho Giáo viên / Admin */}
-            {isTeacher && (
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center space-x-2 border border-emerald-400/40"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ Add a new course (Tạo Khóa Học)</span>
-              </button>
-            )}
+              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                Chào mừng trở lại, {profile?.full_name || user?.email?.split('@')[0]}! 👋
+              </h1>
+
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+                Khám phá nền tảng giáo dục thông minh với đầy đủ công cụ quản lý chuyên môn, bài giảng E-learning tương tác và ngân hàng đề thi bám sát ma trận CV7991.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  onClick={() => setIsJoinModalOpen(true)}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center space-x-2 border border-amber-300/40"
+                >
+                  <Key className="w-4 h-4 text-slate-950" />
+                  <span>🔑 Nhập Mã Gia Nhập Lớp</span>
+                </button>
+
+                {isTeacher && (
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center space-x-2 border border-emerald-400/40"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Add a new course (Tạo Khóa Học)</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Badge Bên Phải Chuẩn ẢNH 3 */}
+            <div className="hidden lg:flex items-center space-x-2 px-5 py-2.5 bg-amber-500/20 border border-amber-400/40 rounded-2xl text-amber-300 text-xs font-extrabold backdrop-blur-md shadow-lg">
+              <Crown className="w-5 h-5 text-amber-400 animate-bounce" />
+              <span>{isTeacher ? '👑 Đặc quyền VIP Giáo Viên' : '🎓 Học Sinh Chính Thức'}</span>
+            </div>
           </div>
         </div>
 
