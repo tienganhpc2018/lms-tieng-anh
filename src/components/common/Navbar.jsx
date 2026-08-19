@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { BookOpen, BarChart2, LogOut, User, ShieldCheck, GraduationCap, Award } from 'lucide-react';
+import { BookOpen, BarChart2, LogOut, User, ShieldCheck, GraduationCap, Award, Users, Settings } from 'lucide-react';
+import UserManagementModal from '../lms/UserManagementModal';
 
 export default function Navbar() {
   const { user, profile, isTeacher, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -32,7 +34,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* MENU NGANG TRÊN CÙNG ĐÃ LOẠI BỎ TAB SOẠN ĐỀ AI VÀ NGÂN HÀNG CÂU HỎI THEO CHỈ ĐẠO CỦA THẦY */}
+          {/* MENU NGANG TRÊN CÙNG TÍCH HỢP QUẢN LÝ HỌC SINH CHUẨN GNOMIO */}
           <div className="hidden md:flex items-center space-x-2">
             <Link
               to="/dashboard"
@@ -58,6 +60,18 @@ export default function Navbar() {
               <Award className="w-4 h-4 text-purple-400" />
               <span>Thi Thử</span>
             </Link>
+
+            {/* QUẢN LÝ HỌC SINH & TÀI KHOẢN (SITE ADMIN FOR TEACHERS) */}
+            {isTeacher && (
+              <button
+                type="button"
+                onClick={() => setIsUserMgmtOpen(true)}
+                className="px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center space-x-2 bg-purple-950/40 text-purple-300 border border-purple-500/30 hover:bg-purple-900 hover:text-white"
+              >
+                <Users className="w-4 h-4 text-purple-400" />
+                <span>Quản Lý Học Sinh (Users)</span>
+              </button>
+            )}
 
             {/* Trang Analytics cho Giáo viên */}
             {isTeacher && (
@@ -114,6 +128,12 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* MODAL QUẢN LÝ HỌC SINH SITE ADMIN */}
+      <UserManagementModal
+        isOpen={isUserMgmtOpen}
+        onClose={() => setIsUserMgmtOpen(false)}
+      />
     </nav>
   );
 }
