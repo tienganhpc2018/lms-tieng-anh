@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { BookOpen, BarChart2, LogOut, User, ShieldCheck, GraduationCap, Award, Users, Settings } from 'lucide-react';
+import { BookOpen, BarChart2, LogOut, ShieldCheck, GraduationCap, Users } from 'lucide-react';
 import UserManagementModal from '../lms/UserManagementModal';
 
 export default function Navbar() {
@@ -34,7 +34,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* MENU NGANG TRÊN CÙNG TÍCH HỢP QUẢN LÝ HỌC SINH CHUẨN GNOMIO */}
+          {/* MENU NGANG TRÊN CÙNG: XÓA HOÀN TOÀN MỤC THI THỬ THEO MỆNH LỆNH THÉP */}
           <div className="hidden md:flex items-center space-x-2">
             <Link
               to="/dashboard"
@@ -46,19 +46,6 @@ export default function Navbar() {
             >
               <BookOpen className="w-4 h-4" />
               <span>Khóa Học</span>
-            </Link>
-
-            {/* TAB MENU: THI THỬ */}
-            <Link
-              to="/mock-exam"
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center space-x-2 ${
-                location.pathname === '/mock-exam'
-                  ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400/30'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Award className="w-4 h-4 text-purple-400" />
-              <span>Thi Thử</span>
             </Link>
 
             {/* QUẢN LÝ HỌC SINH & TÀI KHOẢN (SITE ADMIN FOR TEACHERS) */}
