@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Users, UserPlus, Upload, Search, Key, Trash2, Edit3, CheckCircle, AlertCircle, FileText, Download, ShieldCheck, UserCheck, X } from 'lucide-react';
+import { Users, UserPlus, Upload, Search, Key, Trash2, Edit3, CheckCircle, AlertCircle, FileText, Download, ShieldCheck, UserCheck, X, Lock, Unlock } from 'lucide-react';
 
 export default function UserManagementModal({ isOpen, onClose }) {
-  const [activeTab, setActiveTab] = useState('browse'); // 'browse' | 'add' | 'csv'
+  const [activeTab, setActiveTab] = useState('browse');
   const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,7 +27,6 @@ export default function UserManagementModal({ isOpen, onClose }) {
   const [csvPreviewRows, setCsvPreviewRows] = useState([]);
   const [isUploadingCsv, setIsUploadingCsv] = useState(false);
 
-  // Fetch danh sách học sinh từ bảng profiles
   const fetchUsers = async () => {
     setLoading(true);
     try {
@@ -39,13 +38,12 @@ export default function UserManagementModal({ isOpen, onClose }) {
       if (!error && data) {
         setUsersList(data);
       } else {
-        // Fallback dữ liệu mẫu nếu DB chưa có
         setUsersList([
-          { id: '1', username: 'nhondt', full_name: 'Đinh Thành Nhơn', email: 'nhondt@gmail.com', role: 'student', raw_password_hint: '123456', last_access: '1 ngày trước' },
-          { id: '2', username: 'ngandtt', full_name: 'Đinh Trần Thảo Ngân', email: 'ngandtt@gmail.com', role: 'student', raw_password_hint: '123456', last_access: '2 ngày trước' },
-          { id: '3', username: 'khanhdn', full_name: 'Đoàn Ngọc Khánh Dương', email: 'khanhdn@gmail.com', role: 'student', raw_password_hint: '123456', last_access: '3 ngày trước' },
-          { id: '4', username: 'thuhnm', full_name: 'Hà Nguyễn Minh Thư', email: 'thuhnm@gmail.com', role: 'student', raw_password_hint: '123456', last_access: '1 ngày trước' },
-          { id: '5', username: 'nhihpd', full_name: 'Hoàng Phạm Đông Nhi', email: 'nhihpd@gmail.com', role: 'student', raw_password_hint: '123456', last_access: '5 ngày trước' },
+          { id: '1', username: 'nhondt', full_name: 'Đinh Thành Nhơn', email: 'nhondt@gmail.com', role: 'student', raw_password_hint: '123456', suspended: false },
+          { id: '2', username: 'ngandtt', full_name: 'Đinh Trần Thảo Ngân', email: 'ngandtt@gmail.com', role: 'student', raw_password_hint: '123456', suspended: false },
+          { id: '3', username: 'khanhdn', full_name: 'Đoàn Ngọc Khánh Dương', email: 'khanhdn@gmail.com', role: 'student', raw_password_hint: '123456', suspended: false },
+          { id: '4', username: 'thuhnm', full_name: 'Hà Nguyễn Minh Thư', email: 'thuhnm@gmail.com', role: 'student', raw_password_hint: '123456', suspended: false },
+          { id: '5', username: 'hoangnm', full_name: 'Nguyễn Minh Hoàng', email: 'hoangnm@gmail.com', role: 'student', raw_password_hint: '123456', suspended: false },
         ]);
       }
     } catch (err) {
@@ -59,7 +57,28 @@ export default function UserManagementModal({ isOpen, onClose }) {
     if (isOpen) fetchUsers();
   }, [isOpen]);
 
-  // XỬ LÝ THÊM HỌC SINH THỦ CÔNG (ADD A NEW USER)
+  // BẬT / TẮT KHÓA TẠM THỜI TÀI KHOẢN HỌC SINH (SUSPEND USER ACCOUNT)
+  const handleToggleSuspendUser = async (userItem) => {
+    const newStatus = !userItem.suspended;
+    const actionText = newStatus ? 'KHÓA TẠM THỜI' : 'MỞ KHÓA';
+    if (!window.confirm(`Bạn có chắc chắn muốn ${actionText} tài khoản của học sinh "${userItem.full_name || userItem.username}"?`)) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ suspended: newStatus })
+        .eq('id', userItem.id);
+
+      setUsersList((prev) =>
+        prev.map((u) => (u.id === userItem.id ? { ...u, suspended: newStatus } : u))
+      );
+
+      alert(`🎉 ĐÃ ${actionText} TÀI KHOẢN HỌC SINH THÀNH CÔNG!`);
+    } catch (err) {
+      alert('Lỗi thay đổi trạng thái khóa: ' + err.message);
+    }
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
@@ -79,16 +98,15 @@ export default function UserManagementModal({ isOpen, onClose }) {
         email: finalEmail,
         role: userRole,
         raw_password_hint: password.trim(),
+        suspended: false,
         created_at: new Date().toISOString(),
       };
 
-      // Thử lưu vào Supabase table profiles
-      const { error } = await supabase.from('profiles').insert([newUserObj]);
+      await supabase.from('profiles').insert([newUserObj]);
 
       setUsersList((prev) => [newUserObj, ...prev]);
       alert(`🎉 ĐÃ THÊM HỌC SINH MỚI THÀNH CÔNG!\n\n• Tên đăng nhập: ${username}\n• Mật khẩu: ${password}\n• Họ tên: ${fullName}`);
 
-      // Reset form
       setUsername('');
       setPassword('');
       setFirstName('');
@@ -102,7 +120,6 @@ export default function UserManagementModal({ isOpen, onClose }) {
     }
   };
 
-  // XỬ LÝ ĐỔI MẬT KHẨU / KHÔI PHỤC CHO HỌC SINH
   const handleResetPassword = async () => {
     if (!newPassword.trim() || !resetUser) return;
     setIsResetting(true);
@@ -127,7 +144,6 @@ export default function UserManagementModal({ isOpen, onClose }) {
     }
   };
 
-  // XỬ LÝ XÓA HỌC SINH
   const handleDeleteUser = async (userItem) => {
     if (!window.confirm(`Bạn có chắc chắn muốn xóa học sinh "${userItem.full_name || userItem.username}" khỏi hệ thống?`)) return;
 
@@ -140,7 +156,6 @@ export default function UserManagementModal({ isOpen, onClose }) {
     }
   };
 
-  // XỬ LÝ ĐỌC FILE CSV HÀNG LOẠT
   const handleCsvFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -153,7 +168,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
       const rows = [];
 
       lines.forEach((line, idx) => {
-        if (idx === 0 && line.toLowerCase().includes('username')) return; // Bo qua header
+        if (idx === 0 && line.toLowerCase().includes('username')) return;
         const cols = line.split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
         if (cols.length >= 2) {
           rows.push({
@@ -170,7 +185,6 @@ export default function UserManagementModal({ isOpen, onClose }) {
     reader.readAsText(file);
   };
 
-  // TẢI FILE CSV NẠP CẢ LỚP
   const handleUploadUsersCsv = async () => {
     if (csvPreviewRows.length === 0) {
       alert('Chưa có dữ liệu học sinh từ file CSV!');
@@ -186,6 +200,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
         full_name: `${r.lastname} ${r.firstname}`.trim() || r.username,
         email: r.email,
         role: 'student',
+        suspended: false,
         created_at: new Date().toISOString(),
       }));
 
@@ -203,14 +218,13 @@ export default function UserManagementModal({ isOpen, onClose }) {
     }
   };
 
-  // TẢI FILE CSV MẪU
   const handleDownloadSampleCsv = () => {
     const csvContent = `username,password,firstname,lastname,email
 nhondt,123456,Nhơn,Đinh Thành,nhondt@gmail.com
 ngandtt,123456,Ngân,Đinh Trần Thảo,ngandtt@gmail.com
 khanhdn,123456,Dương,Đoàn Ngọc Khánh,khanhdn@gmail.com
 thuhnm,123456,Thư,Hà Nguyễn Minh,thuhnm@gmail.com
-nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
+hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
 
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -261,6 +275,7 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
         {/* TABS MENU THANH ĐIỀU HƯỚNG */}
         <div className="flex border-b border-slate-200 px-6 pt-3 bg-slate-50 space-x-3">
           <button
+            type="button"
             onClick={() => setActiveTab('browse')}
             className={`px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition flex items-center space-x-2 border-b-2 ${
               activeTab === 'browse'
@@ -273,6 +288,7 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('add')}
             className={`px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition flex items-center space-x-2 border-b-2 ${
               activeTab === 'add'
@@ -285,6 +301,7 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('csv')}
             className={`px-4 py-2.5 rounded-t-xl text-xs font-extrabold transition flex items-center space-x-2 border-b-2 ${
               activeTab === 'csv'
@@ -316,6 +333,7 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
 
                 <div className="flex space-x-2">
                   <button
+                    type="button"
                     onClick={() => setActiveTab('add')}
                     className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1"
                   >
@@ -324,6 +342,7 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => setActiveTab('csv')}
                     className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1"
                   >
@@ -333,7 +352,7 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
                 </div>
               </div>
 
-              {/* BẢNG DANH SÁCH CHUẨN GNOMIO */}
+              {/* BẢNG DANH SÁCH CHUẨN GNOMIO VỚI TÍNH NĂNG KHÓA TẠM THỜI (SUSPEND ACCOUNT) */}
               <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-100 text-slate-800 font-extrabold uppercase border-b border-slate-200">
@@ -341,19 +360,24 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
                       <th className="p-3">Họ và tên (First / Last name)</th>
                       <th className="p-3">Username / Email</th>
                       <th className="p-3">Mật khẩu cấp</th>
-                      <th className="p-3">Vai trò</th>
+                      <th className="p-3">Trạng thái khóa (Suspend)</th>
                       <th className="p-3 text-right">Thao tác Admin</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                     {filteredUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-slate-50 transition">
+                      <tr key={u.id} className={`transition ${u.suspended ? 'bg-rose-50/50' : 'hover:bg-slate-50'}`}>
                         <td className="p-3">
                           <div className="flex items-center space-x-2.5">
-                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-extrabold flex items-center justify-center text-xs">
+                            <div className={`w-8 h-8 rounded-full font-extrabold flex items-center justify-center text-xs ${
+                              u.suspended ? 'bg-rose-200 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                            }`}>
                               {(u.full_name || u.username || 'U')[0].toUpperCase()}
                             </div>
-                            <span className="font-extrabold text-slate-900">{u.full_name || u.username}</span>
+                            <div>
+                              <span className="font-extrabold text-slate-900 block">{u.full_name || u.username}</span>
+                              {u.suspended && <span className="text-[10px] font-extrabold text-rose-600 block">🔒 KHÓA TẠM THỜI</span>}
+                            </div>
                           </div>
                         </td>
                         <td className="p-3">
@@ -368,14 +392,22 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
                           </span>
                         </td>
                         <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${
-                            u.role === 'teacher' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'
-                          }`}>
-                            {u.role === 'teacher' ? 'GIÁO VIÊN' : 'HỌC SINH'}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSuspendUser(u)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold flex items-center space-x-1 border transition ${
+                              u.suspended
+                                ? 'bg-rose-600 text-white border-transparent'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                            }`}
+                          >
+                            {u.suspended ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                            <span>{u.suspended ? '🔒 Đang Khóa' : '🔓 Đang Mở'}</span>
+                          </button>
                         </td>
                         <td className="p-3 text-right space-x-1.5">
                           <button
+                            type="button"
                             onClick={() => setResetUser(u)}
                             className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold rounded-lg transition"
                             title="Khôi phục / Đổi mật khẩu"
@@ -383,6 +415,7 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
                             🔑 Đổi MK
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleDeleteUser(u)}
                             className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 text-[11px] font-bold rounded-lg transition"
                             title="Xóa học sinh này"
@@ -504,6 +537,7 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
                 </h3>
 
                 <button
+                  type="button"
                   onClick={handleDownloadSampleCsv}
                   className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold text-xs rounded-xl transition flex items-center space-x-1"
                 >
@@ -564,6 +598,7 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
 
                   <div className="flex justify-end pt-2">
                     <button
+                      type="button"
                       onClick={handleUploadUsersCsv}
                       disabled={isUploadingCsv}
                       className="px-6 py-2.5 bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs rounded-xl shadow-lg transition"
@@ -607,12 +642,14 @@ nhihpd,123456,Nhi,Hoàng Phạm Đông,nhihpd@gmail.com`;
 
             <div className="flex justify-end space-x-3 pt-2">
               <button
+                type="button"
                 onClick={() => setResetUser(null)}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={handleResetPassword}
                 disabled={isResetting}
                 className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-xl text-xs shadow-md"
