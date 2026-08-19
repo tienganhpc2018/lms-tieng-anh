@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Users, UserPlus, Upload, Search, Key, Trash2, Edit3, CheckCircle, AlertCircle, FileText, Download, ShieldCheck, UserCheck, X, Lock, Unlock } from 'lucide-react';
+import { Users, UserPlus, Upload, Search, Key, Trash2, Edit3, CheckCircle, AlertCircle, FileText, Download, ShieldCheck, UserCheck, X, Lock, Unlock, Printer, QrCode } from 'lucide-react';
 
 export default function UserManagementModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('browse');
@@ -57,7 +57,132 @@ export default function UserManagementModal({ isOpen, onClose }) {
     if (isOpen) fetchUsers();
   }, [isOpen]);
 
-  // BẬT / TẮT KHÓA TẠM THỜI TÀI KHOẢN HỌC SINH (SUSPEND USER ACCOUNT)
+  // XUẤT VÀ IN THẺ TÀI KHOẢN HỌC SINH KHỔ A4 CẮT PHÁT CHO CẢ LỚP
+  const handlePrintStudentCards = () => {
+    const studentUsers = usersList.filter((u) => u.role !== 'teacher');
+    if (studentUsers.length === 0) {
+      alert('Chưa có học sinh nào trong danh sách để in thẻ!');
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="vi">
+      <head>
+        <meta charset="utf-8">
+        <title>THẺ TÀI KHOẢN HỌC SINH LMS TIẾNG ANH</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap');
+          body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #ffffff;
+            color: #0f172a;
+          }
+          .title-header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #059669;
+            padding-bottom: 10px;
+          }
+          .title-header h1 {
+            color: #065f46;
+            margin: 0 0 5px 0;
+            font-size: 20px;
+            text-transform: uppercase;
+          }
+          .card-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+          }
+          .card {
+            border: 2px dashed #059669;
+            border-radius: 12px;
+            padding: 15px;
+            background-color: #f0fdf4;
+            position: relative;
+            box-sizing: border-box;
+          }
+          .card-header {
+            font-size: 11px;
+            font-weight: 900;
+            color: #047857;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #a7f3d0;
+            padding-bottom: 4px;
+          }
+          .card-name {
+            font-size: 14px;
+            font-weight: 900;
+            color: #111827;
+            margin-bottom: 6px;
+          }
+          .card-info {
+            font-size: 12px;
+            margin: 4px 0;
+          }
+          .card-info strong {
+            color: #065f46;
+          }
+          .card-pass {
+            font-family: monospace;
+            background-color: #d1fae5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #064e3b;
+          }
+          .footer-note {
+            font-size: 9px;
+            color: #6b7280;
+            margin-top: 8px;
+            font-style: italic;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="title-header">
+          <h1>DANH SÁCH THẺ TÀI KHOẢN ĐĂNG NHẬP LMS TIẾNG ANH (CẮT PHÁT CHO HỌC SINH)</h1>
+          <p style="font-size: 12px; color: #4b5563; margin: 0;">Trường / Lớp E-learning • Cắt theo đường nét đứt để phát cho từng học sinh</p>
+        </div>
+
+        <div class="card-grid">
+          ${studentUsers
+            .map(
+              (st) => `
+            <div class="card">
+              <div class="card-header">LMS TIẾNG ANH • THẺ TÀI KHOẢN HỌC SINH</div>
+              <div class="card-name">${st.full_name || st.username}</div>
+              <div class="card-info">Tên Đăng Nhập: <strong>@${st.username}</strong></div>
+              <div class="card-info">Mật Khẩu Cấp: <span class="card-pass">${st.raw_password_hint || '123456'}</span></div>
+              <div class="card-info">Link truy cập: <strong>lms-tieng-anh.vercel.app</strong></div>
+              <div class="footer-note">* Học sinh bảo mật mật khẩu và sử dụng để vào học bài giảng & bài thi online.</div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(htmlContent);
+      printWin.document.close();
+    }
+  };
+
   const handleToggleSuspendUser = async (userItem) => {
     const newStatus = !userItem.suspended;
     const actionText = newStatus ? 'KHÓA TẠM THỜI' : 'MỞ KHÓA';
@@ -319,7 +444,7 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
           {/* TAB 1: BROWSE LIST OF USERS */}
           {activeTab === 'browse' && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="relative w-full sm:w-80">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
@@ -331,28 +456,29 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                   />
                 </div>
 
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* NÚT IN THẺ TÀI KHOẢN HỌC SINH KHỔ A4 CẮT PHÁT CHO CẢ LỚP */}
                   <button
                     type="button"
-                    onClick={() => setActiveTab('add')}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1"
+                    onClick={handlePrintStudentCards}
+                    className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5 border border-emerald-500/40"
                   >
-                    <UserPlus className="w-4 h-4" />
-                    <span>+ Add a new user</span>
+                    <Printer className="w-4 h-4" />
+                    <span>🖨️ In Thẻ Tài Khoản Cả Lớp (PDF A4)</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setActiveTab('csv')}
-                    className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1"
+                    onClick={() => setActiveTab('add')}
+                    className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1"
                   >
-                    <Upload className="w-4 h-4" />
-                    <span>Upload CSV cả lớp</span>
+                    <UserPlus className="w-4 h-4" />
+                    <span>+ Add new user</span>
                   </button>
                 </div>
               </div>
 
-              {/* BẢNG DANH SÁCH CHUẨN GNOMIO VỚI TÍNH NĂNG KHÓA TẠM THỜI (SUSPEND ACCOUNT) */}
+              {/* BẢNG DANH SÁCH CHUẨN GNOMIO */}
               <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-100 text-slate-800 font-extrabold uppercase border-b border-slate-200">
