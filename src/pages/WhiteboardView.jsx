@@ -847,24 +847,31 @@ export default function WhiteboardView() {
         {/* LỚP 2: ẢNH CHỤP SNIPPING TOOL VỚI Z-INDEX 30 - NHẤP CHỌN CỰC KỲ DỄ DÀNG VÀ TỰ ĐỘNG ẨN 4 NÚT LỆNH KHI THẢ CHUỘT (ẢNH 2) */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
-          const imgWidth = obj.width || 700;
-          const imgHeight = obj.height || 480;
+          // FIX TRIỆT ĐỂ LỖI DÁN ẢNH BỊ THỪA 2 KHOẢNG RỘNG TRÊN DƯỚI (ẢNH 2)
+          const imgWidth = obj.width || 'auto';
           const zIdx = obj.zIndex !== undefined ? obj.zIndex : 30;
 
           return (
             <div
               key={obj.id}
-              style={{ left: obj.x, top: obj.y, width: imgWidth, height: imgHeight, zIndex: zIdx }}
+              style={{
+                left: obj.x,
+                top: obj.y,
+                width: typeof imgWidth === 'number' ? `${imgWidth}px` : imgWidth,
+                maxWidth: '90vw',
+                height: 'auto',
+                zIndex: zIdx,
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedObjId(obj.id);
                 setSelectedTextId(null);
               }}
               onMouseDown={(e) => handleStartDragElement(obj.id, true, e)}
-              className={`absolute transition duration-75 cursor-grab active:cursor-grabbing ${
+              className={`absolute transition duration-75 cursor-grab active:cursor-grabbing inline-block ${
                 isSelected
-                  ? 'ring-4 ring-emerald-500 rounded-2xl p-1 bg-white/20 shadow-2xl'
-                  : 'p-1 border border-transparent hover:border-emerald-400/60'
+                  ? 'ring-4 ring-emerald-500 rounded-xl p-0.5 bg-white/10 shadow-2xl'
+                  : 'p-0 border border-transparent hover:border-emerald-400/60'
               }`}
             >
               {/* CHI THIỂN THỊ THANH LỆNH KHI ĐƯỢC CHỌN - TỰ ĐỘNG ẨN MẤT KHI THẢ CHUỘT RA NGOÀI (ẢNH 2) */}
@@ -922,7 +929,11 @@ export default function WhiteboardView() {
               )}
 
               {obj.type === 'image' && (
-                <img src={obj.src} alt="Snipped task" className="w-full h-full object-contain rounded-xl shadow-md pointer-events-none" />
+                <img
+                  src={obj.src}
+                  alt="Snipped task"
+                  className="w-full h-auto block rounded-lg shadow-md pointer-events-none"
+                />
               )}
             </div>
           );
