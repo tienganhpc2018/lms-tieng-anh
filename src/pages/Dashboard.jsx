@@ -4,7 +4,7 @@ import { supabase, uploadLMSFile } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import CenterToastModal from '../components/common/CenterToastModal';
 import UserManagementModal from '../components/lms/UserManagementModal';
-import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check, Eye, EyeOff, ShieldCheck, Crown, Sparkles, Home, ChevronDown, ChevronRight, Folder, FileText, BarChart2, GraduationCap } from 'lucide-react';
+import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check, Eye, EyeOff, ShieldCheck, Crown, Sparkles, Home, ChevronDown, ChevronRight, Folder, FileText, BarChart2, GraduationCap, Palette } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function Dashboard() {
@@ -44,7 +44,7 @@ export default function Dashboard() {
   const [inputJoinCode, setInputJoinCode] = useState('');
   const [joining, setJoining] = useState(false);
 
-  // State Navigation Accordion (Ảnh 1)
+  // State Navigation Accordion
   const [isDashboardOpen, setIsDashboardOpen] = useState(true);
   const [isSitePagesOpen, setIsSitePagesOpen] = useState(true);
   const [isMyCoursesOpen, setIsMyCoursesOpen] = useState(true);
@@ -352,7 +352,16 @@ export default function Dashboard() {
 
                       {isSitePagesOpen && (
                         <div className="pl-4 space-y-1.5 mt-1 border-l-2 border-slate-100 ml-1.5">
-                          {/* 1. TAB KHÓA HỌC (MY COURSES) */}
+                          {/* 1. BẢNG TƯƠNG TÁC GIẢNG DẠY WHITEBOARD THÔNG MINH */}
+                          <Link
+                            to="/whiteboard"
+                            className="flex items-center space-x-2 text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-300/50 transition font-extrabold shadow-2xs"
+                          >
+                            <Palette className="w-4 h-4 text-amber-600" />
+                            <span>🎨 Bảng Tương Tác (Whiteboard)</span>
+                          </Link>
+
+                          {/* 2. TAB KHÓA HỌC (MY COURSES) */}
                           <Link
                             to="/dashboard"
                             className="flex items-center space-x-2 text-slate-600 hover:text-emerald-600 py-1 transition font-semibold"
@@ -361,7 +370,7 @@ export default function Dashboard() {
                             <span>My courses (Khóa học)</span>
                           </Link>
 
-                          {/* 2. TAB QUẢN LÝ HỌC SINH (USERS - SITE ADMIN DÀNH CHO GIÁO VIÊN) */}
+                          {/* 3. TAB QUẢN LÝ HỌC SINH (USERS - SITE ADMIN DÀNH CHO GIÁO VIÊN) */}
                           {isTeacher && (
                             <button
                               type="button"
@@ -373,7 +382,7 @@ export default function Dashboard() {
                             </button>
                           )}
 
-                          {/* 3. TAB BẢNG ĐIỂM & ANALYTICS (GRADES DÀNH CHO GIÁO VIÊN) */}
+                          {/* 4. TAB BẢNG ĐIỂM & ANALYTICS (GRADES DÀNH CHO GIÁO VIÊN) */}
                           {isTeacher && (
                             <Link
                               to="/analytics"
@@ -384,7 +393,7 @@ export default function Dashboard() {
                             </Link>
                           )}
 
-                          {/* 4. PRIVATE FILES */}
+                          {/* 5. PRIVATE FILES */}
                           <Link
                             to="/profile"
                             className="flex items-center space-x-2 text-slate-600 hover:text-amber-700 py-1 transition font-semibold"
@@ -392,12 +401,6 @@ export default function Dashboard() {
                             <Folder className="w-3.5 h-3.5 text-amber-600" />
                             <span>Private files (Tài liệu cá nhân)</span>
                           </Link>
-
-                          {/* 5. TIN TỨC CHUNG */}
-                          <div className="flex items-center space-x-2 text-slate-400 py-1 font-normal cursor-not-allowed">
-                            <FileText className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Tin tức chung</span>
-                          </div>
                         </div>
                       )}
                     </div>
@@ -598,216 +601,6 @@ export default function Dashboard() {
           isOpen={isUserMgmtOpen}
           onClose={() => setIsUserMgmtOpen(false)}
         />
-
-        {/* MODAL TẠO KHÓA HỌC MỚI CHUẨN MOODLE GNOMIO */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-slate-200 overflow-hidden my-8 animate-scale-up">
-              <div className="bg-slate-900 text-white p-6 flex justify-between items-center border-b border-slate-800">
-                <div>
-                  <h3 className="font-extrabold text-lg flex items-center space-x-2 text-white">
-                    <BookOpen className="w-5 h-5 text-emerald-400" />
-                    <span>Add a new course (Tạo Khóa Học Mới)</span>
-                  </h3>
-                  <p className="text-xs text-slate-400">Cấu hình khóa học chuẩn Moodle / Gnomio Site Administration</p>
-                </div>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateCourse} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto font-sans">
-                <div className="text-xs font-extrabold text-purple-900 uppercase tracking-wide border-b pb-2 flex items-center space-x-1">
-                  <span>General - Cài Đặt Chung</span>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                      Course full name (Tên đầy đủ của khóa học) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={courseFullName}
-                      onChange={(e) => setCourseFullName(e.target.value)}
-                      placeholder="VD: English 9 Global Success"
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-extrabold text-slate-900"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                        Course short name (Tên ngắn)
-                      </label>
-                      <input
-                        type="text"
-                        value={courseShortName}
-                        onChange={(e) => setCourseShortName(e.target.value)}
-                        placeholder="VD: E9_GS"
-                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                        Course category (Danh mục)
-                      </label>
-                      <select
-                        value={courseCategory}
-                        onChange={(e) => setCourseCategory(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
-                      >
-                        <option value="Danh mục các bài học">Danh mục các bài học</option>
-                        <option value="Tiếng Anh THCS">Tiếng Anh THCS (Khối 6-9)</option>
-                        <option value="Luyện Thi Vào 10">Luyện Thi Vào 10</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                        Course visibility (Ẩn/Hiện với học sinh)
-                      </label>
-                      <select
-                        value={courseVisibility}
-                        onChange={(e) => setCourseVisibility(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
-                      >
-                        <option value="Show">Show (Cho phép hiển thị)</option>
-                        <option value="Hide">Hide (Ẩn hoàn toàn với học sinh chưa ghi danh)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                        Course ID number (Mã Gia Nhập Bảo Mật Chữ & Số)
-                      </label>
-                      <input
-                        type="text"
-                        value={courseIdNumber}
-                        onChange={(e) => setCourseIdNumber(e.target.value)}
-                        placeholder="Để trống tự sinh mã ngẫu nhiên (VD: K6L841)"
-                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono font-bold text-amber-900 uppercase"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                        Course start date (Ngày bắt đầu)
-                      </label>
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                        Course end date (Ngày kết thúc)
-                      </label>
-                      <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                      Mô tả tổng quan khóa học:
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Mô tả nội dung bài giảng Tiếng Anh..."
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-3 border-t">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl"
-                  >
-                    Hủy Bỏ
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={creating}
-                    className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md"
-                  >
-                    {creating ? 'Đang Tạo...' : '🚀 Save and display (Lưu Khóa Học)'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL GIA NHẬP BẰNG MÃ JOIN CODE DÀNH CHO HỌC SINH */}
-        {isJoinModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up">
-              <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
-                <h3 className="font-extrabold text-base flex items-center space-x-2">
-                  <Key className="w-5 h-5 text-emerald-400" />
-                  <span>🔑 Nhập Mã Gia Nhập Khóa Học (Bảo Mật)</span>
-                </h3>
-                <button onClick={() => setIsJoinModalOpen(false)} className="text-slate-400 hover:text-white">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleJoinCourseByCode} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-extrabold text-slate-700 mb-1 uppercase">
-                    Nhập Chính Xác Mã 6 Ký Tự Do Giáo Viên Cung Cấp:
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={inputJoinCode}
-                    onChange={(e) => setInputJoinCode(e.target.value)}
-                    placeholder="VD: K6L841, 7B9X2M..."
-                    className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-mono font-extrabold uppercase tracking-widest text-center focus:ring-2 focus:ring-emerald-500 bg-amber-50"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-2">
-                    💡 Mã gia nhập là chuỗi 6 ký tự kết hợp cả Chữ cái và Chữ số do Giáo viên bộ môn cấp.
-                  </p>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsJoinModalOpen(false)}
-                    className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl"
-                  >
-                    Hủy Bỏ
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={joining}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl shadow-md"
-                  >
-                    {joining ? 'Đang Kiểm Tra...' : '🚀 XÁC NHẬN MỞ KHÓA'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
