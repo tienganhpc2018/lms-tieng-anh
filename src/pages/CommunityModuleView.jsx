@@ -11,7 +11,7 @@ import CertificateGenerator from '../features/ai-advanced/CertificateGenerator';
 import AdvancedToolsPanel from '../features/ai-advanced/AdvancedToolsPanel';
 
 export default function CommunityModuleView() {
-  const { isTeacher } = useAuth();
+  const { user, profile, isTeacher } = useAuth();
   const navigate = useNavigate();
   const params = useParams();
   const courseId = params.courseId || 'default_course';
@@ -20,8 +20,11 @@ export default function CommunityModuleView() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false); // CHỨC NĂNG 2: DARK MODE CHẾ ĐỘ BAN ĐÊM
 
+  const userEmail = (user?.email || profile?.email || '').toLowerCase();
+  const isActualTeacher = isTeacher && !userEmail.includes('hoangnm') && profile?.role !== 'student';
+
   // PHÂN QUYỀN BẢO MẬT 100%: NẾU LÀ HỌC SINH -> KHÓA KHÔNG CHO VÀO TRANG NÀY ĐỂ TỰ IN CHỨNG NHẬN HAY XEM ĐỀ THI
-  if (!isTeacher) {
+  if (!isActualTeacher) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-6 font-sans select-none">
         <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl max-w-md text-center space-y-4">
