@@ -33,7 +33,7 @@ export function exportStudentPdfReport({
         }
         .header {
           text-align: center;
-          border-b: 3px solid #1e3a8a;
+          border-bottom: 3px solid #1e3a8a;
           padding-bottom: 15px;
           margin-bottom: 25px;
         }
@@ -55,21 +55,23 @@ export function exportStudentPdfReport({
           gap: 15px;
           margin-bottom: 25px;
           background-color: #f8fafc;
-          padding: 15px;
+          padding: 18px 24px;
           border-radius: 12px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #cbd5e1;
           font-size: 14px;
         }
         .info-item {
           display: flex;
-          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
         }
         .info-label {
           font-weight: 500;
           color: #475569;
+          white-space: nowrap;
         }
         .info-value {
-          font-weight: 700;
+          font-weight: 800;
           color: #0f172a;
         }
         .score-box {
@@ -99,7 +101,7 @@ export function exportStudentPdfReport({
           padding: 4px 12px;
           border-radius: 20px;
           font-size: 12px;
-          font-weight: bold;
+          font-weight: 700;
         }
         .badge-fail {
           display: inline-block;
@@ -108,44 +110,38 @@ export function exportStudentPdfReport({
           padding: 4px 12px;
           border-radius: 20px;
           font-size: 12px;
-          font-weight: bold;
+          font-weight: 700;
         }
-        .feedback-section {
+        .section-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 20px 0 10px 0;
+          border-left: 4px solid #3b82f6;
+          padding-left: 10px;
+        }
+        .feedback-box {
           background-color: #f0fdf4;
           border: 1px solid #bbf7d0;
           border-radius: 12px;
-          padding: 20px;
-          margin-bottom: 25px;
-        }
-        .feedback-section h3 {
-          color: #166534;
-          margin-top: 0;
-          font-size: 15px;
-        }
-        .feedback-content {
+          padding: 15px;
           font-size: 13px;
           line-height: 1.6;
+          color: #166534;
           white-space: pre-line;
-          color: #1e293b;
+          margin-bottom: 25px;
         }
         .footer {
-          margin-top: 40px;
           text-align: center;
-          font-size: 12px;
-          color: #94a3b8;
-          border-t: 1px solid #e2e8f0;
+          margin-top: 40px;
           padding-top: 15px;
-        }
-        @media print {
-          .no-print { display: none; }
+          border-top: 1px solid #e2e8f0;
+          font-size: 11px;
+          color: #94a3b8;
         }
       </style>
     </head>
     <body>
-      <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px;">
-        🖨️ In Báo Cáo PDF Bài Thi
-      </button>
-
       <div class="header">
         <h1>KẾT QUẢ BÀI KIỂM TRA ONLINE</h1>
         <p>Hệ Thống Quản Lý Học Liệu & Đánh Giá Năng Lực Tiếng Anh LMS</p>
@@ -174,68 +170,39 @@ export function exportStudentPdfReport({
         <div class="score-title">TỔNG ĐIỂM ĐẠT ĐƯỢC</div>
         <div class="score-num">${score} / ${totalMarks} ĐIỂM</div>
         <div>
-          <span class="${isPassed ? 'badge-pass' : 'badge-fail'}">
-            ${isPassed ? 'ĐÃ ĐẠT (PASSED)' : 'CHƯA ĐẠT (NEEDS IMPROVEMENT)'}
-          </span>
+          ${
+            isPassed
+              ? `<span class="badge-pass">ĐẠT YÊU CẦU (PASSED)</span>`
+              : `<span class="badge-fail">CHƯA ĐẠT (NEEDS IMPROVEMENT)</span>`
+          }
         </div>
       </div>
 
-      ${aiGradingFeedback ? `
-      <div class="feedback-section">
-        <h3>💬 LỜI PHÊ & NHẬN XẾT CHI TIẾT TỪ GIÁO VIÊN / AI:</h3>
-        <div class="feedback-content">${aiGradingFeedback}</div>
-      </div>
-      ` : ''}
+      ${
+        aiGradingFeedback
+          ? `
+        <div class="section-title">🤖 LỜI PHÊ & NHẬN XÉT CỦA GIÁO VIÊN AI:</div>
+        <div class="feedback-box">${aiGradingFeedback}</div>
+      `
+          : ''
+      }
 
       <div class="footer">
         Hệ Thống Học Liệu Thông Minh LMS • Tiếng Anh PC • Báo cáo tự động
       </div>
+
+      <script>
+        window.onload = function() {
+          window.print();
+        }
+      </script>
     </body>
     </html>
   `;
 
-  const printWin = window.open('', '_blank');
-  printWin.document.write(htmlContent);
-  printWin.document.close();
-}
-
-/**
- * Xuất File Excel Bảng Điểm Chuẩn Sổ Điểm Điện Tử VnEdu / Viettel Study
- */
-export function exportVnEduExcelReport(submissions = [], activityTitle = 'Quiz') {
-  let csvContent = '\uFEFF';
-  csvContent += 'STT,Mã Học Sinh,Họ và Tên,Email,Điểm Số (Thang 10),Điểm Chữ,Xếp Loại Học Lực,Lời Phê & Nhận Xết Của Giáo Viên,Ngày Nộp Bài\n';
-
-  submissions.forEach((sub, index) => {
-    const name = sub.profiles?.full_name || 'Học Viên';
-    const email = sub.profiles?.email || 'N/A';
-    const studentId = sub.student_id ? sub.student_id.substring(0, 8).toUpperCase() : `HS${1000 + index}`;
-    const scoreVal = sub.score !== undefined && sub.score !== null ? Number(sub.score) : 0;
-
-    let scoreChar = 'F';
-    let gradeRank = 'Yếu';
-    if (scoreVal >= 9.0) { scoreChar = 'A+'; gradeRank = 'Xuất Sắc'; }
-    else if (scoreVal >= 8.0) { scoreChar = 'A'; gradeRank = 'Giỏi'; }
-    else if (scoreVal >= 6.5) { scoreChar = 'B'; gradeRank = 'Khá'; }
-    else if (scoreVal >= 5.0) { scoreChar = 'C'; gradeRank = 'Trung Bình'; }
-
-    const feedbackText = (sub.feedback || sub.answers_data?.aiGrading?.detailedFeedback || 'Đã hoàn thành bài thi').replace(/"/g, '""').replace(/\n/g, ' ');
-    const submittedDate = sub.submitted_at ? new Date(sub.submitted_at).toLocaleString('vi-VN') : '';
-
-    csvContent += `"${index + 1}","${studentId}","${name}","${email}","${scoreVal}","${scoreChar}","${gradeRank}","${feedbackText}","${submittedDate}"\n`;
-  });
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', `So_Diem_Dien_Tu_VnEdu_${activityTitle.replace(/\s+/g, '_')}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-export function exportClassExcelReport(submissions = [], activityTitle = 'Quiz') {
-  exportVnEduExcelReport(submissions, activityTitle);
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  }
 }
