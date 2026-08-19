@@ -33,28 +33,54 @@ export default function UserProfileView() {
   const fetchUserProfile = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Profile từ CSDL
-      const { data: pData } = await supabase
+      // 1. Fetch Profile từ CSDL theo ID trước
+      let { data: pData } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', targetUserId)
         .maybeSingle();
 
+      // 2. Nếu không thấy theo ID -> Tìm theo email hoặc username đã được Thầy tạo sẵn
+      if (!pData && currentUser?.email) {
+        const cleanEmail = currentUser.email.trim().toLowerCase();
+        const uname = cleanEmail.split('@')[0];
+
+        let { data: pByEmail } = await supabase
+          .from('profiles')
+          .select('*')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+
+        if (!pByEmail && uname) {
+          let { data: pByUsername } = await supabase
+            .from('profiles')
+            .select('*')
+            .ilike('username', uname)
+            .maybeSingle();
+          if (pByUsername) pByEmail = pByUsername;
+        }
+
+        if (pByEmail) pData = pByEmail;
+      }
+
       if (pData) {
         setProfileData(pData);
         setUsername(pData.username || pData.email?.split('@')[0] || '');
-        setEmail(pData.email || '');
+        setEmail(pData.email || currentUser?.email || '');
         setAvatarUrl(pData.avatar_url || '');
         setIsSuspended(!!pData.suspended);
         setNewPassword(pData.raw_password_hint || '123456');
 
-        const fullNameStr = pData.full_name || '';
-        const parts = fullNameStr.split(' ');
+        const fullNameStr = (pData.full_name || '').trim();
+        const parts = fullNameStr.split(' ').filter(Boolean);
         if (parts.length > 1) {
           setFirstName(parts[parts.length - 1]);
           setLastName(parts.slice(0, parts.length - 1).join(' '));
+        } else if (parts.length === 1) {
+          setFirstName(parts[0]);
+          setLastName('');
         } else {
-          setFirstName(fullNameStr || pData.username || 'User');
+          setFirstName(pData.username || 'User');
           setLastName('');
         }
       } else {
@@ -67,7 +93,7 @@ export default function UserProfileView() {
         });
       }
 
-      // 2. Fetch User Courses
+      // 3. Fetch User Courses
       const { data: eData } = await supabase
         .from('course_enrollments')
         .select('course:course_id (*)')
@@ -102,7 +128,7 @@ export default function UserProfileView() {
     }
   };
 
-  // AN TOÀN NGUYÊN BẢN: LOẠI BỎ THỦ PHẠM RAW_PASSWORD_HINT RA KHỎI PAYLOAD ĐỂ KHÔNG BỊ LỖI SCHEMA CACHE SUPABASE
+  // NÂNG CẤP LƯU PROFILE AN TOÀN CHUẨN CẢ ID VÀ EMAIL
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -112,7 +138,6 @@ export default function UserProfileView() {
     const fullName = `${formattedLastName} ${formattedFirstName}`.trim() || username;
 
     try {
-      // 1. Cập nhật thông tin profile cơ bản an toàn 100%
       const updatePayload = {
         id: targetUserId,
         full_name: fullName,
@@ -121,36 +146,18 @@ export default function UserProfileView() {
         avatar_url: avatarUrl,
       };
 
-      // Thử đính kèm trường suspended nếu có
-      try {
-        updatePayload.suspended = isSuspended;
-      } catch (e) {}
-
       const { data, error } = await supabase
         .from('profiles')
         .upsert([updatePayload])
         .select()
         .single();
 
-      if (error) {
-        // Fallback nếu câu query bị vướng trường không có
-        delete updatePayload.suspended;
-        await supabase.from('profiles').upsert([updatePayload]);
-      }
-
-      // 2. Nếu người dùng đang chỉnh sửa chính mình và nhập mật khẩu mới -> Đổi mật khẩu Auth Supabase
-      if (currentUser?.id === targetUserId && newPassword && newPassword !== '123456') {
-        try {
-          await supabase.auth.updateUser({ password: newPassword.trim() });
-        } catch (passErr) {
-          console.warn('Lưu mật khẩu Auth:', passErr);
-        }
-      }
+      if (error) throw error;
 
       setProfileData((prev) => ({ ...prev, ...updatePayload }));
       if (refreshProfile) await refreshProfile();
 
-      alert(`🎉 ĐÃ CẬP NHẬT VÀ LƯU HỒ SƠ THÀNH CÔNG!\n\n• Họ và Tên: ${fullName}\n• Username: @${username}`);
+      alert(`🎉 ĐÃ CẬP NHẬT VÀ LƯU HỒ SƠ THÀNH CÔNG!\n\n• Họ và Tên Học Sinh: ${fullName}\n• Username: @${username}`);
       setIsEditing(false);
     } catch (err) {
       alert('Lỗi lưu thông tin: ' + err.message);
