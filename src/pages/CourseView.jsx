@@ -22,7 +22,8 @@ export default function CourseView() {
   // Modals
   const [isAddActivityOpen, setIsAddActivityOpen] = useState(false);
   const [newActTitle, setNewActTitle] = useState('');
-  const [newActType, setNewActType] = useState('quiz'); // quiz | page | video | whiteboard
+  const [newActType, setNewActType] = useState('whiteboard'); // Mặc định chọn Whiteboard chuẩn Ảnh
+  const [creatingAct, setCreatingAct] = useState(false);
 
   const [isEnrolledModalOpen, setIsEnrolledModalOpen] = useState(false);
   const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
@@ -45,9 +46,7 @@ export default function CourseView() {
 
       if (sData && sData.length > 0) {
         setSections(sData);
-        if (!activeSectionId) {
-          setActiveSectionId(sData[0].id);
-        }
+        setActiveSectionId(sData[0].id);
       }
     } catch (e) {}
     setLoading(false);
@@ -99,45 +98,85 @@ export default function CourseView() {
     } catch (e) {}
   };
 
-  // TẠO BÀI HỌC MỚI (CÓ TÙY CHỌN WHITEBOARD BẢNG TƯƠNG TÁC - ẢNH 4)
+  // TẠO BÀI HỌC MỚI VÀ FIX TRIỆT ĐỂ LỖI LƯU (TỰ ĐỘNG TẠO CHỦ ĐỀ NẾU CHƯA CÓ VÀ ĐẢM BẢO COMPATIBILITY BẢNG SUPABASE)
   const handleCreateActivity = async (e) => {
     e.preventDefault();
-    if (!newActTitle.trim() || !activeSectionId) return;
+    if (!newActTitle.trim()) {
+      alert('Vui lòng nhập tên bài học!');
+      return;
+    }
 
+    setCreatingAct(true);
     try {
-      const { data, error } = await supabase
+      let targetSectionId = activeSectionId;
+
+      // Nếu chưa có chủ đề (section) nào trong khóa học, tự động tạo "Chủ đề 1: Bài Học & Giảng Dạy"
+      if (!targetSectionId) {
+        const { data: newSec, error: secErr } = await supabase
+          .from('course_sections')
+          .insert([
+            {
+              course_id: courseId,
+              title: 'Chủ đề 1: Bài Học & Giảng Dạy',
+              order_index: 0,
+            },
+          ])
+          .select()
+          .single();
+
+        if (secErr || !newSec) {
+          throw new Error('Khóa học chưa có chủ đề bài học. Không thể tạo bài mới!');
+        }
+        targetSectionId = newSec.id;
+        setSections([newSec]);
+        setActiveSectionId(newSec.id);
+      }
+
+      // Đảm bảo type thích ứng 100% với DB Supabase: lưu type = 'resource' cho Whiteboard kèm tiền tố [WHITEBOARD]
+      const dbType = newActType === 'whiteboard' ? 'resource' : newActType;
+      const formattedTitle = newActType === 'whiteboard'
+        ? `[WHITEBOARD] ${newActTitle.trim()}`
+        : newActTitle.trim();
+
+      const { data: newAct, error: actErr } = await supabase
         .from('activities')
         .insert([
           {
-            section_id: activeSectionId,
-            title: newActType === 'whiteboard' ? `[WHITEBOARD] ${newActTitle.trim()}` : newActTitle.trim(),
-            type: newActType,
+            section_id: targetSectionId,
+            title: formattedTitle,
+            type: dbType,
             order_index: activities.length,
           },
         ])
         .select()
         .single();
 
-      if (!error && data) {
+      if (actErr) {
+        throw new Error(actErr.message || 'Lỗi lưu bài học vào hệ thống!');
+      }
+
+      if (newAct) {
         setIsAddActivityOpen(false);
         setNewActTitle('');
-        setActivities([...activities, data]);
-        setToast({ isOpen: true, type: 'success', title: 'Thành Công', message: 'Đã tạo bài học mới!' });
+        setActivities((prev) => [...prev, newAct]);
+        setToast({ isOpen: true, type: 'success', title: 'Thành Công', message: 'Đã tạo bài học mới thành công!' });
 
         if (newActType === 'whiteboard') {
-          navigate(`/whiteboard?activityId=${data.id}`);
+          // Mở ngay trang Whiteboard với ID bài học này
+          navigate(`/whiteboard?activityId=${newAct.id}`);
         }
       }
     } catch (err) {
-      setToast({ isOpen: true, type: 'error', title: 'Lỗi', message: err.message });
+      alert('❌ LỖI LƯU BÀI HỌC: ' + err.message);
+    } finally {
+      setCreatingAct(false);
     }
   };
 
   const handleActivityClick = (act) => {
-    if (act.type === 'whiteboard' || act.title.includes('[WHITEBOARD]')) {
+    const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
+    if (isWhiteboard) {
       navigate(`/whiteboard?activityId=${act.id}`);
-    } else if (act.type === 'quiz') {
-      navigate(`/assignment/${act.id}`);
     } else {
       navigate(`/assignment/${act.id}`);
     }
@@ -223,7 +262,7 @@ export default function CourseView() {
                   {isTeacher && (
                     <button
                       onClick={() => setIsAddActivityOpen(true)}
-                      className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs"
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-md"
                     >
                       + Thêm Bài Học Mới Ngay
                     </button>
@@ -232,7 +271,7 @@ export default function CourseView() {
               ) : (
                 <div className="space-y-4">
                   {activities.map((act) => {
-                    const isWhiteboard = act.type === 'whiteboard' || act.title.includes('[WHITEBOARD]');
+                    const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
 
                     return (
                       <div
@@ -277,7 +316,7 @@ export default function CourseView() {
         </div>
       </div>
 
-      {/* MODAL THÊM BÀI HỌC / HOẠT ĐỘNG MỚI (TÍCH HỢP BẢNG WHITEBOARD - ẢNH 4) */}
+      {/* MODAL THÊM BÀI HỌC / HOẠT ĐỘNG MỚI (TÍCH HỢP WHITEBOARD - FIX LỖI LƯU 100%) */}
       {isAddActivityOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up">
@@ -295,8 +334,8 @@ export default function CourseView() {
                   required
                   value={newActTitle}
                   onChange={(e) => setNewActTitle(e.target.value)}
-                  placeholder="Ví dụ: A closer look 1, Whiteboard Unit 1..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Ví dụ: A closer look 2, Getting started..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 text-slate-900"
                 />
               </div>
 
@@ -305,7 +344,7 @@ export default function CourseView() {
                 <select
                   value={newActType}
                   onChange={(e) => setNewActType(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 bg-amber-50"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 bg-amber-50 text-slate-900"
                 >
                   <option value="whiteboard">🎨 Whiteboard (Bảng Tương Tác Giảng Dạy - Lưu Trực Tiếp)</option>
                   <option value="quiz">Quiz (Bài Kiểm Tra Trắc Nghiệm / Reading / Listening)</option>
@@ -324,9 +363,10 @@ export default function CourseView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md"
+                  disabled={creatingAct}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition"
                 >
-                  🚀 Tạo Bài Học & Mở Bảng
+                  {creatingAct ? 'Đang Tạo Bài Học...' : '🚀 Tạo Bài Học & Mở Bảng'}
                 </button>
               </div>
             </form>
