@@ -329,20 +329,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* YÊU CẦU 5 (ẢNH 5): BẢNG TIN THÔNG BÁO DẶN DÒ DÀNH CHO HỌC SINH HIỂN THỊ NGAY TRANG CHỦ */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span>📢 BẢNG TIN THÔNG BÁO & DẶN DÒ BÀI HỌC CỦA THẦY</span>
-            </h3>
-            <Link to="/community" className="text-xs font-bold text-emerald-700 hover:underline">
-              Xem tất cả diễn đàn →
-            </Link>
-          </div>
-          <ClassFeed courseId="general_announcement" />
-        </div>
-
         {/* BỐ CỤC 2 CỘT: SIDEBAR NAVIGATION NGUYÊN BẢN CHUẨN MOODLE + MAIN CONTENT */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           {/* CỘT TRÁI: NAVIGATION BLOCK CỐ ĐỊNH CHUẨN MOODLE 100% */}
@@ -387,40 +373,43 @@ export default function Dashboard() {
 
                       {isSitePagesOpen && (
                         <div className="pl-4 space-y-1.5 mt-1 border-l-2 border-slate-100 ml-1.5">
-                          {/* 1. NGÂN HÀNG CÂU HỎI & ĐỀ THI */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              fetchQuestionBank();
-                              setIsQuestionBankOpen(true);
-                            }}
-                            className="w-full flex items-center space-x-2 text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-1.5 rounded-xl border border-indigo-200 transition font-extrabold text-left shadow-2xs"
-                          >
-                            <FileQuestion className="w-4 h-4 text-indigo-600" />
-                            <span>📚 Ngân Hàng Câu Hỏi & Đề Thi</span>
-                          </button>
-
-                          {/* 2. CỘNG ĐỒNG LỚP HỌC & AI NÂNG CAO (MODULE 9 & 10) */}
-                          <Link
-                            to="/community"
-                            className="flex items-center space-x-2 text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-xl border border-emerald-300/50 transition font-extrabold shadow-2xs"
-                          >
-                            <Sparkles className="w-4 h-4 text-emerald-600" />
-                            <span>💬 Bảng Tin & AI Trợ Giảng (Module 9-10)</span>
-                          </Link>
-
-                          {/* 2. BẢNG TƯƠNG TÁC GIẢNG DẠY WHITEBOARD */}
+                          {/* CHỈ GIÁO VIÊN MỚI ĐƯỢC XEM CÁC MENU QUẢN TRỊ ADMIN (BẢO BỆNH HỌC SINH TỰ IN CHỨNG NHẬN / XEM ĐỀ THI) */}
                           {isTeacher && (
-                            <Link
-                              to="/whiteboard"
-                              className="flex items-center space-x-2 text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-300/50 transition font-extrabold shadow-2xs"
-                            >
-                              <Palette className="w-4 h-4 text-amber-600" />
-                              <span>🎨 Bảng Tương Tác (Whiteboard)</span>
-                            </Link>
+                            <>
+                              {/* 1. NGÂN HÀNG CÂU HỎI & ĐỀ THI */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  fetchQuestionBank();
+                                  setIsQuestionBankOpen(true);
+                                }}
+                                className="w-full flex items-center space-x-2 text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-1.5 rounded-xl border border-indigo-200 transition font-extrabold text-left shadow-2xs"
+                              >
+                                <FileQuestion className="w-4 h-4 text-indigo-600" />
+                                <span>📚 Ngân Hàng Câu Hỏi & Đề Thi</span>
+                              </button>
+
+                              {/* 2. CỘNG ĐỒNG LỚP HỌC & AI NÂNG CAO (MODULE 9 & 10) */}
+                              <Link
+                                to="/community"
+                                className="flex items-center space-x-2 text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-xl border border-emerald-300/50 transition font-extrabold shadow-2xs"
+                              >
+                                <Sparkles className="w-4 h-4 text-emerald-600" />
+                                <span>💬 Bảng Tin & AI Trợ Giảng (Module 9-10)</span>
+                              </Link>
+
+                              {/* 3. BẢNG TƯƠNG TÁC GIẢNG DẠY WHITEBOARD */}
+                              <Link
+                                to="/whiteboard"
+                                className="flex items-center space-x-2 text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-2 py-1.5 rounded-xl border border-amber-300/50 transition font-extrabold shadow-2xs"
+                              >
+                                <Palette className="w-4 h-4 text-amber-600" />
+                                <span>🎨 Bảng Tương Tác (Whiteboard)</span>
+                              </Link>
+                            </>
                           )}
 
-                          {/* 3. TAB KHÓA HỌC (MY COURSES) */}
+                          {/* DÀNH CHO CẢ GIÁO VIÊN VÀ HỌC SINH */}
                           <Link
                             to="/dashboard"
                             className="flex items-center space-x-2 text-slate-600 hover:text-emerald-600 py-1 transition font-semibold"
@@ -555,6 +544,22 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* CẬP NHẬT YÊU CẦU MỚI: BẢNG TIN THÔNG BÁO DẶN DÒ BÀI HỌC CỦA THẦY NẰM DƯỚI CÙNG (DƯỚI CẢ NAVIGATION VÀ KHÓA HỌC - ẢNH 1) */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              <span>📢 BẢNG TIN THÔNG BÁO & DẶN DÒ BÀI HỌC CỦA THẦY (HỌC SINH XEM VÀ BÌNH LUẬN)</span>
+            </h3>
+            {isTeacher && (
+              <Link to="/community" className="text-xs font-bold text-emerald-700 hover:underline">
+                Quản trị diễn đàn Module 9-10 →
+              </Link>
+            )}
+          </div>
+          <ClassFeed courseId="general_announcement" />
         </div>
       </div>
 
