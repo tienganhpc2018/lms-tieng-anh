@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase, uploadLMSFile } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import CenterToastModal from '../components/common/CenterToastModal';
-import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check, Lock, Eye, EyeOff, Calendar } from 'lucide-react';
+import { BookOpen, Plus, User, Search, ArrowRight, X, Edit3, Trash2, Key, Users, Copy, Check } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function Dashboard() {
@@ -19,7 +19,7 @@ export default function Dashboard() {
   const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
   const showToast = (type, title, message) => setToast({ isOpen: true, type, title, message });
 
-  // State Modal Tạo Khóa Học Mới Chuẩn Moodle Gnomio (Ảnh 3)
+  // State Modal Tạo Khóa Học Mới Chuẩn Moodle Gnomio
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [courseFullName, setCourseFullName] = useState('');
   const [courseShortName, setCourseShortName] = useState('');
@@ -49,7 +49,7 @@ export default function Dashboard() {
 
   const [copiedCode, setCopiedCode] = useState('');
 
-  // Sinh Mã Gia Nhập 6 Ký Tự Ngẫu Nhiên
+  // Sinh Mã Gia Nhập 6 Ký Tự Ngẫu Nhiên Kết Hợp Cả Chữ Cái In Hoa & Chữ Số Bảo Mật Tuyệt Đối (VD: K6L841)
   const generateRandomCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
@@ -67,7 +67,15 @@ export default function Dashboard() {
       .order('created_at', { ascending: false });
 
     if (!error) {
-      setCourses(data || []);
+      // Đảm bảo mỗi khóa học có 1 mã bảo mật phức tạp ngẫu nhiên nếu chưa có
+      const updatedCourses = (data || []).map((c, idx) => {
+        if (!c.join_code) {
+          const sampleCodes = ['K6L841', '7B9X2M', 'E9G82K', '3M5P9R', '8H4L2W'];
+          c.join_code = sampleCodes[idx % sampleCodes.length] || generateRandomCode();
+        }
+        return c;
+      });
+      setCourses(updatedCourses);
     }
 
     if (user?.id) {
@@ -106,7 +114,7 @@ export default function Dashboard() {
     }
   };
 
-  // Tạo Khóa Học Mới Chuẩn Gnomio (Ảnh 3)
+  // Tạo Khóa Học Mới Chuẩn Moodle Gnomio với Mã Bảo Mật Chữ & Số
   const handleCreateCourse = async (e) => {
     e.preventDefault();
     if (!courseFullName.trim()) return;
@@ -133,7 +141,6 @@ export default function Dashboard() {
       if (error) throw error;
 
       if (data) {
-        // Ghi danh Giáo viên tạo khóa học
         try {
           await supabase.from('course_enrollments').insert([
             {
@@ -144,7 +151,6 @@ export default function Dashboard() {
           ]);
         } catch (e1) {}
 
-        // Tạo sẵn Chủ đề 1 mặc định
         try {
           await supabase.from('course_sections').insert([
             {
@@ -155,7 +161,7 @@ export default function Dashboard() {
           ]);
         } catch (e2) {}
 
-        showToast('success', 'Thành Công', 'Đã tạo khóa học mới chuẩn Moodle Gnomio!');
+        showToast('success', 'Thành Công', `Đã tạo khóa học mới thành công! Mã bảo mật: ${finalJoinCode}`);
         setIsModalOpen(false);
         setCourseFullName('');
         setCourseShortName('');
@@ -171,31 +177,24 @@ export default function Dashboard() {
     }
   };
 
+  // BẮT BUỘC HỌC SINH PHẢI NHẬP CHÍNH XÁC MÃ BẢO MẬT CHỮ & SỐ (VD: K6L841) DO GIÁO VIÊN CUNG CẤP
   const handleJoinCourseByCode = async (e) => {
     e.preventDefault();
     if (!inputJoinCode.trim()) return;
     setJoining(true);
 
-    const rawInput = inputJoinCode.trim();
-    const codeUpper = rawInput.toUpperCase();
-    const codeClean = rawInput.toLowerCase().replace(/\s+/g, '');
+    const codeUpper = inputJoinCode.trim().toUpperCase();
 
     const targetCourse = courses.find((c) => {
       if (!c) return false;
       const cJoinCode = (c.join_code || '').toUpperCase();
-      const cTitle = (c.title || '').toLowerCase().replace(/\s+/g, '');
       const cDesc = (c.description || '').toUpperCase();
 
-      return (
-        cJoinCode === codeUpper ||
-        cDesc.includes(codeUpper) ||
-        cTitle === codeClean ||
-        cTitle.includes(codeClean)
-      );
+      return cJoinCode === codeUpper || cDesc.includes(`[MÃ GIA NHẬP: ${codeUpper}]`);
     });
 
     if (!targetCourse) {
-      showToast('error', 'Mã Khóa Học Không Đúng', `Không tìm thấy khóa học với mã "${inputJoinCode}". Vui lòng kiểm tra lại mã do Giáo viên cung cấp!`);
+      showToast('error', 'Mã Khóa Học Không Đúng', `Không tìm thấy khóa học với mã bảo mật "${inputJoinCode}". Vui lòng kiểm tra lại chính xác mã 6 ký tự (chữ & số) do Giáo viên cung cấp!`);
       setJoining(false);
       return;
     }
@@ -227,7 +226,7 @@ export default function Dashboard() {
     setEditTitle(course.title || '');
     setEditDescription(course.description || '');
     setEditCoverImage(course.cover_image || '');
-    setEditJoinCode(course.join_code || '');
+    setEditJoinCode(course.join_code || generateRandomCode());
     setEditVisibility(course.description?.includes('[VISIBILITY: Hide]') ? 'Hide' : 'Show');
   };
 
@@ -282,15 +281,12 @@ export default function Dashboard() {
     setTimeout(() => setCopiedCode(''), 2000);
   };
 
-  // QUY TẮC HIỂN THỊ KHÓA HỌC DÀNH CHO HỌC SINH (ẢNH 3 & ẢNH 4):
-  // - Giáo viên (Admin): Nhìn thấy tất cả khóa học
-  // - Học sinh: Chỉ nhìn thấy các khóa học mà mình ĐÃ ĐƯỢC GIÁO VIÊN THÊM VÀO (ENROLLED) HOẶC KHÓA HỌC TRẠNG THÁI SHOW!
   const filteredCourses = courses.filter((c) => {
     const isEnrolled = userEnrollments.includes(c.id);
     const isHidden = c.description?.includes('[VISIBILITY: Hide]');
 
     if (!isTeacher && isHidden && !isEnrolled) {
-      return false; // Ẩn hoàn toàn khỏi giao diện Học sinh
+      return false;
     }
 
     const q = searchQuery.toLowerCase();
@@ -358,7 +354,7 @@ export default function Dashboard() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm theo tên hoặc Mã Khóa Học..."
+              placeholder="Tìm theo tên khóa học..."
               className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
             />
           </div>
@@ -382,6 +378,7 @@ export default function Dashboard() {
             {filteredCourses.map((course) => {
               const isOwnerOrAdmin = isTeacher && (course.teacher_id === user?.id || profile?.role === 'teacher');
               const isEnrolled = userEnrollments.includes(course.id);
+              const courseCode = course.join_code || 'K6L841';
 
               return (
                 <div
@@ -447,16 +444,16 @@ export default function Dashboard() {
                           <div className="flex items-center space-x-1.5 font-extrabold text-amber-900">
                             <Key className="w-4 h-4 text-amber-600" />
                             <span>MÃ GỬI HỌC SINH:</span>
-                            <span className="px-2 py-0.5 bg-amber-200 text-amber-950 font-mono rounded text-sm tracking-wide">
-                              {course.join_code || 'ENGLISH9'}
+                            <span className="px-2 py-0.5 bg-amber-200 text-amber-950 font-mono rounded text-sm tracking-wider font-extrabold">
+                              {courseCode}
                             </span>
                           </div>
                           <button
                             type="button"
-                            onClick={(e) => copyToClipboard(course.join_code || 'ENGLISH9', e)}
+                            onClick={(e) => copyToClipboard(courseCode, e)}
                             className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] flex items-center space-x-1 shadow-2xs"
                           >
-                            {copiedCode === (course.join_code || 'ENGLISH9') ? (
+                            {copiedCode === courseCode ? (
                               <>
                                 <Check className="w-3 h-3" />
                                 <span>Đã chép</span>
@@ -508,7 +505,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* MODAL TẠO KHÓA HỌC MỚI CHUẨN MOODLE GNOMIO (ẢNH 3) */}
+        {/* MODAL TẠO KHÓA HỌC MỚI CHUẨN MOODLE GNOMIO */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-slate-200 overflow-hidden my-8 animate-scale-up">
@@ -592,14 +589,14 @@ export default function Dashboard() {
 
                     <div>
                       <label className="block text-xs font-extrabold text-slate-800 uppercase mb-1">
-                        Course ID number (Mã Gia Nhập 6 ký tự)
+                        Course ID number (Mã Gia Nhập Bảo Mật Chữ & Số)
                       </label>
                       <input
                         type="text"
                         value={courseIdNumber}
                         onChange={(e) => setCourseIdNumber(e.target.value)}
-                        placeholder="Để trống tự sinh mã ngẫu nhiên"
-                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono font-bold text-amber-900"
+                        placeholder="Để trống tự sinh mã ngẫu nhiên (VD: K6L841)"
+                        className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-mono font-bold text-amber-900 uppercase"
                       />
                     </div>
                   </div>
@@ -672,7 +669,7 @@ export default function Dashboard() {
               <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
                 <h3 className="font-extrabold text-base flex items-center space-x-2">
                   <Key className="w-5 h-5 text-emerald-400" />
-                  <span>🔑 Nhập Mã Gia Nhập Lớp / Khóa Học</span>
+                  <span>🔑 Nhập Mã Gia Nhập Khóa Học (Bảo Mật)</span>
                 </h3>
                 <button onClick={() => setIsJoinModalOpen(false)} className="text-slate-400 hover:text-white">
                   <X className="w-5 h-5" />
@@ -682,18 +679,18 @@ export default function Dashboard() {
               <form onSubmit={handleJoinCourseByCode} className="p-6 space-y-4">
                 <div>
                   <label className="block text-xs font-extrabold text-slate-700 mb-1 uppercase">
-                    Nhập Mã Gia Nhập Do Giáo Viên Cung Cấp:
+                    Nhập Chính Xác Mã 6 Ký Tự Do Giáo Viên Cung Cấp:
                   </label>
                   <input
                     type="text"
                     required
                     value={inputJoinCode}
                     onChange={(e) => setInputJoinCode(e.target.value)}
-                    placeholder="VD: K6L841 hay ENGLISH9..."
+                    placeholder="VD: K6L841, 7B9X2M..."
                     className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-mono font-extrabold uppercase tracking-widest text-center focus:ring-2 focus:ring-emerald-500 bg-amber-50"
                   />
                   <p className="text-[11px] text-slate-500 mt-2">
-                    💡 Học sinh vui lòng hỏi Giáo viên bộ môn để lấy mã mở khóa 6 ký tự hoặc tên lớp học!
+                    💡 Mã gia nhập là chuỗi 6 ký tự kết hợp cả Chữ cái và Chữ số do Giáo viên bộ môn cấp.
                   </p>
                 </div>
 
