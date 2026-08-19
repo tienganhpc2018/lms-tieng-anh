@@ -144,6 +144,7 @@ export default function UserProfileView() {
         username: username.trim().toLowerCase(),
         email: email.trim(),
         avatar_url: avatarUrl,
+        raw_password_hint: newPassword,
       };
 
       const { data, error } = await supabase
@@ -163,6 +164,25 @@ export default function UserProfileView() {
       alert('Lỗi lưu thông tin: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // CHỨC NĂNG 1: GIÁO VIÊN ĐỔI MẬT KHẨU TRỰC TIẾP CHO HỌC SINH
+  const handleTeacherResetPassword = async () => {
+    const passInput = prompt(`🔑 CẤP RẠI MẬT KHẨU CHO HỌC SINH "${displayName}":\n\nNhập mật khẩu mới (hoặc bấm OK để dùng mặc định "123456"):`, newPassword || '123456');
+    if (passInput === null) return;
+    const finalPass = passInput.trim() || '123456';
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ raw_password_hint: finalPass })
+        .eq('id', targetUserId);
+
+      setNewPassword(finalPass);
+      alert(`🎉 ĐÃ CẤP LẠI MẬT KHẨU THÀNH CÔNG!\n\n• Mật khẩu mới cho ${displayName} là: ${finalPass}\n• Học sinh có thể đăng nhập bằng Username hoặc Email cùng mật khẩu mới này!`);
+    } catch (err) {
+      alert('Lỗi cấp lại mật khẩu: ' + err.message);
     }
   };
 
@@ -220,13 +240,23 @@ export default function UserProfileView() {
         </div>
 
         <div className="flex items-center space-x-3">
+          {isTeacher && !isSelf && (
+            <button
+              onClick={handleTeacherResetPassword}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-md transition flex items-center space-x-1.5 border border-amber-300/40"
+            >
+              <Lock className="w-4 h-4 text-slate-950" />
+              <span>🔑 Cấp / Đổi Mật Khẩu HS</span>
+            </button>
+          )}
+
           {(isSelf || isTeacher) && (
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className="px-5 py-2.5 bg-slate-900 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-2xl shadow-md transition flex items-center space-x-2"
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold rounded-xl shadow-md transition flex items-center space-x-1.5"
             >
-              <Edit3 className="w-4 h-4" />
-              <span>{isEditing ? 'Xem Hồ Sơ (View Profile)' : 'Chỉnh Sửa Hồ Sơ (Edit Profile)'}</span>
+              <Edit3 className="w-4 h-4 text-emerald-400" />
+              <span>{isEditing ? 'Cancel editing' : 'Edit profile'}</span>
             </button>
           )}
         </div>
