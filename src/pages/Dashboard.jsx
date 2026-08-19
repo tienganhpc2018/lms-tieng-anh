@@ -411,6 +411,34 @@ export default function Dashboard() {
                     <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                       {course.description || 'Khóa học Tiếng Anh E-learning cung cấp đầy đủ bài tập và bài giảng tương tác.'}
                     </p>
+
+                    {/* HIỂN THỊ MÃ GIA NHẬP NỔI BẬT NGUYÊN BẢN GỬI HỌC SINH */}
+                    <div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl flex items-center justify-between text-xs mt-2">
+                      <div className="flex items-center space-x-1.5 font-extrabold text-amber-900">
+                        <Key className="w-4 h-4 text-amber-600" />
+                        <span>MÃ GỬI HỌC SINH:</span>
+                        <span className="px-2 py-0.5 bg-amber-200 text-amber-950 font-mono rounded text-sm tracking-wide">
+                          {course.join_code || 'ENGLISH9'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => copyToClipboard(course.join_code || 'ENGLISH9', e)}
+                        className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] flex items-center space-x-1 shadow-2xs"
+                      >
+                        {copiedCode === (course.join_code || 'ENGLISH9') ? (
+                          <>
+                            <Check className="w-3 h-3" />
+                            <span>Đã chép</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            <span>Sao chép mã</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
