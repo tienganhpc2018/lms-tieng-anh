@@ -33,7 +33,11 @@ export default function AssignmentView() {
         .eq('id', targetActivityId)
         .single();
 
-      setActivity(act);
+      if (act) {
+        setActivity(act);
+      } else {
+        setActivity({ id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử', type: 'quiz' });
+      }
 
       // 2. Submission của bài tập tự luận
       if (user) {
@@ -50,7 +54,9 @@ export default function AssignmentView() {
           setFileUrl(sub.file_url || '');
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      setActivity({ id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử', type: 'quiz' });
+    }
     setLoading(false);
   };
 
@@ -109,7 +115,7 @@ export default function AssignmentView() {
 
   // XÁC ĐỊNH LOẠI BÀI HỌC
   const isWhiteboard = activity?.type === 'whiteboard' || (activity?.title && activity.title.includes('[WHITEBOARD]'));
-  const isAssignmentType = activity?.type === 'page' || activity?.type === 'assignment';
+  const isPageAssignmentOnly = activity?.type === 'page';
 
   // NẾU LÀ BÀI WHITEBOARD -> MỞ BẢNG WHITEBOARD
   if (isWhiteboard) {
@@ -117,8 +123,10 @@ export default function AssignmentView() {
     return null;
   }
 
-  // NẾU KHÔNG PHẢI TỰ LUẬN PAGE -> KHÔI PHỤC NGAY TRÌNH SOẠN ĐỀ QUIZ 20 DẠNG CÂU HỎI VÀ THI THỬ (ẢNH 3 & ẢNH 4)!
-  if (!isAssignmentType) {
+  // TRẢ VỀ CHUẨN 100% GIAO DIỆN QUIZ 20 DẠNG CÂU HỎI & THI THỬ (ẢNH 1 & ẢNH 2)
+  if (!isPageAssignmentOnly) {
+    const activeAct = activity || { id: targetActivityId, title: 'Practice Test Thi Thử', type: 'quiz' };
+
     return (
       <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
         <div className="max-w-7xl mx-auto space-y-6">
@@ -134,10 +142,10 @@ export default function AssignmentView() {
               </button>
               <div>
                 <span className="text-[10px] font-extrabold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-md">
-                  {isTeacher ? 'Trình Soạn Đề Thi 20 Dạng Câu Hỏi' : 'Đề Thi Thử Trực Tuyến'}
+                  {isTeacher ? 'Trình Soạn Đề Thi 20 Dạng Câu Hỏi' : 'ĐỀ THI THỬ TRỰC TUYẾN'}
                 </span>
                 <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
-                  {activity?.title || 'Đề Thi Trắc Nghiệm'}
+                  {activeAct.title.replace('[WHITEBOARD]', '').trim()}
                 </h1>
               </div>
             </div>
@@ -151,17 +159,17 @@ export default function AssignmentView() {
 
           {/* NẾU LÀ GIÁO VIÊN -> MỞ TRÌNH SOẠN ĐỀ QUIZ 20 DẠNG CÂU HỎI (QUIZ BUILDER) */}
           {isTeacher ? (
-            <QuizBuilder activityId={targetActivityId} />
+            <QuizBuilder activity={activeAct} activityId={targetActivityId} />
           ) : (
             /* NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI THI THỬ TRỰC TUYẾN (QUIZ ENGINE) */
-            <QuizEngine activityId={targetActivityId} />
+            <QuizEngine activity={activeAct} activityId={targetActivityId} />
           )}
         </div>
       </div>
     );
   }
 
-  // GIAO DIỆN BÀI TẬP TỰ LUẬN NỘP FILE DÀNH CHO BÀI DẠNG PAGE / ASSIGNMENT
+  // GIAO DIỆN BÀI TẬP TỰ LUẬN NỘP FILE DÀNH DỰ PHÒNG CHO BÀI CHỈ LÀ TRANG VĂN BẢN
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
       <div className="max-w-4xl mx-auto space-y-6">
