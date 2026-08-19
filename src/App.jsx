@@ -8,7 +8,7 @@ import CourseView from './pages/CourseView';
 import AssignmentView from './pages/AssignmentView';
 import TeacherAnalytics from './pages/TeacherAnalytics';
 import UserProfileView from './pages/UserProfileView';
-import ErrorBoundary from './components/common/ErrorBoundary';
+import WhiteboardView from './pages/WhiteboardView';
 import MockExamView from './pages/MockExamView';
 import NotFound from './pages/NotFound';
 
@@ -90,6 +90,15 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <UserProfileView />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/whiteboard"
+                element={
+                  <ProtectedRoute>
+                    <WhiteboardView />
                   </ProtectedRoute>
                 }
               />
