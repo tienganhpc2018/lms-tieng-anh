@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { BookOpen, ShieldCheck, GraduationCap, Lock, Mail, User, Key } from 'lucide-react';
+import { BookOpen, ShieldCheck, GraduationCap, Lock, Mail, User, Key, LockKeyhole } from 'lucide-react';
 
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -60,26 +60,27 @@ export default function Auth() {
           }
         }
 
+        // KIỂM TRA NẾU TÀI KHOẢN ĐANG BỊ KHÓA TẠM THỜI (SUSPENDED)
+        if (matchedStudentProfile && matchedStudentProfile.suspended) {
+          throw new Error('⛔ Tài khoản của bạn đang bị Giáo viên KHÓA TẠM THỜI. Vui lòng liên hệ Thầy cô để được mở lại!');
+        }
+
         // 2. THỬ ĐĂNG NHẬP QUA SUPABASE AUTH
         try {
           await signIn(targetEmail, passVal);
         } catch (signInErr) {
           const errText = signInErr.message || '';
-          
-          // NẾU TÀI KHOẢN ĐƯỢC GIÁO VIÊN TẠO TRONG PROFILES NHƯNG CHƯA CÓ TRONG AUTH.USERS
+          if (errText.includes('KHÓA TẠM THỜI')) throw signInErr;
+
           if (matchedStudentProfile || errText.includes('Invalid login credentials')) {
             const studentName = matchedStudentProfile?.full_name || inputVal;
             const studentRole = matchedStudentProfile?.role || 'student';
 
-            // TỰ ĐỘNG ĐĂNG KÝ (AUTO-SYNC) VÀO SUPABASE AUTH CHO HỌC SINH DỰA TRÊN MẬT KHẨU CẤP
             try {
               await signUp(targetEmail, passVal, studentName, studentRole);
-              // Đăng nhập lại sau khi auto-sync thành công
               await signIn(targetEmail, passVal);
             } catch (autoSyncErr) {
-              // Nếu đã tồn tại hoặc lỗi mật khẩu
               if (matchedStudentProfile && matchedStudentProfile.raw_password_hint === passVal) {
-                // Đăng nhập hợp lệ theo mật khẩu Giáo viên cấp
                 await signIn(targetEmail, passVal);
               } else {
                 throw signInErr;
@@ -95,7 +96,9 @@ export default function Auth() {
     } catch (err) {
       console.error('Lỗi Auth:', err);
       const msg = err.message || '';
-      if (msg.includes('already registered') || msg.includes('User already registered')) {
+      if (msg.includes('KHÓA TẠM THỜI')) {
+        setErrorMsg(msg);
+      } else if (msg.includes('already registered') || msg.includes('User already registered')) {
         setErrorMsg('Tài khoản này đã được đăng ký! Vui lòng kiểm tra lại mật khẩu hoặc chọn tab "Đăng Nhập".');
       } else if (msg.includes('Invalid login credentials')) {
         setErrorMsg('Tên đăng nhập / Email hoặc Mật khẩu không chính xác. Vui lòng kiểm tra lại!');
@@ -154,8 +157,9 @@ export default function Auth() {
         {/* Form Đăng Nhập / Đăng Ký */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold leading-relaxed">
-              {errorMsg}
+            <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-extrabold leading-relaxed flex items-center space-x-2">
+              <LockKeyhole className="w-5 h-5 flex-shrink-0 text-rose-600" />
+              <span>{errorMsg}</span>
             </div>
           )}
 
