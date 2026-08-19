@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Award, ArrowLeft, Shuffle, CheckCircle, Clock } from 'lucide-react';
+import { Award, ArrowLeft, Shuffle, CheckCircle, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function MockExamView() {
   const navigate = useNavigate();
+  const { isTeacher } = useAuth();
   const [created, setCreated] = useState(false);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 font-sans select-none">
       <div className="flex items-center space-x-3">
         <button
           onClick={() => navigate('/dashboard')}
@@ -21,7 +23,7 @@ export default function MockExamView() {
             <span>Hệ Thống Đề Thi Thử Ngẫu Nhiên (Mock Exam)</span>
           </h1>
           <p className="text-xs text-slate-500">
-            Tự động trích xuất ngẫu nhiên các câu hỏi từ Ngân Hàng Đề Thi để khởi tạo bộ đề kiểm tra 15 phút hoặc 45 phút cho học sinh rèn luyện.
+            Khởi tạo bộ đề thi thử ngẫu nhiên từ Ngân Hàng Đề Thi cho học sinh rèn luyện.
           </p>
         </div>
       </div>
@@ -36,12 +38,19 @@ export default function MockExamView() {
           Hệ thống sẽ lấy ngẫu nhiên 10-20 câu hỏi trắc nghiệm, bài nghe và điền từ từ Ngân hàng đề thi để tạo đề thi thử độc lập.
         </p>
 
-        <button
-          onClick={() => setCreated(true)}
-          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition"
-        >
-          🎲 Tạo Đề Thi Thử Ngẫu Nhiên Ngay
-        </button>
+        {isTeacher ? (
+          <button
+            onClick={() => setCreated(true)}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition"
+          >
+            🎲 Tạo Đề Thi Thử Ngẫu Nhiên Ngay (Giáo Viên)
+          </button>
+        ) : (
+          <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs font-bold flex items-center justify-center space-x-2">
+            <ShieldAlert className="w-5 h-5 text-amber-600" />
+            <span>Tính năng sinh đề thi thử dành riêng cho Giáo viên khởi tạo cho lớp!</span>
+          </div>
+        )}
 
         {created && (
           <div className="p-4 bg-purple-50 border border-purple-200 text-purple-900 rounded-2xl text-xs font-bold animate-fade-in">
