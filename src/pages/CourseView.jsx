@@ -1,140 +1,174 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import CourseSidebar from '../components/lms/CourseSidebar';
 import EnrolledUsersModal from '../components/lms/EnrolledUsersModal';
-import QuizBuilder from '../components/lms/QuizBuilder';
-import QuizEngine from '../components/lms/QuizEngine';
-import InteractiveVideoBuilder from '../components/lms/InteractiveVideoBuilder';
 import CenterToastModal from '../components/common/CenterToastModal';
+import { BookOpen, Plus, Users, ArrowLeft, Key, Eye, EyeOff, Copy, Check, Lock, ChevronRight, PlayCircle, FileText, CheckSquare, Palette } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Plus, Edit3, Trash2, HelpCircle, FileText, Video, Eye, ArrowLeft, Users, Key, Sparkles, CheckCircle, BookOpen } from 'lucide-react';
 
 export default function CourseView() {
   const { id: courseId } = useParams();
   const navigate = useNavigate();
-  const { profile, isTeacher } = useAuth();
+  const { user, profile, isTeacher } = useAuth();
 
   const [course, setCourse] = useState(null);
   const [sections, setSections] = useState([]);
-  const [activities, setActivities] = useState([]);
   const [activeSectionId, setActiveSectionId] = useState(null);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal Enrolled Users
-  const [isEnrolledModalOpen, setIsEnrolledModalOpen] = useState(false);
-
-  // State Soạn Thảo Quiz (QuizBuilder Modal)
-  const [editingQuizActivityId, setEditingQuizActivityId] = useState(null);
-
-  // State Làm Bài Quiz (QuizEngine Modal)
-  const [takingQuizActivity, setTakingQuizActivity] = useState(null);
-
-  // State H5P Video Interactive Builder
-  const [h5pVideoActivityId, setH5pVideoActivityId] = useState(null);
-
-  // State Modal Tạo Bài Học / Hoạt Động Mới
+  // Modals
   const [isAddActivityOpen, setIsAddActivityOpen] = useState(false);
   const [newActTitle, setNewActTitle] = useState('');
-  const [newActType, setNewActType] = useState('quiz');
+  const [newActType, setNewActType] = useState('quiz'); // quiz | page | video | whiteboard
 
-  // Center Toast Popup State
-  const [toast, setToast] = useState({ isOpen: false, type: 'success', title: '', message: '' });
-
-  const showToast = (type, title, message) => {
-    setToast({ isOpen: true, type, title, message });
-  };
+  const [isEnrolledModalOpen, setIsEnrolledModalOpen] = useState(false);
+  const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
 
   const fetchCourseData = async () => {
     setLoading(true);
-    const { data: cData } = await supabase.from('courses').select('*').eq('id', courseId).single();
-    if (!cData) {
-      setLoading(false);
-      return;
-    }
-    setCourse(cData);
+    try {
+      const { data: cData } = await supabase
+        .from('courses')
+        .select('*, teacher:teacher_id (full_name, email)')
+        .eq('id', courseId)
+        .single();
+      setCourse(cData);
 
-    const { data: sData } = await supabase.from('course_sections').select('*').eq('course_id', courseId).order('order_index', { ascending: true });
-    setSections(sData || []);
+      const { data: sData } = await supabase
+        .from('course_sections')
+        .select('*')
+        .eq('course_id', courseId)
+        .order('order_index', { ascending: true });
 
-    if (sData && sData.length > 0) {
-      const activeId = activeSectionId || sData[0].id;
-      setActiveSectionId(activeId);
-      const { data: aData } = await supabase.from('activities').select('*').eq('section_id', activeId).order('order_index', { ascending: true });
-      setActivities(aData || []);
-    }
+      if (sData && sData.length > 0) {
+        setSections(sData);
+        if (!activeSectionId) {
+          setActiveSectionId(sData[0].id);
+        }
+      }
+    } catch (e) {}
     setLoading(false);
   };
 
+  const fetchActivities = async () => {
+    if (!activeSectionId) return;
+    try {
+      const { data: aData } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('section_id', activeSectionId)
+        .order('order_index', { ascending: true });
+      setActivities(aData || []);
+    } catch (e) {}
+  };
+
   useEffect(() => {
-    if (courseId) fetchCourseData();
-  }, [courseId, activeSectionId]);
-
-  const handleSelectSection = (secId) => {
-    setActiveSectionId(secId);
-  };
-
-  const handleAddSection = async () => {
-    const title = prompt('Nhập tên chủ đề/Unit mới (Ví dụ: Unit 3: Teenagers):');
-    if (!title) return;
-    const nextIdx = sections.length;
-    await supabase.from('course_sections').insert([{ course_id: courseId, title, order_index: nextIdx }]);
     fetchCourseData();
+  }, [courseId]);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [activeSectionId]);
+
+  const handleSelectSection = (sId) => {
+    setActiveSectionId(sId);
   };
 
+  const handleAddSection = async (title) => {
+    try {
+      const { data, error } = await supabase
+        .from('course_sections')
+        .insert([
+          {
+            course_id: courseId,
+            title,
+            order_index: sections.length,
+          },
+        ])
+        .select()
+        .single();
+
+      if (!error && data) {
+        setSections([...sections, data]);
+        setActiveSectionId(data.id);
+        setToast({ isOpen: true, type: 'success', title: 'Thành Công', message: 'Đã thêm chủ đề mới!' });
+      }
+    } catch (e) {}
+  };
+
+  // TẠO BÀI HỌC MỚI (CÓ TÙY CHỌN WHITEBOARD BẢNG TƯƠNG TÁC - ẢNH 4)
   const handleCreateActivity = async (e) => {
     e.preventDefault();
     if (!newActTitle.trim() || !activeSectionId) return;
 
-    const nextIdx = activities.length;
-    const { error } = await supabase.from('activities').insert([
-      {
-        section_id: activeSectionId,
-        title: newActTitle.trim(),
-        type: newActType,
-        order_index: nextIdx,
-        settings: {},
-      },
-    ]);
+    try {
+      const { data, error } = await supabase
+        .from('activities')
+        .insert([
+          {
+            section_id: activeSectionId,
+            title: newActType === 'whiteboard' ? `[WHITEBOARD] ${newActTitle.trim()}` : newActTitle.trim(),
+            type: newActType,
+            order_index: activities.length,
+          },
+        ])
+        .select()
+        .single();
 
-    if (error) {
-      showToast('error', 'Lỗi tạo bài học', error.message);
-    } else {
-      showToast('success', 'Thành công', 'Đã thêm bài học mới!');
-      setIsAddActivityOpen(false);
-      setNewActTitle('');
-      fetchCourseData();
+      if (!error && data) {
+        setIsAddActivityOpen(false);
+        setNewActTitle('');
+        setActivities([...activities, data]);
+        setToast({ isOpen: true, type: 'success', title: 'Thành Công', message: 'Đã tạo bài học mới!' });
+
+        if (newActType === 'whiteboard') {
+          navigate(`/whiteboard?activityId=${data.id}`);
+        }
+      }
+    } catch (err) {
+      setToast({ isOpen: true, type: 'error', title: 'Lỗi', message: err.message });
     }
   };
 
-  const handleDeleteActivity = async (actId) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa bài học này?')) return;
-    await supabase.from('activities').delete().eq('id', actId);
-    fetchCourseData();
+  const handleActivityClick = (act) => {
+    if (act.type === 'whiteboard' || act.title.includes('[WHITEBOARD]')) {
+      navigate(`/whiteboard?activityId=${act.id}`);
+    } else if (act.type === 'quiz') {
+      navigate(`/assignment/${act.id}`);
+    } else {
+      navigate(`/assignment/${act.id}`);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
-      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1 space-y-6">
-        {/* HEADER KHÓA HỌC */}
-        <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center space-x-4">
-            <button onClick={() => navigate('/dashboard')} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-2xl text-slate-300 transition">
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* HEADER BAR */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="p-2 hover:bg-slate-100 rounded-xl transition text-slate-600"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-2xl font-extrabold tracking-tight">{course?.title || 'Khóa Học Tiếng Anh'}</h1>
-                <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-lg border border-emerald-500/30">
-                  Mã Lớp: {course?.enrollment_code || 'ENGLISH9'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-1">Giáo viên phụ trách: {profile?.full_name || 'Nguyễn Văn Hải'}</p>
+              <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-md">
+                Khóa Học E-Learning
+              </span>
+              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
+                {course?.title || 'Đang tải khóa học...'}
+              </h1>
+              <p className="text-xs text-slate-500 font-medium">
+                Giáo viên phụ trách: {course?.teacher?.full_name || 'Giáo viên'}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {isTeacher && (
               <button
                 onClick={() => setIsEnrolledModalOpen(true)}
@@ -197,62 +231,45 @@ export default function CourseView() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {activities.map((act) => (
-                    <div
-                      key={act.id}
-                      className="p-5 bg-white border border-emerald-100 rounded-2xl shadow-xs hover:shadow-md transition flex items-center justify-between group"
-                    >
+                  {activities.map((act) => {
+                    const isWhiteboard = act.type === 'whiteboard' || act.title.includes('[WHITEBOARD]');
+
+                    return (
                       <div
-                        onClick={() => {
-                          if (isTeacher) setEditingQuizActivityId(act.id);
-                          else setTakingQuizActivity(act);
-                        }}
-                        className="flex items-center space-x-4 cursor-pointer flex-1"
+                        key={act.id}
+                        onClick={() => handleActivityClick(act)}
+                        className={`p-4 rounded-2xl border transition flex items-center justify-between cursor-pointer group ${
+                          isWhiteboard
+                            ? 'bg-amber-50 hover:bg-amber-100 border-amber-300'
+                            : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 hover:border-emerald-300'
+                        }`}
                       >
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                          {act.type === 'video' ? <Video className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-extrabold shadow-2xs ${
+                            isWhiteboard ? 'bg-amber-500 text-slate-950' : 'bg-emerald-600 text-white'
+                          }`}>
+                            {isWhiteboard ? <Palette className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                          </div>
+
+                          <div>
+                            <h3 className="font-extrabold text-slate-900 text-sm group-hover:text-emerald-700 transition">
+                              {act.title.replace('[WHITEBOARD]', '').trim()}
+                            </h3>
+                            <span className="text-[10px] font-extrabold text-slate-500 uppercase">
+                              {isWhiteboard ? '🎨 Whiteboard Bảng Tương Tác' : act.type}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-600 transition">
-                            {act.title}
-                          </h3>
-                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-slate-100 text-slate-600 rounded">
-                            MODULE: {act.type?.toUpperCase() || 'QUIZ'}
+
+                        <div className="flex items-center space-x-2">
+                          <span className="px-3 py-1 bg-white rounded-lg text-xs font-extrabold text-slate-700 shadow-2xs border">
+                            {isWhiteboard ? 'Vào Giảng Dạy' : 'Mở Bài Học'}
                           </span>
+                          <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
                         </div>
                       </div>
-
-                      <div className="flex items-center space-x-2">
-                        {/* NÚT "SOẠN BÀI & CÂU HỎI" XUẤT HIỆN TRÊN TẤT CẢ CÁC LOẠI BÀI HỌC (PAGE / QUIZ / LESSON) CHUẨN ẢNH 3 */}
-                        {isTeacher && (
-                          <button
-                            onClick={() => setEditingQuizActivityId(act.id)}
-                            className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-xl text-xs font-extrabold transition border border-emerald-200 flex items-center space-x-1"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Soạn Bài & Câu Hỏi</span>
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => setTakingQuizActivity(act)}
-                          className="px-3.5 py-1.5 bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white rounded-xl text-xs font-extrabold transition border border-sky-200 flex items-center space-x-1"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Thi Thử</span>
-                        </button>
-
-                        {isTeacher && (
-                          <button
-                            onClick={() => handleDeleteActivity(act.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -260,43 +277,9 @@ export default function CourseView() {
         </div>
       </div>
 
-      {/* MODAL SOẠN BÀI QUIZBUILDER */}
-      {editingQuizActivityId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-200 my-6 animate-scale-up">
-            <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
-              <h3 className="font-extrabold text-base">Soạn Thảo Bài Học & Ngân Hàng Câu Hỏi Quiz</h3>
-              <button onClick={() => setEditingQuizActivityId(null)} className="text-slate-400 hover:text-white font-bold">
-                ✕
-              </button>
-            </div>
-            <div className="p-6 max-h-[82vh] overflow-y-auto">
-              <QuizBuilder activityId={editingQuizActivityId} onSaved={() => fetchCourseData()} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL THI THỬ QUIZENGINE */}
-      {takingQuizActivity && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 my-6 animate-scale-up">
-            <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
-              <h3 className="font-extrabold text-base">Làm Bài Thi Thử: {takingQuizActivity.title}</h3>
-              <button onClick={() => setTakingQuizActivity(null)} className="text-slate-400 hover:text-white font-bold">
-                ✕
-              </button>
-            </div>
-            <div className="p-6 max-h-[82vh] overflow-y-auto">
-              <QuizEngine activity={takingQuizActivity} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL TẠO BÀI HỌC MỚI */}
+      {/* MODAL THÊM BÀI HỌC / HOẠT ĐỘNG MỚI (TÍCH HỢP BẢNG WHITEBOARD - ẢNH 4) */}
       {isAddActivityOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base">+ Thêm Bài Học / Hoạt Động Mới</h3>
@@ -312,7 +295,7 @@ export default function CourseView() {
                   required
                   value={newActTitle}
                   onChange={(e) => setNewActTitle(e.target.value)}
-                  placeholder="Ví dụ: A closer look 1, Getting started..."
+                  placeholder="Ví dụ: A closer look 1, Whiteboard Unit 1..."
                   className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -322,8 +305,9 @@ export default function CourseView() {
                 <select
                   value={newActType}
                   onChange={(e) => setNewActType(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 bg-amber-50"
                 >
+                  <option value="whiteboard">🎨 Whiteboard (Bảng Tương Tác Giảng Dạy - Lưu Trực Tiếp)</option>
                   <option value="quiz">Quiz (Bài Kiểm Tra Trắc Nghiệm / Reading / Listening)</option>
                   <option value="page">Page (Trang Bài Giảng / Tài Liệu)</option>
                   <option value="video">Interactive Video H5P (Video Tương Tác)</option>
@@ -342,7 +326,7 @@ export default function CourseView() {
                   type="submit"
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md"
                 >
-                  Tạo Bài Học
+                  🚀 Tạo Bài Học & Mở Bảng
                 </button>
               </div>
             </form>
