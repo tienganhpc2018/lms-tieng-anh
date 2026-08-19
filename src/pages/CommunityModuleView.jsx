@@ -16,16 +16,23 @@ export default function CommunityModuleView() {
 
   const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'qa' | 'ai' | 'cert' | 'advanced'
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false); // CHỨC NĂNG 2: DARK MODE CHẾ ĐỘ BAN ĐÊM
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
+    <div className={`min-h-screen transition-colors duration-300 p-4 sm:p-6 lg:p-8 font-sans select-none ${
+      darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'
+    }`}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* HEADER SECTION */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className={`p-5 rounded-3xl border shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors ${
+          darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+        }`}>
           <div className="flex items-center space-x-3">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-slate-100 rounded-2xl transition text-slate-700 flex items-center space-x-1 font-bold text-xs"
+              className={`p-2 rounded-2xl transition flex items-center space-x-1 font-bold text-xs ${
+                darkMode ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-100 text-slate-700'
+              }`}
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Quay lại Khóa Học</span>
@@ -34,19 +41,31 @@ export default function CommunityModuleView() {
               <span className="text-[10px] font-extrabold text-indigo-700 uppercase bg-indigo-50 px-2 py-0.5 rounded-md">
                 MODULE 9 & MODULE 10 (COMM-01 ĐẾN COMM-10 & ADV-01 ĐẾN ADV-10)
               </span>
-              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
+              <h1 className={`text-xl font-extrabold tracking-tight mt-0.5 ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                 Cộng Đồng Lớp Học, Tương Tác Realtime & Công Cụ AI Nâng Cao
               </h1>
             </div>
           </div>
 
-          <button
-            onClick={() => setIsChatOpen(true)}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5"
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>💬 Mở Khung Chat 1-1 / Nhóm (COMM-05 & COMM-10)</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {/* CHỨC NĂNG 2: NÚT CÔNG TẮC BAN ĐÊM (DARK MODE) */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold shadow-sm transition flex items-center space-x-1.5 border ${
+                darkMode ? 'bg-amber-400 text-slate-950 border-amber-300' : 'bg-slate-900 text-amber-300 border-slate-800'
+              }`}
+            >
+              <span>{darkMode ? '☀️ Chế Độ Ban Ngày' : '🌙 Chế Độ Ban Đêm (Dark Mode)'}</span>
+            </button>
+
+            <button
+              onClick={() => setIsChatOpen(true)}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>💬 Mở Khung Chat 1-1 / Nhóm (COMM-05 & COMM-10)</span>
+            </button>
+          </div>
         </div>
 
         {/* TABS NAVIGATION */}
