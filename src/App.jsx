@@ -7,8 +7,7 @@ import Dashboard from './pages/Dashboard';
 import CourseView from './pages/CourseView';
 import AssignmentView from './pages/AssignmentView';
 import TeacherAnalytics from './pages/TeacherAnalytics';
-import AiBuilderView from './pages/AiBuilderView';
-import QuestionBankView from './pages/QuestionBankView';
+import UserProfileView from './pages/UserProfileView';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import MockExamView from './pages/MockExamView';
 import NotFound from './pages/NotFound';
@@ -18,7 +17,7 @@ function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
       </div>
     );
@@ -35,7 +34,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased flex flex-col">
+        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased flex flex-col select-none">
           <Navbar />
           <div className="flex-1">
             <Routes>
@@ -60,35 +59,6 @@ export default function App() {
               />
 
               <Route
-                path="/ai-builder"
-                element={
-                  <ProtectedRoute>
-                    <AiBuilderView />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/question-bank"
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary>
-                      <QuestionBankView />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/mock-exam"
-                element={
-                  <ProtectedRoute>
-                    <MockExamView />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route
                 path="/course/:id"
                 element={
                   <ProtectedRoute>
@@ -107,6 +77,24 @@ export default function App() {
               />
 
               <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <UserProfileView />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/profile/:userId"
+                element={
+                  <ProtectedRoute>
+                    <UserProfileView />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
                 path="/analytics"
                 element={
                   <ProtectedRoute>
@@ -114,7 +102,16 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              
+
+              <Route
+                path="/mock-exam"
+                element={
+                  <ProtectedRoute>
+                    <MockExamView />
+                  </ProtectedRoute>
+                }
+              />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
