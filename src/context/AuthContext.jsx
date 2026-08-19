@@ -15,32 +15,50 @@ export function AuthProvider({ children }) {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code === 'PGRST116') {
-        // Chưa có profile -> tự động tạo profile mặc định
-        const newRole = userEmail?.includes('teacher') ? 'teacher' : 'student';
-        const { data: createdProfile, error: createError } = await supabase
+      if (!data && userEmail) {
+        // Tra cứu lại theo email nếu không tìm thấy ID
+        const { data: emailData } = await supabase
           .from('profiles')
-          .insert([
-            {
-              id: userId,
-              email: userEmail,
-              full_name: userEmail?.split('@')[0] || 'User',
-              role: newRole,
-            },
-          ])
-          .select()
-          .single();
+          .select('*')
+          .eq('email', userEmail)
+          .maybeSingle();
 
-        if (!createError) {
-          data = createdProfile;
+        if (emailData) {
+          data = emailData;
+        } else {
+          // Chưa có profile -> tự động upsert profile mặc định
+          const newRole = userEmail?.includes('teacher') ? 'teacher' : 'student';
+          const defaultName = userEmail?.split('@')[0] || 'User';
+          const { data: createdProfile } = await supabase
+            .from('profiles')
+            .upsert([
+              {
+                id: userId,
+                email: userEmail,
+                full_name: defaultName,
+                role: newRole,
+              },
+            ])
+            .select()
+            .single();
+
+          if (createdProfile) {
+            data = createdProfile;
+          }
         }
       }
 
       setProfile(data || null);
     } catch (err) {
       console.error('Lỗi lấy thông tin hồ sơ:', err.message);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user?.id) {
+      await fetchProfile(user.id, user.email);
     }
   };
 
@@ -92,7 +110,6 @@ export function AuthProvider({ children }) {
     }
 
     if (data.user) {
-      // Upsert profile
       await supabase.from('profiles').upsert([
         {
           id: data.user.id,
@@ -124,6 +141,7 @@ export function AuthProvider({ children }) {
     if (data.user) {
       await fetchProfile(data.user.id, data.user.email);
     }
+
     setLoading(false);
     return data;
   };
@@ -137,19 +155,24 @@ export function AuthProvider({ children }) {
     setLoading(false);
   };
 
-  const value = {
-    user,
-    profile,
-    loading,
-    isTeacher: profile?.role === 'teacher',
-    isStudent: profile?.role === 'student',
-    signUp,
-    signIn,
-    signOut,
-    refreshProfile: () => user && fetchProfile(user.id, user.email),
-  };
+  const isTeacher = profile?.role === 'teacher' || user?.email?.includes('teacher');
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        isTeacher,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        refreshProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export const useAuth = () => useContext(AuthContext);
