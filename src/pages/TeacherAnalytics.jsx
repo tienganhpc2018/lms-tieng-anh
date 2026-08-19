@@ -138,11 +138,16 @@ export default function TeacherAnalytics() {
         </div>
       </div>
 
-      {/* Bảng Chi Tiết Bài Nộp Quiz / Assignment */}
+      {/* Bảng Chi Tiết Bài Nộp Quiz / Assignment - ĐÃ GOM MỖI HỌC SINH 1 LẦN DUY NHẤT (ẢNH 4) */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-6">
-        <h3 className="font-bold text-slate-900 text-base border-b border-slate-100 pb-3">
-          Bảng Điểm Quiz & Bài Tập Về Nhà Của Học Sinh
-        </h3>
+        <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+          <h3 className="font-extrabold text-slate-900 text-base">
+            📊 Bảng Tổng Hợp Điểm Số & Tiến Độ Của Từng Học Sinh (Đã Gom Nhóm 1 Lần / Học Sinh)
+          </h3>
+          <span className="text-xs font-bold text-slate-500">
+            Hiển thị {Object.keys(submissions.reduce((acc, s) => { acc[s.student_id || s.profiles?.email] = true; return acc; }, {})).length} Học Sinh
+          </span>
+        </div>
 
         {submissions.length === 0 ? (
           <p className="text-xs text-slate-400 text-center py-6 italic">Chưa có bài nộp từ Học sinh nào.</p>
@@ -152,39 +157,65 @@ export default function TeacherAnalytics() {
               <thead>
                 <tr className="bg-slate-50 text-slate-600 text-xs uppercase font-bold border-b border-slate-200">
                   <th className="py-3 px-4">Họ và Tên Học Sinh</th>
-                  <th className="py-3 px-4">Tên Hoạt Động</th>
-                  <th className="py-3 px-4">Loại Module</th>
-                  <th className="py-3 px-4">Điểm Số</th>
+                  <th className="py-3 px-4">Số Bài Thi Đã Làm</th>
+                  <th className="py-3 px-4">Điểm Cao Nhất</th>
+                  <th className="py-3 px-4">Điểm Trung Bình</th>
                   <th className="py-3 px-4">Trạng Thái</th>
-                  <th className="py-3 px-4">Thời Gian Nộp</th>
+                  <th className="py-3 px-4">Lần Nộp Bài Cuối</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
-                {submissions.map((sub) => (
-                  <tr key={sub.id} className="hover:bg-slate-50/80 transition">
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      {sub.profiles?.full_name || 'Học sinh'}
-                      <span className="block text-xs font-normal text-slate-400">{sub.profiles?.email}</span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-700">{sub.activities?.title || 'Bài tập'}</td>
-                    <td className="py-3 px-4 uppercase text-xs font-bold text-slate-500">
-                      {sub.activities?.type}
-                    </td>
-                    <td className="py-3 px-4 font-extrabold text-emerald-600">
-                      {sub.score} / 10
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
-                        sub.status === 'graded' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {sub.status === 'graded' ? 'Đã chấm' : 'Đã nộp'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-xs text-slate-400 font-mono">
-                      {new Date(sub.submitted_at).toLocaleString('vi-VN')}
-                    </td>
-                  </tr>
-                ))}
+                {Object.values(
+                  submissions.reduce((acc, sub) => {
+                    const key = sub.student_id || sub.profiles?.email || 'unknown';
+                    if (!acc[key]) {
+                      acc[key] = {
+                        profile: sub.profiles,
+                        count: 1,
+                        scores: [parseFloat(sub.score) || 0],
+                        latest: sub.submitted_at,
+                        status: sub.status,
+                      };
+                    } else {
+                      acc[key].count += 1;
+                      acc[key].scores.push(parseFloat(sub.score) || 0);
+                      if (new Date(sub.submitted_at) > new Date(acc[key].latest)) {
+                        acc[key].latest = sub.submitted_at;
+                      }
+                    }
+                    return acc;
+                  }, {})
+                ).map((row, idx) => {
+                  const maxScore = Math.max(...row.scores).toFixed(1);
+                  const avgScore = (row.scores.reduce((a, b) => a + b, 0) / row.scores.length).toFixed(1);
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50/80 transition">
+                      <td className="py-3 px-4 font-semibold text-slate-900">
+                        {row.profile?.full_name || 'Học sinh'}
+                        <span className="block text-xs font-normal text-slate-400">{row.profile?.email}</span>
+                      </td>
+                      <td className="py-3 px-4 font-bold text-slate-700">
+                        <span className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-extrabold">
+                          {row.count} bài nộp
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-extrabold text-emerald-600">
+                        {maxScore} / 10
+                      </td>
+                      <td className="py-3 px-4 font-extrabold text-indigo-600">
+                        {avgScore} / 10
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800">
+                          Đã chấm ({row.count} lượt)
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-slate-400 font-mono">
+                        {new Date(row.latest).toLocaleString('vi-VN')}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
