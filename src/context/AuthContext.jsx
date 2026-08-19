@@ -8,49 +8,79 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Lấy Profile người dùng từ Supabase DB
+  // Lấy & Đồng bộ Profile người dùng từ Supabase DB
   const fetchProfile = async (userId, userEmail) => {
+    if (!userId && !userEmail) return;
     try {
-      let { data, error } = await supabase
+      const cleanEmail = userEmail?.trim().toLowerCase() || '';
+      const usernameFromEmail = cleanEmail.split('@')[0];
+
+      // 1. Tìm profile theo ID trước
+      let { data: profileById } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      if (!data && userEmail) {
-        // Tra cứu lại theo email nếu không tìm thấy ID
-        const { data: emailData } = await supabase
+      let finalProfile = profileById;
+
+      // 2. Nếu chưa có profile theo ID -> Tìm theo EMAIL hoặc USERNAME đã được Giáo viên tạo sẵn
+      if (!finalProfile && cleanEmail) {
+        let { data: profileByEmail } = await supabase
           .from('profiles')
           .select('*')
-          .eq('email', userEmail)
+          .ilike('email', cleanEmail)
           .maybeSingle();
 
-        if (emailData) {
-          data = emailData;
-        } else {
-          // Chưa có profile -> tự động upsert profile mặc định
-          const newRole = userEmail?.includes('teacher') ? 'teacher' : 'student';
-          const defaultName = userEmail?.split('@')[0] || 'User';
-          const { data: createdProfile } = await supabase
+        if (!profileByEmail && usernameFromEmail) {
+          let { data: profileByUsername } = await supabase
             .from('profiles')
-            .upsert([
-              {
-                id: userId,
-                email: userEmail,
-                full_name: defaultName,
-                role: newRole,
-              },
-            ])
-            .select()
-            .single();
+            .select('*')
+            .ilike('username', usernameFromEmail)
+            .maybeSingle();
 
-          if (createdProfile) {
-            data = createdProfile;
+          if (profileByUsername) profileByEmail = profileByUsername;
+        }
+
+        if (profileByEmail) {
+          finalProfile = profileByEmail;
+
+          // ĐỒNG BỘ: Cập nhật ID của Auth User vào hàng Profile đã được Thầy tạo sẵn
+          try {
+            await supabase
+              .from('profiles')
+              .update({ id: userId, email: cleanEmail })
+              .eq('id', profileByEmail.id);
+            finalProfile.id = userId;
+          } catch (linkErr) {
+            console.warn('Link profile ID notice:', linkErr);
           }
         }
       }
 
-      setProfile(data || null);
+      // 3. Nếu thực sự chưa từng tồn tại trong CSDL -> Tự động khởi tạo profile mới
+      if (!finalProfile) {
+        const newRole = cleanEmail.includes('teacher') ? 'teacher' : 'student';
+        const defaultName = usernameFromEmail || 'User';
+
+        const { data: createdProfile } = await supabase
+          .from('profiles')
+          .upsert([
+            {
+              id: userId,
+              email: cleanEmail,
+              username: usernameFromEmail,
+              full_name: defaultName,
+              role: newRole,
+            },
+          ])
+          .select()
+          .single();
+
+        if (createdProfile) finalProfile = createdProfile;
+      }
+
+      setProfile(finalProfile || null);
     } catch (err) {
       console.error('Lỗi lấy thông tin hồ sơ:', err.message);
     }
