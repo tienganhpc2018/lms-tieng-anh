@@ -7,6 +7,26 @@ export default function AdvancedToolsPanel() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioFeedback, setAudioFeedback] = useState(null);
 
+  // CHỨC NĂNG 4: TỰ ĐỘNG XUẤT BÁO CÁO CHUYÊN CẦN & TƯƠNG TÁC LỚP HỌC RA EXCEL (.CSV)
+  const exportAttendanceExcel = () => {
+    const studentData = [
+      ['STT', 'Họ và Tên Học Sinh', 'Lớp', 'Điểm Danh', 'Lượt Thả Tim', 'Bình Luận Bài Học', 'Bài Test Đã Làm', 'Điểm Cộng Chuyên Cần'],
+      ['1', 'Nguyễn Minh Hoàng', '9A1', 'Đủ (100%)', '15', '8', '5/5', '10/10'],
+      ['2', 'Đinh Thành Nhơn', '9A1', 'Đủ (100%)', '12', '5', '5/5', '9.5/10'],
+      ['3', 'Hà Nguyễn Minh Thư', '9A1', 'Đủ (95%)', '10', '6', '4/5', '9.0/10'],
+      ['4', 'Trần Bảo Nam', '9A1', 'Đủ (90%)', '8', '4', '4/5', '8.5/10'],
+    ];
+
+    const csvContent = '\uFEFF' + studentData.map((e) => e.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Bao_Cao_Chuyen_Can_Tuong_Tac_Lop_Hoc_${Date.now()}.csv`;
+    a.click();
+    alert('📊 Đã xuất thành công Báo cáo Chuyên cần & Tương tác Lớp học ra file Excel (.csv)!');
+  };
+
   // ADV-08: Ghi âm nhận xét lời nói
   const toggleRecording = () => {
     if (!isRecording) {
@@ -122,7 +142,15 @@ export default function AdvancedToolsPanel() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={exportAttendanceExcel}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1"
+          >
+            <Download className="w-4 h-4" />
+            <span>📊 Xuất Báo Cáo Chuyên Cần (.csv Excel)</span>
+          </button>
+
           <button
             onClick={exportGoogleCalendar}
             className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1"
@@ -133,7 +161,7 @@ export default function AdvancedToolsPanel() {
 
           <button
             onClick={handleBackupData}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1"
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1"
           >
             <Database className="w-4 h-4" />
             <span>Sao Lưu Backup (.json)</span>
