@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import CenterToastModal from '../components/common/CenterToastModal';
 import UserManagementModal from '../components/lms/UserManagementModal';
+import ClassFeed from '../features/community/ClassFeed';
 import { 
   BookOpen, Plus, Users, Search, Key, Sparkles, FolderOpen, Crown, ChevronRight, 
   ChevronDown, Home, Lock, BarChart3, HelpCircle, FileText, CheckCircle2, Copy, 
@@ -275,15 +276,15 @@ export default function Dashboard() {
       />
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* BANNER HEADER */}
-        <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-900 text-white min-h-[200px] flex items-center">
+        {/* HERO BANNER - ĐÃ CHỈNH RÕ NÉT 85% ANH NỀN (ẢNH 3) */}
+        <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200">
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-25 scale-105 transition duration-700 hover:scale-100"
+            className="absolute inset-0 bg-cover bg-center opacity-85 scale-105 transition duration-700 hover:scale-100"
             style={{
               backgroundImage: `url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&auto=format&fit=crop&q=80')`,
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/80 to-slate-900/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-slate-950/30 to-transparent" />
 
           <div className="relative z-10 p-6 sm:p-8 w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div className="space-y-2.5 max-w-2xl">
@@ -292,11 +293,11 @@ export default function Dashboard() {
                 <span>SỔ TAY DẠY HỌC THCS • GLOBAL SUCCESS</span>
               </span>
 
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-md">
                 Chào mừng trở lại, {profile?.full_name || user?.email?.split('@')[0]}! 👋
               </h1>
 
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+              <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-semibold drop-shadow-sm">
                 Khám phá nền tảng giáo dục thông minh với đầy đủ công cụ quản lý chuyên môn, bài giảng E-learning tương tác và ngân hàng đề thi bám sát ma trận CV7991.
               </p>
 
@@ -321,11 +322,25 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="hidden lg:flex items-center space-x-2 px-5 py-2.5 bg-amber-500/20 border border-amber-400/40 rounded-2xl text-amber-300 text-xs font-extrabold backdrop-blur-md shadow-lg">
+            <div className="hidden lg:flex items-center space-x-2 px-5 py-2.5 bg-amber-500/30 border border-amber-400/50 rounded-2xl text-amber-300 text-xs font-extrabold backdrop-blur-md shadow-lg">
               <Crown className="w-5 h-5 text-amber-400 animate-bounce" />
               <span>{isTeacher ? '👑 Đặc quyền VIP Giáo Viên' : '🎓 Học Sinh Chính Thức'}</span>
             </div>
           </div>
+        </div>
+
+        {/* YÊU CẦU 5 (ẢNH 5): BẢNG TIN THÔNG BÁO DẶN DÒ DÀNH CHO HỌC SINH HIỂN THỊ NGAY TRANG CHỦ */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              <span>📢 BẢNG TIN THÔNG BÁO & DẶN DÒ BÀI HỌC CỦA THẦY</span>
+            </h3>
+            <Link to="/community" className="text-xs font-bold text-emerald-700 hover:underline">
+              Xem tất cả diễn đàn →
+            </Link>
+          </div>
+          <ClassFeed courseId="general_announcement" />
         </div>
 
         {/* BỐ CỤC 2 CỘT: SIDEBAR NAVIGATION NGUYÊN BẢN CHUẨN MOODLE + MAIN CONTENT */}
