@@ -918,17 +918,17 @@ export default function QuizEngine({ activity }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
-                      {/* CHỈ CÓ SOẠN READING, KNOWLEDGE OF LANGUAGE (CLOZE TEST) MỚI CÓ KHUNG BÀI ĐỌC PASSAGE CHUNG. LISTENING & MULTIPLE CHOICE ẨN 100% KHUNG BÀI ĐỌC PASSAGE NÀY */}
-                      {pItem.passage && ['reading_section', 'cloze_test', 'reading_tf'].includes(sectionType?.toLowerCase()) && (
-                        <div className="p-3.5 bg-amber-50/70 border border-amber-300/80 rounded-2xl text-xs text-slate-800 leading-relaxed font-serif shadow-2xs my-1.5">
+                      {/* BƯỚC 1: XÓA Ô HIỂN THỊ CHỨA ĐOẠN VĂN MÀU VÀNG NHẠT (📖 Bài đọc...) ĐỐI VỚI CÁC CÂU TRẮC NGHIỆM ĐỘC LẬP ĐỂ TIẾT KIỆM KHÔNG GIAN MÀN HÌNH */}
+                      {pItem.passage && ['reading_section', 'cloze_test'].includes(sectionType?.toLowerCase()) && (
+                        <div className="p-4 bg-amber-50/80 border border-amber-300/80 rounded-lg text-xs text-slate-800 leading-relaxed font-serif shadow-xs my-2">
                           <div className="whitespace-pre-line text-slate-900 text-xs font-serif leading-relaxed italic">
                             {pItem.passage}
                           </div>
                         </div>
                       )}
 
-                      {/* DANH SÁCH CÂU HỎI TRONG PART - KHÍT DÒNG HẸP NÂNG CAO KHÔNG GIAN BÀI TẬP */}
-                      <div className="space-y-2 pt-0.5">
+                      {/* DANH SÁCH CÂU HỎI TRONG PART */}
+                      <div className="space-y-3 pt-1">
                         {pQs.map((cQ, cIdx) => {
                           const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
@@ -945,20 +945,20 @@ export default function QuizEngine({ activity }) {
                             let qText = cQ.question || 'Statement question';
 
                             return (
-                              <div key={cIdx} className="p-3 bg-white border border-slate-200/90 hover:border-emerald-300 rounded-xl space-y-2 shadow-2xs transition">
+                              <div key={cIdx} className="p-4 bg-white border border-slate-200 rounded-lg space-y-3 shadow-xs hover:border-emerald-300 transition">
                                 <div className="flex items-center justify-between gap-2">
                                   <h4 className="font-extrabold text-xs text-slate-900 leading-snug flex-1 font-sans">
                                     {qText}
                                   </h4>
 
-                                  <div className="flex items-center space-x-1.5 flex-shrink-0">
+                                  <div className="flex items-center space-x-2 flex-shrink-0">
                                     {/* NÚT T (TRUE) */}
                                     <button
                                       type="button"
                                       disabled={submitted}
                                       onClick={() => handleSelectAnswer(childKey, 'True')}
                                       title="True (Đúng)"
-                                      className={`w-8 h-7 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
+                                      className={`w-9 h-8 rounded-md font-black text-xs transition flex items-center justify-center border cursor-pointer ${
                                         submitted
                                           ? isCorrectTrue
                                             ? 'bg-emerald-600 text-white border-emerald-600 ring-1 ring-emerald-300 font-extrabold'
@@ -979,7 +979,7 @@ export default function QuizEngine({ activity }) {
                                       disabled={submitted}
                                       onClick={() => handleSelectAnswer(childKey, 'False')}
                                       title="False (Sai)"
-                                      className={`w-8 h-7 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
+                                      className={`w-9 h-8 rounded-md font-black text-xs transition flex items-center justify-center border cursor-pointer ${
                                         submitted
                                           ? isCorrectFalse
                                             ? 'bg-rose-600 text-white border-rose-600 ring-1 ring-rose-300 font-extrabold'
@@ -996,8 +996,8 @@ export default function QuizEngine({ activity }) {
                                   </div>
                                 </div>
 
-                                {/* HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT NGAY SAU MỖI CÂU HỎI */}
-                                {submitted && renderCompactExplanation(
+                                {/* HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT ĐÚNG/SAI BƯỚC 3 */}
+                                {(cQ.explanation || pItem.explanation || submitted || isTeacher) && renderCompactExplanation(
                                   cQ.explanation || pItem.explanation || `Dẫn chứng phân tích: Dựa vào nội dung bài đọc, câu phát biểu này là ${correctText}.`,
                                   correctText,
                                   cQ,
@@ -1022,13 +1022,14 @@ export default function QuizEngine({ activity }) {
                             } catch (e) {}
 
                             return (
-                              <div key={cIdx} className="p-3 bg-slate-50/70 border border-slate-200/90 rounded-xl space-y-2 shadow-2xs">
+                              /* BƯỚC 3: KHUNG CÂU HỎI DÙNG BORDER-RADIUS 8PX (rounded-lg) + PADDING p-4 KHÔNG SÁT LỀ */
+                              <div key={cIdx} className="p-4 bg-white border border-slate-200 rounded-lg space-y-3 shadow-xs">
                                 <h4 className="font-extrabold text-xs text-slate-900 leading-snug">
                                   {!hasLeadingNumber && `${cIdx + 1}. `}{qDisplay}
                                 </h4>
 
-                                {/* 4 LỰA CHỌN A, B, C, D BẮT BUỘC NẰM TRÊN CÙNG 1 HÀNG 4 CỘT CỐ ĐỊNH 🎯 CHUẨN 100% CỦA THẦY */}
-                                <div className="grid grid-cols-4 gap-1.5 sm:gap-2 w-full items-stretch pt-1">
+                                {/* BƯỚC 2: DÀN 4 ĐÁP ÁN THÀNH 1 DÒNG NGANG DÙNG CLASS grid grid-cols-4 gap-3 HOẶC gap-4 CHUẨN 100% */}
+                                <div className="grid grid-cols-4 gap-3 w-full items-stretch pt-1">
                                   {cOpts.map((opt, oIdx) => {
                                     const isSelected = selectedVal === oIdx;
                                     const isThisCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
@@ -1040,7 +1041,7 @@ export default function QuizEngine({ activity }) {
                                       rawOptText = rawOptText.trim().substring(2).trim();
                                     }
 
-                                    let btnStyle = 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800 font-medium';
+                                    let btnStyle = 'bg-slate-50/80 border-slate-200 hover:bg-slate-100 text-slate-800 font-medium';
                                     if (submitted || isTeacher) {
                                       if (isThisCorrect) btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-extrabold';
                                       else if (isSelected && !isThisCorrect) btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
@@ -1049,24 +1050,25 @@ export default function QuizEngine({ activity }) {
                                     }
 
                                     return (
+                                      /* BƯỚC 3: KHUNG TỪNG ĐÁP ÁN DÙNG BO GÓC NHỎ HƠN rounded-md (border-radius: 6px) + PADDING GỌN GÀNG px-3 py-2 */
                                       <button
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                        className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs border transition flex items-center space-x-1.5 whitespace-normal break-words shadow-2xs ${btnStyle}`}
+                                        className={`w-full text-left px-3 py-2 rounded-md text-xs border transition flex items-center space-x-2 whitespace-normal break-words cursor-pointer ${btnStyle}`}
                                       >
-                                        <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
+                                        <span className={`w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
                                           isSelected ? 'bg-white text-emerald-800 font-black' : 'bg-slate-200 text-slate-700'
                                         }`}>
                                           {label}
                                         </span>
-                                        <span className="leading-tight text-[11px] font-semibold">{rawOptText}</span>
+                                        <span className="leading-tight text-xs font-medium">{rawOptText}</span>
                                       </button>
                                     );
                                   })}
                                 </div>
 
-                                {/* SAU MỖI CÂU HỎI BẮT BUỘC LUÔN CÓ KHUNG CHỨA LỜI GIẢI THÍCH CHI TIẾT CHO CÂU ĐÓ (ẢNH 2) */}
+                                {/* KHUNG GIẢI THÍCH CHI TIẾT NGAY SAU MỖI CÂU HỎI */}
                                 {(cQ.explanation || pItem.explanation || submitted || isTeacher) && renderCompactExplanation(
                                   cQ.explanation || pItem.explanation || `Dẫn chứng & Phân tích: Đáp án đúng chính xác là "${correctText}".`,
                                   correctText,
