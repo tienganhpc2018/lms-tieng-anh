@@ -852,16 +852,16 @@ export default function QuizEngine({ activity }) {
                   const isPart2Short = pItem.part_type === 'short_essay';
 
                   return (
-                    <div key={pIdx} className="space-y-3 border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
+                    <div key={pIdx} className="space-y-2 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
                       {/* TIÊU ĐỀ HƯỚNG DẪN YÊU CẦU ĐỀ PART */}
-                      <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
+                      <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
-                      {/* VĂN BẢN BÀI ĐỌC READING PASSAGE SOẠN TỪ ADMIN (ẢNH 1 & ẢNH 2) */}
+                      {/* VĂN BẢN BÀI ĐỌC READING PASSAGE SOẠN TỪ ADMIN */}
                       {pItem.passage && (
-                        <div className="p-4 bg-amber-50/90 border border-amber-300 rounded-2xl text-xs text-slate-900 leading-relaxed font-serif shadow-2xs">
-                          <span className="font-extrabold text-amber-950 block mb-1.5 uppercase text-[11px]">
+                        <div className="p-3 bg-amber-50/90 border border-amber-300 rounded-2xl text-xs text-slate-900 leading-relaxed font-serif shadow-2xs my-1.5">
+                          <span className="font-extrabold text-amber-950 block mb-1 uppercase text-[10px]">
                             📖 NỘI DUNG BÀI ĐỌC HIỂU (READING PASSAGE):
                           </span>
                           <div className="whitespace-pre-line text-slate-800 text-xs font-serif leading-relaxed">
@@ -870,44 +870,44 @@ export default function QuizEngine({ activity }) {
                         </div>
                       )}
 
-                      {/* DANH SÁCH CÂU HỎI TRONG PART */}
-                      <div className="space-y-3 pt-1">
+                      {/* DANH SÁCH CÂU HỎI TRONG PART - KHÍT DÒNG HẸP NÂNG CAO KHÔNG GIAN BÀI TẬP */}
+                      <div className="space-y-1.5 pt-0.5">
                         {pQs.map((cQ, cIdx) => {
                           const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
 
-                          // 1. DẠNG TRUE / FALSE CÂU VÀ NÚT T/F NẰM TRÊN CÙNG 1 HÀNG CHUẨN ĐẸP 100% (ẢNH 1)
+                          // 1. DẠNG TRUE / FALSE KHÍT DÒNG HẸP
                           if (isTrueFalse) {
                             const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
                             const isCorrectFalse = cQ.correctAnswer === 'False' || cQ.options?.find(o => o.text === 'False')?.isCorrect;
                             const isSelectedTrue = selectedVal === 'True';
                             const isSelectedFalse = selectedVal === 'False';
 
-                            // Lọc số thứ tự nếu câu hỏi đã chứa số (VD: 41. Horse-riding...)
-                            const questionText = cQ.question || 'Statement question';
+                            // Lọc số thứ tự nếu câu hỏi đã chứa số
+                            let qText = cQ.question || 'Statement question';
 
                             return (
-                              <div key={cIdx} className="p-4 bg-white border border-slate-200/80 hover:border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs transition group">
+                              <div key={cIdx} className="p-2.5 px-3.5 bg-white border border-slate-200/90 hover:border-emerald-300 rounded-xl flex items-center justify-between gap-2 shadow-2xs transition">
                                 <h4 className="font-extrabold text-xs text-slate-900 leading-snug flex-1 font-sans">
-                                  {questionText}
+                                  {qText}
                                 </h4>
 
-                                <div className="flex items-center space-x-2 flex-shrink-0 self-end sm:self-center">
+                                <div className="flex items-center space-x-1.5 flex-shrink-0">
                                   {/* NÚT T (TRUE) */}
                                   <button
                                     type="button"
                                     disabled={submitted}
                                     onClick={() => handleSelectAnswer(childKey, 'True')}
                                     title="True (Đúng)"
-                                    className={`w-9 h-8 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
+                                    className={`w-8 h-7 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
                                       submitted
                                         ? isCorrectTrue
-                                          ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-300'
+                                          ? 'bg-emerald-600 text-white border-emerald-600 ring-1 ring-emerald-300'
                                           : isSelectedTrue
                                           ? 'bg-rose-600 text-white border-rose-600 line-through'
                                           : 'bg-slate-50 text-slate-400 border-slate-200'
                                         : isSelectedTrue
-                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300'
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-1 ring-emerald-300'
                                         : 'bg-white text-slate-400 border-slate-300 hover:border-emerald-500 hover:text-emerald-700'
                                     }`}
                                   >
@@ -920,15 +920,15 @@ export default function QuizEngine({ activity }) {
                                     disabled={submitted}
                                     onClick={() => handleSelectAnswer(childKey, 'False')}
                                     title="False (Sai)"
-                                    className={`w-9 h-8 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
+                                    className={`w-8 h-7 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
                                       submitted
                                         ? isCorrectFalse
-                                          ? 'bg-rose-600 text-white border-rose-600 ring-2 ring-rose-300'
+                                          ? 'bg-rose-600 text-white border-rose-600 ring-1 ring-rose-300'
                                           : isSelectedFalse
                                           ? 'bg-rose-600 text-white border-rose-600 line-through'
                                           : 'bg-slate-50 text-slate-400 border-slate-200'
                                         : isSelectedFalse
-                                        ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
+                                        ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-1 ring-rose-300'
                                         : 'bg-white text-slate-400 border-slate-300 hover:border-rose-500 hover:text-rose-700'
                                     }`}
                                   >
@@ -942,18 +942,27 @@ export default function QuizEngine({ activity }) {
                             const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' && o?.isCorrect);
                             const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || 'Đáp án đúng';
 
+                            // Lọc số thứ tự thừa nếu câu hỏi đã chứa số (VD: 40. What...)
+                            let qDisplay = cQ.question || '';
+                            const hasLeadingNumber = /^\d+[\.\)]/.test(qDisplay);
+
                             return (
-                              <div key={cIdx} className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-2.5 shadow-2xs">
+                              <div key={cIdx} className="p-2.5 px-3.5 bg-slate-50/70 border border-slate-200/90 rounded-xl space-y-1.5 shadow-2xs">
                                 <h4 className="font-extrabold text-xs text-slate-900 leading-snug">
-                                  {cIdx + 1}. {cQ.question}
+                                  {!hasLeadingNumber && `${cIdx + 1}. `}{qDisplay}
                                 </h4>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                                   {cOpts.map((opt, oIdx) => {
                                     const isSelected = selectedVal === oIdx;
                                     const isThisCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
-                                    const optText = typeof opt === 'object' ? opt?.text : opt;
+                                    let rawOptText = typeof opt === 'object' ? opt?.text : opt;
+                                    
+                                    // Lọc trùng lặp chữ A. B. C. D. ở đầu đáp án
                                     const label = String.fromCharCode(65 + oIdx);
+                                    if (typeof rawOptText === 'string' && rawOptText.trim().startsWith(`${label}.`)) {
+                                      rawOptText = rawOptText.trim().substring(2).trim();
+                                    }
 
                                     let btnStyle = 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800 font-medium';
                                     if (submitted) {
@@ -968,14 +977,14 @@ export default function QuizEngine({ activity }) {
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                        className={`w-full text-left px-3.5 py-2 rounded-xl text-xs border transition flex items-center space-x-2 whitespace-normal break-words ${btnStyle}`}
+                                        className={`w-full text-left px-3 py-1.5 rounded-lg text-xs border transition flex items-center space-x-1.5 whitespace-normal break-words ${btnStyle}`}
                                       >
-                                        <span className={`w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
+                                        <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
                                           isSelected ? 'bg-white text-emerald-800 font-black' : 'bg-slate-200 text-slate-700'
                                         }`}>
                                           {label}
                                         </span>
-                                        <span className="leading-snug">{optText}</span>
+                                        <span className="leading-snug">{rawOptText}</span>
                                       </button>
                                     );
                                   })}
