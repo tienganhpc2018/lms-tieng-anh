@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, uploadLMSFile } from '../lib/supabase';
-import { User, Mail, Globe, Clock, Edit3, BookOpen, BarChart2, ShieldCheck, GraduationCap, Upload, Check, Lock, Eye, EyeOff, Save, ArrowLeft, Camera, FileText } from 'lucide-react';
+import { User, Mail, Globe, Clock, Edit3, BookOpen, BarChart2, ShieldCheck, GraduationCap, Upload, Check, Lock, Eye, EyeOff, Save, ArrowLeft, Camera, FileText, Ban } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -241,13 +241,35 @@ export default function UserProfileView() {
 
         <div className="flex items-center space-x-3">
           {isTeacher && !isSelf && (
-            <button
-              onClick={handleTeacherResetPassword}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-md transition flex items-center space-x-1.5 border border-amber-300/40"
-            >
-              <Lock className="w-4 h-4 text-slate-950" />
-              <span>🔑 Cấp / Đổi Mật Khẩu HS</span>
-            </button>
+            <>
+              <button
+                onClick={async () => {
+                  const nextState = !isSuspended;
+                  const confirmMsg = nextState
+                    ? `Bạn có chắc muốn 🚫 TẠM KHÓA tài khoản của học sinh ${displayName}? Học sinh sẽ không thể đăng nhập hệ thống!`
+                    : `Bạn muốn MỞ KHÓA tài khoản cho học sinh ${displayName}?`;
+                  if (confirm(confirmMsg)) {
+                    await supabase.from('profiles').update({ suspended: nextState }).eq('id', profileData.id);
+                    setIsSuspended(nextState);
+                    alert(nextState ? '🚫 Đã tạm khóa tài khoản học sinh!' : '✅ Đã mở khóa tài khoản!');
+                  }
+                }}
+                className={`px-4 py-2 text-xs font-extrabold rounded-xl shadow-md transition flex items-center space-x-1.5 ${
+                  isSuspended ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'bg-rose-600 text-white hover:bg-rose-500'
+                }`}
+              >
+                <Ban className="w-4 h-4" />
+                <span>{isSuspended ? '✅ Mở Khóa Tài Khoản' : '🚫 Tạm Khóa Tài Khoản'}</span>
+              </button>
+
+              <button
+                onClick={handleTeacherResetPassword}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-md transition flex items-center space-x-1.5 border border-amber-300/40"
+              >
+                <Lock className="w-4 h-4 text-slate-950" />
+                <span>🔑 Cấp / Đổi Mật Khẩu HS</span>
+              </button>
+            </>
           )}
 
           {(isSelf || isTeacher) && (
