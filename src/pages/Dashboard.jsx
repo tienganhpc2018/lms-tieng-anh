@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import CenterToastModal from '../components/common/CenterToastModal';
 import UserManagementModal from '../components/lms/UserManagementModal';
+import AssignModal from '../components/lms/AssignModal';
 import ClassFeed from '../features/community/ClassFeed';
 import { 
   BookOpen, Plus, Users, Search, Key, Sparkles, FolderOpen, Crown, ChevronRight, 
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const [questionBankActivities, setQuestionBankActivities] = useState([]);
   const [loadingQB, setLoadingQB] = useState(false);
   const [selectedQbTab, setSelectedQbTab] = useState('all');
+  const [selectedAssignActivity, setSelectedAssignActivity] = useState(null);
 
   // Accordion Navigation Tree States
   const [isDashboardOpen, setIsDashboardOpen] = useState(true);
@@ -603,9 +605,19 @@ export default function Dashboard() {
                   {questionBankActivities
                     .filter((act) => {
                       if (selectedQbTab === 'all') return true;
-                      const courseTitle = act.section?.course?.title || '';
-                      if (selectedQbTab === 'Whiteboard') return act.type === 'whiteboard' || courseTitle.includes('Whiteboard');
-                      return courseTitle.toLowerCase().includes(selectedQbTab.toLowerCase());
+                      const courseTitle = (act.section?.course?.title || '').toLowerCase();
+                      const actTitle = (act.title || '').toLowerCase();
+                      
+                      if (selectedQbTab === 'Whiteboard') {
+                        return act.type === 'whiteboard' || courseTitle.includes('whiteboard') || actTitle.includes('whiteboard');
+                      }
+                      if (selectedQbTab === 'Tiếng Anh 7') {
+                        return courseTitle.includes('7') || courseTitle.includes('english 7') || courseTitle.includes('tiếng anh 7');
+                      }
+                      if (selectedQbTab === 'Tiếng Anh 9') {
+                        return courseTitle.includes('9') || courseTitle.includes('english 9') || courseTitle.includes('tiếng anh 9');
+                      }
+                      return courseTitle.includes(selectedQbTab.toLowerCase());
                     })
                     .map((act) => (
                       <div
@@ -629,15 +641,10 @@ export default function Dashboard() {
                         <div className="flex items-center space-x-2">
                           {isTeacher && (
                             <button
-                              onClick={() => {
-                                const openTimeInput = prompt('Nhập ngày giờ mở bài thi (Ví dụ: 2026-08-22 19:30):', '2026-08-22 19:30');
-                                if (openTimeInput) {
-                                  alert(`🚀 ĐÃ GIAO BÀI VÀ CÀI ĐẶT LỊCH THI THÀNH CÔNG!\n\nĐề thi "${act.title}" sẽ tự động mở cho Học Sinh làm bài lúc: ${openTimeInput}`);
-                                }
-                              }}
-                              className="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-xs flex items-center space-x-1"
+                              onClick={() => setSelectedAssignActivity(act)}
+                              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-xs flex items-center space-x-1 border border-amber-300/40"
                             >
-                              <span>🚀 Giao Bài & Hẹn Giờ</span>
+                              <span>🚀 Giao Bài & Cài Đặt Lịch Thi</span>
                             </button>
                           )}
 
@@ -732,6 +739,13 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* MODAL GIAO BÀI & CÀI ĐẶT LỊCH THI ĐẦY ĐỦ CHO GIÁO VIÊN (ẢNH 5) */}
+      <AssignModal
+        isOpen={!!selectedAssignActivity}
+        onClose={() => setSelectedAssignActivity(null)}
+        activity={selectedAssignActivity}
+      />
     </div>
   );
 }
