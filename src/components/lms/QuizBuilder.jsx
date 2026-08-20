@@ -1333,10 +1333,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   />
                                 </div>
                               ) : (
-                                /* 4 LỰA CHỌN A, B, C, D CHO TRẮC NGHIỆM */
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                /* BƯỚC 2: DÀN 4 ĐÁP ÁN THÀNH 1 DÒNG NGANG DÙNG CLASS grid grid-cols-1 md:grid-cols-4 gap-3 CHUẨN 100% */
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2 w-full">
                                   {(cQ.options || []).map((opt, oIdx) => (
-                                    <div key={oIdx} className="flex items-center space-x-1.5">
+                                    <div key={oIdx} className="flex items-center space-x-2">
                                       <input
                                         type="radio"
                                         name={`mc_opt_${pIdx}_${cIdx}`}
@@ -1348,6 +1348,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                           });
                                           setSectionParts(newParts);
                                         }}
+                                        className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                       />
                                       <input
                                         type="text"
@@ -1358,7 +1359,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                           setSectionParts(newParts);
                                         }}
                                         placeholder={`Đáp án ${String.fromCharCode(65 + oIdx)}...`}
-                                        className="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs bg-white"
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-md text-xs bg-white focus:border-emerald-500 font-medium"
                                       />
                                     </div>
                                   ))}
