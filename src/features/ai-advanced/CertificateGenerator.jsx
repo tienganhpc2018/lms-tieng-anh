@@ -98,11 +98,23 @@ export default function CertificateGenerator({ studentName: defaultStudent = 'Ng
           </div>
         </div>
 
-        {/* DẤU MỘC VÀNG TRUNG TÂM DẠY HỌC HOA MAI & TÊN NGUYỄN VĂN HẢI */}
+        {/* DẤU MỘC VÀNG TRUNG TÂM DẠY HỌC HOA MAI & MÃ QR CODE XÁC THỰC BẢN QUYỀN (GỢI Ý 4) */}
         <div className="flex justify-between items-end pt-3 border-t border-amber-300/60 max-w-md mx-auto text-left">
-          <div className="text-[10px] text-slate-500 font-extrabold space-y-0.5">
+          <div className="text-[10px] text-slate-500 font-extrabold space-y-1">
             <div>Mã số: HM-2026-X89</div>
             <div>Ngày cấp: {new Date().toLocaleDateString('vi-VN')}</div>
+            
+            {/* GỢI Ý 4: MÃ QR CODE XÁC THỰC BẢN QUYỀN TRUNG TÂM DẠY HỌC HOA MAI */}
+            <div className="p-1.5 bg-white border border-amber-300 rounded-lg inline-flex items-center space-x-1.5 shadow-2xs">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=50x50&data=https://lms-tieng-anh.vercel.app/verify/HM-2026-X89"
+                alt="QR Code"
+                className="w-10 h-10 rounded-sm"
+              />
+              <span className="text-[8px] font-bold text-amber-950 leading-tight">
+                QUÉT QR CODE<br />XÁC THỰC<br />BẢN QUYỀN
+              </span>
+            </div>
           </div>
 
           <div className="text-center relative">
@@ -120,17 +132,26 @@ export default function CertificateGenerator({ studentName: defaultStudent = 'Ng
         </div>
       </div>
 
-      {issued && (
-        <div className="flex justify-end space-x-2 pt-1">
-          <button
-            onClick={() => alert(`Đã tải xuống file Giấy Chứng Nhận PDF cho học sinh ${currentStudent.name}!`)}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5"
-          >
-            <Download className="w-4 h-4" />
-            <span>Tải PDF Khổ A4 ({currentStudent.name})</span>
-          </button>
-        </div>
-      )}
+      {/* GỢI Ý 3 & 4: NÚT TỰ ĐỘNG GỬI EMAIL PHỤ HUYNH & TẢI PDF */}
+      <div className="flex flex-wrap justify-end gap-2 pt-1">
+        {/* GỢI Ý 3: TÍNH NĂNG TỰ ĐỘNG GỬI EMAIL BẢNG ĐIỂM VỀ CHO PHỤ HUYNH */}
+        <button
+          onClick={() => {
+            alert(`📧 ĐÃ GỬI EMAIL THÀNH CÔNG VỀ CHO PHỤ HUYNH!\n\nNội dung email:\nKính gửi Phụ huynh em ${currentStudent.name}.\nEm vừa hoàn thành bài thi thử với kết quả: ${currentStudent.score} (Xếp loại: ${currentStudent.grade}).\nLời khen từ Thầy Hải: "${currentStudent.praise}"`);
+          }}
+          className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1"
+        >
+          <span>📧 Gửi Email Bảng Điểm Cho Phụ Huynh</span>
+        </button>
+
+        <button
+          onClick={() => alert(`Đã tải xuống file Giấy Chứng Nhận PDF có đóng dấu & Mã QR Code cho học sinh ${currentStudent.name}!`)}
+          className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5"
+        >
+          <Download className="w-4 h-4" />
+          <span>Tải PDF Khổ A4 Kèm QR Code ({currentStudent.name})</span>
+        </button>
+      </div>
     </div>
   );
 }
