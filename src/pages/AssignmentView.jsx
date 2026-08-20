@@ -22,6 +22,10 @@ export default function AssignmentView() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // GỢI Ý 2: CHỨC NĂNG ĐẶT MẬT KHẨU PASSCODE TRUY CẬP RIÊNG CHO ĐỀ THI THỬ HỌC KỲ I
+  const [inputPasscode, setInputPasscode] = useState('');
+  const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState(false);
+
   const fetchData = async () => {
     if (!targetActivityId) return;
     setLoading(true);
@@ -122,10 +126,6 @@ export default function AssignmentView() {
     navigate(`/whiteboard?activityId=${targetActivityId}`);
     return null;
   }
-
-  // GỢI Ý 2: CHỨC NĂNG ĐẶT MẬT KHẨU PASSCODE TRUY CẬP RIÊNG CHO ĐỀ THI THỬ HỌC KỲ I
-  const [inputPasscode, setInputPasscode] = useState('');
-  const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState(false);
 
   // TRẢ VỀ CHUẨN 100% GIAO DIỆN QUIZ 20 DẠNG CÂU HỎI & THI THỬ (ẢNH 1 & ẢNH 2)
   if (!isPageAssignmentOnly) {
