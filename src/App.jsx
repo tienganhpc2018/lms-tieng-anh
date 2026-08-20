@@ -6,6 +6,7 @@ import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import CourseView from './pages/CourseView';
 import AssignmentView from './pages/AssignmentView';
+import AssignmentResultView from './pages/AssignmentResultView';
 import TeacherAnalytics from './pages/TeacherAnalytics';
 import UserProfileView from './pages/UserProfileView';
 import WhiteboardView from './pages/WhiteboardView';
@@ -73,6 +74,15 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <AssignmentView />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/assignment/:id/result"
+                element={
+                  <ProtectedRoute>
+                    <AssignmentResultView />
                   </ProtectedRoute>
                 }
               />
