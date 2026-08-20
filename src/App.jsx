@@ -12,6 +12,7 @@ import UserProfileView from './pages/UserProfileView';
 import WhiteboardView from './pages/WhiteboardView';
 import MockExamView from './pages/MockExamView';
 import CommunityModuleView from './pages/CommunityModuleView';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import NotFound from './pages/NotFound';
 
 function ProtectedRoute({ children }) {
@@ -64,7 +65,9 @@ export default function App() {
                 path="/course/:id"
                 element={
                   <ProtectedRoute>
-                    <CourseView />
+                    <ErrorBoundary>
+                      <CourseView />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -73,7 +76,9 @@ export default function App() {
                 path="/assignment/:id"
                 element={
                   <ProtectedRoute>
-                    <AssignmentView />
+                    <ErrorBoundary>
+                      <AssignmentView />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -82,7 +87,9 @@ export default function App() {
                 path="/assignment/:id/result"
                 element={
                   <ProtectedRoute>
-                    <AssignmentResultView />
+                    <ErrorBoundary>
+                      <AssignmentResultView />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
