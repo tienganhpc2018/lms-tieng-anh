@@ -30,12 +30,13 @@ export default function AssignmentView() {
       if (act) {
         setActivity(act);
       } else {
-        setActivity({ id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử', type: 'quiz' });
+        setActivity({ id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử Online', type: 'quiz' });
       }
     } catch (e) {
-      setActivity({ id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử', type: 'quiz' });
+      setActivity({ id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử Online', type: 'quiz' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
