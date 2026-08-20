@@ -183,6 +183,34 @@ export default function CourseView() {
     }
   };
 
+  if (loading) {
+    return <LoadingSpinner text="Đang nạp dữ liệu chi tiết khóa học..." />;
+  }
+
+  if (!course) {
+    return (
+      <div className="min-h-screen bg-slate-100 p-8 flex items-center justify-center font-sans">
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center space-y-4 max-w-md">
+          <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-3xl font-extrabold shadow-2xs">
+            ⚠️
+          </div>
+          <h3 className="text-base font-extrabold text-slate-900 uppercase">
+            KHÔNG TÌM THẤY DỮ LIỆU KHÓA HỌC
+          </h3>
+          <p className="text-xs text-slate-500 font-semibold">
+            Khóa học này hiện không tồn tại hoặc đã bị gỡ bỏ khỏi hệ thống.
+          </p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer"
+          >
+            Quay Lại Trang Chủ Khóa Học
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -191,7 +219,7 @@ export default function CourseView() {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => navigate('/dashboard')}
-              className="p-2 hover:bg-slate-100 rounded-xl transition text-slate-600"
+              className="p-2 hover:bg-slate-100 rounded-xl transition text-slate-600 cursor-pointer"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -200,10 +228,10 @@ export default function CourseView() {
                 Khóa Học E-Learning
               </span>
               <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
-                {course?.title || 'Đang tải khóa học...'}
+                {course?.title || 'Chi Tiết Khóa Học'}
               </h1>
               <p className="text-xs text-slate-500 font-medium">
-                Giáo viên phụ trách: {course?.teacher?.full_name || 'Giáo viên'}
+                Giáo viên phụ trách: {course?.teacher?.full_name || 'Nguyễn Văn Hải'}
               </p>
             </div>
           </div>
