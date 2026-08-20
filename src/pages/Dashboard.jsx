@@ -258,10 +258,12 @@ export default function Dashboard() {
     const isEnrolled = userEnrollments.includes(c.id);
     const isHidden = c.description?.includes('[VISIBILITY: Hide]');
 
-    // MỆNH LỆNH THẦY HẢI: HỌC SINH CHỈ XEM VÀ VÀO HỌC ĐƯỢC KHI ADMIN THÊM NGUỜI HỌC VÀO
+    // NẾU LÀ HỌC SINH: Hiển thị các khóa học mặc định chung (English 7, English 9, Online Test, Practice Test, Whiteboard) HOẶC khóa học mà Admin đã Enroll học sinh vào
     if (!isTeacher) {
-      if (!isEnrolled) return false; // Chưa được Admin thêm vào -> ẨN 100%
       if (isHidden) return false;
+      const titleLower = (c.title || '').toLowerCase();
+      const isPublicCourse = titleLower.includes('english') || titleLower.includes('online test') || titleLower.includes('practice test') || titleLower.includes('whiteboard') || titleLower.includes('tiếng anh');
+      if (!isEnrolled && !isPublicCourse) return false;
     }
 
     const q = searchQuery.toLowerCase();
