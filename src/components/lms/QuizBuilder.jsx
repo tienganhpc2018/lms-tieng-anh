@@ -84,14 +84,23 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
   const fetchQuestions = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('questions')
-      .select('*')
-      .eq('activity_id', activityId)
-      .order('created_at', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('activity_id', activityId)
+        .order('created_at', { ascending: true });
 
-    setQuestions(data || []);
-    setLoading(false);
+      if (error) {
+        console.warn('Lỗi lấy câu hỏi:', error.message);
+      }
+
+      setQuestions(data || []);
+    } catch (e) {
+      console.error('Catch error fetchQuestions:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -773,9 +782,40 @@ export default function QuizBuilder({ activityId, onSaved }) {
           </div>
 
           {loading ? (
-            <LoadingSpinner text="Đang tải câu hỏi..." />
+            <LoadingSpinner text="Đang tải câu hỏi bài thi..." />
+          ) : questions.length === 0 ? (
+            <div className="p-10 bg-white border-2 border-dashed border-slate-200 rounded-3xl text-center space-y-4 shadow-2xs">
+              <div className="w-16 h-16 mx-auto bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-black text-2xl">
+                📝
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm text-slate-900">Bài Thi Này Chưa Có Câu Hỏi Nào</h4>
+                <p className="text-xs text-slate-500 font-medium mt-1 max-w-md mx-auto">
+                  Thầy có thể bấm nút tạo đề tự động bằng AI hoặc thêm thủ công từng Part (Part 1 Trắc nghiệm, Part 2 Bài đọc, Part 3 Viết luận)...
+                </p>
+              </div>
+              <div className="flex justify-center space-x-3 pt-2">
+                <button
+                  onClick={() => setIsAiGenModalOpen(true)}
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>⚡ TẠO ĐỀ TỰ ĐỘNG BẰNG AI</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedType('multiple_choice');
+                    setIsTypeModalOpen(true);
+                  }}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ SOẠN CÂU HỎI THỦ CÔNG</span>
+                </button>
+              </div>
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {questions.map((q, idx) => {
                 const partsList = q.content?.parts || [];
 
