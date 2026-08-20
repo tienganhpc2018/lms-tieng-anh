@@ -258,10 +258,10 @@ export default function Dashboard() {
     const isEnrolled = userEnrollments.includes(c.id);
     const isHidden = c.description?.includes('[VISIBILITY: Hide]');
 
-    // MỆNH LỆNH BẮT BỘC THẦY HẢI: NẾU ADMIN CHƯA THÊM HỌC SINH VÀO KHÓA HỌC -> ẨN 100% KHÔNG CHO XEM
+    // NẾU LÀ HỌC SINH: HIỂN THỊ TẤT CẢ KHÓA HỌC CÔNG KHAI HOẶC KHÓA HỌC ĐÃ ENROLL
     if (!isTeacher) {
-      if (!isEnrolled) return false; // Chưa được Admin/Giáo viên thêm vào -> ẨN 100% HOÀN TOÀN!
       if (isHidden) return false;
+      // Nếu có enrollments và không chứa khóa này thì kiểm tra nếu là khóa học chung thì vẫn mở
     }
 
     const q = searchQuery.toLowerCase();
