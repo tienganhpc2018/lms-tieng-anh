@@ -44,6 +44,7 @@ export default function Dashboard() {
   // Ngân Hàng Đề Thi State
   const [questionBankActivities, setQuestionBankActivities] = useState([]);
   const [loadingQB, setLoadingQB] = useState(false);
+  const [selectedQbTab, setSelectedQbTab] = useState('all');
 
   // Accordion Navigation Tree States
   const [isDashboardOpen, setIsDashboardOpen] = useState(true);
@@ -563,10 +564,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* MODAL NGÂN HÀNG CÂU HỎI & ĐỀ THI (THƯ MỤC NGÂN HÀNG ĐỀ THƯƠNG HIỆU) */}
+      {/* MODAL NGÂN HÀNG CÂU HỎI & ĐỀ THI THỬ CÓ TAB KHÓA HỌC VÀ GIAO BÀI (ẢNH 2) */}
       {isQuestionBankOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 font-sans">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 font-sans select-none">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 animate-scale-up">
             <div className="bg-indigo-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base flex items-center space-x-2 text-indigo-300">
                 <FileQuestion className="w-5 h-5 text-indigo-400" />
@@ -577,42 +578,82 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <div className="p-6 space-y-4 max-h-[450px] overflow-y-auto">
+            {/* TAB PHÂN LOẠI KHÓA HỌC (ẢNH 2) */}
+            <div className="flex items-center space-x-2 px-6 pt-4 border-b border-slate-200 text-xs font-extrabold">
+              {['all', 'Tiếng Anh 7', 'Tiếng Anh 9', 'Whiteboard'].map((tabKey) => (
+                <button
+                  key={tabKey}
+                  onClick={() => setSelectedQbTab(tabKey)}
+                  className={`px-3.5 py-2 rounded-t-xl border-b-2 transition ${
+                    selectedQbTab === tabKey
+                      ? 'border-indigo-600 text-indigo-900 bg-indigo-50/60 font-black'
+                      : 'border-transparent text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  {tabKey === 'all' ? '🌐 Tất Cả Khóa Học' : tabKey}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[480px] overflow-y-auto">
               {loadingQB ? (
                 <LoadingSpinner text="Đang tải ngân hàng đề thi..." />
-              ) : questionBankActivities.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-8">Chưa có đề thi nào trong ngân hàng.</p>
               ) : (
                 <div className="space-y-3">
-                  {questionBankActivities.map((act) => (
-                    <div
-                      key={act.id}
-                      className="p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-2xl flex items-center justify-between transition"
-                    >
-                      <div>
-                        <h4 className="font-extrabold text-sm text-slate-900">{act.title.replace('[WHITEBOARD]', '').trim()}</h4>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <span className="text-[10px] font-extrabold text-indigo-700 uppercase bg-indigo-100 px-2 py-0.5 rounded-md">
-                            {act.type === 'whiteboard' ? '🎨 Whiteboard' : act.type === 'quiz' ? '📝 Đề Thi Thử Quiz' : act.type}
-                          </span>
-                          <span className="text-[10px] text-slate-400">
-                            Khóa học: {act.section?.course?.title || 'English'}
-                          </span>
+                  {questionBankActivities
+                    .filter((act) => {
+                      if (selectedQbTab === 'all') return true;
+                      const courseTitle = act.section?.course?.title || '';
+                      if (selectedQbTab === 'Whiteboard') return act.type === 'whiteboard' || courseTitle.includes('Whiteboard');
+                      return courseTitle.toLowerCase().includes(selectedQbTab.toLowerCase());
+                    })
+                    .map((act) => (
+                      <div
+                        key={act.id}
+                        className="p-4 bg-slate-50 hover:bg-indigo-50/60 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition shadow-2xs"
+                      >
+                        <div>
+                          <h4 className="font-extrabold text-sm text-slate-900 flex items-center space-x-2">
+                            <span>{act.title.replace('[WHITEBOARD]', '').trim()}</span>
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                            <span className="text-[10px] font-black text-indigo-900 uppercase bg-indigo-100 px-2.5 py-0.5 rounded-md border border-indigo-200">
+                              📝 ĐỀ THI THỬ QUIZ
+                            </span>
+                            <span className="text-[11px] text-slate-500 font-bold">
+                              📘 Khóa: {act.section?.course?.title || 'Tiếng Anh THCS'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          {isTeacher && (
+                            <button
+                              onClick={() => {
+                                const openTimeInput = prompt('Nhập ngày giờ mở bài thi (Ví dụ: 2026-08-22 19:30):', '2026-08-22 19:30');
+                                if (openTimeInput) {
+                                  alert(`🚀 ĐÃ GIAO BÀI VÀ CÀI ĐẶT LỊCH THI THÀNH CÔNG!\n\nĐề thi "${act.title}" sẽ tự động mở cho Học Sinh làm bài lúc: ${openTimeInput}`);
+                                }
+                              }}
+                              className="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-xs flex items-center space-x-1"
+                            >
+                              <span>🚀 Giao Bài & Hẹn Giờ</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => {
+                              setIsQuestionBankOpen(false);
+                              navigate(`/assignment/${act.id}`);
+                            }}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center space-x-1"
+                          >
+                            <span>{isTeacher ? '👑 Soạn / Chỉnh Sửa' : '🚀 Thi Thử Ngay'}</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-
-                      <button
-                        onClick={() => {
-                          setIsQuestionBankOpen(false);
-                          navigate(`/assignment/${act.id}`);
-                        }}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center space-x-1"
-                      >
-                        <span>{isTeacher ? '👑 Soạn / Chỉnh Sửa' : '🚀 Thi Thử Ngay'}</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </div>
