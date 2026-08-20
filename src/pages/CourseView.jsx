@@ -177,7 +177,7 @@ export default function CourseView() {
   const handleActivityClick = (act) => {
     const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
     if (isWhiteboard) {
-      navigate(`/whiteboard?activityId=${act.id}`);
+      navigate(`/whiteboard/${act.id}`);
     } else {
       navigate(`/assignment/${act.id}`);
     }
