@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { 
-  MessageSquare, Heart, Send, Trash2, Paperclip, MessageCircle, Pin, Sparkles 
+  MessageSquare, Heart, Send, Trash2, Paperclip, MessageCircle, Pin, Sparkles, Lock 
 } from 'lucide-react';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
@@ -186,6 +186,23 @@ export default function ClassFeed({ courseId }) {
 
                 {isTeacher && (
                   <div className="flex items-center space-x-1">
+                    {/* CHỨC NĂNG 3: NÚT KHÓA / MỞ BÌNH LUẬN BÀI VIẾT (LOCK COMMENTS) */}
+                    <button
+                      onClick={() => {
+                        const nextLocked = !post.is_comment_locked;
+                        setPosts((prev) =>
+                          prev.map((p) => (p.id === post.id ? { ...p, is_comment_locked: nextLocked } : p))
+                        );
+                        alert(nextLocked ? '🔒 Đã khóa bình luận bài viết này!' : '🔓 Đã mở lại tính năng bình luận!');
+                      }}
+                      className={`p-1.5 rounded-xl transition ${
+                        post.is_comment_locked ? 'bg-rose-100 text-rose-700 font-extrabold' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-700'
+                      }`}
+                      title={post.is_comment_locked ? 'Mở bình luận' : 'Khóa bình luận'}
+                    >
+                      <Lock className="w-4 h-4" />
+                    </button>
+
                     {/* NÚT GHIM BÀI DẶN DÒ QUAN TRỌNG (PIN POST) */}
                     <button
                       onClick={() => handleTogglePinPost(post.id)}
@@ -225,7 +242,7 @@ export default function ClassFeed({ courseId }) {
                 </button>
               </div>
 
-              {/* BÌNH LUẬN DƯỚI BÀI HỌC / THÔNG BÁO */}
+              {/* BÌNH LUẬN DƯỚI BÀI HỌC / THÔNG BÁO (HIỂN THỊ KHÓA NẾU BỊ BẬT LOCK COMMENTS) */}
               <div className="space-y-2 pt-1">
                 {(post.comments || []).map((cmt) => (
                   <div key={cmt.id} className="p-2.5 bg-slate-50 rounded-2xl text-xs space-y-1">
@@ -234,24 +251,31 @@ export default function ClassFeed({ courseId }) {
                   </div>
                 ))}
 
-                <div className="flex items-center space-x-2 pt-2">
-                  <input
-                    type="text"
-                    value={commentInputs[post.id] || ''}
-                    onChange={(e) =>
-                      setCommentInputs({ ...commentInputs, [post.id]: e.target.value })
-                    }
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
-                    placeholder="Viết bình luận hoặc đặt câu hỏi..."
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 bg-slate-50"
-                  />
-                  <button
-                    onClick={() => handleAddComment(post.id)}
-                    className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                {post.is_comment_locked ? (
+                  <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-center text-xs font-extrabold text-rose-700 flex items-center justify-center space-x-1">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Giáo viên đã khóa tính năng bình luận cho thông báo dặn dò này.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 pt-2">
+                    <input
+                      type="text"
+                      value={commentInputs[post.id] || ''}
+                      onChange={(e) =>
+                        setCommentInputs({ ...commentInputs, [post.id]: e.target.value })
+                      }
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                      placeholder="Viết bình luận hoặc đặt câu hỏi..."
+                      className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                    />
+                    <button
+                      onClick={() => handleAddComment(post.id)}
+                      className="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
