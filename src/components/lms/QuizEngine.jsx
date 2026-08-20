@@ -936,12 +936,19 @@ export default function QuizEngine({ activity }) {
                             );
                           } else if (isPart1MC) {
                             const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
-                            const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' && o?.isCorrect);
+                            const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' ? o?.isCorrect : false);
                             const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || 'Đáp án đúng';
 
                             // Lọc số thứ tự thừa nếu câu hỏi đã chứa số (VD: 40. What...)
                             let qDisplay = cQ.question || '';
                             const hasLeadingNumber = /^\d+[\.\)]/.test(qDisplay);
+
+                            let selectedText = '';
+                            try {
+                              if (selectedVal !== undefined && cOpts[selectedVal]) {
+                                selectedText = typeof cOpts[selectedVal] === 'object' ? cOpts[selectedVal]?.text : cOpts[selectedVal];
+                              }
+                            } catch (e) {}
 
                             return (
                               <div key={cIdx} className="p-2.5 px-3.5 bg-slate-50/70 border border-slate-200/90 rounded-xl space-y-1.5 shadow-2xs">
@@ -988,7 +995,7 @@ export default function QuizEngine({ activity }) {
                                   })}
                                 </div>
 
-                                {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctText, cQ, typeof cOpts[selectedVal] === 'object' ? cOpts[selectedVal]?.text : cOpts[selectedVal])}
+                                {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctText, cQ, selectedText)}
                               </div>
                             );
                           } else if (isPart2Short) {
