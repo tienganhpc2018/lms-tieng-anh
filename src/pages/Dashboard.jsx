@@ -166,7 +166,7 @@ export default function Dashboard() {
           await supabase.from('course_sections').insert([
             {
               course_id: data.id,
-              title: 'Chủ Đề 1: Unit 1 - Overview & Getting Started',
+              title: `Chủ Đề 1: ${courseFullName.trim()}`,
               order_index: 0,
             },
           ]);
@@ -258,8 +258,10 @@ export default function Dashboard() {
     const isEnrolled = userEnrollments.includes(c.id);
     const isHidden = c.description?.includes('[VISIBILITY: Hide]');
 
-    if (!isTeacher && isHidden && !isEnrolled) {
-      return false;
+    // MỆNH LỆNH THẦY HẢI: HỌC SINH CHỈ XEM VÀ VÀO HỌC ĐƯỢC KHI ADMIN THÊM NGUỜI HỌC VÀO
+    if (!isTeacher) {
+      if (!isEnrolled) return false; // Chưa được Admin thêm vào -> ẨN 100%
+      if (isHidden) return false;
     }
 
     const q = searchQuery.toLowerCase();
