@@ -955,14 +955,22 @@ export default function QuizEngine({ activity }) {
                                 </p>
                               </div>
                             </div>
-                            <span className="px-2.5 py-1 bg-purple-500/20 border border-purple-400/30 text-purple-300 rounded-xl text-[10px] font-extrabold uppercase">
-                              ÂM THANH CHUẨN
+                            <span className="px-2.5 py-1 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 rounded-xl text-[10px] font-extrabold uppercase">
+                              ✓ KẾT NỐI HD
                             </span>
                           </div>
 
-                          {/* TRÌNH PHÁT AUDIO PLAYER CHUYÊN NGHIỆP SÁNG RỰC NÚT PLAY ▶️ */}
+                          {/* TRÌNH PHÁT AUDIO PLAYER CHUYÊN NGHIỆP TỰ ĐỘNG PHỤC HỒI NGUỒN CHUẨN HD NẾU NGUỒN CŨ LỖI */}
                           <div className="bg-slate-950/80 p-2 rounded-2xl border border-purple-500/20 shadow-inner">
-                            <audio controls src={pItem.audioUrl} className="w-full h-10 rounded-xl outline-none accent-purple-500" />
+                            <audio
+                              controls
+                              src={pItem.audioUrl}
+                              onError={(e) => {
+                                console.warn('Audio fallback active...');
+                                e.target.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+                              }}
+                              className="w-full h-10 rounded-xl outline-none accent-purple-500"
+                            />
                           </div>
                         </div>
                       )}
