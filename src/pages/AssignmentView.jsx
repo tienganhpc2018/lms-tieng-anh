@@ -213,14 +213,12 @@ export default function AssignmentView() {
           </div>
 
           {/* NẾU LÀ GIÁO VIÊN -> MỞ TRÌNH SOẠN ĐỀ QUIZ 20 DẠNG CÂU HỎI (QUIZ BUILDER) */}
-          <ErrorBoundary>
-            {isTeacher ? (
-              <QuizBuilder activity={activeAct} activityId={targetActivityId} />
-            ) : (
-              /* NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI THI THỬ TRỰC TUYẾN (QUIZ ENGINE) */
-              <QuizEngine activity={activeAct} activityId={targetActivityId} />
-            )}
-          </ErrorBoundary>
+          {isTeacher ? (
+            <QuizBuilder activity={activeAct} activityId={targetActivityId} />
+          ) : (
+            /* NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI THI THỬ TRỰC TUYẾN (QUIZ ENGINE) */
+            <QuizEngine activity={activeAct} activityId={targetActivityId} />
+          )}
         </div>
       </div>
     );
