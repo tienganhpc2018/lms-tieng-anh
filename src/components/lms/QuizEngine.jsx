@@ -938,14 +938,32 @@ export default function QuizEngine({ activity }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
-                      {/* HIỂN THỊ BÀI NGHE AUDIO DÀNH CHO HỌC SINH NẾU CÓ LINK/FILE MP3 */}
+                      {/* HIỂN THỊ BÀI NGHE AUDIO DÀNH CHO HỌC SINH NẾU CÓ BÀI NGHE LISTENING SECTION HOẶC CÓ FILE MP3 */}
                       {pItem.audioUrl && (
-                        <div className="p-3 bg-purple-50 border border-purple-200 rounded-2xl space-y-1.5 my-3 shadow-2xs">
-                          <div className="flex items-center space-x-2 text-purple-950 font-extrabold text-xs">
-                            <Volume2 className="w-4 h-4 text-purple-600 animate-pulse" />
-                            <span>🎧 BÀI NGHE AUDIO (CLICK PLAY ĐỂ NGHE):</span>
+                        <div className="p-4 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-3xl space-y-3 my-3 shadow-lg border border-purple-500/30">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2.5">
+                              <span className="w-8 h-8 rounded-2xl bg-purple-500/30 border border-purple-400/40 text-purple-300 flex items-center justify-center font-extrabold text-sm animate-pulse">
+                                🎧
+                              </span>
+                              <div>
+                                <span className="text-xs font-extrabold text-purple-200 uppercase tracking-wide block">
+                                  BÀI NGHE AUDIO MP3 - THI THỬ TRỰC TUYẾN
+                                </span>
+                                <p className="text-[11px] text-emerald-400 font-bold">
+                                  ► Bấm Nút Play ▶️ Để Nghe Âm Thanh MP3 Bài Nghe Rõ Ràng 100%!
+                                </p>
+                              </div>
+                            </div>
+                            <span className="px-2.5 py-1 bg-purple-500/20 border border-purple-400/30 text-purple-300 rounded-xl text-[10px] font-extrabold uppercase">
+                              ÂM THANH CHUẨN
+                            </span>
                           </div>
-                          <audio controls src={pItem.audioUrl} className="w-full h-9 rounded-xl outline-none" />
+
+                          {/* TRÌNH PHÁT AUDIO PLAYER CHUYÊN NGHIỆP SÁNG RỰC NÚT PLAY ▶️ */}
+                          <div className="bg-slate-950/80 p-2 rounded-2xl border border-purple-500/20 shadow-inner">
+                            <audio controls src={pItem.audioUrl} className="w-full h-10 rounded-xl outline-none accent-purple-500" />
+                          </div>
                         </div>
                       )}
 
