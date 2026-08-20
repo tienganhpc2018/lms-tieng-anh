@@ -201,7 +201,7 @@ export default function AssignmentView() {
                   {isTeacher ? 'Trình Soạn Đề Thi 20 Dạng Câu Hỏi' : 'ĐỀ THI THỬ TRỰC TUYẾN'}
                 </span>
                 <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
-                  {activeAct.title.replace('[WHITEBOARD]', '').trim()}
+                  {(activeAct?.title || 'Bài Kiểm Tra / Thi Thử').replace('[WHITEBOARD]', '').trim()}
                 </h1>
               </div>
             </div>
@@ -234,9 +234,9 @@ export default function AssignmentView() {
 
           {/* NẾU LÀ GIÁO VIÊN VÀ ĐANG Ở CHẾ ĐỘ SOẠN ĐỀ -> MỞ QUIZ BUILDER. NẾU LÀ HỌC SINH HOẶC GIÁO VIÊN BẤM XEM THI -> MỞ QUIZ ENGINE */}
           {isTeacher && isTeacherPreview ? (
-            <QuizBuilder activity={activeAct} activityId={targetActivityId} />
+            <QuizBuilder activity={activeAct || { id: targetActivityId, title: 'Bài Kiểm Tra' }} activityId={targetActivityId} />
           ) : (
-            <QuizEngine activity={activeAct} activityId={targetActivityId} />
+            <QuizEngine activity={activeAct || { id: targetActivityId, title: 'Bài Kiểm Tra' }} activityId={targetActivityId} />
           )}
         </div>
       </div>
