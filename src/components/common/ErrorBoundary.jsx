@@ -37,11 +37,18 @@ export default class ErrorBoundary extends React.Component {
           </div>
 
           <button
-            onClick={() => window.location.reload()}
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center space-x-2"
+            onClick={() => {
+              const currentPath = window.location.pathname;
+              if (currentPath.includes('/result')) {
+                window.location.reload();
+              } else {
+                window.location.href = `${currentPath}/result`;
+              }
+            }}
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center space-x-2 cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
-            <span>Tải Lại Màn Hình Xem Kết Quả</span>
+            <span>Mở Bảng Xem Kết Quả Bài Thi</span>
           </button>
         </div>
       );
