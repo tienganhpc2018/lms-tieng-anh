@@ -47,15 +47,30 @@ export default function AssignmentResultView() {
         });
         setQuestions(parsedQuestions);
 
-        // 3. Fetch bài nộp của học sinh
-        const { data: subData } = await supabase
+        // 3. Fetch bài nộp của học sinh (Nếu là Giáo viên thì tự động nạp bài nộp gần nhất hoặc xem đáp án chuẩn)
+        let subQuery = supabase
           .from('submissions')
           .select('*')
           .eq('activity_id', targetId)
-          .eq('student_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
+
+        if (!profile?.is_teacher && user?.id) {
+          subQuery = subQuery.eq('student_id', user.id);
+        }
+
+        const { data: subList } = await subQuery;
+        let subData = Array.isArray(subList) && subList.length > 0 ? subList[0] : null;
+
+        // Nếu là Giáo viên xem preview bài thi mà chưa có bài nộp thực tế -> Tạo bản mẫu hiển thị đáp án chuẩn 100%
+        if (!subData && profile?.is_teacher) {
+          subData = {
+            id: 'preview_mode',
+            score: 10.0,
+            answers_data: { userAnswers: {} },
+            created_at: new Date().toISOString(),
+          };
+        }
 
         setSubmission(subData);
       } catch (err) {
@@ -188,7 +203,8 @@ export default function AssignmentResultView() {
                           </div>
                         )}
 
-                        {pItem.passage && (
+                        {/* CHỈ CÓ READING VÀ KNOWLEDGE OF LANGUAGE MỚI CÓ KHUNG ĐOẠN VĂN CHUNG */}
+                        {pItem.passage && ['reading_section', 'cloze_test', 'reading_tf'].includes(activity?.type?.toLowerCase() || '') && (
                           <div className="p-3.5 bg-amber-50/90 border border-amber-300 rounded-2xl text-xs text-slate-900 leading-relaxed font-serif italic">
                             {pItem.passage}
                           </div>
@@ -214,10 +230,10 @@ export default function AssignmentResultView() {
                                     </div>
                                   </div>
 
-                                  <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1">
+                                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1">
                                     <span className="font-black block">➔ Đáp án đúng: {isCorrectTrue ? 'True (Đúng)' : 'False (Sai)'}</span>
-                                    <p className="text-[11px] text-slate-700 font-medium">
-                                      💡 <strong>Giải thích chi tiết:</strong> {cQ.explanation || pItem.explanation || 'Dựa vào văn bản bài đọc, phát biểu này khớp chính xác với thông tin trong bài.'}
+                                    <p className="text-[11px] text-slate-800 font-medium">
+                                      💡 <strong>Giải thích & Dẫn chứng chi tiết:</strong> {cQ.explanation || pItem.explanation || 'Dựa vào nội dung bài đọc, phát biểu này khớp chính xác với thông tin.'}
                                     </p>
                                   </div>
                                 </div>
@@ -232,21 +248,24 @@ export default function AssignmentResultView() {
                               <div key={cIdx} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
                                 <h5 className="font-extrabold text-xs text-slate-900">{cIdx + 1}. {cQ.question}</h5>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
+                                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5 w-full pt-0.5">
                                   {cOpts.map((opt, oIdx) => {
                                     const isSelected = userChoice === oIdx;
                                     const isCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
                                     const label = String.fromCharCode(65 + oIdx);
                                     let rawText = typeof opt === 'object' ? opt?.text : opt;
+                                    if (typeof rawText === 'string' && rawText.trim().startsWith(`${label}.`)) {
+                                      rawText = rawText.trim().substring(2).trim();
+                                    }
 
                                     let style = 'bg-slate-50 border-slate-200 text-slate-700';
                                     if (isCorrect) style = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-extrabold';
                                     else if (isSelected && !isCorrect) style = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
 
                                     return (
-                                      <div key={oIdx} className={`px-2.5 py-1.5 rounded-lg border text-xs flex items-center space-x-1.5 ${style}`}>
+                                      <div key={oIdx} className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border text-xs whitespace-normal min-w-fit max-w-full ${style}`}>
                                         <span className="font-black">{label}.</span>
-                                        <span className="text-[11px]">{rawText}</span>
+                                        <span className="text-[11px] font-semibold">{rawText}</span>
                                       </div>
                                     );
                                   })}
