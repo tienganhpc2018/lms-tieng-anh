@@ -1221,24 +1221,45 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           </div>
                         </div>
 
-                        {/* YÊU CẦU 1 (ẢNH 1): BỔ SUNG KHUNG NHẬP NỘI DUNG BÀI ĐỌC (READING PASSAGE) CHO BÀI READING SECTION */}
-                        <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-1">
-                          <label className="block text-[11px] font-extrabold text-sky-950 uppercase flex items-center space-x-1">
-                            <BookOpen className="w-3.5 h-3.5 text-sky-600" />
-                            <span>📖 NỘI DUNG BÀI ĐỌC HIỂU (READING PASSAGE) CHO PART #{pIdx + 1}:</span>
-                          </label>
-                          <textarea
-                            rows={4}
-                            value={pItem.passage || ''}
-                            onChange={(e) => {
-                              const newParts = [...sectionParts];
-                              newParts[pIdx].passage = e.target.value;
-                              setSectionParts(newParts);
-                            }}
-                            placeholder="Dán đoạn văn bài đọc hiểu tại đây (Ví dụ: Chuong village is located in Thanh Oai district...)..."
-                            className="w-full p-2.5 border border-sky-300 rounded-xl text-xs font-serif bg-white text-slate-900 leading-relaxed shadow-inner"
-                          />
-                        </div>
+                        {/* 1. ĐỐI VỚI BÀI NGHE LISTENING SECTION: KHÔNG CÓ BOX CHỨA ĐOẠN VĂN BẢN (XÓA KHUNG THEO YÊU CẦU CỦA THẦY) -> THAY BẰNG Ô NHẬP LINK FILE AUDIO MP3 */}
+                        {selectedType?.toLowerCase() === 'listening_section' ? (
+                          <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-2xl space-y-1.5">
+                            <label className="block text-[11px] font-extrabold text-purple-950 uppercase flex items-center space-x-1">
+                              <Volume2 className="w-4 h-4 text-purple-600" />
+                              <span>🎧 FILE ÂM THANH BÀI NGHE (AUDIO MP3 URL) CHO PART #{pIdx + 1}:</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={pItem.audioUrl || ''}
+                              onChange={(e) => {
+                                const newParts = [...sectionParts];
+                                newParts[pIdx].audioUrl = e.target.value;
+                                setSectionParts(newParts);
+                              }}
+                              placeholder="Dán đường dẫn Link file Audio MP3 bài nghe tại đây (Ví dụ: https://example.com/audio-part1.mp3)..."
+                              className="w-full p-2 border border-purple-300 rounded-xl text-xs font-bold bg-white text-purple-950 shadow-inner"
+                            />
+                          </div>
+                        ) : (
+                          /* 2. ĐỐI VỚI BÀI ĐỌC READING SECTION / CLOZE TEST / WRITING: HIỂN THỊ KHUNG NHẬP NỘI DUNG BÀI ĐỌC */
+                          <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-1">
+                            <label className="block text-[11px] font-extrabold text-sky-950 uppercase flex items-center space-x-1">
+                              <BookOpen className="w-3.5 h-3.5 text-sky-600" />
+                              <span>📖 NỘI DUNG BÀI ĐỌC HIỂU (READING PASSAGE) CHO PART #{pIdx + 1}:</span>
+                            </label>
+                            <textarea
+                              rows={4}
+                              value={pItem.passage || ''}
+                              onChange={(e) => {
+                                const newParts = [...sectionParts];
+                                newParts[pIdx].passage = e.target.value;
+                                setSectionParts(newParts);
+                              }}
+                              placeholder="Dán đoạn văn bài đọc hiểu tại đây (Ví dụ: Chuong village is located in Thanh Oai district...)..."
+                              className="w-full p-2.5 border border-sky-300 rounded-xl text-xs font-serif bg-white text-slate-900 leading-relaxed shadow-inner"
+                            />
+                          </div>
+                        )}
 
                         {/* DANH SÁCH CÂU HỎI TRONG PART */}
                         <div className="space-y-3 border-t border-slate-100 pt-3">
