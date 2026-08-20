@@ -858,13 +858,10 @@ export default function QuizEngine({ activity }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
-                      {/* VĂN BẢN BÀI ĐỌC READING PASSAGE SOẠN TỪ ADMIN */}
+                      {/* VĂN BẢN BÀI ĐỌC READING/LISTENING PASSAGE SOẠN TỪ ADMIN - CHỈ CHỨA DUY NHẤT VĂN BẢN (ẢNH 1) */}
                       {pItem.passage && (
-                        <div className="p-3 bg-amber-50/90 border border-amber-300 rounded-2xl text-xs text-slate-900 leading-relaxed font-serif shadow-2xs my-1.5">
-                          <span className="font-extrabold text-amber-950 block mb-1 uppercase text-[10px]">
-                            📖 NỘI DUNG BÀI ĐỌC HIỂU (READING PASSAGE):
-                          </span>
-                          <div className="whitespace-pre-line text-slate-800 text-xs font-serif leading-relaxed">
+                        <div className="p-3.5 bg-amber-50/70 border border-amber-300/80 rounded-2xl text-xs text-slate-800 leading-relaxed font-serif shadow-2xs my-1.5">
+                          <div className="whitespace-pre-line text-slate-900 text-xs font-serif leading-relaxed italic">
                             {pItem.passage}
                           </div>
                         </div>
@@ -952,7 +949,8 @@ export default function QuizEngine({ activity }) {
                                   {!hasLeadingNumber && `${cIdx + 1}. `}{qDisplay}
                                 </h4>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                {/* 4 LỰA CHỌN A, B, C, D NẰM TRÊN CÙNG 1 HÀNG CHUẨN 100% (ẢNH 2) */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 w-full items-stretch">
                                   {cOpts.map((opt, oIdx) => {
                                     const isSelected = selectedVal === oIdx;
                                     const isThisCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
@@ -977,14 +975,14 @@ export default function QuizEngine({ activity }) {
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                        className={`w-full text-left px-3 py-1.5 rounded-lg text-xs border transition flex items-center space-x-1.5 whitespace-normal break-words ${btnStyle}`}
+                                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs border transition flex items-center space-x-1.5 whitespace-normal break-words ${btnStyle}`}
                                       >
                                         <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
                                           isSelected ? 'bg-white text-emerald-800 font-black' : 'bg-slate-200 text-slate-700'
                                         }`}>
                                           {label}
                                         </span>
-                                        <span className="leading-snug">{rawOptText}</span>
+                                        <span className="leading-tight text-[11px] font-semibold">{rawOptText}</span>
                                       </button>
                                     );
                                   })}
