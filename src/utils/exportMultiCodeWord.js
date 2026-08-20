@@ -2,28 +2,34 @@
  * Utility Xuất 4 Mã Đề Thi (101, 102, 103, 104) xáo trộn ngẫu nhiên ra file Word (.doc)
  * Kèm Bảng So Sánh Đáp Án 4 Mã Đề ở trang cuối cùng
  */
-export function exportMultiCodeWord(questions = [], activityTitle = 'BÀI KIỂM TRA TIẾNG ANH') {
+export function exportMultiCodeWord(questions = [], activityTitle = 'BÀI KIỂM TRA TIẾNG ANH THCS') {
+  if (!questions || questions.length === 0) {
+    alert('Bài thi chưa có câu hỏi nào để xuất 4 mã đề!');
+    return;
+  }
+
   const codeList = [101, 102, 103, 104];
-  const allMasterKeys = {};
+  const allMasterKeys = { 101: {}, 102: {}, 103: {}, 104: {} };
 
   let wordHtml = `
     <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head>
       <meta charset='utf-8'>
-      <title>${activityTitle} - 4 MÃ ĐỀ</title>
+      <title>${activityTitle} - 4 MÃ ĐỀ (101 - 104)</title>
       <style>
-        body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.4; margin: 20px; }
+        body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.4; margin: 20px; color: #000; }
         .page-break { page-break-before: always; }
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
         .header-table td { text-align: center; font-weight: bold; }
         .title { text-align: center; font-size: 15pt; font-weight: bold; margin: 10px 0; text-transform: uppercase; }
-        .code-badge { text-align: right; font-weight: bold; font-size: 13pt; margin-bottom: 10px; }
-        .part-title { font-weight: bold; margin-top: 12px; margin-bottom: 4px; font-size: 12pt; }
-        .passage { font-style: italic; background-color: #f8fafc; padding: 8px; border: 1px solid #cbd5e1; margin: 8px 0; }
-        .question { font-weight: bold; margin-top: 6px; }
-        .options { margin-left: 20px; }
+        .code-badge { text-align: right; font-weight: bold; font-size: 13pt; margin-bottom: 10px; color: #1e3a8a; }
+        .part-title { font-weight: bold; margin-top: 14px; margin-bottom: 6px; font-size: 12pt; text-transform: uppercase; }
+        .passage { font-style: italic; background-color: #f8fafc; padding: 10px; border: 1px solid #cbd5e1; margin: 8px 0; font-family: 'Times New Roman', serif; }
+        .question { font-weight: bold; margin-top: 8px; }
+        .options { margin-left: 20px; margin-top: 4px; margin-bottom: 8px; }
         .matrix-table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: center; }
-        .matrix-table th, .matrix-table td { border: 1px solid #000; padding: 4px; font-size: 10pt; }
+        .matrix-table th, .matrix-table td { border: 1px solid #000; padding: 6px; font-size: 11pt; }
+        .matrix-table th { background-color: #e2e8f0; font-weight: bold; }
       </style>
     </head>
     <body>
@@ -37,8 +43,8 @@ export function exportMultiCodeWord(questions = [], activityTitle = 'BÀI KIỂM
     wordHtml += `
       <table class="header-table">
         <tr>
-          <td style="width: 50%;">SỞ GIÁO DỤC & ĐÀO TẠO<br>TRƯỜNG THPT CHUYÊN / CHUẨN</td>
-          <td style="width: 50%;">KỲ THI ĐÁNH GIÁ NĂNG LỰC NGOẠI NGỮ<br>MÔN: TIẾNG ANH</td>
+          <td style="width: 50%;">TRUNG TÂM DẠY HỌC HOA MAI<br>BỘ MÔN TIẾNG ANH THCS</td>
+          <td style="width: 50%;">KỲ THI ĐÁNH GIÁ NĂNG LỰC HỌC SINH<br>MÔN: TIẾNG ANH</td>
         </tr>
       </table>
 
@@ -50,41 +56,49 @@ export function exportMultiCodeWord(questions = [], activityTitle = 'BÀI KIỂM
       <p><strong>Họ và tên học sinh:</strong> ......................................................................... <strong>Lớp:</strong> ....................</p>
     `;
 
-    // Shuffle câu hỏi & đáp án cho mã đề này
-    const shuffledQuestions = [...questions].sort(() => (codeIdx === 0 ? 0 : Math.random() - 0.5));
-    const masterKeysForCode = [];
+    // 🔀 TRỘN CÂU HỎI & PHƯƠNG ÁN A, B, C, D CHO MÃ ĐỀ NÀY
+    const questionsCopy = JSON.parse(JSON.stringify(questions));
+    let qCounter = 1;
 
-    shuffledQuestions.forEach((q, qIdx) => {
+    questionsCopy.forEach((q) => {
       const cObj = q.content || {};
       const parts = Array.isArray(cObj.parts) ? cObj.parts : [];
 
       if (parts.length > 0) {
+        // Đề thi gộp Multi Parts
         parts.forEach((p, pIdx) => {
           wordHtml += `<div class="part-title">${p.part_title || `PART ${pIdx + 1}`}</div>`;
-          if (p.passage) wordHtml += `<div class="passage">${p.passage.replace(/\n/g, '<br>')}</div>`;
+          if (p.passage) wordHtml += `<div class="passage"><strong>Bài đọc:</strong><br>${p.passage.replace(/\n/g, '<br>')}</div>`;
 
-          (p.questions || []).forEach((cq, cIdx) => {
-            const qNum = `${qIdx + 1}.${cIdx + 1}`;
-            wordHtml += `<div class="question">${qNum}. ${cq.question}</div>`;
+          const pQuestions = [...(p.questions || [])];
+          if (codeIdx > 0) pQuestions.sort(() => Math.random() - 0.5);
 
-            if (Array.isArray(cq.options)) {
+          pQuestions.forEach((cq) => {
+            wordHtml += `<div class="question">Câu ${qCounter}. ${cq.question}</div>`;
+
+            if (Array.isArray(cq.options) && cq.options.length > 0) {
               const optsCopy = [...cq.options];
               if (codeIdx > 0) optsCopy.sort(() => Math.random() - 0.5);
 
               wordHtml += `<div class="options">`;
               optsCopy.forEach((opt, oIdx) => {
                 const label = String.fromCharCode(65 + oIdx);
-                wordHtml += `<span>${label}. ${opt.text || opt}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`;
-                if (opt.isCorrect) {
-                  masterKeysForCode.push({ qNum: qIdx + 1, key: label });
+                const isCorrect = typeof opt === 'object' ? opt.isCorrect : false;
+                const optText = typeof opt === 'object' ? opt.text : opt;
+
+                wordHtml += `<span><strong>${label}.</strong> ${optText}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`;
+                if (isCorrect) {
+                  allMasterKeys[codeNum][qCounter] = label;
                 }
               });
               wordHtml += `</div>`;
             }
+            qCounter++;
           });
         });
       } else {
-        wordHtml += `<div class="question">${qIdx + 1}. ${cObj.question || cObj.title || 'Câu hỏi'}</div>`;
+        // Đề thi đơn lẻ
+        wordHtml += `<div class="question">Câu ${qCounter}. ${cObj.question || cObj.title || 'Câu hỏi'}</div>`;
         if (Array.isArray(cObj.options)) {
           const optsCopy = [...cObj.options];
           if (codeIdx > 0) optsCopy.sort(() => Math.random() - 0.5);
@@ -92,27 +106,31 @@ export function exportMultiCodeWord(questions = [], activityTitle = 'BÀI KIỂM
           wordHtml += `<div class="options">`;
           optsCopy.forEach((opt, oIdx) => {
             const label = String.fromCharCode(65 + oIdx);
-            wordHtml += `<span>${label}. ${opt.text || opt}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`;
-            if (opt.isCorrect) {
-              masterKeysForCode.push({ qNum: qIdx + 1, key: label });
+            const isCorrect = typeof opt === 'object' ? opt.isCorrect : false;
+            const optText = typeof opt === 'object' ? opt.text : opt;
+
+            wordHtml += `<span><strong>${label}.</strong> ${optText}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`;
+            if (isCorrect) {
+              allMasterKeys[codeNum][qCounter] = label;
             }
           });
           wordHtml += `</div>`;
         }
+        qCounter++;
       }
     });
-
-    allMasterKeys[codeNum] = masterKeysForCode;
   });
 
-  // Trang Bảng So Sánh Đáp Án 4 Mã Đề ở cuối cùng
+  // 📊 THÊM BẢNG MA TRẬN SO SÁNH ĐÁP ÁN 4 MÃ ĐỀ Ở TRANG CUỐI CÙNG
   wordHtml += `
     <div class="page-break"></div>
-    <h3 style="text-align: center; text-transform: uppercase;">BẢNG SO SÁNH ĐÁP ÁN 4 MÃ ĐỀ THI (101 - 104)</h3>
+    <div class="title">📊 BẢNG MA TRẬN SO SÁNH ĐÁP ÁN 4 MÃ ĐỀ (101 - 104)</div>
+    <p style="text-align: center; font-style: italic;">(Dành riêng cho Giáo viên phục vụ công tác chấm thi tự động)</p>
+
     <table class="matrix-table">
       <thead>
-        <tr style="background-color: #e2e8f0; font-weight: bold;">
-          <th>Câu</th>
+        <tr>
+          <th>Câu hỏi</th>
           <th>Mã đề 101</th>
           <th>Mã đề 102</th>
           <th>Mã đề 103</th>
@@ -122,15 +140,15 @@ export function exportMultiCodeWord(questions = [], activityTitle = 'BÀI KIỂM
       <tbody>
   `;
 
-  const totalQs = allMasterKeys[101]?.length || 10;
-  for (let i = 0; i < totalQs; i++) {
+  const totalQ = Object.keys(allMasterKeys[101]).length || 40;
+  for (let qI = 1; qI <= totalQ; qI++) {
     wordHtml += `
       <tr>
-        <td style="font-weight: bold;">Câu ${i + 1}</td>
-        <td style="font-weight: bold; color: #166534;">${allMasterKeys[101]?.[i]?.key || 'A'}</td>
-        <td style="font-weight: bold; color: #1e3a8a;">${allMasterKeys[102]?.[i]?.key || 'B'}</td>
-        <td style="font-weight: bold; color: #9a3412;">${allMasterKeys[103]?.[i]?.key || 'C'}</td>
-        <td style="font-weight: bold; color: #701a75;">${allMasterKeys[104]?.[i]?.key || 'D'}</td>
+        <td><strong>Câu ${qI}</strong></td>
+        <td><strong>${allMasterKeys[101][qI] || 'A'}</strong></td>
+        <td><strong>${allMasterKeys[102][qI] || 'B'}</strong></td>
+        <td><strong>${allMasterKeys[103][qI] || 'C'}</strong></td>
+        <td><strong>${allMasterKeys[104][qI] || 'D'}</strong></td>
       </tr>
     `;
   }
@@ -142,13 +160,14 @@ export function exportMultiCodeWord(questions = [], activityTitle = 'BÀI KIỂM
     </html>
   `;
 
-  const blob = new Blob(['\ufeff', wordHtml], { type: 'application/msword' });
+  // TẢI FILE WORD (.DOC)
+  const blob = new Blob(['\ufeff' + wordHtml], { type: 'application/msword' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${activityTitle.replace(/\s+/g, '_')}_4_Ma_De_101_104.doc`;
-  document.body.appendChild(a);
+  a.download = `De_Thi_4_Ma_De_101_104_${Date.now()}.doc`;
   a.click();
-  document.body.removeChild(a);
   URL.revokeObjectURL(url);
+
+  alert(`🎉 ĐÃ XUẤT THÀNH CÔNG 4 MÃ ĐỀ THI (101, 102, 103, 104) RA FILE WORD!\n\nFile Word đính kèm Bảng Ma Trận Đáp Án 4 Mã Đề ở trang cuối cùng đã được tải xuống máy Thầy!`);
 }
