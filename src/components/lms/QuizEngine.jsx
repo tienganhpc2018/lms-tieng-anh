@@ -876,51 +876,65 @@ export default function QuizEngine({ activity }) {
                           const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
 
-                          // 1. DẠNG TRUE / FALSE NÚT BẤM (ẢNH 3)
+                          // 1. DẠNG TRUE / FALSE CÂU VÀ NÚT T/F NẰM TRÊN CÙNG 1 HÀNG CHUẨN ĐẸP 100% (ẢNH 1)
                           if (isTrueFalse) {
                             const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
                             const isCorrectFalse = cQ.correctAnswer === 'False' || cQ.options?.find(o => o.text === 'False')?.isCorrect;
+                            const isSelectedTrue = selectedVal === 'True';
+                            const isSelectedFalse = selectedVal === 'False';
+
+                            // Lọc số thứ tự nếu câu hỏi đã chứa số (VD: 41. Horse-riding...)
+                            const questionText = cQ.question || 'Statement question';
 
                             return (
-                              <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3 shadow-2xs">
-                                <h4 className="font-extrabold text-xs text-slate-900 leading-snug">
-                                  {cIdx + 1}. {cQ.question}
+                              <div key={cIdx} className="p-4 bg-white border border-slate-200/80 hover:border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs transition group">
+                                <h4 className="font-extrabold text-xs text-slate-900 leading-snug flex-1 font-sans">
+                                  {questionText}
                                 </h4>
 
-                                <div className="grid grid-cols-2 gap-3 max-w-md">
+                                <div className="flex items-center space-x-2 flex-shrink-0 self-end sm:self-center">
+                                  {/* NÚT T (TRUE) */}
                                   <button
                                     type="button"
                                     disabled={submitted}
                                     onClick={() => handleSelectAnswer(childKey, 'True')}
-                                    className={`py-2.5 px-4 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 border shadow-2xs ${
-                                      selectedVal === 'True'
-                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-400'
-                                        : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'
+                                    title="True (Đúng)"
+                                    className={`w-9 h-8 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
+                                      submitted
+                                        ? isCorrectTrue
+                                          ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-300'
+                                          : isSelectedTrue
+                                          ? 'bg-rose-600 text-white border-rose-600 line-through'
+                                          : 'bg-slate-50 text-slate-400 border-slate-200'
+                                        : isSelectedTrue
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300'
+                                        : 'bg-white text-slate-400 border-slate-300 hover:border-emerald-500 hover:text-emerald-700'
                                     }`}
                                   >
-                                    <span>🟢 TRUE (ĐÚNG)</span>
+                                    <span>T</span>
                                   </button>
 
+                                  {/* NÚT F (FALSE) */}
                                   <button
                                     type="button"
                                     disabled={submitted}
                                     onClick={() => handleSelectAnswer(childKey, 'False')}
-                                    className={`py-2.5 px-4 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 border shadow-2xs ${
-                                      selectedVal === 'False'
-                                        ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-400'
-                                        : 'bg-white text-rose-800 border-rose-300 hover:bg-rose-50'
+                                    title="False (Sai)"
+                                    className={`w-9 h-8 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
+                                      submitted
+                                        ? isCorrectFalse
+                                          ? 'bg-rose-600 text-white border-rose-600 ring-2 ring-rose-300'
+                                          : isSelectedFalse
+                                          ? 'bg-rose-600 text-white border-rose-600 line-through'
+                                          : 'bg-slate-50 text-slate-400 border-slate-200'
+                                        : isSelectedFalse
+                                        ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
+                                        : 'bg-white text-slate-400 border-slate-300 hover:border-rose-500 hover:text-rose-700'
                                     }`}
                                   >
-                                    <span>🔴 FALSE (SAI)</span>
+                                    <span>F</span>
                                   </button>
                                 </div>
-
-                                {submitted && (
-                                  <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-950">
-                                    ➔ ĐÁP ÁN ĐÚNG: {isCorrectTrue ? 'TRUE (ĐÚNG)' : 'FALSE (SAI)'}
-                                    {cQ.explanation && <div className="font-normal text-slate-700 mt-1">{cQ.explanation}</div>}
-                                  </div>
-                                )}
                               </div>
                             );
                           } else if (isPart1MC) {
