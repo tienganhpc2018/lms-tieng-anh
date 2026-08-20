@@ -75,12 +75,18 @@ export function AuthProvider({ children }) {
             },
           ])
           .select()
-          .single();
-
         if (createdProfile) finalProfile = createdProfile;
       }
 
       setProfile(finalProfile || null);
+
+      // KHI TÀI KHOẢN NÀY BỊ THẦY TẠM KHÓA (SUSPENDED) -> TỰ ĐỘNG ĐĂNG XUẤT NGAY
+      if (finalProfile && finalProfile.suspended) {
+        alert('🚫 TÀI KHOẢN TẠM KHÓA!\n\nTài khoản của em tạm thời bị khóa do vi phạm nội quy lớp học. Vui lòng liên hệ Thầy Hải để được hỗ trợ!');
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+      }
     } catch (err) {
       console.error('Lỗi lấy thông tin hồ sơ:', err.message);
     }
