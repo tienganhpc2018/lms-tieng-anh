@@ -1333,10 +1333,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   />
                                 </div>
                               ) : (
-                                /* BƯỚC 2: DÀN 4 ĐÁP ÁN THÀNH 1 DÒNG NGANG DÙNG CLASS grid grid-cols-1 md:grid-cols-4 gap-3 CHUẨN 100% */
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2 w-full">
+                                /* 4 LỰA CHỌN A, B, C, D DẠNG PILL SÁT CHỮ NẰM TRÊN 1 HÀNG 🎯 CHUẨN 100% ẢNH 2 CỦA THẦY */
+                                <div className="flex flex-wrap items-center gap-3 pt-2 w-full">
                                   {(cQ.options || []).map((opt, oIdx) => (
-                                    <div key={oIdx} className="flex items-center space-x-2">
+                                    <div key={oIdx} className="flex items-center space-x-1.5 bg-slate-50 border border-slate-200 rounded-full px-3 py-1 text-xs">
                                       <input
                                         type="radio"
                                         name={`mc_opt_${pIdx}_${cIdx}`}
@@ -1348,8 +1348,9 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                           });
                                           setSectionParts(newParts);
                                         }}
-                                        className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                        className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                       />
+                                      <span className="font-extrabold text-slate-700">{String.fromCharCode(65 + oIdx)}.</span>
                                       <input
                                         type="text"
                                         value={opt.text || ''}
@@ -1359,7 +1360,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                           setSectionParts(newParts);
                                         }}
                                         placeholder={`Đáp án ${String.fromCharCode(65 + oIdx)}...`}
-                                        className="w-full px-3 py-2 border border-slate-300 rounded-md text-xs bg-white focus:border-emerald-500 font-medium"
+                                        className="w-32 px-2 py-0.5 border-b border-slate-300 text-xs bg-transparent focus:border-emerald-500 font-medium outline-none"
                                       />
                                     </div>
                                   ))}
