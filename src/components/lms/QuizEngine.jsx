@@ -482,68 +482,81 @@ export default function QuizEngine({ activity }) {
 
   const renderFormattedParagraphs = (rawText) => {
     if (!rawText) return null;
-    const lines = rawText.split('\n').filter((l) => l.trim() !== '');
+    try {
+      const contentStr = typeof rawText === 'object' ? JSON.stringify(rawText) : String(rawText);
+      const lines = contentStr.split('\n').filter((l) => l.trim() !== '');
 
-    return lines.map((line, idx) => {
-      let isHeader = false;
-      const highlightKeywords = ['Evidence:', 'Dẫn chứng:', 'Phân tích:', 'Cấu trúc:', 'Đáp án đúng:', 'Loại trừ:', 'Bản dịch:'];
-      highlightKeywords.forEach((kw) => {
-        if (line.toLowerCase().includes(kw.toLowerCase())) {
-          isHeader = true;
-        }
+      return lines.map((line, idx) => {
+        let isHeader = false;
+        const highlightKeywords = ['Evidence:', 'Dẫn chứng:', 'Phân tích:', 'Cấu trúc:', 'Đáp án đúng:', 'Loại trừ:', 'Bản dịch:'];
+        highlightKeywords.forEach((kw) => {
+          if (line.toLowerCase().includes(kw.toLowerCase())) {
+            isHeader = true;
+          }
+        });
+
+        return (
+          <p key={idx} className={`leading-relaxed text-slate-700 ${idx > 0 ? 'mt-1' : ''}`}>
+            {isHeader ? (
+              <span className="font-extrabold text-slate-900 bg-amber-100/70 px-1.5 py-0.5 rounded mr-1">
+                {line}
+              </span>
+            ) : (
+              line
+            )}
+          </p>
+        );
       });
-
-      return (
-        <p key={idx} className={`leading-relaxed text-slate-700 ${idx > 0 ? 'mt-1' : ''}`}>
-          {isHeader ? (
-            <span className="font-extrabold text-slate-900 bg-amber-100/70 px-1.5 py-0.5 rounded mr-1">
-              {line}
-            </span>
-          ) : (
-            line
-          )}
-        </p>
-      );
-    });
+    } catch (e) {
+      return <p className="leading-relaxed text-slate-700">{String(rawText)}</p>;
+    }
   };
 
   const renderCompactExplanation = (explanationText, correctText, qObj = null, userVal = null) => {
-    return (
-      <div className="mt-1.5 space-y-1">
-        {!explanationText || explanationText.trim() === '' ? (
-          <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] flex items-center justify-between text-emerald-950">
-            <span className="font-extrabold">➔ Đáp án đúng: {correctText}</span>
-            <span className="text-emerald-700 text-[10px]">💡 Nhớ từ vựng & cấu trúc trọng tâm!</span>
-          </div>
-        ) : (
-          <div className="p-2 bg-emerald-50/90 border border-emerald-300 rounded-xl text-[11px] space-y-0.5 text-slate-800">
-            <span className="font-extrabold text-emerald-950 block border-b border-emerald-200 pb-0.5">
-              ➔ ĐÁP ÁN ĐÚNG: {correctText}
-            </span>
-            <div className="pt-0.5">
-              {renderFormattedParagraphs(explanationText)}
-            </div>
-          </div>
-        )}
+    try {
+      const safeExpText = typeof explanationText === 'object' ? JSON.stringify(explanationText) : String(explanationText || '');
+      const safeCorrectText = typeof correctText === 'object' ? JSON.stringify(correctText) : String(correctText || '');
 
-        {/* NÚT HOI AI TUTOR CÂU NÀY */}
-        <button
-          onClick={() => {
-            setSelectedQuestionForTutor({
-              question: qObj?.question || 'Câu hỏi',
-              explanation: explanationText,
-              userAnswer: userVal,
-              correctAnswer: correctText,
-            });
-            setAiTutorModalOpen(true);
-          }}
-          className="w-full py-1.5 bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-900 font-extrabold text-[11px] rounded-xl transition flex items-center justify-center space-x-1.5 shadow-2xs"
-        >
-          <Bot className="w-3.5 h-3.5 text-purple-700" />
-          <span>🤖 Hỏi AI Tutor Giải Thích Chi Tiết Câu Này</span>
-        </button>
-      </div>
-    );
+      return (
+        <div className="mt-1.5 space-y-1 font-sans">
+          {!safeExpText || safeExpText.trim() === '' ? (
+            <div className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] flex items-center justify-between text-emerald-950">
+              <span className="font-extrabold">➔ Đáp án đúng: {safeCorrectText}</span>
+              <span className="text-emerald-700 text-[10px]">💡 Nhớ từ vựng & cấu trúc trọng tâm!</span>
+            </div>
+          ) : (
+            <div className="p-2 bg-emerald-50/90 border border-emerald-300 rounded-xl text-[11px] space-y-0.5 text-slate-800">
+              <span className="font-extrabold text-emerald-950 block border-b border-emerald-200 pb-0.5">
+                ➔ ĐÁP ÁN ĐÚNG: {safeCorrectText}
+              </span>
+              <div className="pt-0.5">
+                {renderFormattedParagraphs(safeExpText)}
+              </div>
+            </div>
+          )}
+
+          {/* NÚT HỎI AI TUTOR CÂU NÀY */}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedQuestionForTutor({
+                question: qObj?.question || 'Câu hỏi',
+                explanation: safeExpText,
+                userAnswer: typeof userVal === 'object' ? JSON.stringify(userVal) : String(userVal || ''),
+                correctAnswer: safeCorrectText,
+              });
+              setAiTutorModalOpen(true);
+            }}
+            className="w-full py-1.5 bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-900 font-extrabold text-[11px] rounded-xl transition flex items-center justify-center space-x-1.5 shadow-2xs cursor-pointer"
+          >
+            <Bot className="w-3.5 h-3.5 text-purple-700" />
+            <span>🤖 Hỏi AI Tutor Giải Thích Chi Tiết Câu Này</span>
+          </button>
+        </div>
+      );
+    } catch (err) {
+      return null;
+    }
   };
 
   if (loading) return <LoadingSpinner text="Đang tải bài làm..." />;
