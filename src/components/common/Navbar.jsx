@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { BookOpen, LogOut, User, ChevronDown, Calendar, Folder, FileText, Settings, Award, Menu } from 'lucide-react';
 import UserManagementModal from '../lms/UserManagementModal';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { user, profile, isTeacher, signOut } = useAuth();
@@ -55,7 +56,11 @@ export default function Navbar() {
           {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO (GÓC PHẢI NAV BAR) */}
           <div className="flex items-center space-x-3" ref={dropdownRef}>
             {user ? (
-              <div className="relative">
+              <div className="flex items-center space-x-2">
+                {/* 🔔 QUẢ CHUÔNG THÔNG BÁO THẬT NHẢY CHẤM ĐỎ DÀNH CHO HỌC SINH */}
+                <NotificationBell />
+
+                <div className="relative">
                 <button
                   type="button"
                   onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
@@ -149,6 +154,7 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+            </div>
             ) : (
               <Link
                 to="/auth"
