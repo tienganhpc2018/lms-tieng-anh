@@ -938,6 +938,17 @@ export default function QuizEngine({ activity }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
+                      {/* HIỂN THỊ BÀI NGHE AUDIO DÀNH CHO HỌC SINH NẾU CÓ LINK/FILE MP3 */}
+                      {pItem.audioUrl && (
+                        <div className="p-3 bg-purple-50 border border-purple-200 rounded-2xl space-y-1.5 my-3 shadow-2xs">
+                          <div className="flex items-center space-x-2 text-purple-950 font-extrabold text-xs">
+                            <Volume2 className="w-4 h-4 text-purple-600 animate-pulse" />
+                            <span>🎧 BÀI NGHE AUDIO (CLICK PLAY ĐỂ NGHE):</span>
+                          </div>
+                          <audio controls src={pItem.audioUrl} className="w-full h-9 rounded-xl outline-none" />
+                        </div>
+                      )}
+
                       {/* HIỂN THỊ ĐOẠN VĂN KHI LÀ BÀI ĐỌC READING SECTION / CLOZE TEST */}
                       {pItem.passage && (activity?.type === 'reading_section' || activity?.type === 'cloze_test') && (
                         <div className="p-4 bg-amber-50/80 border border-amber-300/80 rounded-lg text-xs text-slate-800 leading-relaxed font-serif shadow-xs my-2">
@@ -965,50 +976,33 @@ export default function QuizEngine({ activity }) {
                             let qText = cQ.question || 'Statement question';
 
                             return (
-                              <div key={cIdx} className="p-4 bg-white border border-slate-200 rounded-lg space-y-3 shadow-xs hover:border-emerald-300 transition">
-                                <div className="flex items-center justify-between gap-2">
-                                  <h4 className="font-extrabold text-xs text-slate-900 leading-snug flex-1 font-sans">
-                                    {qText}
-                                  </h4>
+                              <div key={cIdx} className="p-3.5 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <span className="font-extrabold text-xs text-slate-900 leading-relaxed flex-1">
+                                    {cIdx + 1}. {qText}
+                                  </span>
 
-                                  <div className="flex items-center space-x-2 flex-shrink-0">
-                                    {/* NÚT T (TRUE) */}
+                                  {/* ĐÁP ÁN NÚT TRUE / FALSE COMPACT */}
+                                  <div className="flex items-center space-x-1.5 self-end sm:self-center">
                                     <button
-                                      type="button"
                                       disabled={submitted}
                                       onClick={() => handleSelectAnswer(childKey, 'True')}
-                                      title="True (Đúng)"
-                                      className={`w-9 h-8 rounded-md font-black text-xs transition flex items-center justify-center border cursor-pointer ${
-                                        submitted
-                                          ? isCorrectTrue
-                                            ? 'bg-emerald-600 text-white border-emerald-600 ring-1 ring-emerald-300 font-extrabold'
-                                            : isSelectedTrue
-                                            ? 'bg-rose-600 text-white border-rose-600 line-through'
-                                            : 'bg-slate-50 text-slate-400 border-slate-200'
-                                          : isSelectedTrue
-                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-1 ring-emerald-300'
-                                          : 'bg-white text-slate-400 border-slate-300 hover:border-emerald-500 hover:text-emerald-700'
+                                      className={`px-3 py-1 rounded-xl text-xs font-extrabold border transition ${
+                                        isSelectedTrue
+                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-1 ring-emerald-300'
+                                          : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-500 hover:text-emerald-700'
                                       }`}
                                     >
                                       <span>T</span>
                                     </button>
 
-                                    {/* NÚT F (FALSE) */}
                                     <button
-                                      type="button"
                                       disabled={submitted}
                                       onClick={() => handleSelectAnswer(childKey, 'False')}
-                                      title="False (Sai)"
-                                      className={`w-9 h-8 rounded-md font-black text-xs transition flex items-center justify-center border cursor-pointer ${
-                                        submitted
-                                          ? isCorrectFalse
-                                            ? 'bg-rose-600 text-white border-rose-600 ring-1 ring-rose-300 font-extrabold'
-                                            : isSelectedFalse
-                                            ? 'bg-rose-600 text-white border-rose-600 line-through'
-                                            : 'bg-slate-50 text-slate-400 border-slate-200'
-                                          : isSelectedFalse
+                                      className={`px-3 py-1 rounded-xl text-xs font-extrabold border transition ${
+                                        isSelectedFalse
                                           ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-1 ring-rose-300'
-                                          : 'bg-white text-slate-400 border-slate-300 hover:border-rose-500 hover:text-rose-700'
+                                          : 'bg-white text-slate-600 border-slate-300 hover:border-rose-500 hover:text-rose-700'
                                       }`}
                                     >
                                       <span>F</span>
@@ -1016,8 +1010,8 @@ export default function QuizEngine({ activity }) {
                                   </div>
                                 </div>
 
-                                {/* HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT ĐÚNG/SAI BƯỚC 3 */}
-                                {(cQ.explanation || pItem.explanation || submitted || isTeacher) && renderCompactExplanation(
+                                {/* CHỈ HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT KHI ĐÃ NỘP BÀI (SUBMITTED) HOẶC LÀ GIÁO VIÊN (ISTEACHER) -> TUYỆT ĐỐI KHÔNG LỘ ĐÁP ÁN KHI ĐANG LÀM BÀI */}
+                                {(submitted || isTeacher) && renderCompactExplanation(
                                   cQ.explanation || pItem.explanation || `Dẫn chứng phân tích: Dựa vào nội dung bài đọc, câu phát biểu này là ${correctText}.`,
                                   correctText,
                                   cQ,
@@ -1030,53 +1024,38 @@ export default function QuizEngine({ activity }) {
                             const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' ? o?.isCorrect : false);
                             const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || (cOpts[correctOptIndex]?.text) || 'Đáp án đúng';
 
-                            // Lọc số thứ tự thừa nếu câu hỏi đã chứa số (VD: 40. What...)
+                            // Lọc số thứ tự thừa nếu câu hỏi đã chứa số
                             let qDisplay = cQ.question || '';
                             const hasLeadingNumber = /^\d+[\.\)]/.test(qDisplay);
+                            const finalQuestionTitle = hasLeadingNumber ? qDisplay : `${cIdx + 1}. ${qDisplay}`;
 
-                            let selectedText = '';
-                            try {
-                              if (selectedVal !== undefined && cOpts[selectedVal]) {
-                                selectedText = typeof cOpts[selectedVal] === 'object' ? cOpts[selectedVal]?.text : cOpts[selectedVal];
-                              }
-                            } catch (e) {}
+                            const selectedText = selectedVal;
 
                             return (
-                              /* BƯỚC 3: KHUNG CÂU HỎI DÙNG BORDER-RADIUS 8PX (rounded-lg) + PADDING p-4 KHÔNG SÁT LỀ */
-                              <div key={cIdx} className="p-4 bg-white border border-slate-200 rounded-lg space-y-3 shadow-xs">
-                                <h4 className="font-extrabold text-xs text-slate-900 leading-snug">
-                                  {!hasLeadingNumber && `${cIdx + 1}. `}{qDisplay}
+                              <div key={cIdx} className="p-3.5 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-2.5">
+                                <h4 className="font-extrabold text-xs text-slate-900 leading-relaxed whitespace-pre-line">
+                                  {finalQuestionTitle}
                                 </h4>
 
-                                {/* 4 LỰA CHỌN A, B, C, D DẠNG PILL BO TRÒN VỪA VẶN SÁT THEO TEXT NẰM TRÊN 1 HÀNG 🎯 CHUẨN 100% ẢNH 2 CỦA THẦY */}
-                                <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full pt-1.5">
+                                {/* 4 LỰA CHỌN A, B, C, D DẠNG PILL SÁT CHỮ NẰM TRÊN 1 HÀNG CHUẨN 100% ẢNH 2 */}
+                                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5 w-full">
                                   {cOpts.map((opt, oIdx) => {
-                                    const isSelected = selectedVal === oIdx;
-                                    const isThisCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
-                                    let rawOptText = typeof opt === 'object' ? opt?.text : opt;
-                                    
-                                    // Lọc trùng lặp chữ A. B. C. D. ở đầu đáp án
-                                    const label = String.fromCharCode(65 + oIdx);
-                                    if (typeof rawOptText === 'string' && rawOptText.trim().startsWith(`${label}.`)) {
-                                      rawOptText = rawOptText.trim().substring(2).trim();
-                                    }
-
-                                    let btnStyle = 'bg-white border-slate-200/90 hover:border-emerald-400 text-slate-800 font-medium hover:bg-slate-50';
-                                    if (submitted) {
-                                      if (isThisCorrect) btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-extrabold';
-                                      else if (isSelected && !isThisCorrect) btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
-                                    } else if (isSelected) {
-                                      btnStyle = 'bg-emerald-600 text-white font-extrabold border-transparent shadow-xs';
-                                    }
+                                    const optPrefix = String.fromCharCode(65 + oIdx);
+                                    const rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
+                                    const isSelected = selectedText === rawOptText || selectedText === optPrefix || selectedText === `${optPrefix}. ${rawOptText}`;
 
                                     return (
                                       <button
                                         key={oIdx}
                                         disabled={submitted}
-                                        onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                        className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs border transition cursor-pointer whitespace-nowrap min-w-fit max-w-full shadow-2xs ${btnStyle}`}
+                                        onClick={() => handleSelectAnswer(childKey, rawOptText)}
+                                        className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs border font-bold shadow-2xs transition whitespace-nowrap cursor-pointer ${
+                                          isSelected
+                                            ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-300'
+                                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-emerald-400'
+                                        }`}
                                       >
-                                        <span className="font-extrabold text-xs mr-1">{label}.</span>
+                                        <span className="mr-1.5 opacity-80">{optPrefix}.</span>
                                         <span className="font-medium text-xs">{rawOptText}</span>
                                       </button>
                                     );
