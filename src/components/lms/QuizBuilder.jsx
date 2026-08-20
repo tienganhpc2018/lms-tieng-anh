@@ -1240,8 +1240,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               className="w-full p-2 border border-purple-300 rounded-xl text-xs font-bold bg-white text-purple-950 shadow-inner"
                             />
                           </div>
-                        ) : (
-                          /* 2. ĐỐI VỚI BÀI ĐỌC READING SECTION / CLOZE TEST / WRITING: HIỂN THỊ KHUNG NHẬP NỘI DUNG BÀI ĐỌC */
+                        ) : ['reading_section', 'cloze_test', 'reading_tf'].includes(selectedType?.toLowerCase()) ? (
+                          /* 2. CHỈ CÓ READING VÀ KNOWLEDGE OF LANGUAGE (CLOZE TEST) MỚI CÓ KHUNG ĐOẠN VĂN CHUNG */
                           <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-1">
                             <label className="block text-[11px] font-extrabold text-sky-950 uppercase flex items-center space-x-1">
                               <BookOpen className="w-3.5 h-3.5 text-sky-600" />
@@ -1259,7 +1259,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               className="w-full p-2.5 border border-sky-300 rounded-xl text-xs font-serif bg-white text-slate-900 leading-relaxed shadow-inner"
                             />
                           </div>
-                        )}
+                        ) : null}
 
                         {/* DANH SÁCH CÂU HỎI TRONG PART */}
                         <div className="space-y-3 border-t border-slate-100 pt-3">
