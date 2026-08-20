@@ -44,8 +44,8 @@ export default function AssignmentView() {
         setActivity({ id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử', type: 'quiz' });
       }
 
-      // 2. Submission của bài tập tự luận
-      if (user) {
+      // 2. Kiểm tra nếu học sinh đã nộp bài thi -> Tự động chuyển hướng sang route xem kết quả /assignment/[id]/result
+      if (user && !isTeacher) {
         const { data: sub } = await supabase
           .from('submissions')
           .select('*')
@@ -54,9 +54,8 @@ export default function AssignmentView() {
           .maybeSingle();
 
         if (sub) {
-          setSubmission(sub);
-          setTextAnswer(sub.answers_data?.textAnswer || '');
-          setFileUrl(sub.file_url || '');
+          navigate(`/assignment/${targetActivityId}/result`, { replace: true });
+          return;
         }
       }
     } catch (e) {
