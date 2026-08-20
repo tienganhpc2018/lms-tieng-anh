@@ -1221,24 +1221,82 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           </div>
                         </div>
 
-                        {/* 1. LIÊN KẾT MP3 AUDIO CHO BÀI NGHE LISTENING SECTION (NGUYÊN BẢN CHUẨN 100% THEO YÊU CẦU CỦA THẦY HẢI) */}
+                        {/* 1. NÚT TẢI FILE ÂM THANH MP3 TRỰC TIẾP TỪ MÁY TÍNH CHO BÀI NGHE LISTENING SECTION (CHUẨN 100% THEO YÊU CẦU THẦY HẢI) */}
                         {selectedType?.toLowerCase().includes('listening') ? (
-                          <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-2xl space-y-1.5">
-                            <label className="block text-[11px] font-extrabold text-purple-950 uppercase flex items-center space-x-1">
-                              <Volume2 className="w-4 h-4 text-purple-600" />
-                              <span>🎧 FILE ÂM THANH BÀI NGHE (AUDIO MP3 URL) CHO PART #{pIdx + 1}:</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={pItem.audioUrl || ''}
-                              onChange={(e) => {
-                                const newParts = [...sectionParts];
-                                newParts[pIdx].audioUrl = e.target.value;
-                                setSectionParts(newParts);
-                              }}
-                              placeholder="Dán đường dẫn Link file Audio MP3 bài nghe tại đây (Ví dụ: https://example.com/audio-part1.mp3)..."
-                              className="w-full p-2.5 border border-purple-300 rounded-xl text-xs font-bold bg-white text-purple-950 shadow-inner"
-                            />
+                          <div className="p-4 bg-purple-50/90 border-2 border-dashed border-purple-300 rounded-3xl space-y-2 shadow-2xs">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <label className="text-xs font-extrabold text-purple-950 uppercase flex items-center space-x-1.5">
+                                <Volume2 className="w-4 h-4 text-purple-600 animate-bounce" />
+                                <span>🎵 FILE ÂM THANH BÀI NGHE (AUDIO MP3) CHO PART #{pIdx + 1}:</span>
+                              </label>
+
+                              {/* NÚT TẢI FILE TỪ MÁY TÍNH LOCAL */}
+                              <label className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-2xl shadow-md transition transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer whitespace-nowrap">
+                                <Plus className="w-4 h-4" />
+                                <span>📁 Tải File Audio MP3 Từ Máy Tính</span>
+                                <input
+                                  type="file"
+                                  accept="audio/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                      const base64Audio = event.target.result;
+                                      const newParts = [...sectionParts];
+                                      newParts[pIdx].audioUrl = base64Audio;
+                                      newParts[pIdx].audioFileName = file.name;
+                                      setSectionParts(newParts);
+                                      setToast({
+                                        isOpen: true,
+                                        type: 'success',
+                                        title: 'Tải File Audio Thành Công',
+                                        message: `Đã nạp file audio "${file.name}" vào bài thi thành công!`
+                                      });
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }}
+                                />
+                              </label>
+                            </div>
+
+                            {/* HIỂN THỊ TÊN FILE AUDIO MP3 ĐÃ TẢI TỪ MÁY TÍNH */}
+                            {pItem.audioUrl ? (
+                              <div className="p-3 bg-white border border-purple-200 rounded-2xl flex items-center justify-between shadow-2xs">
+                                <div className="flex items-center space-x-2 truncate">
+                                  <span className="w-7 h-7 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-extrabold text-xs">
+                                    🔊
+                                  </span>
+                                  <div className="truncate">
+                                    <p className="text-xs font-extrabold text-purple-950 truncate">
+                                      {pItem.audioFileName || 'File Audio MP3 từ máy tính'}
+                                    </p>
+                                    <p className="text-[10px] text-emerald-600 font-bold">
+                                      ✓ Đã sẵn sàng phát âm thanh 100% trong đề thi thử!
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newParts = [...sectionParts];
+                                    newParts[pIdx].audioUrl = '';
+                                    newParts[pIdx].audioFileName = '';
+                                    setSectionParts(newParts);
+                                  }}
+                                  className="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                >
+                                  ✕ Xóa file này
+                                </button>
+                              </div>
+                            ) : (
+                              <p className="text-[11px] text-slate-500 font-medium italic pl-1">
+                                💡 Nhấp nút "Tải File Audio MP3 Từ Máy Tính" màu tím ở trên để chọn file âm thanh bài nghe từ máy Thầy.
+                              </p>
+                            )}
                           </div>
                         ) : ['reading_section', 'cloze_test', 'reading_tf'].includes(selectedType?.toLowerCase()) ? (
                           /* 2. CHỈ CÓ READING VÀ KNOWLEDGE OF LANGUAGE (CLOZE TEST) MỚI CÓ KHUNG ĐOẠN VĂN CHUNG */
