@@ -15,7 +15,7 @@ export default function NotificationBell() {
   const fetchNotifications = async () => {
     if (!user) return;
     try {
-      // 1. Fetch từ DB
+      // 1. Fetch thông báo từ DB Supabase
       const { data } = await supabase
         .from('notifications')
         .select('*')
@@ -25,29 +25,10 @@ export default function NotificationBell() {
 
       let list = data || [];
 
-      // 2. PHÂN BIỆT THÔNG BÁO CHUẨN ROLE CHO GIÁO VIÊN VÀ HỌC SINH (ẢNH 2)
-      if (isTeacher) {
-        // GIÁO VIÊN CHỈ XEM THÔNG BÁO HỌC SINH NỘP BÀI, BÌNH LUẬN, HOÀN THÀNH BÀI
-        const teacherDefaultNotifs = [
-          { id: 't1', title: '📝 HỌC SINH NỘP BÀI THI', message: 'Học sinh Nguyễn Minh Hoàng vừa hoàn thành bài thi thử Online Test (Điểm 9.8/10)', read: false, type: 'sub', link: '/analytics' },
-          { id: 't2', title: '💬 BÌNH LUẬN MỚI TỪ HỌC SINH', message: 'Học sinh Đinh Thành Nhơn vừa đặt câu hỏi dưới bài học Unit 1: Local Community', read: false, type: 'comment', link: '/community' },
-          { id: 't3', title: '🏆 HỌC SINH ĐẠT ĐIỂM GIỎI', message: 'Học sinh Hà Nguyễn Minh Thư vừa nộp bài thi thử Practice Test (Điểm 9.2/10)', read: false, type: 'grade', link: '/analytics' },
-        ];
-        // Ghép thông báo DB với mặc định của Giáo viên
-        list = [...list.filter((n) => !n.title?.includes('DẶN DÒ TỪ THẦY')), ...teacherDefaultNotifs];
-      } else {
-        // HỌC SINH CHỈ XEM THÔNG BÁO DẶN DÒ GIAO ĐỀ TỪ THẦY HẢI
-        const studentDefaultNotifs = [
-          { id: 's1', title: '📢 DẶN DÒ TỪ THẦY HẢI', message: 'Thầy vừa giao đề thi thử mới Online Test (Grade). Thời gian làm bài 45 phút. Hạn nộp 22/08/2026.', read: false, link: '/dashboard' },
-          { id: 's2', title: '🔔 DẶN DÒ BÀI TẬP VỀ NHÀ', message: 'Thầy Hải dặn cả lớp làm bài tập Unit 1 A closer look 1 trên Whiteboard trước 20h00 tối nay.', read: false, link: '/dashboard' },
-        ];
-        list = [...list.filter((n) => n.title?.includes('DẶN DÒ TỪ THẦY') || n.user_id === user.id), ...studentDefaultNotifs];
-      }
-
       // Lọc trùng ID
       const uniqueMap = {};
       list.forEach((item) => {
-        uniqueMap[item.id || item.title] = item;
+        uniqueMap[item.id] = item;
       });
       const finalList = Object.values(uniqueMap);
 
