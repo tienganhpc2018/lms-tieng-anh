@@ -458,35 +458,43 @@ export default function QuizBuilder({ activityId, onSaved }) {
     ]);
   };
 
-  // NẠP JSON RIÊNG CHO PART ĐANG CHỌN
+  // NẠP JSON RIÊNG CHO PART ĐANG CHỌN (FIX TRIỆT ĐỂ LỖI NẨY ALERT TRONG ẢNH 2)
   const handleApplyPartJson = (partIdx) => {
-    if (!directJsonText.trim()) {
+    const rawText = (partJsonInputText || directJsonText || '').trim();
+    if (!rawText) {
       alert('Vui lòng dán chuỗi JSON của Part này vào ô!');
       return;
     }
     try {
-      const parsed = JSON.parse(directJsonText);
+      // Làm sạch mã Markdown ```json nếu có
+      const cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
       const newParts = [...sectionParts];
+
+      const isArrayInput = Array.isArray(parsed);
+      const questionsList = isArrayInput ? parsed : (parsed.questions || []);
 
       newParts[partIdx] = {
         ...newParts[partIdx],
-        part_type: parsed.part_type || newParts[partIdx].part_type || 'multiple_choice',
-        part_title: parsed.part_title || parsed.title || parsed.task_title || newParts[partIdx].part_title,
-        task_sub: parsed.task_sub || newParts[partIdx].task_sub,
-        badge_label: parsed.badge_label || newParts[partIdx].badge_label,
-        passage_title: parsed.passage_title || newParts[partIdx].passage_title,
-        audioUrl: parsed.audio_url || newParts[partIdx].audioUrl,
-        passage: parsed.passage || parsed.passage_content || newParts[partIdx].passage,
-        questions: parsed.questions || newParts[partIdx].questions,
-        explanation: parsed.explanation || newParts[partIdx].explanation
+        part_type: parsed.part_type || newParts[partIdx]?.part_type || 'multiple_choice',
+        part_title: parsed.part_title || parsed.title || parsed.task_title || newParts[partIdx]?.part_title,
+        task_sub: parsed.task_sub || newParts[partIdx]?.task_sub,
+        badge_label: parsed.badge_label || newParts[partIdx]?.badge_label,
+        passage_title: parsed.passage_title || newParts[partIdx]?.passage_title,
+        audioUrl: parsed.audio_url || newParts[partIdx]?.audioUrl,
+        passage: parsed.passage || parsed.passage_content || newParts[partIdx]?.passage,
+        questions: questionsList.length > 0 ? questionsList : newParts[partIdx]?.questions,
+        explanation: parsed.explanation || newParts[partIdx]?.explanation
       };
 
       setSectionParts(newParts);
-      alert(`🎉 ĐÃ NẠP JSON THÀNH CÔNG CHO PART #${partIdx + 1}!`);
+      alert(`🎉 ĐÃ NẠP THÀNH CÔNG ${questionsList.length} CÂU HỎI VÀO PART #${partIdx + 1}!`);
+      setPartJsonModalIndex(null);
+      setPartJsonInputText('');
       setIsJsonDirectMode(false);
       setDirectJsonText('');
     } catch (err) {
-      alert('Lỗi định dạng JSON không hợp lệ: ' + err.message);
+      alert('Lỗi định dạng JSON không hợp lệ. Vui lòng kiểm tra lại cấu trúc dấu ngoặc ngoặc kép: ' + err.message);
     }
   };
 
@@ -834,9 +842,9 @@ export default function QuizBuilder({ activityId, onSaved }) {
         </div>
       )}
 
-      {/* FORM BIÊN TẬP CÂU HỎI - HỖ TRỢ TẤT CẢ CÁC PART VÀ DẠNG WRITING SECTION */}
+      {/* FORM BIÊN TẬP CÂU HỎI - KHÔNG CHE NAVBAR MENU NGANG TRÊN CÙNG (ẢNH 2) */}
       {editingQuestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-40 pt-16 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-200 my-6 animate-scale-up">
             <div className="bg-navy-900 text-white px-6 py-4 flex justify-between items-center">
               <h3 className="font-extrabold text-base uppercase">
