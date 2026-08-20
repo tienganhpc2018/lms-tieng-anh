@@ -510,41 +510,59 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-400 font-semibold">Chưa có khóa học nào khớp với tìm kiếm.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredCourses.map((courseItem) => (
-                    <div
-                      key={courseItem.id}
-                      onClick={() => navigate(`/course/${courseItem.id}`)}
-                      className="p-5 bg-slate-50 hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-300 rounded-3xl transition duration-200 cursor-pointer group space-y-3 shadow-2xs hover:shadow-md"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-lg uppercase">
-                          Tiếng Anh THCS
-                        </span>
-                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {filteredCourses.map((courseItem, idx) => {
+                    const sampleImages = [
+                      'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80',
+                      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80',
+                      'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
+                      'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&auto=format&fit=crop&q=80',
+                    ];
+                    const bgImg = courseItem.cover_url || sampleImages[idx % sampleImages.length];
 
-                      <div>
-                        <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition">
-                          {courseItem.title}
-                        </h3>
-                        <p className="text-xs text-slate-500 font-medium line-clamp-2 mt-1">
-                          {courseItem.description?.replace(/\[.*?\]/g, '').trim() || 'Khóa học tiếng Anh THCS chuẩn ma trận CV7991'}
-                        </p>
-                      </div>
+                    return (
+                      <div
+                        key={courseItem.id}
+                        onClick={() => navigate(`/course/${courseItem.id}`)}
+                        className="bg-white border border-slate-200 hover:border-emerald-400 rounded-3xl overflow-hidden transition duration-300 cursor-pointer group space-y-0 shadow-2xs hover:shadow-xl flex flex-col justify-between"
+                      >
+                        {/* KHỐI ẢNH BÌA COVER ĐÍNH KÈM CHUẨN TRANG CHỦ CỦA THẦY HẢI */}
+                        <div className="relative h-32 w-full overflow-hidden bg-slate-900">
+                          <img
+                            src={bgImg}
+                            alt={courseItem.title}
+                            className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                          <span className="absolute top-3 left-3 text-[10px] font-extrabold text-emerald-300 bg-slate-950/80 backdrop-blur-xs border border-emerald-500/30 px-2.5 py-0.5 rounded-lg uppercase">
+                            TIẾNG ANH THCS
+                          </span>
+                        </div>
 
-                      <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 border-t border-slate-200/60 pt-2.5">
-                        <span className="flex items-center space-x-1">
-                          <Users className="w-3.5 h-3.5 text-slate-400" />
-                          <span>GV: {courseItem.teacher?.full_name || 'Nguyễn Văn Hải'}</span>
-                        </span>
-                        <span className="text-emerald-600 group-hover:underline flex items-center space-x-1">
-                          <span>Vào Học</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </span>
+                        <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition leading-snug">
+                              {courseItem.title}
+                            </h3>
+                            <p className="text-xs text-slate-500 font-medium line-clamp-2 mt-1">
+                              {courseItem.description?.replace(/\[.*?\]/g, '').trim() || 'Khóa học tiếng Anh THCS chuẩn ma trận CV7991'}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 border-t border-slate-100 pt-3">
+                            <span className="flex items-center space-x-1">
+                              <Users className="w-3.5 h-3.5 text-slate-400" />
+                              <span>GV: {courseItem.teacher?.full_name || 'Nguyễn Văn Hải'}</span>
+                            </span>
+                            <span className="text-emerald-600 font-extrabold group-hover:underline flex items-center space-x-1">
+                              <span>Vào Học</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
