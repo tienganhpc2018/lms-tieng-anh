@@ -918,8 +918,8 @@ export default function QuizEngine({ activity }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
-                      {/* VĂN BẢN BÀI ĐỌC READING/LISTENING PASSAGE SOẠN TỪ ADMIN - CHỈ CHỨA DUY NHẤT VĂN BẢN (ẢNH 1) */}
-                      {pItem.passage && (
+                      {/* CHỈ CÓ SOẠN READING, KNOWLEDGE OF LANGUAGE (CLOZE TEST) MỚI CÓ KHUNG BÀI ĐỌC PASSAGE CHUNG. LISTENING & MULTIPLE CHOICE ẨN 100% KHUNG BÀI ĐỌC PASSAGE NÀY */}
+                      {pItem.passage && ['reading_section', 'cloze_test', 'reading_tf'].includes(sectionType?.toLowerCase()) && (
                         <div className="p-3.5 bg-amber-50/70 border border-amber-300/80 rounded-2xl text-xs text-slate-800 leading-relaxed font-serif shadow-2xs my-1.5">
                           <div className="whitespace-pre-line text-slate-900 text-xs font-serif leading-relaxed italic">
                             {pItem.passage}
@@ -928,7 +928,7 @@ export default function QuizEngine({ activity }) {
                       )}
 
                       {/* DANH SÁCH CÂU HỎI TRONG PART - KHÍT DÒNG HẸP NÂNG CAO KHÔNG GIAN BÀI TẬP */}
-                      <div className="space-y-1.5 pt-0.5">
+                      <div className="space-y-2 pt-0.5">
                         {pQs.map((cQ, cIdx) => {
                           const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
@@ -996,7 +996,7 @@ export default function QuizEngine({ activity }) {
                                   </div>
                                 </div>
 
-                                {/* HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT ĐÚNG/SAI KHI NỘP BÀI THI */}
+                                {/* HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT NGAY SAU MỖI CÂU HỎI */}
                                 {submitted && renderCompactExplanation(
                                   cQ.explanation || pItem.explanation || `Dẫn chứng phân tích: Dựa vào nội dung bài đọc, câu phát biểu này là ${correctText}.`,
                                   correctText,
@@ -1022,13 +1022,13 @@ export default function QuizEngine({ activity }) {
                             } catch (e) {}
 
                             return (
-                              <div key={cIdx} className="p-2.5 px-3.5 bg-slate-50/70 border border-slate-200/90 rounded-xl space-y-1.5 shadow-2xs">
+                              <div key={cIdx} className="p-3 bg-slate-50/70 border border-slate-200/90 rounded-xl space-y-2 shadow-2xs">
                                 <h4 className="font-extrabold text-xs text-slate-900 leading-snug">
                                   {!hasLeadingNumber && `${cIdx + 1}. `}{qDisplay}
                                 </h4>
 
-                                {/* 4 LỰA CHỌN A, B, C, D NẰM TRÊN CÙNG 1 HÀNG CHUẨN 100% (ẢNH 2) */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 w-full items-stretch">
+                                {/* 4 LỰA CHỌN A, B, C, D NẰM TRÊN CÙNG 1 HÀNG NGANG, KHUNG BO KHÍT VỪA 🎯 CHUẨN 100% CỦA THẦY */}
+                                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5 w-full pt-0.5">
                                   {cOpts.map((opt, oIdx) => {
                                     const isSelected = selectedVal === oIdx;
                                     const isThisCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
@@ -1053,7 +1053,7 @@ export default function QuizEngine({ activity }) {
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs border transition flex items-center space-x-1.5 whitespace-normal break-words ${btnStyle}`}
+                                        className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs border transition whitespace-normal text-left min-w-fit max-w-full shadow-2xs ${btnStyle}`}
                                       >
                                         <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
                                           isSelected ? 'bg-white text-emerald-800 font-black' : 'bg-slate-200 text-slate-700'
@@ -1066,7 +1066,7 @@ export default function QuizEngine({ activity }) {
                                   })}
                                 </div>
 
-                                {/* HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT ĐÚNG/SAI KHI NỘP BÀI THI */}
+                                {/* HIỂN THỊ KHUNG CÂU GIẢI THÍCH CHI TIẾT KHI NỘP BÀI THI HOẶC XEM ĐỀ */}
                                 {submitted && renderCompactExplanation(
                                   cQ.explanation || pItem.explanation || `Dẫn chứng & Phân tích: Đáp án đúng chính xác là "${correctText}".`,
                                   correctText,
