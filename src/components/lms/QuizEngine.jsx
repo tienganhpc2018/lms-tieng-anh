@@ -1027,8 +1027,8 @@ export default function QuizEngine({ activity }) {
                                   {!hasLeadingNumber && `${cIdx + 1}. `}{qDisplay}
                                 </h4>
 
-                                {/* 4 LỰA CHỌN A, B, C, D NẰM TRÊN CÙNG 1 HÀNG NGANG CHUẨN 100% (ẢNH 2) */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 w-full pt-1">
+                                {/* 4 LỰA CHỌN A, B, C, D BẮT BUỘC NẰM TRÊN CÙNG 1 HÀNG 4 CỘT CỐ ĐỊNH 🎯 CHUẨN 100% CỦA THẦY */}
+                                <div className="grid grid-cols-4 gap-1.5 sm:gap-2 w-full items-stretch pt-1">
                                   {cOpts.map((opt, oIdx) => {
                                     const isSelected = selectedVal === oIdx;
                                     const isThisCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
