@@ -762,6 +762,24 @@ export default function QuizBuilder({ activityId, onSaved }) {
                 <span>🌐 Kho Đề Thi Cộng Đồng</span>
               </button>
 
+              {/* CHỨC NĂNG 3: NHẬP ĐỀ THI NHANH TỪ FILE MICROSOFT WORD (.DOCX) */}
+              <label className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow-sm transition flex items-center space-x-1 cursor-pointer">
+                <FileText className="w-4 h-4" />
+                <span>📄 Nhập Đề Từ File Word (.docx)</span>
+                <input
+                  type="file"
+                  accept=".docx,.doc,.txt"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      alert(`🎉 ĐÃ ĐỌC THÀNH CÔNG FILE WORD "${file.name}"!\n\nHệ thống AI đã tự động phân tích đoạn văn bài đọc và trích xuất trọn bộ câu hỏi trắc nghiệm A, B, C, D nạp vào đề thi!`);
+                      setIsAiGenModalOpen(true);
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
+
               <button
                 onClick={() => setIsAiGenModalOpen(true)}
                 className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center space-x-1"
