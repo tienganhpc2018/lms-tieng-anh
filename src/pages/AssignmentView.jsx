@@ -44,7 +44,7 @@ export default function AssignmentView() {
   }, [targetActivityId]);
 
   if (loading) {
-    return <LoadingSpinner text="Đang tải bài thi thử..." />;
+    return <LoadingSpinner text="Đang nạp đề thi thử..." />;
   }
 
   const activeAct = activity || { id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử Online', type: 'quiz' };
@@ -80,7 +80,7 @@ export default function AssignmentView() {
           )}
         </div>
 
-        {/* NẾU LÀ GIÁO VIÊN -> MỞ TRÌNH SOẠN ĐỀ QUIZ BUILDER. NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI QUIZ ENGINE CÓ BADGE THI THỬ */}
+        {/* NẾU LÀ GIÁO VIÊN -> MỞ TRÌNH SOẠN ĐỀ QUIZ BUILDER. NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI QUIZ ENGINE */}
         {userIsTeacher ? (
           <QuizBuilder activity={activeAct} activityId={targetActivityId} />
         ) : (
