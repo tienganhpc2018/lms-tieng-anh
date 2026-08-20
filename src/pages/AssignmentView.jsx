@@ -42,6 +42,8 @@ export default function AssignmentView() {
     fetchData();
   }, [targetActivityId]);
 
+  const [isEditMode, setIsEditMode] = useState(false);
+
   if (loading) {
     return <LoadingSpinner text="Đang tải bài thi..." />;
   }
@@ -64,7 +66,7 @@ export default function AssignmentView() {
             </button>
             <div>
               <span className="text-[10px] font-extrabold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-md">
-                {userIsTeacher ? 'Trình Soạn Đề Thi 20 Dạng Câu Hỏi' : 'ĐỀ THI THỬ TRỰC TUYẾN'}
+                {userIsTeacher ? 'BÀI THI & SOẠN ĐỀ 20 DẠNG CÂU HỎI' : 'ĐỀ THI THỬ TRỰC TUYẾN'}
               </span>
               <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
                 {(activeAct?.title || 'Bài Kiểm Tra / Thi Thử').replace('[WHITEBOARD]', '').trim()}
@@ -73,14 +75,25 @@ export default function AssignmentView() {
           </div>
 
           {userIsTeacher && (
-            <span className="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-2xs">
-              👑 Chế Độ Giáo Viên Soạn Đề
-            </span>
+            <button
+              onClick={() => setIsEditMode(!isEditMode)}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold shadow-sm transition flex items-center space-x-1.5 cursor-pointer ${
+                isEditMode
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+              }`}
+            >
+              {isEditMode ? (
+                <span>👁️ Mở Xem Giao Diện Thi Thử (QuizEngine)</span>
+              ) : (
+                <span>✏️ Chỉnh Sửa / Soạn Đề Thi Này (QuizBuilder)</span>
+              )}
+            </button>
           )}
         </div>
 
-        {/* NẾU LÀ GIÁO VIÊN -> MỞ TRÌNH SOẠN ĐỀ QUIZ BUILDER. NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI QUIZ ENGINE */}
-        {userIsTeacher ? (
+        {/* NẾU LÀ GIÁO VIÊN VÀ BẤM CHỈNH SỬA -> MỞ QUIZ BUILDER. MẶC ĐỊNH LUÔN MỞ QUIZ ENGINE DẠNG PILL BO VỪA TEXT 1 HÀNG CHUẨN 100% */}
+        {userIsTeacher && isEditMode ? (
           <QuizBuilder activity={activeAct} activityId={targetActivityId} />
         ) : (
           <QuizEngine activity={activeAct} activityId={targetActivityId} />
