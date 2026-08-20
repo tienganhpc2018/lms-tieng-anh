@@ -1047,8 +1047,8 @@ export default function QuizEngine({ activity }) {
                                   {!hasLeadingNumber && `${cIdx + 1}. `}{qDisplay}
                                 </h4>
 
-                                {/* BƯỚC 2: DÀN 4 ĐÁP ÁN THÀNH 1 DÒNG NGANG DÙNG CLASS grid grid-cols-1 md:grid-cols-4 gap-3 CHUẨN 100% */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 w-full items-stretch pt-2">
+                                {/* 4 LỰA CHỌN A, B, C, D DẠNG PILL BO TRÒN VỪA VẶN SÁT THEO TEXT NẰM TRÊN 1 HÀNG 🎯 CHUẨN 100% ẢNH 2 CỦA THẦY */}
+                                <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full pt-1.5">
                                   {cOpts.map((opt, oIdx) => {
                                     const isSelected = selectedVal === oIdx;
                                     const isThisCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
@@ -1060,8 +1060,8 @@ export default function QuizEngine({ activity }) {
                                       rawOptText = rawOptText.trim().substring(2).trim();
                                     }
 
-                                    let btnStyle = 'bg-slate-50/80 border-slate-200 hover:bg-slate-100 text-slate-800 font-medium';
-                                    if (submitted || isTeacher) {
+                                    let btnStyle = 'bg-white border-slate-200/90 hover:border-emerald-400 text-slate-800 font-medium hover:bg-slate-50';
+                                    if (submitted) {
                                       if (isThisCorrect) btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-extrabold';
                                       else if (isSelected && !isThisCorrect) btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
                                     } else if (isSelected) {
@@ -1069,19 +1069,14 @@ export default function QuizEngine({ activity }) {
                                     }
 
                                     return (
-                                      /* BƯỚC 3: KHUNG TỪNG ĐÁP ÁN DÙNG BO GÓC NHỎ HƠN rounded-md (border-radius: 6px) + PADDING GỌN GÀNG px-3 py-2 */
                                       <button
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                        className={`w-full text-left px-3 py-2 rounded-md text-xs border transition flex items-center space-x-2 whitespace-normal break-words cursor-pointer ${btnStyle}`}
+                                        className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs border transition cursor-pointer whitespace-nowrap min-w-fit max-w-full shadow-2xs ${btnStyle}`}
                                       >
-                                        <span className={`w-4 h-4 rounded-full flex items-center justify-center font-extrabold text-[10px] flex-shrink-0 ${
-                                          isSelected ? 'bg-white text-emerald-800 font-black' : 'bg-slate-200 text-slate-700'
-                                        }`}>
-                                          {label}
-                                        </span>
-                                        <span className="leading-tight text-xs font-medium">{rawOptText}</span>
+                                        <span className="font-extrabold text-xs mr-1">{label}.</span>
+                                        <span className="font-medium text-xs">{rawOptText}</span>
                                       </button>
                                     );
                                   })}
