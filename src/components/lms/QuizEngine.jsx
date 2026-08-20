@@ -938,8 +938,8 @@ export default function QuizEngine({ activity }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
-                      {/* BƯỚC 1: XÓA Ô HIỂN THỊ CHỨA ĐOẠN VĂN MÀU VÀNG NHẠT (📖 Bài đọc...) ĐỐI VỚI CÁC CÂU TRẮC NGHIỆM ĐỘC LẬP ĐỂ TIẾT KIỆM KHÔNG GIAN MÀN HÌNH */}
-                      {pItem.passage && ['reading_section', 'cloze_test'].includes(String(activity?.type || activity?.content?.type || '').toLowerCase()) && (
+                      {/* HIỂN THỊ ĐOẠN VĂN KHI LÀ BÀI ĐỌC READING SECTION / CLOZE TEST */}
+                      {pItem.passage && (activity?.type === 'reading_section' || activity?.type === 'cloze_test') && (
                         <div className="p-4 bg-amber-50/80 border border-amber-300/80 rounded-lg text-xs text-slate-800 leading-relaxed font-serif shadow-xs my-2">
                           <div className="whitespace-pre-line text-slate-900 text-xs font-serif leading-relaxed italic">
                             {pItem.passage}
