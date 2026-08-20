@@ -776,19 +776,87 @@ export default function QuizBuilder({ activityId, onSaved }) {
             <LoadingSpinner text="Đang tải câu hỏi..." />
           ) : (
             <div className="space-y-3">
-              {questions.map((q, idx) => (
-                <div key={q.id} className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs flex justify-between items-center">
-                  <div>
-                    <span className="font-extrabold text-sm text-slate-900">{idx + 1}. {q.content?.title || q.content?.question}</span>
+              {questions.map((q, idx) => {
+                const partsList = q.content?.parts || [];
+
+                return (
+                  <div key={q.id} className="p-5 bg-white border border-slate-200 rounded-3xl shadow-sm space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center shadow-2xs">
+                          {idx + 1}
+                        </span>
+                        <h4 className="font-extrabold text-sm text-slate-900">
+                          {q.content?.title || q.content?.question || 'Đề thi trắc nghiệm'}
+                        </h4>
+                        <span className="text-[10px] font-extrabold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg border border-amber-200 uppercase">
+                          📝 ĐỀ THI THỬ
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => handleOpenEditModal(q)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-extrabold text-xs shadow-md transition flex items-center space-x-1"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        <span>📝 SỬA BÀI THI NÀY</span>
+                      </button>
+                    </div>
+
+                    {/* HIỂN THỊ CHI TIẾT NỘI DUNG CÁC PART VÀ CÂU HỎI TRONG BÀI THI (ẢNH 3) */}
+                    <div className="space-y-4 text-xs font-sans">
+                      {partsList.length > 0 ? (
+                        partsList.map((p, pI) => (
+                          <div key={pI} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                            <h5 className="font-extrabold text-xs text-sky-900 flex items-center space-x-1.5">
+                              <span>{p.part_title || `PART #${pI + 1}`}</span>
+                            </h5>
+
+                            {/* VĂN BẢN BÀI ĐỌC PASSAGE NẾU CÓ */}
+                            {p.passage && (
+                              <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-slate-800 font-serif leading-relaxed italic">
+                                📖 <strong>Bài đọc:</strong> {p.passage}
+                              </div>
+                            )}
+
+                            {/* DANH SÁCH CÂU HỎI TRẮC NGHIỆM TRONG PART */}
+                            <div className="space-y-2.5 pt-1">
+                              {(p.questions || []).map((cQ, cI) => (
+                                <div key={cI} className="p-3 bg-white border border-slate-200 rounded-xl space-y-1.5 shadow-2xs">
+                                  <p className="font-extrabold text-slate-900">{cQ.question}</p>
+                                  {cQ.options && cQ.options.length > 0 && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pl-2">
+                                      {cQ.options.map((opt, oI) => (
+                                        <span
+                                          key={oI}
+                                          className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold ${
+                                            opt.isCorrect
+                                              ? 'bg-emerald-100 border-emerald-400 text-emerald-900 font-bold'
+                                              : 'bg-slate-50 border-slate-200 text-slate-700'
+                                          }`}
+                                        >
+                                          {opt.text} {opt.isCorrect && '✓'}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {cQ.explanation && (
+                                    <p className="text-[11px] text-amber-800 font-medium pt-1 italic">
+                                      💡 {cQ.explanation}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-slate-600 font-semibold italic p-2">{q.content?.question}</p>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleOpenEditModal(q)}
-                    className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl border border-emerald-600 text-xs font-bold shadow-xs transition"
-                  >
-                    📝 SỬA BÀI THI NÀY
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1093,6 +1161,25 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white font-bold"
                             />
                           </div>
+                        </div>
+
+                        {/* YÊU CẦU 1 (ẢNH 1): BỔ SUNG KHUNG NHẬP NỘI DUNG BÀI ĐỌC (READING PASSAGE) CHO BÀI READING SECTION */}
+                        <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-1">
+                          <label className="block text-[11px] font-extrabold text-sky-950 uppercase flex items-center space-x-1">
+                            <BookOpen className="w-3.5 h-3.5 text-sky-600" />
+                            <span>📖 NỘI DUNG BÀI ĐỌC HIỂU (READING PASSAGE) CHO PART #{pIdx + 1}:</span>
+                          </label>
+                          <textarea
+                            rows={4}
+                            value={pItem.passage || ''}
+                            onChange={(e) => {
+                              const newParts = [...sectionParts];
+                              newParts[pIdx].passage = e.target.value;
+                              setSectionParts(newParts);
+                            }}
+                            placeholder="Dán đoạn văn bài đọc hiểu tại đây (Ví dụ: Chuong village is located in Thanh Oai district...)..."
+                            className="w-full p-2.5 border border-sky-300 rounded-xl text-xs font-serif bg-white text-slate-900 leading-relaxed shadow-inner"
+                          />
                         </div>
 
                         {/* DANH SÁCH CÂU HỎI TRONG PART */}
