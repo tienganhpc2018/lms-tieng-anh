@@ -45,7 +45,35 @@ export default function AssignModal({ isOpen, onClose, activity }) {
       if (error) {
         alert('Lỗi lưu cài đặt bài thi: ' + error.message);
       } else {
-        alert(`🎉 GIAO BÀI VÀ CÀI ĐẶT THÀNH CÔNG!\n\nĐề thi "${activity.title?.replace('[WHITEBOARD]', '').trim()}" đã được cài đặt:\n⏱️ Thời gian: ${timeLimit} phút\n🛡️ Giới hạn rời tab: ${maxTabSwitches} lần\n📅 Mở bài thi: ${openTime}\n⏰ Hạn chót nộp: ${deadline}`);
+        const actTitleClean = activity.title?.replace('[WHITEBOARD]', '').trim();
+
+        // 2. TỰ ĐỘNG ĐĂNG BÀI VIẾT THÔNG BÁO GIAO ĐỀ OUT TRANG CHỦ (BẢNG TIN CLASS FEED)
+        try {
+          await supabase.from('class_feed').insert({
+            course_id: 'general_announcement',
+            author_name: 'Giáo viên Nguyễn Văn Hải',
+            author_role: 'teacher',
+            content: `📢 DẶN DÒ BÀI THI MỚI: Thầy đã giao đề thi thử "${actTitleClean}"!\n⏱️ Thời gian làm bài: ${timeLimit} phút.\n📅 Thời gian mở thi: ${openTime}.\n⏰ Hạn chót nộp bài: ${deadline}.\n👉 Các em nhấp chọn Ngân hàng đề thi hoặc mở link bài học để bắt đầu làm bài nhé!`,
+            is_pinned: true,
+          });
+        } catch (errFeed) {}
+
+        // 3. TỰ ĐỘNG ĐẨY THÔNG BÁO QUẢ CHUÔNG NHẢY CHẤM ĐỎ DÀNH CHO HỌC SINH
+        try {
+          const { data: students } = await supabase.from('profiles').select('id').eq('role', 'student');
+          if (students && students.length > 0) {
+            const notifPayloads = students.map((st) => ({
+              user_id: st.id,
+              title: `📢 ĐỀ THI MỚI: ${actTitleClean}`,
+              message: `Thầy Hải đã giao đề thi thử mới. Thời gian làm bài: ${timeLimit} phút. Hạn nộp: ${deadline}`,
+              read: false,
+              link: `/assignment/${activity.id}`,
+            }));
+            await supabase.from('notifications').insert(notifPayloads);
+          }
+        } catch (errNotif) {}
+
+        alert(`🎉 GIAO BÀI VÀ THÔNG BÁO THÀNH CÔNG!\n\nĐã đăng thông báo dặn dò ra Bảng tin trang chủ và đẩy chấm đỏ Quả chuông tới 100% tài khoản Học Sinh!\n\nĐề thi: "${actTitleClean}"\n⏱️ Thời gian: ${timeLimit} phút\n📅 Mở bài: ${openTime}\n⏰ Hạn chót: ${deadline}`);
         onClose();
       }
     } catch (err) {
