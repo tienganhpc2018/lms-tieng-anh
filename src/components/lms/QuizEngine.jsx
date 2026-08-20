@@ -411,47 +411,57 @@ export default function QuizEngine({ activity }) {
 
     setResultData(res);
 
-    // THU THẬP TẤT CẢ CÂU LÀM SAI ĐỂ ĐƯA VÀO FLASHCARDS
+    // THU THẬP TẤT CẢ CÂU LÀM SAI ĐỂ ĐƯA VÀO FLASHCARDS (BẢO VỆ DỮ LIỆU KHÔNG BỊ CRASH)
     const wrongQs = [];
-    questions.forEach((q) => {
-      const sectionType = (q.content?.sectionType || q.type || '').toLowerCase();
-      if (Array.isArray(q.content?.parts)) {
-        q.content.parts.forEach((p, pIdx) => {
-          (p.questions || []).forEach((cQ, cIdx) => {
-            const key = `${q.id}_p${pIdx}_q${cIdx}`;
-            const selected = userAnswers[key];
-            const correctText = cQ.options?.find(o => o.isCorrect)?.text || cQ.correctAnswer || 'Đáp án đúng';
-            const userSelectedText = cQ.options?.[selected]?.text || selected || 'Chưa chọn';
-
-            if (selected !== undefined && cQ.options && selected !== cQ.options.findIndex(o => o.isCorrect)) {
-              wrongQs.push({
-                question: cQ.question || 'Câu hỏi',
-                userAnswer: userSelectedText,
-                correctAnswer: correctText,
-                explanation: cQ.explanation || p.explanation,
-              });
-            }
+    try {
+      questions.forEach((q) => {
+        if (Array.isArray(q.content?.parts)) {
+          q.content.parts.forEach((p, pIdx) => {
+            (p.questions || []).forEach((cQ, cIdx) => {
+              const key = `${q.id}_p${pIdx}_q${cIdx}`;
+              const selected = userAnswers[key];
+              if (selected !== undefined) {
+                const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' && o?.isCorrect);
+                if (correctOptIndex !== -1 && selected !== correctOptIndex) {
+                  const correctText = cOpts[correctOptIndex]?.text || 'Đáp án đúng';
+                  const userSelectedText = cOpts[selected]?.text || selected || 'Chưa chọn';
+                  wrongQs.push({
+                    question: cQ.question || 'Câu hỏi',
+                    userAnswer: userSelectedText,
+                    correctAnswer: correctText,
+                    explanation: cQ.explanation || p.explanation,
+                  });
+                }
+              }
+            });
           });
-        });
-      }
-    });
+        }
+      });
+    } catch (err) {
+      console.error('Error calculating wrong questions:', err);
+    }
     setWrongQuestionsList(wrongQs);
     setSubmitted(true);
 
     if (isAutoSubmit) {
-      alert('⏱️ Đã THU BÀI THI!\n\nHệ thống đã tự động thu bài và chấm điểm.');
+      alert('⏱️ ĐÃ THU BÀI THI!\n\nHệ thống đã tự động thu bài và chấm điểm.');
     }
 
-    if (profile?.id && activity?.id) {
-      await supabase.from('submissions').insert([
-        {
-          activity_id: activity.id,
-          student_id: profile.id,
-          answers_data: { userAnswers, uploadedStudentImages, aiGrading, tabSwitchCount, badges },
-          score: totalScore,
-          status: 'graded',
-        },
-      ]);
+    try {
+      if (profile?.id && activity?.id) {
+        await supabase.from('submissions').insert([
+          {
+            activity_id: activity.id,
+            student_id: profile.id,
+            answers_data: { userAnswers, uploadedStudentImages, aiGrading, tabSwitchCount, badges },
+            score: totalScore,
+            status: 'graded',
+          },
+        ]);
+      }
+    } catch (e) {
+      console.error('Submit DB error:', e);
     }
   };
 
@@ -837,7 +847,8 @@ export default function QuizEngine({ activity }) {
 
                 {sectionParts.map((pItem, pIdx) => {
                   const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
-                  const isPart1MC = pItem.part_type === 'multiple_choice' || !pItem.part_type;
+                  const isTrueFalse = pItem.part_type === 'true_false' || (pItem.part_title && (pItem.part_title.includes('True') || pItem.part_title.includes('False')));
+                  const isPart1MC = (pItem.part_type === 'multiple_choice' || !pItem.part_type) && !isTrueFalse;
                   const isPart2Short = pItem.part_type === 'short_essay';
 
                   return (
@@ -859,13 +870,60 @@ export default function QuizEngine({ activity }) {
                         </div>
                       )}
 
-                      {/* DANH SÁCH CÂU HỎI TRẮC NGHIỆM TRONG PART */}
+                      {/* DANH SÁCH CÂU HỎI TRONG PART */}
                       <div className="space-y-3 pt-1">
                         {pQs.map((cQ, cIdx) => {
                           const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
                           const selectedVal = userAnswers[childKey];
 
-                          if (isPart1MC) {
+                          // 1. DẠNG TRUE / FALSE NÚT BẤM (ẢNH 3)
+                          if (isTrueFalse) {
+                            const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
+                            const isCorrectFalse = cQ.correctAnswer === 'False' || cQ.options?.find(o => o.text === 'False')?.isCorrect;
+
+                            return (
+                              <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3 shadow-2xs">
+                                <h4 className="font-extrabold text-xs text-slate-900 leading-snug">
+                                  {cIdx + 1}. {cQ.question}
+                                </h4>
+
+                                <div className="grid grid-cols-2 gap-3 max-w-md">
+                                  <button
+                                    type="button"
+                                    disabled={submitted}
+                                    onClick={() => handleSelectAnswer(childKey, 'True')}
+                                    className={`py-2.5 px-4 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 border shadow-2xs ${
+                                      selectedVal === 'True'
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-400'
+                                        : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'
+                                    }`}
+                                  >
+                                    <span>🟢 TRUE (ĐÚNG)</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    disabled={submitted}
+                                    onClick={() => handleSelectAnswer(childKey, 'False')}
+                                    className={`py-2.5 px-4 rounded-xl text-xs font-black transition flex items-center justify-center space-x-2 border shadow-2xs ${
+                                      selectedVal === 'False'
+                                        ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-400'
+                                        : 'bg-white text-rose-800 border-rose-300 hover:bg-rose-50'
+                                    }`}
+                                  >
+                                    <span>🔴 FALSE (SAI)</span>
+                                  </button>
+                                </div>
+
+                                {submitted && (
+                                  <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-950">
+                                    ➔ ĐÁP ÁN ĐÚNG: {isCorrectTrue ? 'TRUE (ĐÚNG)' : 'FALSE (SAI)'}
+                                    {cQ.explanation && <div className="font-normal text-slate-700 mt-1">{cQ.explanation}</div>}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          } else if (isPart1MC) {
                             const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
                             const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' && o?.isCorrect);
                             const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || 'Đáp án đúng';
