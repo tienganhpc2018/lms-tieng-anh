@@ -927,69 +927,80 @@ export default function QuizEngine({ activity }) {
 
                           // 1. DẠNG TRUE / FALSE KHÍT DÒNG HẸP
                           if (isTrueFalse) {
-                            const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
-                            const isCorrectFalse = cQ.correctAnswer === 'False' || cQ.options?.find(o => o.text === 'False')?.isCorrect;
-                            const isSelectedTrue = selectedVal === 'True';
-                            const isSelectedFalse = selectedVal === 'False';
+                            const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.correctAnswer === 'T' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
+                            const isCorrectFalse = cQ.correctAnswer === 'False' || cQ.correctAnswer === 'F' || cQ.options?.find(o => o.text === 'False')?.isCorrect;
+                            const isSelectedTrue = selectedVal === 'True' || selectedVal === 'T';
+                            const isSelectedFalse = selectedVal === 'False' || selectedVal === 'F';
+                            const correctText = isCorrectTrue ? 'True (Đúng)' : 'False (Sai)';
 
                             // Lọc số thứ tự nếu câu hỏi đã chứa số
                             let qText = cQ.question || 'Statement question';
 
                             return (
-                              <div key={cIdx} className="p-2.5 px-3.5 bg-white border border-slate-200/90 hover:border-emerald-300 rounded-xl flex items-center justify-between gap-2 shadow-2xs transition">
-                                <h4 className="font-extrabold text-xs text-slate-900 leading-snug flex-1 font-sans">
-                                  {qText}
-                                </h4>
+                              <div key={cIdx} className="p-3 bg-white border border-slate-200/90 hover:border-emerald-300 rounded-xl space-y-2 shadow-2xs transition">
+                                <div className="flex items-center justify-between gap-2">
+                                  <h4 className="font-extrabold text-xs text-slate-900 leading-snug flex-1 font-sans">
+                                    {qText}
+                                  </h4>
 
-                                <div className="flex items-center space-x-1.5 flex-shrink-0">
-                                  {/* NÚT T (TRUE) */}
-                                  <button
-                                    type="button"
-                                    disabled={submitted}
-                                    onClick={() => handleSelectAnswer(childKey, 'True')}
-                                    title="True (Đúng)"
-                                    className={`w-8 h-7 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
-                                      submitted
-                                        ? isCorrectTrue
-                                          ? 'bg-emerald-600 text-white border-emerald-600 ring-1 ring-emerald-300'
+                                  <div className="flex items-center space-x-1.5 flex-shrink-0">
+                                    {/* NÚT T (TRUE) */}
+                                    <button
+                                      type="button"
+                                      disabled={submitted}
+                                      onClick={() => handleSelectAnswer(childKey, 'True')}
+                                      title="True (Đúng)"
+                                      className={`w-8 h-7 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
+                                        submitted
+                                          ? isCorrectTrue
+                                            ? 'bg-emerald-600 text-white border-emerald-600 ring-1 ring-emerald-300 font-extrabold'
+                                            : isSelectedTrue
+                                            ? 'bg-rose-600 text-white border-rose-600 line-through'
+                                            : 'bg-slate-50 text-slate-400 border-slate-200'
                                           : isSelectedTrue
-                                          ? 'bg-rose-600 text-white border-rose-600 line-through'
-                                          : 'bg-slate-50 text-slate-400 border-slate-200'
-                                        : isSelectedTrue
-                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-1 ring-emerald-300'
-                                        : 'bg-white text-slate-400 border-slate-300 hover:border-emerald-500 hover:text-emerald-700'
-                                    }`}
-                                  >
-                                    <span>T</span>
-                                  </button>
+                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm ring-1 ring-emerald-300'
+                                          : 'bg-white text-slate-400 border-slate-300 hover:border-emerald-500 hover:text-emerald-700'
+                                      }`}
+                                    >
+                                      <span>T</span>
+                                    </button>
 
-                                  {/* NÚT F (FALSE) */}
-                                  <button
-                                    type="button"
-                                    disabled={submitted}
-                                    onClick={() => handleSelectAnswer(childKey, 'False')}
-                                    title="False (Sai)"
-                                    className={`w-8 h-7 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
-                                      submitted
-                                        ? isCorrectFalse
-                                          ? 'bg-rose-600 text-white border-rose-600 ring-1 ring-rose-300'
+                                    {/* NÚT F (FALSE) */}
+                                    <button
+                                      type="button"
+                                      disabled={submitted}
+                                      onClick={() => handleSelectAnswer(childKey, 'False')}
+                                      title="False (Sai)"
+                                      className={`w-8 h-7 rounded-lg font-black text-xs transition flex items-center justify-center border shadow-2xs cursor-pointer ${
+                                        submitted
+                                          ? isCorrectFalse
+                                            ? 'bg-rose-600 text-white border-rose-600 ring-1 ring-rose-300 font-extrabold'
+                                            : isSelectedFalse
+                                            ? 'bg-rose-600 text-white border-rose-600 line-through'
+                                            : 'bg-slate-50 text-slate-400 border-slate-200'
                                           : isSelectedFalse
-                                          ? 'bg-rose-600 text-white border-rose-600 line-through'
-                                          : 'bg-slate-50 text-slate-400 border-slate-200'
-                                        : isSelectedFalse
-                                        ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-1 ring-rose-300'
-                                        : 'bg-white text-slate-400 border-slate-300 hover:border-rose-500 hover:text-rose-700'
-                                    }`}
-                                  >
-                                    <span>F</span>
-                                  </button>
+                                          ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-1 ring-rose-300'
+                                          : 'bg-white text-slate-400 border-slate-300 hover:border-rose-500 hover:text-rose-700'
+                                      }`}
+                                    >
+                                      <span>F</span>
+                                    </button>
+                                  </div>
                                 </div>
+
+                                {/* HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT ĐÚNG/SAI KHI NỘP BÀI THI */}
+                                {submitted && renderCompactExplanation(
+                                  cQ.explanation || pItem.explanation || `Dẫn chứng phân tích: Dựa vào nội dung bài đọc, câu phát biểu này là ${correctText}.`,
+                                  correctText,
+                                  cQ,
+                                  selectedVal
+                                )}
                               </div>
                             );
                           } else if (isPart1MC) {
                             const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
                             const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' ? o?.isCorrect : false);
-                            const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || 'Đáp án đúng';
+                            const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || (cOpts[correctOptIndex]?.text) || 'Đáp án đúng';
 
                             // Lọc số thứ tự thừa nếu câu hỏi đã chứa số (VD: 40. What...)
                             let qDisplay = cQ.question || '';
@@ -1047,7 +1058,13 @@ export default function QuizEngine({ activity }) {
                                   })}
                                 </div>
 
-                                {submitted && renderCompactExplanation(cQ.explanation || pItem.explanation, correctText, cQ, selectedText)}
+                                {/* HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT ĐÚNG/SAI KHI NỘP BÀI THI */}
+                                {submitted && renderCompactExplanation(
+                                  cQ.explanation || pItem.explanation || `Dẫn chứng & Phân tích: Đáp án đúng chính xác là "${correctText}".`,
+                                  correctText,
+                                  cQ,
+                                  selectedText
+                                )}
                               </div>
                             );
                           } else if (isPart2Short) {
