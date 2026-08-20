@@ -606,7 +606,26 @@ export default function QuizEngine({ activity }) {
     }
   };
 
-  if (loading) return <LoadingSpinner text="Đang tải bài làm..." />;
+  if (loading) return <LoadingSpinner text="Đang nạp đề thi & câu hỏi..." />;
+
+  // KHÓA AN TOÀN CHỐNG TRẮNG MÀN HÌNH KHI BÀI HỌC CHƯA CÓ CÂU HỎI
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return (
+      <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm text-center space-y-4 my-6 font-sans">
+        <div className="w-16 h-16 bg-amber-50 border border-amber-200 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-3xl font-extrabold shadow-2xs">
+          📝
+        </div>
+        <div>
+          <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-tight">
+            BÀI HỌC CHƯA CÓ CÂU HỎI ĐỀ THI
+          </h3>
+          <p className="text-xs text-slate-500 font-semibold mt-1 max-w-md mx-auto">
+            Bài học "{activity?.title || 'này'}" hiện chưa được khởi tạo nội dung câu hỏi trong cơ sở dữ liệu. Thầy Hải hoặc Giáo viên vui lòng thêm câu hỏi cho bài học này!
+          </p>
+        </div>
+      </div>
+    );
+  }
   if (scheduledOpenTime && new Date() < new Date(scheduledOpenTime) && !submitted) {
     return (
       <div className="p-8 bg-slate-900 text-white rounded-3xl shadow-2xl border border-slate-800 text-center space-y-4 max-w-md mx-auto my-12 animate-scale-up">
