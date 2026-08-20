@@ -182,6 +182,45 @@ export default function QuizEngine({ activity }) {
           }
 
           setQuestions(safeData);
+
+          // KIỂM TRA HỌC SINH ĐÃ NỘP BÀI THI NÀY TRONG CSDL CHƯA (XỬ LÝ DỨT ĐIỂM LỖI HIỂN THỊ LẠI TRANG LÀM BÀI)
+          if (profile?.id) {
+            try {
+              const { data: sub } = await supabase
+                .from('submissions')
+                .select('*')
+                .eq('activity_id', actId)
+                .eq('student_id', profile.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (sub) {
+                const savedAnswers = sub.answers_data?.userAnswers || {};
+                const savedImgs = sub.answers_data?.uploadedStudentImages || {};
+                const savedBadges = sub.answers_data?.badges || [];
+
+                setUserAnswers(savedAnswers);
+                setUploadedStudentImages(savedImgs);
+                setEarnedBadges(savedBadges);
+                setSubmitted(true);
+
+                // NẠP ĐIỂM SỐ KẾT QUẢ ĐÃ THI
+                setResultData({
+                  studentName: profile?.full_name || 'Học Viên',
+                  timeTakenStr: 'Đã hoàn thành',
+                  correctCount: sub.score ? Math.round((sub.score / 10) * safeData.length) : 0,
+                  totalQuestions: safeData.length,
+                  score: sub.score || 0,
+                  totalMarks: 10,
+                  isPassed: (sub.score || 0) >= 5,
+                  submittedAt: sub.created_at,
+                });
+              }
+            } catch (eErr) {
+              console.error('Error fetching student submission:', eErr);
+            }
+          }
         }
       } catch (err) {
         console.error('Error fetching quiz data:', err);
@@ -191,7 +230,7 @@ export default function QuizEngine({ activity }) {
       }
     }
     fetchQuestions();
-  }, [activity]);
+  }, [activity, profile]);
 
   const handleSelectAnswer = (questionKey, value) => {
     if (submitted) return;
