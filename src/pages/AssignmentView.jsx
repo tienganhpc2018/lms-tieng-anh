@@ -10,8 +10,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 export default function AssignmentView() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
-  const isTeacher = profile?.is_teacher || false;
+  const { user, profile, isTeacher } = useAuth();
 
   const targetActivityId = id;
 
@@ -24,7 +23,7 @@ export default function AssignmentView() {
     try {
       const { data: act } = await supabase
         .from('activities')
-        .select('*, section:section_id (course_id)')
+        .select('*')
         .eq('id', targetActivityId)
         .maybeSingle();
 
@@ -48,6 +47,7 @@ export default function AssignmentView() {
   }
 
   const activeAct = activity || { id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử', type: 'quiz' };
+  const userIsTeacher = isTeacher || profile?.is_teacher || false;
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
@@ -64,7 +64,7 @@ export default function AssignmentView() {
             </button>
             <div>
               <span className="text-[10px] font-extrabold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-md">
-                {isTeacher ? 'Trình Soạn Đề Thi 20 Dạng Câu Hỏi' : 'ĐỀ THI THỬ TRỰC TUYẾN'}
+                {userIsTeacher ? 'Trình Soạn Đề Thi 20 Dạng Câu Hỏi' : 'ĐỀ THI THỬ TRỰC TUYẾN'}
               </span>
               <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
                 {(activeAct?.title || 'Bài Kiểm Tra / Thi Thử').replace('[WHITEBOARD]', '').trim()}
@@ -72,7 +72,7 @@ export default function AssignmentView() {
             </div>
           </div>
 
-          {isTeacher && (
+          {userIsTeacher && (
             <span className="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-2xs">
               👑 Chế Độ Giáo Viên Soạn Đề
             </span>
@@ -80,7 +80,7 @@ export default function AssignmentView() {
         </div>
 
         {/* NẾU LÀ GIÁO VIÊN -> MỞ TRÌNH SOẠN ĐỀ QUIZ BUILDER. NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI QUIZ ENGINE */}
-        {isTeacher ? (
+        {userIsTeacher ? (
           <QuizBuilder activity={activeAct} activityId={targetActivityId} />
         ) : (
           <QuizEngine activity={activeAct} activityId={targetActivityId} />
