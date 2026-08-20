@@ -1028,8 +1028,8 @@ export default function QuizEngine({ activity }) {
                                   {!hasLeadingNumber && `${cIdx + 1}. `}{qDisplay}
                                 </h4>
 
-                                {/* BƯỚC 2: DÀN 4 ĐÁP ÁN THÀNH 1 DÒNG NGANG DÙNG CLASS grid grid-cols-4 gap-3 HOẶC gap-4 CHUẨN 100% */}
-                                <div className="grid grid-cols-4 gap-3 w-full items-stretch pt-1">
+                                {/* BƯỚC 2: DÀN 4 ĐÁP ÁN THÀNH 1 DÒNG NGANG DÙNG CLASS grid grid-cols-1 md:grid-cols-4 gap-3 CHUẨN 100% */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 w-full items-stretch pt-2">
                                   {cOpts.map((opt, oIdx) => {
                                     const isSelected = selectedVal === oIdx;
                                     const isThisCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
