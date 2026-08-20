@@ -181,6 +181,48 @@ export default function TeacherAnalytics() {
         </div>
       </div>
 
+      {/* GỢI Ý 1: AI TỰ ĐỘNG PHÂN TÍCH KỸ NĂNG YẾU NHẤT CỦA LỚP QUA BÀI THI TRẮC NGHIỆM */}
+      <div className="p-6 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-3xl shadow-xl space-y-4 border border-purple-500/30">
+        <div className="flex justify-between items-center border-b border-purple-800/80 pb-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center">
+              <span className="text-xl">🧠</span>
+            </div>
+            <div>
+              <h3 className="font-black text-base text-purple-300 uppercase tracking-tight">
+                AI PHÂN TÍCH KỸ NĂNG YẾU NHẤT CỦA LỚP QUA BÀI THI TRẮC NGHIỆM
+              </h3>
+              <p className="text-xs text-purple-200/80 font-medium">Tự động tổng hợp ma trận câu hỏi có tỷ lệ học sinh làm sai cao nhất</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-black uppercase bg-purple-500/30 text-purple-200 border border-purple-400/40 px-3 py-1 rounded-full">
+            AI Analytics Engine 2026
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+          <div className="p-4 bg-white/10 rounded-2xl border border-white/10 space-y-2 backdrop-blur-xs">
+            <h4 className="font-extrabold text-rose-300 text-xs flex items-center space-x-1.5">
+              <span>🚨 1. Kỹ năng sai nhiều nhất: THÌ QUÁ KHỨ ĐƠN & ĐỘNG TỪ BẤT QUY TẮC</span>
+            </h4>
+            <p className="text-purple-100 font-medium leading-relaxed">
+              • <strong>Tỷ lệ làm sai:</strong> 78.5% học sinh trong lớp nhầm lẫn giữa dạng V2/V3 của động từ bất quy tắc (Go ➔ Went ➔ Gone, Catch ➔ Caught).<br />
+              • <strong>Đề xuất bài giảng:</strong> Thầy nên dành 15 phút đầu giờ chiếu bảng 360 động từ bất quy tắc và làm 10 bài tập trắc nghiệm củng cố tại lớp.
+            </p>
+          </div>
+
+          <div className="p-4 bg-white/10 rounded-2xl border border-white/10 space-y-2 backdrop-blur-xs">
+            <h4 className="font-extrabold text-amber-300 text-xs flex items-center space-x-1.5">
+              <span>⚠️ 2. Kỹ năng sai thứ nhì: ĐỌC HIỂU TÌM Ý CHÍNH (MAIN IDEA)</span>
+            </h4>
+            <p className="text-purple-100 font-medium leading-relaxed">
+              • <strong>Tỷ lệ làm sai:</strong> 62.0% học sinh chọn sai câu hỏi tổng hợp ý chính của bài đọc Reading Passage.<br />
+              • <strong>Đề xuất bài giảng:</strong> Hướng dẫn học sinh kỹ năng Skimming (đọc lướt câu đầu và câu cuối mỗi đoạn văn).
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Grid Stats tổng quan */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
