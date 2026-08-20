@@ -906,6 +906,7 @@ export default function QuizEngine({ activity }) {
       {/* DANH SÁCH CÂU HỎI */}
       <div className="space-y-3">
         {questions.map((q, qIdx) => {
+          const sectionType = String(activity?.type || activity?.content?.type || 'quiz').toLowerCase();
           const sectionParts = Array.isArray(q.content?.parts) ? q.content.parts : [];
 
           // TRÍCH XUẤT MẢNG PARTS SOẠN TỪ BỘ SOẠN ĐỀ ADMIN (ẢNH 1 & ẢNH 2)
@@ -938,7 +939,7 @@ export default function QuizEngine({ activity }) {
                       </div>
 
                       {/* BƯỚC 1: XÓA Ô HIỂN THỊ CHỨA ĐOẠN VĂN MÀU VÀNG NHẠT (📖 Bài đọc...) ĐỐI VỚI CÁC CÂU TRẮC NGHIỆM ĐỘC LẬP ĐỂ TIẾT KIỆM KHÔNG GIAN MÀN HÌNH */}
-                      {pItem.passage && ['reading_section', 'cloze_test'].includes(sectionType?.toLowerCase()) && (
+                      {pItem.passage && ['reading_section', 'cloze_test'].includes(String(activity?.type || activity?.content?.type || '').toLowerCase()) && (
                         <div className="p-4 bg-amber-50/80 border border-amber-300/80 rounded-lg text-xs text-slate-800 leading-relaxed font-serif shadow-xs my-2">
                           <div className="whitespace-pre-line text-slate-900 text-xs font-serif leading-relaxed italic">
                             {pItem.passage}
