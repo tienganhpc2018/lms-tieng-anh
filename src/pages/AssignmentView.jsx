@@ -17,6 +17,7 @@ export default function AssignmentView() {
   const [activity, setActivity] = useState(null);
   const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isTeacherPreview, setIsTeacherPreview] = useState(false);
 
   const [textAnswer, setTextAnswer] = useState('');
   const [fileUrl, setFileUrl] = useState('');
@@ -206,17 +207,35 @@ export default function AssignmentView() {
             </div>
 
             {isTeacher && (
-              <span className="px-3 py-1.5 bg-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-2xs">
-                👑 Chế Độ Giáo Viên Soạn Đề
-              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsTeacherPreview(!isTeacherPreview)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold shadow-xs transition flex items-center space-x-1 cursor-pointer ${
+                    isTeacherPreview
+                      ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  }`}
+                >
+                  {isTeacherPreview ? (
+                    <>
+                      <span>👑 Chế Độ Giáo Viên Soạn Đề</span>
+                      <span className="text-[10px] opacity-80">(Bấm để xem giao diện Học sinh)</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>👁️ Xem Giao Diện Học Sinh Làm Bài</span>
+                      <span className="text-[10px] opacity-90">(Bấm để chuyển về Soạn đề)</span>
+                    </>
+                  )}
+                </button>
+              </div>
             )}
           </div>
 
-          {/* NẾU LÀ GIÁO VIÊN -> MỞ TRÌNH SOẠN ĐỀ QUIZ 20 DẠNG CÂU HỎI (QUIZ BUILDER) */}
-          {isTeacher ? (
+          {/* NẾU LÀ GIÁO VIÊN VÀ ĐANG Ở CHẾ ĐỘ SOẠN ĐỀ -> MỞ QUIZ BUILDER. NẾU LÀ HỌC SINH HOẶC GIÁO VIÊN BẤM XEM THI -> MỞ QUIZ ENGINE */}
+          {isTeacher && isTeacherPreview ? (
             <QuizBuilder activity={activeAct} activityId={targetActivityId} />
           ) : (
-            /* NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI THI THỬ TRỰC TUYẾN (QUIZ ENGINE) */
             <QuizEngine activity={activeAct} activityId={targetActivityId} />
           )}
         </div>
