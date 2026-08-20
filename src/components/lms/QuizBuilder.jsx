@@ -1221,52 +1221,13 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           </div>
                         </div>
 
-                        {/* 1. LIÊN KẾT MP3 AUDIO CHO BÀI NGHE LISTENING SECTION (CÓ NÚT TẢI FILE TỪ MÁY & DÁN LINK) */}
+                        {/* 1. LIÊN KẾT MP3 AUDIO CHO BÀI NGHE LISTENING SECTION (NGUYÊN BẢN CHUẨN 100% THEO YÊU CẦU CỦA THẦY HẢI) */}
                         {selectedType?.toLowerCase().includes('listening') ? (
-                          <div className="p-3.5 bg-purple-50/80 border border-purple-200 rounded-2xl space-y-2">
-                            <div className="flex justify-between items-center">
-                              <label className="text-[11px] font-extrabold text-purple-950 uppercase flex items-center space-x-1">
-                                <Volume2 className="w-4 h-4 text-purple-600" />
-                                <span>🔊 🎧 FILE ÂM THANH BÀI NGHE (AUDIO MP3 URL) CHO PART #{pIdx + 1}:</span>
-                              </label>
-                              
-                              <label className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer whitespace-nowrap">
-                                <span>📁 Tải File Audio MP3 Từ Máy</span>
-                                <input
-                                  type="file"
-                                  accept="audio/*"
-                                  className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    try {
-                                      setToast({ isOpen: true, type: 'info', title: 'Đang Tải File Audio', message: `Đang tải file ${file.name}...` });
-                                      const fileExt = file.name.split('.').pop();
-                                      const fileName = `audio_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                                      const { data, error } = await supabase.storage.from('course-assets').upload(fileName, file);
-                                      
-                                      let finalUrl = '';
-                                      if (!error && data) {
-                                        const { data: pData } = supabase.storage.from('course-assets').getPublicUrl(fileName);
-                                        finalUrl = pData?.publicUrl || '';
-                                      } else {
-                                        finalUrl = URL.createObjectURL(file);
-                                      }
-
-                                      const newParts = [...sectionParts];
-                                      newParts[pIdx].audioUrl = finalUrl;
-                                      setSectionParts(newParts);
-                                      setToast({ isOpen: true, type: 'success', title: 'Thành Công', message: 'Đã nạp file Audio bài nghe thành công!' });
-                                    } catch (err) {
-                                      const newParts = [...sectionParts];
-                                      newParts[pIdx].audioUrl = URL.createObjectURL(file);
-                                      setSectionParts(newParts);
-                                    }
-                                  }}
-                                />
-                              </label>
-                            </div>
-
+                          <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-2xl space-y-1.5">
+                            <label className="block text-[11px] font-extrabold text-purple-950 uppercase flex items-center space-x-1">
+                              <Volume2 className="w-4 h-4 text-purple-600" />
+                              <span>🎧 FILE ÂM THANH BÀI NGHE (AUDIO MP3 URL) CHO PART #{pIdx + 1}:</span>
+                            </label>
                             <input
                               type="text"
                               value={pItem.audioUrl || ''}
@@ -1275,8 +1236,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 newParts[pIdx].audioUrl = e.target.value;
                                 setSectionParts(newParts);
                               }}
-                              placeholder="Dán đường dẫn Link file Audio MP3 bài nghe hoặc tải file từ máy ở nút bên trên..."
-                              className="w-full p-2 border border-purple-300 rounded-xl text-xs font-bold bg-white text-purple-950 shadow-inner"
+                              placeholder="Dán đường dẫn Link file Audio MP3 bài nghe tại đây (Ví dụ: https://example.com/audio-part1.mp3)..."
+                              className="w-full p-2.5 border border-purple-300 rounded-xl text-xs font-bold bg-white text-purple-950 shadow-inner"
                             />
                           </div>
                         ) : ['reading_section', 'cloze_test', 'reading_tf'].includes(selectedType?.toLowerCase()) ? (
