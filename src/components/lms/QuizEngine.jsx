@@ -1027,8 +1027,8 @@ export default function QuizEngine({ activity }) {
                                   {!hasLeadingNumber && `${cIdx + 1}. `}{qDisplay}
                                 </h4>
 
-                                {/* 4 LỰA CHỌN A, B, C, D NẰM TRÊN CÙNG 1 HÀNG NGANG, KHUNG BO KHÍT VỪA 🎯 CHUẨN 100% CỦA THẦY */}
-                                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5 w-full pt-0.5">
+                                {/* 4 LỰA CHỌN A, B, C, D NẰM TRÊN CÙNG 1 HÀNG NGANG CHUẨN 100% (ẢNH 2) */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 w-full pt-1">
                                   {cOpts.map((opt, oIdx) => {
                                     const isSelected = selectedVal === oIdx;
                                     const isThisCorrect = typeof opt === 'object' ? opt?.isCorrect : false;
@@ -1041,9 +1041,9 @@ export default function QuizEngine({ activity }) {
                                     }
 
                                     let btnStyle = 'bg-white border-slate-200 hover:bg-slate-100 text-slate-800 font-medium';
-                                    if (submitted) {
-                                      if (isThisCorrect) btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-black';
-                                      else if (isSelected && !isThisCorrect) btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-black line-through';
+                                    if (submitted || isTeacher) {
+                                      if (isThisCorrect) btnStyle = 'bg-emerald-100 border-emerald-400 text-emerald-950 font-extrabold';
+                                      else if (isSelected && !isThisCorrect) btnStyle = 'bg-rose-100 border-rose-400 text-rose-950 font-bold line-through';
                                     } else if (isSelected) {
                                       btnStyle = 'bg-emerald-600 text-white font-extrabold border-transparent shadow-xs';
                                     }
@@ -1053,7 +1053,7 @@ export default function QuizEngine({ activity }) {
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                        className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs border transition whitespace-normal text-left min-w-fit max-w-full shadow-2xs ${btnStyle}`}
+                                        className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs border transition flex items-center space-x-1.5 whitespace-normal break-words shadow-2xs ${btnStyle}`}
                                       >
                                         <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
                                           isSelected ? 'bg-white text-emerald-800 font-black' : 'bg-slate-200 text-slate-700'
@@ -1066,8 +1066,8 @@ export default function QuizEngine({ activity }) {
                                   })}
                                 </div>
 
-                                {/* HIỂN THỊ KHUNG CÂU GIẢI THÍCH CHI TIẾT KHI NỘP BÀI THI HOẶC XEM ĐỀ */}
-                                {submitted && renderCompactExplanation(
+                                {/* SAU MỖI CÂU HỎI BẮT BUỘC LUÔN CÓ KHUNG CHỨA LỜI GIẢI THÍCH CHI TIẾT CHO CÂU ĐÓ (ẢNH 2) */}
+                                {(cQ.explanation || pItem.explanation || submitted || isTeacher) && renderCompactExplanation(
                                   cQ.explanation || pItem.explanation || `Dẫn chứng & Phân tích: Đáp án đúng chính xác là "${correctText}".`,
                                   correctText,
                                   cQ,
