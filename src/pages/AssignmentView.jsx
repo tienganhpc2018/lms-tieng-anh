@@ -123,9 +123,63 @@ export default function AssignmentView() {
     return null;
   }
 
+  // GỢI Ý 2: CHỨC NĂNG ĐẶT MẬT KHẨU PASSCODE TRUY CẬP RIÊNG CHO ĐỀ THI THỬ HỌC KỲ I
+  const [inputPasscode, setInputPasscode] = useState('');
+  const [isPasscodeUnlocked, setIsPasscodeUnlocked] = useState(false);
+
   // TRẢ VỀ CHUẨN 100% GIAO DIỆN QUIZ 20 DẠNG CÂU HỎI & THI THỬ (ẢNH 1 & ẢNH 2)
   if (!isPageAssignmentOnly) {
     const activeAct = activity || { id: targetActivityId, title: 'Practice Test Thi Thử', type: 'quiz' };
+    const requiredPasscode = activeAct.content?.passcode;
+
+    // NẾU BÀI THI CÓ CÀI ĐẶT PASSCODE MẬT KHẨU VÀ HỌC SINH CHƯA MỞ KHÓA (GỢI Ý 2)
+    if (requiredPasscode && !isTeacher && !isPasscodeUnlocked) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans select-none">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-2xl max-w-md w-full text-center space-y-4 border border-slate-200 animate-scale-up">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-3xl font-extrabold shadow-sm">
+              🔑
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 uppercase">
+                YÊU CẦU MẬT KHẨU VÀO THI THỬ
+              </h3>
+              <p className="text-xs text-slate-500 font-semibold mt-1">
+                Bài thi "{activeAct.title?.replace('[WHITEBOARD]', '').trim()}" được Giáo viên đặt mật khẩu bảo mật riêng. Vui lòng nhập passcode do Thầy cung cấp để mở đề!
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (inputPasscode.trim() === requiredPasscode.trim()) {
+                  setIsPasscodeUnlocked(true);
+                } else {
+                  alert('❌ MẬT KHẨU BÀI THI KHÔNG CHÍNH XÁC!\n\nVui lòng kiểm tra lại mật khẩu do Thầy Hải cung cấp.');
+                }
+              }}
+              className="space-y-3 pt-2"
+            >
+              <input
+                type="text"
+                required
+                value={inputPasscode}
+                onChange={(e) => setInputPasscode(e.target.value)}
+                placeholder="Nhập mật khẩu bài thi (VD: THCS2026)..."
+                className="w-full px-4 py-3 border border-slate-300 rounded-2xl text-center text-sm font-extrabold uppercase tracking-widest bg-slate-50 focus:ring-2 focus:ring-amber-500"
+              />
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase rounded-2xl shadow-md transition"
+              >
+                🔓 MỞ ĐỀ & BẮT ĐẦU LÀM BÀI THI
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
