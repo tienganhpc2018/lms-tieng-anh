@@ -4,6 +4,7 @@ import { supabase, uploadLMSFile } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import QuizBuilder from '../components/lms/QuizBuilder';
 import QuizEngine from '../components/lms/QuizEngine';
+import ErrorBoundary from '../components/common/ErrorBoundary';
 import { FileText, Upload, Send, ArrowLeft, CheckCircle, Clock, BookOpen, PenTool } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -212,12 +213,14 @@ export default function AssignmentView() {
           </div>
 
           {/* NẾU LÀ GIÁO VIÊN -> MỞ TRÌNH SOẠN ĐỀ QUIZ 20 DẠNG CÂU HỎI (QUIZ BUILDER) */}
-          {isTeacher ? (
-            <QuizBuilder activity={activeAct} activityId={targetActivityId} />
-          ) : (
-            /* NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI THI THỬ TRỰC TUYẾN (QUIZ ENGINE) */
-            <QuizEngine activity={activeAct} activityId={targetActivityId} />
-          )}
+          <ErrorBoundary>
+            {isTeacher ? (
+              <QuizBuilder activity={activeAct} activityId={targetActivityId} />
+            ) : (
+              /* NẾU LÀ HỌC SINH -> MỞ TRÌNH LÀM BÀI THI THỬ TRỰC TUYẾN (QUIZ ENGINE) */
+              <QuizEngine activity={activeAct} activityId={targetActivityId} />
+            )}
+          </ErrorBoundary>
         </div>
       </div>
     );
