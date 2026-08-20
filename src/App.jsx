@@ -113,6 +113,14 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/whiteboard/:id"
+                element={
+                  <ProtectedRoute>
+                    <WhiteboardView />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="/analytics"
