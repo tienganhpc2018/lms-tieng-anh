@@ -30,8 +30,22 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Ưu tiên hiển thị Họ và Tên đầy đủ thay vì Username
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || profile?.username || user?.email?.split('@')[0] || 'User';
+  // Ưu tiên hiển thị Họ và Tên đầy đủ thay vì Username (Đặc biệt tài khoản Thầy Hải hiển thị Nguyễn Văn Hải)
+  const getDisplayName = (prof, usr) => {
+    const emailOrName = (prof?.email || usr?.email || prof?.username || '').toLowerCase();
+    if (emailOrName.includes('nguyensea') || emailOrName.includes('nguyenvanhai') || emailOrName.includes('tienganhpc2018')) {
+      return 'Nguyễn Văn Hải';
+    }
+    if (prof?.full_name && prof.full_name.trim() !== '' && prof.full_name !== prof.username) {
+      return prof.full_name.trim();
+    }
+    if (usr?.user_metadata?.full_name && usr.user_metadata.full_name.trim() !== '') {
+      return usr.user_metadata.full_name.trim();
+    }
+    return prof?.full_name || prof?.username || usr?.email?.split('@')[0] || 'User';
+  };
+
+  const displayName = getDisplayName(profile, user);
   const avatarImage = profile?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
   return (
