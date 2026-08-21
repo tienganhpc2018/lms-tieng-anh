@@ -1058,10 +1058,11 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                               <div className="absolute right-0 top-0 bottom-0 w-14 bg-slate-900 pointer-events-none rounded-r-full" />
                             </div>
                           ) : (
-                            /* PHƯƠNG ÁN 2: THẺ AUDIO TRUYỀN THỐNG MỎNG MỊN BO TRÒN */
+                            /* PHƯƠNG ÁN 2: THẺ AUDIO TRUYỀN THỐNG MỎNG MỊN BO TRÒN BẢO VỆ CHỐNG TẢI FILE */
                             <div className="w-full bg-white p-1 rounded-full border-2 border-purple-300 shadow-xl">
                               <audio
                                 controls
+                                controlsList="nodownload noplaybackrate"
                                 preload="auto"
                                 src={getGoogleDriveStreamUrl(activeAudioSource)}
                                 className="w-full h-10 outline-none accent-purple-600 rounded-full"
