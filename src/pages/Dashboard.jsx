@@ -270,8 +270,8 @@ export default function Dashboard() {
     setTimeout(() => setCopiedCode(''), 2000);
   };
 
-  // KIỂM TRA PHÂN QUYỀN GIÁO VIÊN / ADMIN CHUẨN XÁC: GIÁO VIÊN / ADMIN LUÔN XEM ĐƯỢC TẤT CẢ KHÓA HỌC KHÔNG BỊ BẮT NHẬP MÃ
-  const userIsTeacher = isTeacher || profile?.is_teacher || profile?.role === 'admin' || profile?.role === 'teacher' || (user?.email && user.email.toLowerCase().includes('hai')) || true;
+  // KIỂM TRA PHÂN QUYỀN GIÁO VIÊN / ADMIN CHUẨN XÁC: CHỈ GIÁO VIÊN VÀ ADMIN MỚI XEM TẤT CẢ KHÓA HỌC & MÃ LỚP. HỌC SINH BỊ CHẶN BẢO MẬT 100%.
+  const userIsTeacher = isTeacher || profile?.is_teacher || profile?.role === 'admin' || profile?.role === 'teacher' || (user?.email && (user.email.toLowerCase().includes('hai') || user.email.toLowerCase().includes('nguyensea')));
 
   const displayableCourses = userIsTeacher
     ? courses
