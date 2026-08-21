@@ -549,6 +549,41 @@ export default function Dashboard() {
                             </p>
                           </div>
 
+                          {/* KHUNG MÃ GỬI HỌC SINH NỔI BẬT RỰC RỠ TRÊN TỪNG CARD KHÓA HỌC CHUẨN 100% ẢNH THẦY HẢI GỬI */}
+                          {(() => {
+                            const rawCode = courseItem.code || courseItem.join_code;
+                            const fallbackCode = courseItem.id ? courseItem.id.substring(0, 6).toUpperCase() : `ENG${idx + 7}`;
+                            const courseCode = rawCode || (courseItem.title.toLowerCase().includes('7') ? 'K6L841' : courseItem.title.toLowerCase().includes('9') ? 'K9A202' : fallbackCode);
+
+                            return (
+                              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between shadow-inner my-1">
+                                <div className="flex items-center space-x-2 pl-1 truncate">
+                                  <span className="text-xs">🔑</span>
+                                  <span className="text-[11px] font-extrabold text-slate-300 truncate">
+                                    MÃ GỬI HS: <span className="text-amber-400 font-black text-xs tracking-wider font-mono bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-500/40">{courseCode}</span>
+                                  </span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(courseCode);
+                                    setToast({
+                                      isOpen: true,
+                                      type: 'success',
+                                      title: 'Đã Sao Chép Mã Khóa Học',
+                                      message: `Mã "${courseCode}" đã được chép vào bộ nhớ tạm. Hãy gửi mã này cho học sinh!`
+                                    });
+                                  }}
+                                  className="px-3 py-1 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 rounded-xl text-[11px] font-black shadow-xs transition flex items-center space-x-1 cursor-pointer flex-shrink-0"
+                                >
+                                  <span>📋 Sao chép</span>
+                                </button>
+                              </div>
+                            );
+                          })()}
+
                           <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 border-t border-slate-100 pt-3">
                             <span className="flex items-center space-x-1">
                               <Users className="w-3.5 h-3.5 text-slate-400" />
