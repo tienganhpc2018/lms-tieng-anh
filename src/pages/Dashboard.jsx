@@ -636,28 +636,44 @@ export default function Dashboard() {
                                 </p>
                               </div>
 
-                              {/* KHUNG MÃ GỬI HỌC SINH CHỈ HIỂN THỊ CHO GIÁO VIÊN (USERISTEACHER === TRUE) -> TUYỆT ĐỐI ẨN KHI LÀ HỌC SINH CHÁNH LỘ MÃ */}
+                              {/* KHUNG MÃ GỬI HỌC SINH CHỈ HIỂN THỊ CHO GIÁO VIÊN VÀ MẶC ĐỊNH GIẤU DẠNG •••••• CHỐNG LỘ MÁY CHIẾU */}
                               {userIsTeacher && (
                                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between shadow-inner my-1">
                                   <div className="flex items-center space-x-2 pl-1 truncate">
                                     <span className="text-xs">🔑</span>
                                     <span className="text-[11px] font-extrabold text-slate-300 truncate">
-                                      MÃ GỬI HS: <span className="text-amber-400 font-black text-xs tracking-wider font-mono bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-500/40">{courseItem.code || courseItem.join_code || (courseItem.title.toLowerCase().includes('7') ? 'K6L841' : courseItem.title.toLowerCase().includes('9') ? 'K9A202' : courseItem.id?.substring(0, 6).toUpperCase())}</span>
+                                      MÃ GỬI HS: <span className="text-amber-400 font-black text-xs tracking-wider font-mono bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-500/40">
+                                        {showCodeCourseIds.includes(courseItem.id)
+                                          ? (courseItem.code || courseItem.join_code || (courseItem.title.toLowerCase().includes('7') ? 'K6L841' : courseItem.title.toLowerCase().includes('9') ? 'K9A202' : courseItem.id?.substring(0, 6).toUpperCase()))
+                                          : '••••••'}
+                                      </span>
                                     </span>
                                   </div>
 
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const codeToCopy = courseItem.code || courseItem.join_code || (courseItem.title.toLowerCase().includes('7') ? 'K6L841' : courseItem.title.toLowerCase().includes('9') ? 'K9A202' : courseItem.id?.substring(0, 6).toUpperCase());
-                                      navigator.clipboard.writeText(codeToCopy);
-                                      showToast('success', 'Đã Sao Chép Mã Khóa Học', `Mã "${codeToCopy}" đã được chép vào bộ nhớ tạm!`);
-                                    }}
-                                    className="px-3 py-1 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 rounded-xl text-[11px] font-black shadow-xs transition flex items-center space-x-1 cursor-pointer flex-shrink-0"
-                                  >
-                                    <span>📋 Sao chép</span>
-                                  </button>
+                                  <div className="flex items-center space-x-1.5 flex-shrink-0">
+                                    {/* NÚT 👁️ MẮT ẨN/HIỆN MÃ BẢO MẬT KHI KẾT NỐI MÁY CHIẾU TRÊN LỚP */}
+                                    <button
+                                      type="button"
+                                      title={showCodeCourseIds.includes(courseItem.id) ? "Ẩn mã khóa học" : "Hiện mã khóa học"}
+                                      onClick={(e) => toggleShowCode(courseItem.id, e)}
+                                      className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs transition flex items-center justify-center cursor-pointer border border-slate-700"
+                                    >
+                                      {showCodeCourseIds.includes(courseItem.id) ? <EyeOff className="w-3.5 h-3.5 text-amber-400" /> : <Eye className="w-3.5 h-3.5 text-slate-300" />}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        const codeToCopy = courseItem.code || courseItem.join_code || (courseItem.title.toLowerCase().includes('7') ? 'K6L841' : courseItem.title.toLowerCase().includes('9') ? 'K9A202' : courseItem.id?.substring(0, 6).toUpperCase());
+                                        navigator.clipboard.writeText(codeToCopy);
+                                        showToast('success', 'Đã Sao Chép Mã Khóa Học', `Mã "${codeToCopy}" đã được chép vào bộ nhớ tạm!`);
+                                      }}
+                                      className="px-2 py-1 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 rounded-xl text-[11px] font-black shadow-xs transition flex items-center space-x-1 cursor-pointer"
+                                    >
+                                      <span>📋 Sao chép</span>
+                                    </button>
+                                  </div>
                                 </div>
                               )}
 
