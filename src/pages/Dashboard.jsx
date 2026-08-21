@@ -454,28 +454,45 @@ export default function Dashboard() {
 
               {/* LEVEL 2: MY COURSES ACCORDION TREE */}
               <div className="pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsMyCoursesOpen(!isMyCoursesOpen)}
-                  className="w-full flex items-center space-x-1.5 text-slate-800 hover:text-emerald-700 py-1 transition font-extrabold text-left uppercase text-[11px]"
-                >
-                  {isMyCoursesOpen ? <ChevronDown className="w-3.5 h-3.5 text-emerald-600" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-600" />}
-                  <span>My courses ({courses.length})</span>
-                </button>
+                {(() => {
+                  const userIsTeacher = isTeacher || profile?.is_teacher || false;
+                  const sidebarCourses = userIsTeacher
+                    ? courses
+                    : courses.filter((c) => userEnrollments.includes(c.id));
 
-                {isMyCoursesOpen && (
-                  <div className="pl-3 space-y-1 mt-1 border-l-2 border-slate-100 ml-1">
-                    {courses.map((c) => (
-                      <Link
-                        key={c.id}
-                        to={`/course/${c.id}`}
-                        className="block py-1 px-2 hover:bg-emerald-50 rounded-lg text-slate-700 hover:text-emerald-800 font-bold truncate transition text-xs"
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsMyCoursesOpen(!isMyCoursesOpen)}
+                        className="w-full flex items-center space-x-1.5 text-slate-800 hover:text-emerald-700 py-1 transition font-extrabold text-left uppercase text-[11px]"
                       >
-                        • {c.title}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+                        {isMyCoursesOpen ? <ChevronDown className="w-3.5 h-3.5 text-emerald-600" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-600" />}
+                        <span>My courses ({sidebarCourses.length})</span>
+                      </button>
+
+                      {isMyCoursesOpen && (
+                        <div className="pl-3 space-y-1 mt-1 border-l-2 border-slate-100 ml-1">
+                          {sidebarCourses.length === 0 ? (
+                            <span className="block py-1 px-2 text-slate-400 font-semibold italic text-[11px]">
+                              🔒 Chưa gia nhập lớp nào
+                            </span>
+                          ) : (
+                            sidebarCourses.map((c) => (
+                              <Link
+                                key={c.id}
+                                to={`/course/${c.id}`}
+                                className="block py-1 px-2 hover:bg-emerald-50 rounded-lg text-slate-700 hover:text-emerald-800 font-bold truncate transition text-xs"
+                              >
+                                • {c.title}
+                              </Link>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
