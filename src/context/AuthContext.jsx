@@ -81,11 +81,23 @@ export function AuthProvider({ children }) {
       }
 
       // NẾU LÀ TÀI KHOẢN THẦY HẢI -> ĐỒNG BỘ NGUYÊN TẮC GIÁO VIÊN / ADMIN DUY NHẤT
-      if (cleanEmail.includes('nguyensea') || cleanEmail.includes('nguyenvanhai') || cleanEmail.includes('tienganhpc2018')) {
+      const isMasterAdmin = cleanEmail.includes('nguyensea') || cleanEmail.includes('nguyenvanhai') || cleanEmail.includes('tienganhpc2018');
+
+      if (isMasterAdmin) {
         if (finalProfile) {
           finalProfile.role = 'teacher';
           finalProfile.full_name = 'Nguyễn Văn Hải';
           finalProfile.approved = true;
+        }
+      } else {
+        // HỌC SINH CHƯA ĐƯỢC THẦY HẢI DUYỆT (APPROVED === FALSE) -> TỰ ĐỘNG CHẶN TRUY CẬP VÀ ĐĂNG XUẤT NGAY
+        if (finalProfile && finalProfile.approved === false) {
+          alert(`⏳ TÀI KHOẢN CHỜ DUYỆT!\n\nTài khoản Học sinh của em (${finalProfile.full_name || finalProfile.username}) đã được tạo nhưng chưa được Thầy Nguyễn Văn Hải phê duyệt.\n\nVui lòng nhắn Thầy Hải duyệt tài khoản trước khi đăng nhập làm bài nhé!`);
+          await supabase.auth.signOut();
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
         }
       }
 
@@ -172,6 +184,20 @@ export function AuthProvider({ children }) {
           approved: isMasterAdmin ? true : false,
         },
       ]);
+
+      // TỰ ĐỘNG TẠO BẢN TIN THÔNG BÁO THỜI GIAN THỰC CHO GIÁO VIÊN NGUYỄN VĂN HẢI
+      try {
+        await supabase.from('notifications').insert([
+          {
+            title: '🎓 Học Sinh Mới Đăng Ký Tài Khoản!',
+            message: `Học sinh "${finalName}" (@${cleanEmail.split('@')[0]}) vừa tạo tài khoản mới và đang chờ Thầy Hải phê duyệt.`,
+            type: 'user_registration',
+            read: false,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      } catch (notifErr) {}
+
       await fetchProfile(data.user.id, cleanEmail);
     }
 
