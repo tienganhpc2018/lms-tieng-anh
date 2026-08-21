@@ -605,8 +605,23 @@ export default function QuizBuilder({ activityId, onSaved }) {
       };
 
       if (['listening_section', 'reading_section', 'writing_section', 'multiple_choice'].includes(normType)) {
-        customContent.parts = sectionParts;
+        // CHUẨN HÓA LƯU VĨNH VIỄN FILE AUDIO MP3 BASE64 / URL THỰC TẾ CỦA TỪNG PART VÀO DATABASE
+        const partsToSave = sectionParts.map((p) => {
+          const realAudioData = p.audio_data || p.audio_url || p.audio || (typeof p.audioUrl === 'string' && p.audioUrl.startsWith('data:') ? p.audioUrl : '');
+          const finalAudio = realAudioData || p.audioUrl || '';
+
+          return {
+            ...p,
+            audioUrl: finalAudio,
+            audio_data: finalAudio,
+            audio_url: finalAudio,
+            audio: finalAudio,
+          };
+        });
+
+        customContent.parts = partsToSave;
         customContent.audioUrl = listeningAudioUrl;
+        customContent.audio_data = listeningAudioUrl;
         customContent.audioFileName = uploadedAudioFileName;
         customContent.passage = sectionPassage;
         customContent.childQuestions = sectionChildQuestions;
