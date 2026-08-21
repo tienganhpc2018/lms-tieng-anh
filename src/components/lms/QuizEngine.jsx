@@ -1040,8 +1040,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                           <div className="bg-slate-950/80 p-2 rounded-2xl border border-purple-500/20 shadow-inner">
                             <audio
                               controls
-                              preload="metadata"
-                              crossOrigin="anonymous"
+                              preload="auto"
                               src={activeAudioSource}
                               className="w-full h-10 rounded-xl outline-none accent-purple-500"
                             />
