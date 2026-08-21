@@ -307,6 +307,34 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
     let writingQuestionInfo = null;
 
+    // HÀM SOI VÀ CHẤM ĐÁP ÁN ĐÚNG/SAI CHUẨN XÁC 100% TRÁNH LỖI LỆCH KIỂU DỮ LIỆU
+    const isAnswerCorrect = (selected, opts) => {
+      if (selected === undefined || selected === null || selected === '') return false;
+      const optsArr = Array.isArray(opts) ? opts : [];
+      const correctOptIndex = optsArr.findIndex((o) => o?.isCorrect);
+      if (correctOptIndex === -1) return false;
+
+      // 1. So sánh theo Index (dạng số hoặc chuỗi "0", "1", "2", "3")
+      if (String(selected) === String(correctOptIndex)) return true;
+
+      // 2. So sánh theo Ký tự A, B, C, D
+      const charLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+      const correctLetter = charLetters[correctOptIndex];
+      if (typeof selected === 'string') {
+        const cleanSel = selected.trim().toUpperCase();
+        if (cleanSel === correctLetter || cleanSel.startsWith(correctLetter + '.') || cleanSel.startsWith(correctLetter + ':')) return true;
+      }
+
+      // 3. So sánh theo ID hoặc Nội dung text của Option
+      const correctOptObj = optsArr[correctOptIndex];
+      if (correctOptObj) {
+        if (correctOptObj.id && String(selected) === String(correctOptObj.id)) return true;
+        if (correctOptObj.text && String(selected).trim().toLowerCase() === String(correctOptObj.text).trim().toLowerCase()) return true;
+      }
+
+      return false;
+    };
+
     questions.forEach((q) => {
       const sectionType = (q.content?.sectionType || q.type || '').toLowerCase();
 
@@ -325,8 +353,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
             totalQCount += 1;
             const key = `${q.id}_t${tIdx}_q${qIdx}`;
             const selected = userAnswers[key];
-            const correctOpt = cQ.correct_option || cQ.options?.find(o => o.isCorrect)?.id;
-            if (selected === correctOpt && selected !== undefined) {
+            if (isAnswerCorrect(selected, cQ.options)) {
               correctCount += 1;
               totalScore += 1;
             }
@@ -344,19 +371,18 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
             const selected = userAnswers[key];
 
             if (isTF) {
-              if (selected === (cQ.correctAnswer || 'T')) {
+              const correctAns = (cQ.correctAnswer || 'T').toUpperCase();
+              if (selected && String(selected).toUpperCase() === correctAns) {
                 correctCount += 1;
                 totalScore += 1;
               }
             } else if (isEssay) {
-              if (selected && selected.trim() !== '') {
+              if (selected && String(selected).trim() !== '') {
                 correctCount += 1;
                 totalScore += 1;
               }
             } else {
-              const opts = Array.isArray(cQ.options) ? cQ.options : [];
-              const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
-              if (selected === correctOptIndex && selected !== undefined) {
+              if (isAnswerCorrect(selected, cQ.options)) {
                 correctCount += 1;
                 totalScore += 1;
               }
@@ -372,14 +398,12 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
             const selected = userAnswers[key];
 
             if (sectionType === 'reading_tf') {
-              if (selected === c.correctAnswer) {
+              if (selected && String(selected).toUpperCase() === String(c.correctAnswer || 'T').toUpperCase()) {
                 correctCount += 1;
                 totalScore += 1;
               }
             } else {
-              const opts = Array.isArray(c.options) ? c.options : [];
-              const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
-              if (selected === correctOptIndex && selected !== undefined) {
+              if (isAnswerCorrect(selected, c.options)) {
                 correctCount += 1;
                 totalScore += 1;
               }
@@ -388,9 +412,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
         } else {
           totalQCount += 1;
           const selected = userAnswers[q.id];
-          const opts = Array.isArray(q.content?.options) ? q.content.options : [];
-          const correctOptIndex = opts.findIndex((o) => o?.isCorrect);
-          if (selected === correctOptIndex && selected !== undefined) {
+          if (isAnswerCorrect(selected, q.content?.options)) {
             correctCount += 1;
             totalScore += Number(q.marks) || 1;
           }
@@ -1086,30 +1108,57 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                   {finalQuestionTitle}
                                 </h4>
 
-                                {/* 4 LỰA CHỌN A, B, C, D DẠNG PILL SÁT CHỮ NẰM TRÊN 1 HÀNG CHUẨN 100% ẢNH 2 */}
-                                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5 w-full">
-                                  {cOpts.map((opt, oIdx) => {
-                                    const optPrefix = String.fromCharCode(65 + oIdx);
-                                    const rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
-                                    const isSelected = selectedText === rawOptText || selectedText === optPrefix || selectedText === `${optPrefix}. ${rawOptText}`;
+                                  {/* 4 LỰA CHỌN A, B, C, D DẠNG PILL SÁT CHỮ NẰM TRÊN 1 HÀNG - ĐỔI MÀU ĐỎ CHO CÂU LÀM SAI KHI NỘP BÀI */}
+                                  <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5 w-full">
+                                    {cOpts.map((opt, oIdx) => {
+                                      const optPrefix = String.fromCharCode(65 + oIdx);
+                                      const rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
+                                      const isCorrectOpt = (typeof opt === 'object' && opt?.isCorrect) || oIdx === correctOptIndex;
 
-                                    return (
-                                      <button
-                                        key={oIdx}
-                                        disabled={submitted}
-                                        onClick={() => handleSelectAnswer(childKey, rawOptText)}
-                                        className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs border font-bold shadow-2xs transition whitespace-nowrap cursor-pointer ${
-                                          isSelected
-                                            ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-300'
-                                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-emerald-400'
-                                        }`}
-                                      >
-                                        <span className="mr-1.5 opacity-80">{optPrefix}.</span>
-                                        <span className="font-medium text-xs">{rawOptText}</span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
+                                      // Đánh giá lựa chọn của Học sinh
+                                      const isSelected = selectedText === rawOptText ||
+                                                         selectedText === optPrefix ||
+                                                         selectedText === oIdx ||
+                                                         selectedText === String(oIdx) ||
+                                                         selectedText === `${optPrefix}. ${rawOptText}`;
+
+                                      // Định màu nền giao diện khi đã nộp bài (submitted)
+                                      let buttonStyle = 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-emerald-400';
+
+                                      if (submitted) {
+                                        if (isSelected && !isCorrectOpt) {
+                                          // HỌC SINH LÀM SAI -> ĐỔI MÀU NỀN ĐỎ CHỎI THEO ĐÚNG CHỈ ĐẠO CỦA THẦY HẢI
+                                          buttonStyle = 'bg-rose-600 text-white border-rose-700 ring-2 ring-rose-300 font-extrabold shadow-md animate-pulse';
+                                        } else if (isCorrectOpt) {
+                                          // ĐÁP ÁN ĐÚNG CHUẨN -> ĐỔI MÀU NỀN XANH LÁ RỰC RỠ
+                                          buttonStyle = 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-300 font-extrabold shadow-md';
+                                        } else {
+                                          buttonStyle = 'bg-slate-100 text-slate-400 border-slate-200 opacity-60';
+                                        }
+                                      } else if (isSelected) {
+                                        // ĐANG LÀM BÀI -> HIỂN THỊ MÀU XANH ĐỌC THỜI THỰC
+                                        buttonStyle = 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 font-extrabold shadow-md';
+                                      }
+
+                                      return (
+                                        <button
+                                          key={oIdx}
+                                          disabled={submitted}
+                                          onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                          className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs border font-bold shadow-2xs transition whitespace-nowrap cursor-pointer ${buttonStyle}`}
+                                        >
+                                          <span className="mr-1.5 opacity-80">{optPrefix}.</span>
+                                          <span className="font-medium text-xs">{rawOptText}</span>
+                                          {submitted && isSelected && !isCorrectOpt && (
+                                            <span className="ml-1.5 text-[10px] bg-rose-900/40 px-1.5 py-0.5 rounded-md text-white font-extrabold">✕ SAI</span>
+                                          )}
+                                          {submitted && isCorrectOpt && (
+                                            <span className="ml-1.5 text-[10px] bg-emerald-900/40 px-1.5 py-0.5 rounded-md text-white font-extrabold">✓ ĐÚNG</span>
+                                          )}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
 
                                 {/* KHUNG GIẢI THÍCH CHI TIẾT NGAY SAU MỖI CÂU HỎI (TUYỆT ĐỐI CHỈ HIỂN THỊ KHI ĐÃ NỘP BÀI HOẶC LÀ GIÁO VIÊN) */}
                                 {(submitted || isTeacher) && renderCompactExplanation(
