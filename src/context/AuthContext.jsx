@@ -130,21 +130,9 @@ export function AuthProvider({ children }) {
         if (createdProfile && createdProfile.length > 0) finalProfile = createdProfile[0];
       }
 
-      // SIẾT CHẶT QUYỀN TRUY CẬP HỌC SINH MỚI: BẮT BUỘC BẰNG TRUE MỚI CHO VÀO
-      if (!isMasterAdmin) {
-        // Lấy danh sách duyệt thủ công nếu có
-        const approvedMap = JSON.parse(localStorage.getItem('lms_approved_students_v2') || '{}');
-        const isStudentApproved = finalProfile && (finalProfile.approved === true || finalProfile.approved === 1 || approvedMap[finalProfile.id] === true || approvedMap[finalProfile.email] === true);
-
-        if (!isStudentApproved) {
-          await supabase.auth.signOut();
-          setUser(null);
-          setProfile(null);
-          localStorage.removeItem('lms_active_user_session');
-          setLoading(false);
-          alert(`⏳ TÀI KHOẢN HỌC SINH ĐANG Ở TRẠNG THÁI CHỜ DUYỆT!\n\nTài khoản của em (${finalProfile?.full_name || finalProfile?.username || cleanEmail}) chưa được Thầy Nguyễn Văn Hải bấm phê duyệt.\n\nVui lòng nhắn Thầy Hải mở mục [QUẢN LÝ TÀI KHOẢN HỌC SINH] và nhấp nút "⏳ Chờ Duyệt" để kích hoạt tài khoản vào học nhé!`);
-          return;
-        }
+      // MẶC ĐỊNH CHO TẤT CẢ HỌC SINH VÀO THẲNG WEB HỌC NGAY MƯỢT MÀ 100%
+      if (finalProfile) {
+        finalProfile.approved = true;
       }
 
       const activeUser = { id: userId, email: cleanEmail };
@@ -270,7 +258,7 @@ export function AuthProvider({ children }) {
     }
 
     if (data.user) {
-      // ĐỒNG BỘ VÀO BẢNG PROFILES VỚI APPROVED = FALSE NẾU MỚI ĐĂNG KÝ
+      // MẶC ĐỊNH CHO TẤT CẢ HỌC SINH ĐĂNG KÝ MỚI ĐƯỢC APPROVED = TRUE ĐỂ VÀO HỌC NGAY 100%
       await supabase.from('profiles').upsert([
         {
           id: data.user.id,
@@ -278,7 +266,7 @@ export function AuthProvider({ children }) {
           username: cleanEmail.split('@')[0],
           full_name: finalName,
           role: finalRole,
-          approved: isMasterAdmin ? true : false,
+          approved: true,
         },
       ]);
 
