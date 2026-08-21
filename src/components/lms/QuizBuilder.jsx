@@ -885,6 +885,39 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               <span>{p.part_title || `PART #${pI + 1}`}</span>
                             </h5>
 
+                             {/* BỔ SUNG TRÌNH PHÁT BÀI NGHE AUDIO MP3 TRÊN MÀN HÌNH HIỂN THỊ ĐỀ THI CỦA GIÁO VIÊN (ẢNH 1 THẦY GỬI) */}
+                            {(() => {
+                              const pAudio = p.audio_data || p.audio_url || p.audioUrl || p.audio || q.content?.audio_data || q.content?.audio_url || q.content?.audioUrl;
+                              if (!pAudio) return null;
+
+                              return (
+                                <div className="p-4 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-2xl space-y-2.5 my-2 shadow-md border border-purple-500/30">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2.5">
+                                      <span className="w-8 h-8 rounded-xl bg-purple-500/30 text-purple-300 flex items-center justify-center font-extrabold text-sm animate-pulse">
+                                        🎧
+                                      </span>
+                                      <div>
+                                        <span className="text-xs font-extrabold text-purple-200 uppercase tracking-wide block">
+                                          BÀI NGHE AUDIO MP3 - KIỂM TRA ĐÚNG FILE TRƯỚC KHU GIAO CHO HỌC SINH
+                                        </span>
+                                        <p className="text-[11px] text-emerald-400 font-bold">
+                                          ► Bấm Nút Play ▶️ Để Nghe Kiểm Tra Bài Nghe Rõ Ràng 100%!
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <span className="px-2.5 py-1 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 rounded-xl text-[10px] font-extrabold uppercase">
+                                      ✓ PHÁT MP3 MƯỢT MÀ
+                                    </span>
+                                  </div>
+
+                                  <div className="bg-slate-950/80 p-2 rounded-xl border border-purple-500/20 shadow-inner">
+                                    <audio controls src={pAudio} className="w-full h-9 outline-none accent-purple-500" />
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
                             {/* VĂN BẢN BÀI ĐỌC PASSAGE NẾU CÓ */}
                             {p.passage && (
                               <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-slate-800 font-serif leading-relaxed italic">
