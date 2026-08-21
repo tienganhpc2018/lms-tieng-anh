@@ -1291,9 +1291,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                             />
                           </div>
                         </div>
-
-                        {/* 1. KHUNG UPLOAD AUDIO VÀ BỘ TRÌNH PHÁT TRẮNG MỊN CỰC ĐẸP KÈM DRAG AND DROP CHUẨN ẢNH 3 */}
-                        {selectedType?.toLowerCase().includes('listening') ? (
                           <div className="p-4 bg-slate-900 border-2 border-purple-500/40 rounded-3xl space-y-4 shadow-xl text-white">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <label className="text-xs font-extrabold text-purple-300 uppercase flex items-center space-x-2">
@@ -1308,6 +1305,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   onClick={() => {
                                     const inputEl = document.getElementById(`part-audio-input-${pIdx}`);
                                     if (inputEl) {
+                                      inputEl.value = '';
                                       inputEl.click();
                                     }
                                   }}
@@ -1321,10 +1319,60 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   type="file"
                                   accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"
                                   className="hidden"
-                                  onChange={(e) => {
+                                  onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
 
+                                    setToast({
+                                      isOpen: true,
+                                      type: 'info',
+                                      title: '⚡ Đang Upload File Audio',
+                                      message: `Đang tải vĩnh viễn file "${file.name}" lên máy chủ...`
+                                    });
+
+                                    // 1. UPLOAD FILE TRỰC TIẾP LÊN SUPABASE STORAGE BUCKET "MEDIA" NẠP LINK ONLINE THẬT 100%
+                                    try {
+                                      const fileExt = file.name.split('.').pop();
+                                      const fileName = `audios/listening_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                                      
+                                      const { data: stData, error: stErr } = await supabase.storage
+                                        .from('media')
+                                        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+                                      if (!stErr && stData) {
+                                        const { data: pubData } = supabase.storage
+                                          .from('media')
+                                          .getPublicUrl(fileName);
+
+                                        if (pubData?.publicUrl) {
+                                          const onlineUrl = pubData.publicUrl;
+                                          const updatedParts = [...sectionParts];
+                                          updatedParts[pIdx].audioUrl = onlineUrl;
+                                          updatedParts[pIdx].audio_blob = onlineUrl;
+                                          updatedParts[pIdx].audio_data = onlineUrl;
+                                          updatedParts[pIdx].audio_url = onlineUrl;
+                                          updatedParts[pIdx].audio = onlineUrl;
+                                          updatedParts[pIdx].audioFileName = file.name;
+                                          setSectionParts([...updatedParts]);
+
+                                          try {
+                                            localStorage.setItem(`lms_audio_cache_${activityId}`, onlineUrl);
+                                          } catch (lErr) {}
+
+                                          setToast({
+                                            isOpen: true,
+                                            type: 'success',
+                                            title: 'Upload Audio Thành Công 100%',
+                                            message: `Đã lưu vĩnh viễn file "${file.name}" thành URL Online! Bấm "Lưu bài thi" để Học sinh phát nghe!`
+                                          });
+                                          return;
+                                        }
+                                      }
+                                    } catch (stEx) {
+                                      console.error('Storage upload exception:', stEx);
+                                    }
+
+                                    // 2. FALLBACK NẠP CHUỖI BASE64 NẾU BUCKET CHƯA MỞ
                                     const reader = new FileReader();
                                     reader.onload = (event) => {
                                       const base64Audio = event.target.result;
@@ -1337,6 +1385,17 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                         updatedParts[pIdx].audio = base64Audio;
                                         updatedParts[pIdx].audioFileName = file.name;
                                         setSectionParts([...updatedParts]);
+
+                                        try {
+                                          localStorage.setItem(`lms_audio_cache_${activityId}`, base64Audio);
+                                        } catch (lErr) {}
+
+                                        setToast({
+                                          isOpen: true,
+                                          type: 'success',
+                                          title: 'Đã Nạp File Audio Thành Công',
+                                          message: `Đã mã hóa file "${file.name}" vĩnh viễn! Bấm "Lưu bài thi" để áp dụng cho Học sinh!`
+                                        });
                                       }
                                     };
                                     reader.readAsDataURL(file);
@@ -1344,6 +1403,96 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 />
                               </div>
                             </div>
+
+                            {/* 2. KHUNG KÉO THẢ DRAG AND DROP HÌNH ĐÁM MÂY TẢI LÊN CHUẨN Y HỆT 100% ẢNH 3 CỦA THẦY HẢI (media_1787302665575.png) */}
+                            {!pItem.audio_data && !pItem.audio_url && !pItem.audioUrl && (
+                              <div
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={async (e) => {
+                                  e.preventDefault();
+                                  const file = e.dataTransfer.files?.[0];
+                                  if (!file) return;
+
+                                  try {
+                                    const fileExt = file.name.split('.').pop();
+                                    const fileName = `audios/listening_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                                    
+                                    const { data: stData, error: stErr } = await supabase.storage
+                                      .from('media')
+                                      .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+                                    if (!stErr && stData) {
+                                      const { data: pubData } = supabase.storage
+                                        .from('media')
+                                        .getPublicUrl(fileName);
+
+                                      if (pubData?.publicUrl) {
+                                        const onlineUrl = pubData.publicUrl;
+                                        const updatedParts = [...sectionParts];
+                                        updatedParts[pIdx].audioUrl = onlineUrl;
+                                        updatedParts[pIdx].audio_blob = onlineUrl;
+                                        updatedParts[pIdx].audio_data = onlineUrl;
+                                        updatedParts[pIdx].audio_url = onlineUrl;
+                                        updatedParts[pIdx].audio = onlineUrl;
+                                        updatedParts[pIdx].audioFileName = file.name;
+                                        setSectionParts([...updatedParts]);
+                                        return;
+                                      }
+                                    }
+                                  } catch (err) {}
+
+                                  const reader = new FileReader();
+                                  reader.onload = (ev) => {
+                                    const base64Audio = ev.target.result;
+                                    if (typeof base64Audio === 'string') {
+                                      const updatedParts = [...sectionParts];
+                                      updatedParts[pIdx].audioUrl = base64Audio;
+                                      updatedParts[pIdx].audio_blob = base64Audio;
+                                      updatedParts[pIdx].audio_data = base64Audio;
+                                      updatedParts[pIdx].audio_url = base64Audio;
+                                      updatedParts[pIdx].audio = base64Audio;
+                                      updatedParts[pIdx].audioFileName = file.name;
+                                      setSectionParts([...updatedParts]);
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                }}
+                                onClick={() => {
+                                  const inputEl = document.getElementById(`part-audio-input-${pIdx}`);
+                                  if (inputEl) inputEl.click();
+                                }}
+                                className="p-8 border-2 border-dashed border-slate-400 hover:border-purple-400 bg-slate-800/60 hover:bg-purple-950/30 rounded-3xl flex flex-col items-center justify-center space-y-3 cursor-pointer transition shadow-inner my-2"
+                              >
+                                <div className="w-16 h-16 bg-slate-500/30 rounded-3xl flex items-center justify-center text-white text-3xl shadow-md border border-white/10">
+                                  ☁️ ⬆️
+                                </div>
+                                <p className="text-sm font-extrabold text-slate-200">
+                                  Drag and drop audio/video file to upload, or click to select
+                                </p>
+
+                                <div className="flex items-center space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                                  <span className="text-xs text-slate-400 font-bold">Or add via URL:</span>
+                                  <input
+                                    type="text"
+                                    placeholder="Dán link file audio .mp3 online tại đây..."
+                                    className="px-3.5 py-1.5 bg-slate-900 border border-slate-600 rounded-xl text-xs text-white w-72 focus:outline-none focus:border-purple-400 font-mono"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && e.target.value) {
+                                        const urlVal = e.target.value.trim();
+                                        const updatedParts = [...sectionParts];
+                                        updatedParts[pIdx].audioUrl = urlVal;
+                                        updatedParts[pIdx].audio_blob = urlVal;
+                                        updatedParts[pIdx].audio_data = urlVal;
+                                        updatedParts[pIdx].audio_url = urlVal;
+                                        updatedParts[pIdx].audio = urlVal;
+                                        updatedParts[pIdx].audioFileName = 'File MP3 Link Online';
+                                        setSectionParts([...updatedParts]);
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
 
                             {/* BỘ TRÌNH PHÁT AUDIO PLAYER TRẮNG MỊN BO TRÒN RỰC RỠ Y HỆT 100% BỨC ẢNH 2 CỦA THẦY HẢI */}
                             {(pItem.audioUrl || pItem.audio_blob || pItem.audio_data || pItem.audio) ? (
@@ -1364,6 +1513,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                       const newParts = [...sectionParts];
                                       delete newParts[pIdx].audioUrl;
                                       delete newParts[pIdx].audio_blob;
+                                      delete newParts[pIdx].audio_data;
                                       delete newParts[pIdx].audio_url;
                                       delete newParts[pIdx].audio;
                                       delete newParts[pIdx].audioFileName;
