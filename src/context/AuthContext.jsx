@@ -142,8 +142,37 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const loginAsMasterTeacher = () => {
+    const teacherProfile = {
+      id: 'e30cbe39-ef8c-49dc-9db4-850230c565ba',
+      email: 'nguyensea106@gmail.com',
+      username: 'nguyensea106',
+      full_name: 'Nguyễn Văn Hải',
+      role: 'teacher',
+      approved: true,
+      is_teacher: true,
+      suspended: false
+    };
+    localStorage.setItem('lms_master_admin_session', JSON.stringify(teacherProfile));
+    setProfile(teacherProfile);
+    setUser({ id: teacherProfile.id, email: teacherProfile.email });
+    return teacherProfile;
+  };
+
   useEffect(() => {
-    // Check active session
+    // 1. Kiểm tra session Master Admin Thầy Hải từ LocalStorage trước
+    const savedMasterSession = localStorage.getItem('lms_master_admin_session');
+    if (savedMasterSession) {
+      try {
+        const parsed = JSON.parse(savedMasterSession);
+        setProfile(parsed);
+        setUser({ id: parsed.id, email: parsed.email });
+        setLoading(false);
+        return;
+      } catch (e) {}
+    }
+
+    // 2. Check active Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user || null;
       if (currentUser) {
@@ -161,8 +190,11 @@ export function AuthProvider({ children }) {
       if (currentUser) {
         await fetchProfile(currentUser.id, currentUser.email);
       } else {
-        setUser(null);
-        setProfile(null);
+        const savedAdmin = localStorage.getItem('lms_master_admin_session');
+        if (!savedAdmin) {
+          setUser(null);
+          setProfile(null);
+        }
       }
       setLoading(false);
     });
@@ -262,6 +294,7 @@ export function AuthProvider({ children }) {
   // Hàm Đăng xuất
   const signOut = async () => {
     setLoading(true);
+    localStorage.removeItem('lms_master_admin_session');
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
@@ -290,6 +323,7 @@ export function AuthProvider({ children }) {
         signIn,
         signUp,
         signOut,
+        loginAsMasterTeacher,
         refreshProfile,
       }}
     >
