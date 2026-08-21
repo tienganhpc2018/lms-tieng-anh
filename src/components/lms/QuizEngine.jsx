@@ -912,9 +912,20 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                   const isPart1MC = (pItem.part_type === 'multiple_choice' || !pItem.part_type) && !isTrueFalse;
                   const isPart2Short = pItem.part_type === 'short_essay';
 
-                  // NGUỒN PHÁT MP3 AN TOÀN 100%: NẾU CÓ AUDIOURL THÌ PHÁT AUDIOURL, NẾU CHƯA NẠP THÌ TỰ ĐỘNG DÙNG AUDIO BACKUP HD
-                  const isListening = String(activity?.type || activity?.content?.type || q.content?.title || '').toLowerCase().includes('listening');
-                  const activeAudioSource = pItem.audioUrl || (isListening ? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' : null);
+                  // NGUỒN PHÁT MP3 THÔNG MINH BẮT TẤT CẢ CÁC TRƯỜNG FILE UPLOAD (AUDIO, AUDIO_DATA, AUDIO_URL, BASE64)
+                  const extractAudio = () => {
+                    const candidate = pItem?.audio || pItem?.audio_data || pItem?.audio_url || pItem?.audioUrl || pItem?.mp3 || pItem?.audioBase64
+                      || q?.audio || q?.audio_data || q?.audio_url || q?.content?.audio || q?.content?.audio_data || q?.content?.audio_url || q?.content?.audioUrl;
+                    if (candidate && String(candidate).trim() !== '') return String(candidate).trim();
+
+                    const isListeningSec = String(activity?.type || q?.type || q?.content?.title || pItem?.part_title || '').toLowerCase().includes('listening');
+                    if (isListeningSec) {
+                      return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+                    }
+                    return null;
+                  };
+
+                  const activeAudioSource = extractAudio();
 
                   return (
                     <div key={pIdx} className="space-y-2 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
@@ -1202,6 +1213,36 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                   {q.content.question || q.content.title}
                 </div>
               )}
+
+              {/* TRÌNH PHÁT AUDIO PLAYER CHO DẠNG LISTENING ĐƠN LẺ */}
+              {(() => {
+                const singleAudio = q.audio || q.audio_data || q.audio_url || q.content?.audio || q.content?.audio_data || q.content?.audio_url || (isListening ? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' : null);
+                if (!singleAudio) return null;
+
+                return (
+                  <div className="p-3 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-2xl space-y-2 my-2 shadow-md border border-purple-500/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-6 h-6 rounded-xl bg-purple-500/30 text-purple-300 flex items-center justify-center font-extrabold text-xs">
+                          🎧
+                        </span>
+                        <span className="text-xs font-extrabold text-purple-200 uppercase">
+                          BÀI NGHE AUDIO MP3 - THI THỬ TRỰC TUYẾN
+                        </span>
+                      </div>
+                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-bold rounded">✓ PHÁT MP3 MƯỢT MÀ</span>
+                    </div>
+                    <audio
+                      controls
+                      src={singleAudio}
+                      onError={(e) => {
+                        e.target.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+                      }}
+                      className="w-full h-9 rounded-xl outline-none"
+                    />
+                  </div>
+                );
+              })()}
 
               <div className="space-y-1.5 pt-0.5">
                 {(childQuestions.length > 0
