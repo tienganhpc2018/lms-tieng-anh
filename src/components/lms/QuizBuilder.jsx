@@ -937,7 +937,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               <span>{p.part_title || `PART #${pI + 1}`}</span>
                             </h5>
 
-                              {/* BỔ SUNG TRÌNH PHÁT BÀI NGHE AUDIO MP3 ĐỒNG BỘ 100% IFRAME GOOGLE DRIVE HẸP DÀI BO TRÒN 2 ĐẦU Y HỆT ẢNH 2 */}
+                              {/* PHÁT BÀI NGHE AUDIO MP3 CHỈ HIỂN THỊ DUY NHẤT THANH PHÁT HẸP DÀI BO TRÒN */}
                              {(() => {
                                const pAudio = p.audio_data || p.audio_url || p.audioUrl || p.audio || q.content?.audio_data || q.content?.audio_url || q.content?.audioUrl;
                                if (!pAudio) return null;
@@ -945,16 +945,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                const iframeSrc = getGoogleDriveIframeUrl(pAudio);
 
                                return (
-                                 <div className="p-3 bg-slate-950 border border-purple-500/30 rounded-3xl space-y-2 my-2 shadow-xl">
-                                   <div className="flex items-center space-x-2 truncate">
-                                     <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center font-extrabold text-xs">
-                                       🎵
-                                     </span>
-                                     <p className="text-xs font-extrabold text-purple-200 truncate">
-                                       File Audio Bài Nghe Listening (Part #{pI + 1})
-                                     </p>
-                                   </div>
-
+                                 <div className="my-2">
                                    {iframeSrc ? (
                                      <div className="relative w-full bg-slate-900 p-1 rounded-full border border-purple-500/40 shadow-inner overflow-hidden flex items-center h-[52px]">
                                        <iframe
@@ -1536,45 +1527,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               </div>
                             )}
 
-                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER & KHUNG IFRAME PREVIEW GOOGLE DRIVE XỊN XÒ THEO ĐÚNG YÊU CẦU THẦY HẢI */}
+                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER CHỈ HIỂN THỊ THANH PHÁT TẬN CÙNG TINH GỌN */}
                             {(pItem.audio_url || pItem.audioUrl) && (
-                              <div className="p-4 bg-slate-950 border border-purple-500/30 rounded-3xl space-y-3 shadow-2xl">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-2 truncate">
-                                    <span className="w-7 h-7 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center font-extrabold text-xs">
-                                      🎵
-                                    </span>
-                                    <div className="truncate">
-                                      <p className="text-xs font-extrabold text-purple-200 truncate">
-                                        {pItem.audioFileName || (pItem.audio_url?.includes('drive.google.com') ? 'File Audio Google Drive' : 'File Audio MP3 Online')}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center space-x-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const newParts = [...sectionParts];
-                                        delete newParts[pIdx].audio_url;
-                                        delete newParts[pIdx].audioUrl;
-                                        delete newParts[pIdx].audio_data;
-                                        delete newParts[pIdx].audio_blob;
-                                        delete newParts[pIdx].audio;
-                                        delete newParts[pIdx].audioFileName;
-                                        delete newParts[pIdx].temp_link_input;
-                                        setSectionParts([...newParts]);
-                                      }}
-                                      className="px-3 py-1 text-[11px] font-extrabold text-rose-400 hover:bg-rose-500/20 rounded-xl transition cursor-pointer border border-rose-500/30"
-                                    >
-                                      ✕ Xóa
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* PHƯƠNG ÁN 1: KHUNG PREVIEW IFRAME GOOGLE DRIVE HẸP VÀ DÀI BO TRÒN Y HỆT ẢNH 2 */}
+                              <div className="flex items-center space-x-2 my-2">
                                 {getGoogleDriveIframeUrl(pItem.audio_url || pItem.audioUrl) ? (
-                                  <div className="relative w-full bg-slate-900 p-1 rounded-full border border-purple-500/40 shadow-inner overflow-hidden flex items-center h-[52px]">
+                                  <div className="relative flex-1 bg-slate-900 p-1 rounded-full border border-purple-500/40 shadow-inner overflow-hidden flex items-center h-[52px]">
                                     <iframe
                                       src={getGoogleDriveIframeUrl(pItem.audio_url || pItem.audioUrl)}
                                       width="100%"
@@ -1582,12 +1539,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                       allow="autoplay"
                                       className="rounded-full border-0 w-full h-[52px] overflow-hidden"
                                     ></iframe>
-                                    {/* LỚP CHE GÓC PHẢI LOẠI BỎ HOÀN TOÀN NÚT MỞ CỬA SỔ NHO ↗️ */}
+                                    {/* LỚP CHE GÓC PHẢI LOẠI BỎ HOÀN TOÀN NÚT MỞ CỬA SỔ NHỎ ↗️ */}
                                     <div className="absolute right-0 top-0 bottom-0 w-14 bg-slate-900 pointer-events-none rounded-r-full" />
                                   </div>
                                 ) : (
-                                  /* PHƯƠNG ÁN 2: THẺ AUDIO TRUYỀN THỐNG MỎNG MỊN BO TRÒN BẢO VỆ CHỐNG TẢI FILE */
-                                  <div className="w-full bg-white p-1 rounded-full border-2 border-purple-300 shadow-xl">
+                                  <div className="flex-1 bg-white p-1 rounded-full border-2 border-purple-300 shadow-xl">
                                     <audio
                                       controls
                                       controlsList="nodownload noplaybackrate"
@@ -1597,6 +1553,24 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     />
                                   </div>
                                 )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newParts = [...sectionParts];
+                                    delete newParts[pIdx].audio_url;
+                                    delete newParts[pIdx].audioUrl;
+                                    delete newParts[pIdx].audio_data;
+                                    delete newParts[pIdx].audio_blob;
+                                    delete newParts[pIdx].audio;
+                                    delete newParts[pIdx].audioFileName;
+                                    delete newParts[pIdx].temp_link_input;
+                                    setSectionParts([...newParts]);
+                                  }}
+                                  className="px-3 py-2 text-[11px] font-extrabold text-rose-400 hover:bg-rose-500/20 rounded-xl transition cursor-pointer border border-rose-500/30 flex-shrink-0"
+                                >
+                                  ✕ Xóa
+                                </button>
                               </div>
                             )}
                           </div>
