@@ -1448,10 +1448,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter' && e.target.value) {
                                         let urlVal = e.target.value.trim();
-                                        if (urlVal.includes('drive.google.com') || urlVal.includes('docs.google.com')) {
+                                        if (urlVal.includes('drive.google.com') || urlVal.includes('docs.google.com') || urlVal.includes('googleusercontent.com')) {
                                           const gMatch = urlVal.match(/\/file\/d\/([^\/\?]+)/) || urlVal.match(/id=([^\&]+)/) || urlVal.match(/\/d\/([^\/\?]+)/);
                                           if (gMatch && gMatch[1]) {
-                                            urlVal = `https://drive.google.com/uc?export=download&id=${gMatch[1]}`;
+                                            urlVal = `https://lh3.googleusercontent.com/d/${gMatch[1]}`;
                                           }
                                         }
                                         const updatedParts = [...sectionParts];
