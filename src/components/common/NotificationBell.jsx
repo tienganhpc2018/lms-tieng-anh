@@ -25,6 +25,29 @@ export default function NotificationBell() {
 
       let list = data || [];
 
+      // 2. DÀNH RIÊNG CHO GIÁO VIÊN NGUYỄN VĂN HẢI: KIỂM TRA SỐ LƯỢNG HỌC SINH MỚI CHƯA DUYỆT (APPROVED === FALSE)
+      if (isTeacher) {
+        try {
+          const { data: unapprovedUsers } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('approved', false);
+
+          if (unapprovedUsers && unapprovedUsers.length > 0) {
+            const firstUnapproved = unapprovedUsers[0];
+            const unapprovedNotif = {
+              id: 'unapproved_summary_' + unapprovedUsers.length,
+              title: '🎓 Học Sinh Mới Đang Chờ Duyệt!',
+              message: `Có ${unapprovedUsers.length} học sinh mới (ví dụ: "${firstUnapproved.full_name || firstUnapproved.username}") vừa tạo tài khoản và đang chờ Thầy Hải phê duyệt.`,
+              type: 'user_registration',
+              read: false,
+              created_at: firstUnapproved.created_at || new Date().toISOString(),
+            };
+            list = [unapprovedNotif, ...list];
+          }
+        } catch (unapprovedErr) {}
+      }
+
       // Lọc trùng ID
       const uniqueMap = {};
       list.forEach((item) => {
@@ -42,15 +65,22 @@ export default function NotificationBell() {
   useEffect(() => {
     fetchNotifications();
 
-    const subscription = supabase
+    // LẮNG NGHE THỜI GIAN THỰC CẢ BẢNG NOTIFICATIONS VÀ BẢNG PROFILES (KHI CÓ HỌC SINH ĐĂNG KÝ MỚI)
+    const notifSub = supabase
       .channel('notifications_realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
+        fetchNotifications();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
+        fetchNotifications();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
         fetchNotifications();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(subscription);
+      supabase.removeChannel(notifSub);
     };
   }, [user, isTeacher]);
 
