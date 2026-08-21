@@ -971,10 +971,6 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                       pItem?.audio_data,
                       pItem?.audio,
                       pItem?.audio_blob,
-                      q?.content?.audio_url,
-                      q?.content?.audioUrl,
-                      q?.content?.audio_data,
-                      q?.content?.audio,
                     ];
 
                     // Nếu là Part 1 (pIdx === 0) thì cho phép fallback lấy activity audio chung
