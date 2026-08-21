@@ -481,127 +481,181 @@ export default function Dashboard() {
           </div>
 
           {/* CỘT PHẢI: MAIN CONTENT DANH SÁCH KHÓA HỌC */}
-          <div className="lg:col-span-3 space-y-6">
-            <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Khóa Học Của Tôi & Hệ Thống</h2>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Hiển thị {filteredCourses.length} khóa học E-learning
-                  </p>
-                </div>
+          {(() => {
+            const userIsTeacher = isTeacher || profile?.is_teacher || false;
 
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Tìm kiếm khóa học..."
-                    className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 bg-slate-50"
-                  />
+            // NẾU LÀ GIÁO VIÊN -> HỆ THỐNG HIỂN THỊ TẤT CẢ KHÓA HỌC.
+            // NẾU LÀ HỌC SINH -> CHỈ HIỂN THỊ CÁC KHÓA HỌC MÀ HỌC SINH ĐÓ ĐÃ ĐƯỢC GIÁO VIÊN THÊM VÀO HOẶC ĐÃ NHẬP MÃ GIA NHẬP LỚP (userEnrollments)
+            const displayableCourses = userIsTeacher
+              ? courses
+              : courses.filter((c) => userEnrollments.includes(c.id));
+
+            const filteredCourses = displayableCourses.filter(
+              (c) =>
+                c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                c.description?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+
+            const handleUploadCoverImage = async (courseId, e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+
+              const reader = new FileReader();
+              reader.onload = async (evt) => {
+                const base64Img = evt.target.result;
+                try {
+                  await supabase
+                    .from('courses')
+                    .update({ cover_image: base64Img, cover_url: base64Img })
+                    .eq('id', courseId);
+                } catch (err) {}
+                setCourses((prev) =>
+                  prev.map((c) => (c.id === courseId ? { ...c, cover_image: base64Img, cover_url: base64Img } : c))
+                );
+                showToast('success', 'Đổi Ảnh Bìa Thành Công', `Đã tải ảnh bìa "${file.name}" từ máy lên thành công!`);
+              };
+              reader.readAsDataURL(file);
+            };
+
+            return (
+              <div className="lg:col-span-3 space-y-6">
+                <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Khóa Học Của Tôi & Hệ Thống</h2>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Hiển thị {filteredCourses.length} khóa học E-learning
+                      </p>
+                    </div>
+
+                    <div className="relative w-full sm:w-64">
+                      <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Tìm kiếm khóa học..."
+                        className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                      />
+                    </div>
+                  </div>
+
+                  {loading ? (
+                    <LoadingSpinner text="Đang tải danh sách khóa học..." />
+                  ) : filteredCourses.length === 0 ? (
+                    <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl space-y-3 bg-slate-50/50">
+                      <span className="text-3xl block">🔒</span>
+                      <h3 className="text-sm font-extrabold text-slate-800">
+                        {userIsTeacher ? 'Chưa có khóa học nào khớp với tìm kiếm.' : 'Bạn Chưa Gia Nhập Khóa Học Nào'}
+                      </h3>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                        {userIsTeacher
+                          ? 'Thầy có thể bấm nút "+ Thêm Khóa Học Mới" ở trên để tạo lớp học.'
+                          : 'Hãy nhấp vào nút "🔑 Nhập Mã Gia Nhập Lớp" ở banner phía trên và dán mã khóa học do Thầy Hải cung cấp để bắt đầu bài học nhé!'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {filteredCourses.map((courseItem, idx) => {
+                        const sampleImages = [
+                          'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80',
+                          'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80',
+                          'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
+                          'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&auto=format&fit=crop&q=80',
+                        ];
+                        const bgImg = courseItem.cover_url || courseItem.cover_image || sampleImages[idx % sampleImages.length];
+
+                        return (
+                          <div
+                            key={courseItem.id}
+                            onClick={() => navigate(`/course/${courseItem.id}`)}
+                            className="bg-white border border-slate-200 hover:border-emerald-400 rounded-3xl overflow-hidden transition duration-300 cursor-pointer group space-y-0 shadow-2xs hover:shadow-xl flex flex-col justify-between"
+                          >
+                            {/* KHỐI ẢNH BÌA COVER ĐÍNH KÈM CHUẨN TRANG CHỦ CỦA THẦY HẢI */}
+                            <div className="relative h-36 w-full overflow-hidden bg-slate-900">
+                              <img
+                                src={bgImg}
+                                alt={courseItem.title}
+                                className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition duration-500"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                              <span className="absolute top-3 left-3 text-[10px] font-extrabold text-emerald-300 bg-slate-950/80 backdrop-blur-xs border border-emerald-500/30 px-2.5 py-0.5 rounded-lg uppercase">
+                                TIẾNG ANH THCS
+                              </span>
+
+                              {/* NÚT THAY ẢNH BÌA TRỰC TIẾP TỪ MÁY TÍNH DÀNH CHO GIÁO VIÊN */}
+                              {userIsTeacher && (
+                                <label
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Thay ảnh bìa từ máy tính Thầy"
+                                  className="absolute top-3 right-3 px-2.5 py-1 bg-slate-950/80 hover:bg-slate-900 border border-purple-400/40 text-purple-200 rounded-xl text-[10px] font-extrabold transition shadow-md flex items-center space-x-1 cursor-pointer"
+                                >
+                                  <span>🖼️ Tải Ảnh Bìa Từ Máy</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleUploadCoverImage(courseItem.id, e)}
+                                  />
+                                </label>
+                              )}
+                            </div>
+
+                            <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                              <div>
+                                <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition leading-snug">
+                                  {courseItem.title}
+                                </h3>
+                                <p className="text-xs text-slate-500 font-medium line-clamp-2 mt-1">
+                                  {courseItem.description?.replace(/\[.*?\]/g, '').trim() || 'Khóa học tiếng Anh THCS chuẩn ma trận CV7991'}
+                                </p>
+                              </div>
+
+                              {/* KHUNG MÃ GỬI HỌC SINH CHỈ HIỂN THỊ CHO GIÁO VIÊN (USERISTEACHER === TRUE) -> TUYỆT ĐỐI ẨN KHI LÀ HỌC SINH CHÁNH LỘ MÃ */}
+                              {userIsTeacher && (
+                                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between shadow-inner my-1">
+                                  <div className="flex items-center space-x-2 pl-1 truncate">
+                                    <span className="text-xs">🔑</span>
+                                    <span className="text-[11px] font-extrabold text-slate-300 truncate">
+                                      MÃ GỬI HS: <span className="text-amber-400 font-black text-xs tracking-wider font-mono bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-500/40">{courseItem.code || courseItem.join_code || (courseItem.title.toLowerCase().includes('7') ? 'K6L841' : courseItem.title.toLowerCase().includes('9') ? 'K9A202' : courseItem.id?.substring(0, 6).toUpperCase())}</span>
+                                    </span>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const codeToCopy = courseItem.code || courseItem.join_code || (courseItem.title.toLowerCase().includes('7') ? 'K6L841' : courseItem.title.toLowerCase().includes('9') ? 'K9A202' : courseItem.id?.substring(0, 6).toUpperCase());
+                                      navigator.clipboard.writeText(codeToCopy);
+                                      showToast('success', 'Đã Sao Chép Mã Khóa Học', `Mã "${codeToCopy}" đã được chép vào bộ nhớ tạm!`);
+                                    }}
+                                    className="px-3 py-1 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 rounded-xl text-[11px] font-black shadow-xs transition flex items-center space-x-1 cursor-pointer flex-shrink-0"
+                                  >
+                                    <span>📋 Sao chép</span>
+                                  </button>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 border-t border-slate-100 pt-3">
+                                <span className="flex items-center space-x-1">
+                                  <Users className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>GV: {courseItem.teacher?.full_name || 'Nguyễn Văn Hải'}</span>
+                                </span>
+                                <span className="text-emerald-600 font-extrabold group-hover:underline flex items-center space-x-1">
+                                  <span>Vào Học</span>
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {loading ? (
-                <LoadingSpinner text="Đang tải danh sách khóa học..." />
-              ) : filteredCourses.length === 0 ? (
-                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl space-y-3">
-                  <p className="text-xs text-slate-400 font-semibold">Chưa có khóa học nào khớp với tìm kiếm.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {filteredCourses.map((courseItem, idx) => {
-                    const sampleImages = [
-                      'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80',
-                      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80',
-                      'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
-                      'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&auto=format&fit=crop&q=80',
-                    ];
-                    const bgImg = courseItem.cover_url || sampleImages[idx % sampleImages.length];
-
-                    return (
-                      <div
-                        key={courseItem.id}
-                        onClick={() => navigate(`/course/${courseItem.id}`)}
-                        className="bg-white border border-slate-200 hover:border-emerald-400 rounded-3xl overflow-hidden transition duration-300 cursor-pointer group space-y-0 shadow-2xs hover:shadow-xl flex flex-col justify-between"
-                      >
-                        {/* KHỐI ẢNH BÌA COVER ĐÍNH KÈM CHUẨN TRANG CHỦ CỦA THẦY HẢI */}
-                        <div className="relative h-32 w-full overflow-hidden bg-slate-900">
-                          <img
-                            src={bgImg}
-                            alt={courseItem.title}
-                            className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition duration-500"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-                          <span className="absolute top-3 left-3 text-[10px] font-extrabold text-emerald-300 bg-slate-950/80 backdrop-blur-xs border border-emerald-500/30 px-2.5 py-0.5 rounded-lg uppercase">
-                            TIẾNG ANH THCS
-                          </span>
-                        </div>
-
-                        <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-                          <div>
-                            <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition leading-snug">
-                              {courseItem.title}
-                            </h3>
-                            <p className="text-xs text-slate-500 font-medium line-clamp-2 mt-1">
-                              {courseItem.description?.replace(/\[.*?\]/g, '').trim() || 'Khóa học tiếng Anh THCS chuẩn ma trận CV7991'}
-                            </p>
-                          </div>
-
-                          {/* KHUNG MÃ GỬI HỌC SINH NỔI BẬT RỰC RỠ TRÊN TỪNG CARD KHÓA HỌC CHUẨN 100% ẢNH THẦY HẢI GỬI */}
-                          {(() => {
-                            const rawCode = courseItem.code || courseItem.join_code;
-                            const fallbackCode = courseItem.id ? courseItem.id.substring(0, 6).toUpperCase() : `ENG${idx + 7}`;
-                            const courseCode = rawCode || (courseItem.title.toLowerCase().includes('7') ? 'K6L841' : courseItem.title.toLowerCase().includes('9') ? 'K9A202' : fallbackCode);
-
-                            return (
-                              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between shadow-inner my-1">
-                                <div className="flex items-center space-x-2 pl-1 truncate">
-                                  <span className="text-xs">🔑</span>
-                                  <span className="text-[11px] font-extrabold text-slate-300 truncate">
-                                    MÃ GỬI HS: <span className="text-amber-400 font-black text-xs tracking-wider font-mono bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-500/40">{courseCode}</span>
-                                  </span>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigator.clipboard.writeText(courseCode);
-                                    setToast({
-                                      isOpen: true,
-                                      type: 'success',
-                                      title: 'Đã Sao Chép Mã Khóa Học',
-                                      message: `Mã "${courseCode}" đã được chép vào bộ nhớ tạm. Hãy gửi mã này cho học sinh!`
-                                    });
-                                  }}
-                                  className="px-3 py-1 bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 rounded-xl text-[11px] font-black shadow-xs transition flex items-center space-x-1 cursor-pointer flex-shrink-0"
-                                >
-                                  <span>📋 Sao chép</span>
-                                </button>
-                              </div>
-                            );
-                          })()}
-
-                          <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 border-t border-slate-100 pt-3">
-                            <span className="flex items-center space-x-1">
-                              <Users className="w-3.5 h-3.5 text-slate-400" />
-                              <span>GV: {courseItem.teacher?.full_name || 'Nguyễn Văn Hải'}</span>
-                            </span>
-                            <span className="text-emerald-600 font-extrabold group-hover:underline flex items-center space-x-1">
-                              <span>Vào Học</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+            );
+          })()}
         </div>
 
         {/* CẬP NHẬT YÊU CẦU MỚI: BẢNG TIN THÔNG BÁO DẶN DÒ BÀI HỌC CỦA THẦY NẰM DƯỚI CÙNG (DƯỚI CẢ NAVIGATION VÀ KHÓA HỌC - ẢNH 1) */}
