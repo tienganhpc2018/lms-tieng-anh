@@ -1095,70 +1095,81 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                             const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' ? o?.isCorrect : false);
                             const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || (cOpts[correctOptIndex]?.text) || 'Đáp án đúng';
 
-                            // Lọc số thứ tự thừa nếu câu hỏi đã chứa số
-                            let qDisplay = cQ.question || '';
-                            const hasLeadingNumber = /^\d+[\.\)]/.test(qDisplay);
-                            const finalQuestionTitle = hasLeadingNumber ? qDisplay : `${cIdx + 1}. ${qDisplay}`;
+                            // LỌC SỐ THỨ TỰ THỪA & LỌC CHỮ "Câu 1:", "Câu 2:" TRÁNH LẶP
+                            let qDisplay = (cQ.question || '').trim();
+                            // Gọt bỏ "1. Câu 1: ", "Câu 1: ", "Question 1: "
+                            qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
+                            qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, ''); // Gọt bớt số đầu nếu có
+                            const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
 
                             const selectedText = selectedVal;
 
                             return (
-                              <div key={cIdx} className="p-3.5 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-2.5">
-                                <h4 className="font-extrabold text-xs text-slate-900 leading-relaxed whitespace-pre-line">
+                              <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3">
+                                <h4 className="font-extrabold text-sm text-slate-900 leading-relaxed whitespace-pre-line">
                                   {finalQuestionTitle}
                                 </h4>
 
-                                  {/* 4 LỰA CHỌN A, B, C, D DẠNG PILL SÁT CHỮ NẰM TRÊN 1 HÀNG - ĐỔI MÀU ĐỎ CHO CÂU LÀM SAI KHI NỘP BÀI */}
-                                  <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5 w-full">
-                                    {cOpts.map((opt, oIdx) => {
-                                      const optPrefix = String.fromCharCode(65 + oIdx);
-                                      const rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
-                                      const isCorrectOpt = (typeof opt === 'object' && opt?.isCorrect) || oIdx === correctOptIndex;
+                                {/* 4 LỰA CHỌN A, B, C, D XẾP THẲNG ĐỀU THEO HÀNG CỘT CÂN BẰNG CHUYÊN NGHIỆP Y HỆT 100% BỨC ẢNH 3 */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full my-1">
+                                  {cOpts.map((opt, oIdx) => {
+                                    const optPrefix = String.fromCharCode(65 + oIdx);
+                                    let rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
+                                    
+                                    // GỌT BỎ KÝ TỰ "A. ", "B. ", "A) ", "A: " BỊ LẶP TRONG DỮ LIỆU ĐÁP ÁN TRÁNH "A. A. community"
+                                    const cleanRegex = new RegExp(`^(${optPrefix}[\\.\\):]\\s*|\\([A-D]\\)\\s*|[A-D][\\.\\)]\\s*)`, 'i');
+                                    rawOptText = rawOptText.trim().replace(cleanRegex, '').trim();
 
-                                      // Đánh giá lựa chọn của Học sinh
-                                      const isSelected = selectedText === rawOptText ||
-                                                         selectedText === optPrefix ||
-                                                         selectedText === oIdx ||
-                                                         selectedText === String(oIdx) ||
-                                                         selectedText === `${optPrefix}. ${rawOptText}`;
+                                    const isCorrectOpt = (typeof opt === 'object' && opt?.isCorrect) || oIdx === correctOptIndex;
 
-                                      // Định màu nền giao diện khi đã nộp bài (submitted)
-                                      let buttonStyle = 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-emerald-400';
+                                    // Đánh giá lựa chọn của Học sinh
+                                    const isSelected = selectedText === rawOptText ||
+                                                       selectedText === optPrefix ||
+                                                       selectedText === oIdx ||
+                                                       selectedText === String(oIdx) ||
+                                                       selectedText === `${optPrefix}. ${rawOptText}`;
 
-                                      if (submitted) {
-                                        if (isSelected && !isCorrectOpt) {
-                                          // HỌC SINH LÀM SAI -> ĐỔI MÀU NỀN ĐỎ CHỎI THEO ĐÚNG CHỈ ĐẠO CỦA THẦY HẢI
-                                          buttonStyle = 'bg-rose-600 text-white border-rose-700 ring-2 ring-rose-300 font-extrabold shadow-md animate-pulse';
-                                        } else if (isCorrectOpt) {
-                                          // ĐÁP ÁN ĐÚNG CHUẨN -> ĐỔI MÀU NỀN XANH LÁ RỰC RỠ
-                                          buttonStyle = 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-300 font-extrabold shadow-md';
-                                        } else {
-                                          buttonStyle = 'bg-slate-100 text-slate-400 border-slate-200 opacity-60';
-                                        }
-                                      } else if (isSelected) {
-                                        // ĐANG LÀM BÀI -> HIỂN THỊ MÀU XANH ĐỌC THỜI THỰC
-                                        buttonStyle = 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 font-extrabold shadow-md';
+                                    // Định màu nền giao diện - GIỮ NGUYÊN ĐỘ RÕ NÉT 100% KHÔNG LÀM MỜ (CHUẨN THEO YÊU CẦU CỦA THẦY HẢI)
+                                    let buttonStyle = 'bg-white text-slate-800 border-slate-300 hover:bg-purple-50 hover:border-purple-400 opacity-100 shadow-xs';
+
+                                    if (submitted) {
+                                      if (isSelected && !isCorrectOpt) {
+                                        // HỌC SINH LÀM SAI -> ĐỔI MÀU NỀN ĐỎ CHỎI THỂ HIỆN RÕ RÀNG
+                                        buttonStyle = 'bg-rose-600 text-white border-rose-700 ring-2 ring-rose-300 font-extrabold shadow-md opacity-100';
+                                      } else if (isCorrectOpt) {
+                                        // ĐÁP ÁN ĐÚNG CHUẨN -> ĐỔI MÀU NỀN XANH LÁ RỰC RỠ
+                                        buttonStyle = 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-300 font-extrabold shadow-md opacity-100';
+                                      } else {
+                                        // CÁC ĐÁP ÁN CÒN LẠI -> GIỮ NGUYÊN ĐỘ RÕ CHỮ MÀU ĐEN RÕ NÉT KHÔNG BỊ MỜ MỜ
+                                        buttonStyle = 'bg-slate-100 text-slate-800 border-slate-300 opacity-100 font-semibold';
                                       }
+                                    } else if (isSelected) {
+                                      // ĐANG LÀM BÀI -> HIỂN THỊ MÀU NỀN XANH CHỌN THỜI THỰC
+                                      buttonStyle = 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 font-extrabold shadow-md opacity-100';
+                                    }
 
-                                      return (
-                                        <button
-                                          key={oIdx}
-                                          disabled={submitted}
-                                          onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                          className={`inline-flex items-center px-4 py-1.5 rounded-full text-xs border font-bold shadow-2xs transition whitespace-nowrap cursor-pointer ${buttonStyle}`}
-                                        >
-                                          <span className="mr-1.5 opacity-80">{optPrefix}.</span>
-                                          <span className="font-medium text-xs">{rawOptText}</span>
-                                          {submitted && isSelected && !isCorrectOpt && (
-                                            <span className="ml-1.5 text-[10px] bg-rose-900/40 px-1.5 py-0.5 rounded-md text-white font-extrabold">✕ SAI</span>
-                                          )}
-                                          {submitted && isCorrectOpt && (
-                                            <span className="ml-1.5 text-[10px] bg-emerald-900/40 px-1.5 py-0.5 rounded-md text-white font-extrabold">✓ ĐÚNG</span>
-                                          )}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
+                                    return (
+                                      <button
+                                        key={oIdx}
+                                        disabled={submitted}
+                                        onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                        className={`flex items-center justify-start px-3.5 py-2.5 rounded-xl text-xs border font-bold transition w-full text-left cursor-pointer ${buttonStyle}`}
+                                      >
+                                        <span className={`mr-2 font-extrabold text-xs ${submitted && (isSelected || isCorrectOpt) ? 'text-white' : 'text-amber-700'}`}>
+                                          {optPrefix}.
+                                        </span>
+                                        <span className="font-extrabold text-xs truncate flex-1">{rawOptText}</span>
+
+                                        {submitted && isSelected && !isCorrectOpt && (
+                                          <span className="ml-1 text-[10px] bg-rose-900/60 px-1.5 py-0.5 rounded-md text-white font-extrabold shrink-0">✕ SAI</span>
+                                        )}
+                                        {submitted && isCorrectOpt && (
+                                          <span className="ml-1 text-[10px] bg-emerald-900/60 px-1.5 py-0.5 rounded-md text-white font-extrabold shrink-0">✓ ĐÚNG</span>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
 
                                 {/* KHUNG GIẢI THÍCH CHI TIẾT NGAY SAU MỖI CÂU HỎI (TUYỆT ĐỐI CHỈ HIỂN THỊ KHI ĐÃ NỘP BÀI HOẶC LÀ GIÁO VIÊN) */}
                                 {(submitted || isTeacher) && renderCompactExplanation(
