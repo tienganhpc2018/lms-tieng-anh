@@ -989,14 +989,14 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                       activity?.content_url,
                     ];
 
-                    // Tự động convert link Google Drive thành link stream HTML5 MP3 trực tiếp
+                    // Tự động convert link Google Drive thành link stream CDN HTML5 MP3 trực tiếp không bị trang antivirus chặn
                     const rawSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
                     if (rawSrc) {
                       let urlVal = rawSrc.trim();
-                      if (urlVal.includes('drive.google.com') || urlVal.includes('docs.google.com')) {
+                      if (urlVal.includes('drive.google.com') || urlVal.includes('docs.google.com') || urlVal.includes('googleusercontent.com')) {
                         const gMatch = urlVal.match(/\/file\/d\/([^\/\?]+)/) || urlVal.match(/id=([^\&]+)/) || urlVal.match(/\/d\/([^\/\?]+)/);
                         if (gMatch && gMatch[1]) {
-                          return `https://drive.google.com/uc?export=download&id=${gMatch[1]}`;
+                          return `https://lh3.googleusercontent.com/d/${gMatch[1]}`;
                         }
                       }
                       return urlVal;
