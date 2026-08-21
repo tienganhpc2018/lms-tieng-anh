@@ -535,14 +535,18 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
     }
 
     try {
-      if (profile?.id && activity?.id) {
+      if (profile?.id && (activityId || activity?.id)) {
         await supabase.from('submissions').insert([
           {
-            activity_id: activity.id,
+            activity_id: activityId || activity?.id,
             student_id: profile.id,
-            answers_data: { userAnswers, uploadedStudentImages, aiGrading, tabSwitchCount, badges },
-            score: totalScore,
+            answers: userAnswers, // LƯU VĨNH VIỄN CÂU CHỌN CỦA HỌC SINH ĐỂ TRUY VẾT LẠI!
+            answers_data: { userAnswers, uploadedStudentImages, aiGrading, tabSwitchCount, badges, timeTakenStr },
+            score: correctCount,
+            correct_count: correctCount,
+            total_questions: finalTotalQ,
             status: 'graded',
+            submitted_at: new Date().toISOString(),
           },
         ]);
       }
