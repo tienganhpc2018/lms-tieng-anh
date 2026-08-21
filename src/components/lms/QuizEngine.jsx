@@ -26,6 +26,14 @@ const extractGoogleFileId = (url) => {
   return match ? match[1] : null;
 };
 
+const getGoogleDriveStreamUrl = (url) => {
+  const fileId = extractGoogleFileId(url);
+  if (fileId) {
+    return `https://lh3.googleusercontent.com/d/${fileId}`;
+  }
+  return url || '';
+};
+
 const getGoogleDriveIframeUrl = (url) => {
   const fileId = extractGoogleFileId(url);
   if (fileId) {
