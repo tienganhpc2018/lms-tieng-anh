@@ -16,6 +16,7 @@ export default function AssignmentView() {
 
   const [activity, setActivity] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [previewMode, setPreviewMode] = useState(false);
 
   const fetchData = async () => {
     if (!targetActivityId) return;
@@ -43,14 +44,12 @@ export default function AssignmentView() {
     fetchData();
   }, [targetActivityId]);
 
+  const activeAct = activity || { id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử Online', type: 'quiz' };
+  const userIsTeacher = isTeacher || profile?.is_teacher || false;
+
   if (loading) {
     return <LoadingSpinner text="Đang nạp đề thi thử..." />;
   }
-
-  const [previewMode, setPreviewMode] = useState(false);
-
-  const activeAct = activity || { id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử Online', type: 'quiz' };
-  const userIsTeacher = isTeacher || profile?.is_teacher || false;
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
