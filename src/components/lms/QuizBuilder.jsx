@@ -1279,16 +1279,16 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           </div>
                         </div>
 
-                        {/* 1. NÚT TẢI FILE ÂM THANH MP3 TRỰC TIẾP TỪ MÁY TÍNH & BỘ MÃ HÓA BASE64 TRỌN VẸN (CHUẨN 100% YÊU CẦU THẦY HẢI) */}
+                        {/* 1. NÚT TẢI FILE ÂM THANH MP3 TRỰC TIẾP TỪ MÁY TÍNH & BỘ NGHE THỬ 100% TỨC THÌ (TỐI GIẢN CHUẨN THẦY HẢI) */}
                         {selectedType?.toLowerCase().includes('listening') ? (
                           <div className="p-4 bg-purple-50/90 border-2 border-dashed border-purple-300 rounded-3xl space-y-3 shadow-2xs">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <label className="text-xs font-extrabold text-purple-950 uppercase flex items-center space-x-1.5">
                                 <Volume2 className="w-4 h-4 text-purple-600 animate-bounce" />
-                                <span>🎵 FILE ÂM THANH BÀI NGHE (AUDIO MP3 BASE64) CHO PART #{pIdx + 1}:</span>
+                                <span>🎵 FILE ÂM THANH BÀI NGHE CHO PART #{pIdx + 1}:</span>
                               </label>
 
-                              {/* NÚT TẢI FILE TỪ MÁY TÍNH LOCAL MÃ HÓA BASE64 TRỌN VẸN */}
+                              {/* NÚT TẢI FILE TỪ MÁY TÍNH */}
                               <div>
                                 <button
                                   type="button"
@@ -1313,30 +1313,39 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
 
+                                    // Tạo BlobURL phát trực tiếp mượt mà ngay trong Modal không bao giờ bị 0:00 / 0:00
+                                    const blobUrl = URL.createObjectURL(file);
+                                    const newParts = [...sectionParts];
+                                    newParts[pIdx].audioUrl = blobUrl;
+                                    newParts[pIdx].audio_blob = blobUrl;
+                                    newParts[pIdx].audioFileName = file.name;
+                                    setSectionParts([...newParts]);
+
                                     setToast({
                                       isOpen: true,
                                       type: 'info',
-                                      title: 'Đang Mã Hóa Bài Nghe Base64',
-                                      message: `Đang mã hóa file âm thanh "${file.name}" đính kèm trực tiếp vào bài thi...`
+                                      title: 'Đang Mã Hóa Bài Nghe',
+                                      message: `Đang xử lý file âm thanh "${file.name}"...`
                                     });
 
+                                    // Đọc Base64 đính kèm vĩnh viễn
                                     const reader = new FileReader();
                                     reader.onload = (event) => {
                                       const base64Audio = event.target.result;
                                       if (typeof base64Audio === 'string') {
-                                        const newParts = [...sectionParts];
-                                        newParts[pIdx].audioUrl = base64Audio;
-                                        newParts[pIdx].audio_data = base64Audio;
-                                        newParts[pIdx].audio_url = base64Audio;
-                                        newParts[pIdx].audio = base64Audio;
-                                        newParts[pIdx].audioFileName = file.name;
-                                        setSectionParts([...newParts]);
+                                        const updatedParts = [...sectionParts];
+                                        updatedParts[pIdx].audioUrl = blobUrl; // Dùng blobUrl phát mượt ở Modal
+                                        updatedParts[pIdx].audio_data = base64Audio; // Lưu Base64 vĩnh viễn cho DB
+                                        updatedParts[pIdx].audio_url = base64Audio;
+                                        updatedParts[pIdx].audio = base64Audio;
+                                        updatedParts[pIdx].audioFileName = file.name;
+                                        setSectionParts([...updatedParts]);
 
                                         setToast({
                                           isOpen: true,
                                           type: 'success',
-                                          title: 'Mã Hóa Base64 Thành Công',
-                                          message: `Đã đính kèm trọn vẹn file âm thanh "${file.name}" vào bài thi! Bấm "Lưu bài thi" để áp dụng cho Học sinh!`
+                                          title: 'Nạp Bài Nghe Thành Công',
+                                          message: `Đã nạp file "${file.name}"! Thầy có thể bấm Play ▶️ nghe thử mượt mà!`
                                         });
                                       }
                                     };
@@ -1346,8 +1355,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               </div>
                             </div>
 
-                            {/* HIỂN THỊ TÊN FILE AUDIO MP3 VÀ BỘ NGHE THỬ NGAY TRONG MODAL */}
-                            {(pItem.audioUrl || pItem.audio_data || pItem.audio) ? (
+                            {/* CHỈ KHI NẠP FILE XONG MỚI HIỂN THỊ TRÌNH PHÁT VÀ NÚT XÓA (TỐI GIẢN THEO CHỈ ĐẠO CỦA THẦY HẢI) */}
+                            {(pItem.audioUrl || pItem.audio_blob || pItem.audio_data || pItem.audio) ? (
                               <div className="p-3 bg-white border border-purple-200 rounded-2xl space-y-2 shadow-2xs">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-2 truncate">
@@ -1359,7 +1368,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                         {pItem.audioFileName || 'File Audio MP3 Gốc Đã Nạp'}
                                       </p>
                                       <p className="text-[10px] text-emerald-600 font-bold">
-                                        ✓ Đã đính kèm file MP3 gốc phát 100% mượt mà trên mọi trình duyệt!
+                                        ✓ Đã nạp file âm thanh gốc! Bấm nút Play ▶️ nghe thử ngay!
                                       </p>
                                     </div>
                                   </div>
@@ -1369,11 +1378,12 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     onClick={() => {
                                       const newParts = [...sectionParts];
                                       newParts[pIdx].audioUrl = '';
+                                      newParts[pIdx].audio_blob = '';
                                       newParts[pIdx].audio_data = '';
                                       newParts[pIdx].audio_url = '';
                                       newParts[pIdx].audio = '';
                                       newParts[pIdx].audioFileName = '';
-                                      setSectionParts(newParts);
+                                      setSectionParts([...newParts]);
                                     }}
                                     className="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition"
                                   >
@@ -1381,33 +1391,17 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   </button>
                                 </div>
 
-                                {/* BỘ NGHE THỬ ÂM THANH MP3 TRỰC TIẾP NGAY TRONG MODAL CHUẨN 100% KHÔNG BAO GIỜ BỊ 0:00 / 0:00 */}
+                                {/* BỘ NGHE THỬ ÂM THANH MP3 TRỰC TIẾP DÙNG BLOBLURL / DATA BASE64 PHÁT 100% KHÔNG BAO GIỜ BỊ 0:00 / 0:00 */}
                                 <div className="p-2.5 bg-slate-900 rounded-2xl border border-purple-400/30">
                                   <audio
                                     controls
-                                    src={pItem.audioUrl || pItem.audio_data || pItem.audio}
+                                    key={pItem.audio_blob || pItem.audioUrl || pItem.audio_data}
+                                    src={pItem.audio_blob || pItem.audioUrl || pItem.audio_data || pItem.audio}
                                     className="w-full h-9 outline-none accent-purple-500"
                                   />
                                 </div>
                               </div>
-                            ) : (
-                              <div className="space-y-1">
-                                <input
-                                  type="text"
-                                  value={pItem.audioUrl?.startsWith('data:') ? `[Mã hóa Base64 audio MP3 đính kèm trực tiếp: ${pItem.audioFileName || 'Audio'}]` : pItem.audioUrl || ''}
-                                  onChange={(e) => {
-                                    const newParts = [...sectionParts];
-                                    newParts[pIdx].audioUrl = e.target.value;
-                                    setSectionParts(newParts);
-                                  }}
-                                  placeholder="Dán đường dẫn Link file Audio MP3 hoặc nhấp nút 'Tải File Audio MP3 Từ Máy Tính' ở trên..."
-                                  className="w-full p-2.5 border border-purple-300 rounded-xl text-xs font-bold bg-white text-purple-950 shadow-inner"
-                                />
-                                <p className="text-[10px] text-slate-400 font-medium italic pl-1">
-                                  💡 Nhấp nút màu tím ở trên để nạp file từ máy Thầy hoặc dán link online.
-                                </p>
-                              </div>
-                            )}
+                            ) : null}
                           </div>
                         ) : ['reading_section', 'cloze_test', 'reading_tf'].includes(selectedType?.toLowerCase()) ? (
                           /* 2. CHỈ CÓ READING VÀ KNOWLEDGE OF LANGUAGE (CLOZE TEST) MỚI CÓ KHUNG ĐOẠN VĂN CHUNG */
