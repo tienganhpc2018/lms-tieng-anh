@@ -505,14 +505,6 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
     } catch (e) {
       console.error('Submit DB error:', e);
     }
-
-    // CHUYỂN HƯỚNG SANG TRANG KẾT QUẢ RIÊNG BỆNH NÂNG CAO HỆ THỐNG /assignment/[id]/result
-    const actId = activity?.id || (typeof activity === 'string' ? activity : null);
-    if (actId) {
-      setTimeout(() => {
-        window.location.href = `/assignment/${actId}/result`;
-      }, 500);
-    }
   };
 
   const renderPassageWithHighlights = (passageText) => {
