@@ -964,32 +964,31 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                   const isPart1MC = (pItem.part_type === 'multiple_choice' || !pItem.part_type) && !isTrueFalse;
                   const isPart2Short = pItem.part_type === 'short_essay';
 
-                  // NGUỒN PHÁT AUDIO THÔNG MINH: LẤY 100% CHUỖI BASE64, BLOB HOẶC URL CHUẨN ĐÃ LƯU TRONG DB
-                  const extractAudio = () => {
-                    // 1. Kiểm tra Local Cache trước nếu có
-                    try {
-                      const cachedAudio = localStorage.getItem(`lms_audio_cache_${activityId || activity?.id}`);
-                      if (cachedAudio && typeof cachedAudio === 'string' && cachedAudio.trim() !== '') {
-                        return cachedAudio.trim();
-                      }
-                    } catch (cErr) {}
-
+                  const extractAudioForPart = () => {
                     const candidates = [
-                      pItem?.audio_blob,
                       pItem?.audio_url,
                       pItem?.audioUrl,
                       pItem?.audio_data,
                       pItem?.audio,
-                      q?.content?.audio_blob,
+                      pItem?.audio_blob,
                       q?.content?.audio_url,
                       q?.content?.audioUrl,
                       q?.content?.audio_data,
                       q?.content?.audio,
-                      activity?.audio_url,
-                      activity?.content_url,
                     ];
 
-                    // Tự động convert link Google Drive thành link stream CDN HTML5 MP3 trực tiếp không bị trang antivirus chặn
+                    // Nếu là Part 1 (pIdx === 0) thì cho phép fallback lấy activity audio chung
+                    if (pIdx === 0) {
+                      candidates.push(activity?.audio_url, activity?.content_url);
+                      try {
+                        const cachedAudio = localStorage.getItem(`lms_audio_cache_${activityId || activity?.id}`);
+                        if (cachedAudio && typeof cachedAudio === 'string' && cachedAudio.trim() !== '') {
+                          candidates.unshift(cachedAudio.trim());
+                        }
+                      } catch (cErr) {}
+                    }
+
+                    // Tự động convert link Google Drive bất kỳ sang link stream CDN HTML5 MP3 trực tiếp
                     const rawSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
                     if (rawSrc) {
                       let urlVal = rawSrc.trim();
