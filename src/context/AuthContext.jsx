@@ -90,14 +90,14 @@ export function AuthProvider({ children }) {
           finalProfile.approved = true;
         }
       } else {
-        // HỌC SINH CHƯA ĐƯỢC THẦY HẢI DUYỆT (APPROVED KHI KHÔNG BẰNG TRUE) -> TỰ ĐỘNG CHẶN TRUY CẬP VÀ ĐĂNG XUẤT NGAY
-        const isApprovedStudent = finalProfile && finalProfile.approved === true;
+        // HỌC SINH CHƯA ĐƯỢC THẦY HẢI DUYỆT (APPROVED NẾU KHÔNG BẰNG TRUE VÀ NẾU KHÔNG BẰNG 1) -> TỰ ĐỘNG CHẶN TRUY CẬP VÀ ĐĂNG XUẤT NGAY
+        const isApprovedStudent = finalProfile && (finalProfile.approved === true || finalProfile.approved === 1);
         if (!isApprovedStudent) {
-          alert(`⏳ TÀI KHOẢN CHỜ THẦY NGUYỄN VĂN HẢI DUYỆT!\n\nTài khoản của học sinh "${finalProfile?.full_name || finalProfile?.username || cleanEmail.split('@')[0]}" đã được đăng ký nhưng CHƯA ĐƯỢC THẦY NGUYỄN VẢN HẢI PHÊ DUYỆT.\n\nVui lòng báo Thầy Hải mở Quản lý Học sinh hoặc bấm Duyệt trên Quả Chuông để kích hoạt tài khoản nhé!`);
           await supabase.auth.signOut();
           setUser(null);
           setProfile(null);
           setLoading(false);
+          alert(`⏳ TÀI KHOẢN HỌC SINH ĐANG Ở TRẠNG THÁI CHỜ THẦY NGUYỄN VĂN HẢI PHÊ DUYỆT!\n\nTài khoản của học sinh "${finalProfile?.full_name || finalProfile?.username || cleanEmail.split('@')[0]}" đã đăng ký thành công nhưng CHƯA ĐƯỢC THẦY NGUYỄN VĂN HẢI BẤM DUYỆT.\n\nVui lòng báo Thầy Hải mở Quản lý Học sinh hoặc nhấp nút Duyệt trên Quả Chuông 🔔 để kích hoạt tài khoản làm bài nhé!`);
           return;
         }
       }
@@ -126,9 +126,11 @@ export function AuthProvider({ children }) {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user || null;
-      setUser(currentUser);
       if (currentUser) {
         fetchProfile(currentUser.id, currentUser.email);
+      } else {
+        setUser(null);
+        setProfile(null);
       }
       setLoading(false);
     });
@@ -136,10 +138,10 @@ export function AuthProvider({ children }) {
     // Lắng nghe thay đổi trạng thái đăng nhập
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user || null;
-      setUser(currentUser);
       if (currentUser) {
         await fetchProfile(currentUser.id, currentUser.email);
       } else {
+        setUser(null);
         setProfile(null);
       }
       setLoading(false);
@@ -175,6 +177,7 @@ export function AuthProvider({ children }) {
     }
 
     if (data.user) {
+      // ĐỒNG BỘ VÀO BẢNG PROFILES VỚI APPROVED = FALSE NẾU MỚI ĐĂNG KÝ
       await supabase.from('profiles').upsert([
         {
           id: data.user.id,
@@ -198,6 +201,15 @@ export function AuthProvider({ children }) {
           },
         ]);
       } catch (notifErr) {}
+
+      // NẾU LÀ HỌC SINH ĐĂNG KÝ MỚI -> ĐĂNG XUẤT NGAY THẬP TỬ ĐỂ BẮT CHỜ DUYỆT!
+      if (!isMasterAdmin) {
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return data;
+      }
 
       await fetchProfile(data.user.id, cleanEmail);
     }
