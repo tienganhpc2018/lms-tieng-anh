@@ -1055,15 +1055,15 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                             </div>
                           </div>
 
-                          {/* PHƯƠNG ÁN 1: KHUNG PREVIEW IFRAME GOOGLE DRIVE PHÁT TRỰC TIẾP TRONG TRANG BÀI THI */}
+                          {/* PHƯƠNG ÁN 1: KHUNG PREVIEW IFRAME GOOGLE DRIVE PHÁT TRỰC TIẾP TRONG TRANG BÀI THI - GỌN NHỎ H = 60PX */}
                           {getGoogleDriveIframeUrl(activeAudioSource) ? (
-                            <div className="w-full bg-slate-900 p-2 rounded-2xl border border-purple-500/40 shadow-inner">
+                            <div className="w-full bg-slate-900 p-1.5 rounded-2xl border border-purple-500/40 shadow-inner overflow-hidden">
                               <iframe
                                 src={getGoogleDriveIframeUrl(activeAudioSource)}
                                 width="100%"
-                                height="120"
+                                height="60"
                                 allow="autoplay"
-                                className="rounded-xl border-0 w-full"
+                                className="rounded-xl border-0 w-full h-[60px] overflow-hidden"
                               ></iframe>
                             </div>
                           ) : (
