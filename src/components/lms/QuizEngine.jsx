@@ -989,13 +989,18 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                       activity?.content_url,
                     ];
 
-                    // Ưu tiên 1: Chuỗi mã hóa Base64 thật (data:audio/...)
-                    const base64Src = candidates.find(c => typeof c === 'string' && c.trim().startsWith('data:audio/'));
-                    if (base64Src) return base64Src.trim();
-
-                    // Ưu tiên 2: Đường dẫn blob hoặc http/https hợp lệ
-                    const validSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
-                    if (validSrc) return validSrc.trim();
+                    // Tự động convert link Google Drive thành link stream HTML5 MP3 trực tiếp
+                    const rawSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
+                    if (rawSrc) {
+                      let urlVal = rawSrc.trim();
+                      if (urlVal.includes('drive.google.com') || urlVal.includes('docs.google.com')) {
+                        const gMatch = urlVal.match(/\/file\/d\/([^\/\?]+)/) || urlVal.match(/id=([^\&]+)/) || urlVal.match(/\/d\/([^\/\?]+)/);
+                        if (gMatch && gMatch[1]) {
+                          return `https://drive.google.com/uc?export=download&id=${gMatch[1]}`;
+                        }
+                      }
+                      return urlVal;
+                    }
 
                     return null;
                   };
