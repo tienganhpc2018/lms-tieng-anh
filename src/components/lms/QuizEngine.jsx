@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked, Mic, MicOff, Shuffle, Trophy } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked, Mic, MicOff, Shuffle, Trophy, Compass } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { compressImage } from '../../utils/imageCompressor';
 import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
