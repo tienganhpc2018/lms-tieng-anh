@@ -912,9 +912,9 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                   const isPart1MC = (pItem.part_type === 'multiple_choice' || !pItem.part_type) && !isTrueFalse;
                   const isPart2Short = pItem.part_type === 'short_essay';
 
-                  // NGUỒN PHÁT MP3 THÔNG MINH BẮT TẤT CẢ CÁC TRƯỜNG FILE UPLOAD (AUDIO, AUDIO_DATA, AUDIO_URL, BASE64)
+                  // NGUỒN PHÁT AUDIO MP3/WAV THÔNG MINH BẮT TẤT CẢ CÁC TRƯỜNG FILE UPLOAD (.WAV, .MP3, .M4A, BASE64)
                   const extractAudio = () => {
-                    const candidate = pItem?.audio_data || pItem?.audio_url || pItem?.audioUrl || pItem?.audio || pItem?.mp3 || pItem?.audioBase64
+                    const candidate = pItem?.audio_data || pItem?.audio_url || pItem?.audioUrl || pItem?.audio || pItem?.mp3 || pItem?.wav || pItem?.audioBase64
                       || q?.audio_data || q?.audio_url || q?.audioUrl || q?.audio || q?.content?.audio_data || q?.content?.audio_url || q?.content?.audioUrl;
                     if (candidate && String(candidate).trim() !== '' && !candidate.includes('soundhelix.com')) {
                       return String(candidate).trim();
