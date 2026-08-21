@@ -249,8 +249,27 @@ export default function Auth() {
             disabled={loading}
             className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer"
           >
-            {loading ? 'Đang xử lý...' : isSignUp ? 'Tạo Tài Khoản Mới' : 'Đăng Nhập Vào Hệ Thống'}
+            {loading
+              ? 'Đang xử lý...'
+              : isSignUp
+              ? 'Tạo Tài Khoản & Vào Học Ngay'
+              : 'Đăng Nhập Vào Hệ Thống'}
           </button>
+
+          {!isSignUp && (
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailOrUsername('hocsinh@lms.edu.vn');
+                  setPassword('Lms@2026');
+                }}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs rounded-xl border border-slate-300 transition cursor-pointer flex items-center justify-center space-x-1.5"
+              >
+                <span>⚡ Nút Điền Tự Động Tài Khoản Học Sinh (hocsinh@lms.edu.vn)</span>
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>
