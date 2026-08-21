@@ -447,15 +447,18 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
     const mins = Math.floor(elapsed / 60);
     const secs = elapsed % 60;
     const timeTakenStr = `${mins} phút ${secs} giây`;
-    const isPassed = totalScore >= (totalMarks * 0.5);
+    
+    // TÍNH TOÁN ĐÚNG MỐC 50% SỐ CÂU HỎI (TRÁNH LỖI BÁO 4/1 ĐIỂM HOẶC VƯỢT QUA SAI THỰC TẾ)
+    const finalTotalQ = totalQCount > 0 ? totalQCount : (totalMarks > 1 ? totalMarks : 10);
+    const isPassed = correctCount >= (finalTotalQ * 0.5);
     const nowIso = new Date().toISOString();
 
-    // TÍNH HUY HIỆU GAMIFICATION BADGES
+    // TÍNH HUY HIỆU GAMIFICATION BADGES ĐÁNH GIÁ THỰC TẾ
     const badges = calculateGamificationBadges({
-      score: totalScore,
-      totalMarks,
+      score: correctCount,
+      totalMarks: finalTotalQ,
       correctCount,
-      totalQuestions: totalQCount,
+      totalQuestions: finalTotalQ,
       timeTakenSeconds: elapsed,
       timeLimitSeconds,
       aiWritingScore: aiGrading?.overallScore,
@@ -466,9 +469,9 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
       studentName: profile?.full_name || 'Học Viên',
       timeTakenStr,
       correctCount,
-      totalQuestions: totalQCount,
-      score: totalScore,
-      totalMarks,
+      totalQuestions: finalTotalQ,
+      score: correctCount,
+      totalMarks: finalTotalQ,
       isPassed,
       submittedAt: nowIso,
     };
@@ -859,21 +862,25 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
             </div>
           </div>
 
-          {/* KHỐI HUY HIỆU GAMIFICATION BADGES KHEN THƯỞNG */}
+          {/* KHỐI HUY HIỆU GAMIFICATION BADGES / ĐÁNH GIÁ THỰC TẾ TRỰC QUAN NHƯ CHỈ ĐẠO CỦA THẦY HẢI */}
           {earnedBadges.length > 0 && (
-            <div className="p-4 bg-gradient-to-r from-amber-950/80 to-slate-900 border border-amber-500/40 rounded-2xl space-y-2">
-              <span className="font-extrabold text-amber-300 uppercase tracking-wide text-xs flex items-center space-x-1.5">
-                <Trophy className="w-4 h-4 text-amber-400" />
-                <span>🏆 DANH HIỆU & HUY HIỆU KHEN THƯỞNG ĐẠT ĐƯỢC:</span>
+            <div className={`p-4 rounded-2xl space-y-2.5 border shadow-xl ${
+              resultData.isPassed 
+                ? 'bg-gradient-to-r from-amber-950/80 to-slate-900 border-amber-500/40 text-amber-200' 
+                : 'bg-gradient-to-r from-rose-950/90 to-slate-900 border-rose-500/50 text-rose-200'
+            }`}>
+              <span className="font-extrabold uppercase tracking-wide text-xs flex items-center space-x-2">
+                <Trophy className={`w-4 h-4 ${resultData.isPassed ? 'text-amber-400' : 'text-rose-400'}`} />
+                <span>{resultData.isPassed ? '🏆 DANH HIỆU & HUY HIỆU KHEN THƯỞNG ĐẠT ĐƯỢC:' : '⚠️ ĐÁNH GIÁ THỰC TẾ KẾT QUẢ BÀI THI:'}</span>
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-1 gap-2 text-xs">
                 {earnedBadges.map((badge) => (
-                  <div key={badge.id} className={`p-3 rounded-xl bg-gradient-to-r ${badge.bgGradient} text-white shadow-md space-y-0.5 border border-white/20`}>
-                    <h5 className="font-extrabold text-xs flex items-center space-x-1">
-                      <span>{badge.icon}</span>
+                  <div key={badge.id} className={`p-3.5 rounded-xl bg-gradient-to-r ${badge.bgGradient} text-white shadow-lg space-y-1 border border-white/20`}>
+                    <h5 className="font-extrabold text-sm flex items-center space-x-1.5">
+                      <span className="text-base">{badge.icon}</span>
                       <span>{badge.title}</span>
                     </h5>
-                    <p className="text-[10px] text-white/90 font-medium">{badge.description}</p>
+                    <p className="text-xs text-white/95 font-bold leading-relaxed">{badge.description}</p>
                   </div>
                 ))}
               </div>
