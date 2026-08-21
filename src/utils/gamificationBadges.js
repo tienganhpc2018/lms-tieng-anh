@@ -50,25 +50,25 @@ export function calculateGamificationBadges({ score, totalMarks, correctCount, t
     });
   }
 
-  // 5. Huy hiệu Chăm Chỉ Kiên Trì
+  // 5. Huy hiệu Chăm Chỉ Kiên Trì (>= 50% và < 80%)
   if (percentage >= 50 && percentage < 80) {
     badges.push({
       id: 'persistent_learner',
       title: '🌟 CHĂM CHỈ KIÊN TRÌ',
-      description: 'Vượt qua bài kiểm tra thành công!',
+      description: `Đã vượt qua mốc điểm đạt (${score}/${totalMarks} điểm)!`,
       bgGradient: 'from-sky-500 to-blue-500',
       icon: '🌟',
     });
   }
 
-  // 6. Fallback Huy hiệu Học Viên Tích Cực
-  if (badges.length === 0) {
+  // 6. Trường hợp DƯỚI 50% điểm (CHƯA ĐẠT -> ĐÁNH GIÁ THỰC TẾ CHÍNH XÁC, KHÔNG NỊNH BỘC)
+  if (percentage < 50) {
     badges.push({
-      id: 'active_student',
-      title: '🌱 HỌC VIÊN TÍCH CỰC',
-      description: 'Đã hoàn thành bài kiểm tra trực tuyến!',
-      bgGradient: 'from-slate-600 to-slate-800',
-      icon: '🎓',
+      id: 'need_improvement',
+      title: '⚠️ CẦN CỐ GẮNG ÔN LẠI BÀI',
+      description: `Kết quả đạt ${correctCount}/${totalQuestions} câu (${Math.round(percentage)}%). Bạn chưa đạt mốc 50% điểm số, cần xem kỹ lời giải và làm lại bài!`,
+      bgGradient: 'from-amber-600 to-rose-600',
+      icon: '📝',
     });
   }
 
