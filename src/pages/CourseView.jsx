@@ -615,32 +615,35 @@ export default function CourseView() {
 
                 {userIsTeacher && (
                   <div className="flex items-center space-x-2 flex-wrap gap-2">
+                    {/* NÚT CHÍNH TẠO CHỦ ĐỀ / UNITS MỚI CHUẨN THEO VỊ TRÍ KHOANH ĐỎ CỦA THẦY HẢI */}
                     <button
                       onClick={() => setIsAddSecModalOpen(true)}
-                      className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer border border-purple-400/40"
-                      title="Tạo thêm Unit 2, Unit 3..."
+                      className="px-4 py-2.5 bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-700 hover:to-indigo-800 text-amber-300 font-extrabold text-xs rounded-xl shadow-lg transition flex items-center space-x-1.5 cursor-pointer border border-amber-400/50 transform hover:scale-102"
+                      title="Tạo thêm Chủ Đề / Unit Mới (Unit 2, Unit 3, Unit 4...)"
                     >
-                      <Plus className="w-4 h-4 text-amber-300" />
-                      <span>➕ + Thêm Unit Mới</span>
+                      <Plus className="w-4 h-4 text-amber-400" />
+                      <span>➕ + THÊM CHỦ ĐỀ / UNIT MỚI (Units 2, 3, 4...)</span>
+                    </button>
+
+                    {/* NÚT THÊM BÀI HỌC CON (LESSONS BÊN TRONG) */}
+                    <button
+                      onClick={() => setIsAddActivityOpen(true)}
+                      className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                      title="Thêm bài học con (Lesson 1, Lesson 2...) vào Chủ đề này"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>📄 + Thêm Bài Học Con (Lesson)</span>
                     </button>
 
                     {sections.length <= 1 && (
                       <button
                         onClick={handleAutoCreate12UnitsTemplate}
-                        className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer border border-amber-300"
+                        className="px-3.5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer border border-amber-500"
                         title="Tự động tạo sẵn đủ 12 Units (mỗi Unit 7 Lessons chuẩn)"
                       >
                         <span>🪄 Tạo Bộ 12 Units Chuẩn (Mỗi Unit 7 Lessons)</span>
                       </button>
                     )}
-
-                    <button
-                      onClick={() => setIsAddActivityOpen(true)}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>+ Thêm Bài Học Mới</span>
-                    </button>
                   </div>
                 )}
               </div>
@@ -683,12 +686,20 @@ export default function CourseView() {
                 <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl space-y-3">
                   <p className="text-xs text-slate-400 font-semibold">Chủ đề này chưa có bài học nào mở cho học sinh.</p>
                   {userIsTeacher && (
-                    <button
-                      onClick={() => setIsAddActivityOpen(true)}
-                      className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-md"
-                    >
-                      + Thêm Bài Học Mới Ngay
-                    </button>
+                    <div className="flex items-center justify-center space-x-2 pt-2">
+                      <button
+                        onClick={() => setIsAddSecModalOpen(true)}
+                        className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-extrabold text-xs shadow-md cursor-pointer"
+                      >
+                        ➕ + Thêm Chủ Đề / Unit Mới
+                      </button>
+                      <button
+                        onClick={() => setIsAddActivityOpen(true)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md cursor-pointer"
+                      >
+                        📄 + Thêm Bài Học Con (Lesson)
+                      </button>
+                    </div>
                   )}
                 </div>
               ) : (
