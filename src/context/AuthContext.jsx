@@ -57,7 +57,7 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // 3. BẢO VỆ ĐẶC QUYỀN 100%: THẦY NGUYỄN VẢN HẢI LÀ GIÁO VIÊN / ADMIN DUY NHẤT VÀ VÀO 100% VĨNH VIỄN
+      // ĐỒNG BỘ TÀI KHOẢN GIÁO VIÊN / ADMIN NGUYỄN VĂN HẢI
       const checkEmail = (cleanEmail || userEmail || '').toLowerCase();
       const checkUsername = (usernameFromEmail || finalProfile?.username || '').toLowerCase();
 
@@ -77,54 +77,37 @@ export function AuthProvider({ children }) {
             username: 'nguyensea106',
             full_name: 'Nguyễn Văn Hải',
             role: 'teacher',
-            approved: true,
             is_teacher: true,
             suspended: false
           };
         } else {
           finalProfile.role = 'teacher';
           finalProfile.full_name = 'Nguyễn Văn Hải';
-          finalProfile.approved = true;
           finalProfile.is_teacher = true;
           finalProfile.suspended = false;
         }
-      } else {
+      } else if (!finalProfile) {
         // NẾU HỌC SINH MỚI CHƯA CÓ PROFILE -> TẠO MỚI PROFILE TẠM
-        if (!finalProfile) {
-          const { data: createdProfile } = await supabase
-            .from('profiles')
-            .upsert([
-              {
-                id: userId,
-                email: cleanEmail,
-                username: usernameFromEmail,
-                full_name: usernameFromEmail || 'Học Viên',
-                role: 'student',
-                is_teacher: false,
-                suspended: false,
-              },
-            ])
-            .select();
-          if (createdProfile && createdProfile.length > 0) finalProfile = createdProfile[0];
-        }
-
-        // KIỂM TRA TRẠNG THÁI DUYỆT CỦA HỌC SINH MỚI
-        const approvedMap = JSON.parse(localStorage.getItem('lms_approved_students_v1') || '{}');
-        const isApprovedByTeacher = finalProfile && (finalProfile.approved === true || approvedMap[finalProfile.id] === true || approvedMap[cleanEmail] === true);
-
-        if (!isApprovedByTeacher) {
-          await supabase.auth.signOut();
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-          alert(`⏳ TÀI KHOẢN HỌC SINH MỚI CHỜ THẦY NGUYỄN VẢN HẢI PHÊ DUYỆT!\n\nTài khoản của học sinh "${finalProfile?.full_name || finalProfile?.username || cleanEmail.split('@')[0]}" đã đăng ký thành công nhưng đang ở trạng thái [CHỜ DUYỆT].\n\nVui lòng nhắn Thầy Hải mở Quản lý Học sinh hoặc bấm Duyệt trên Quả Chuông 🔔 để kích hoạt tài khoản làm bài nhé!`);
-          return;
-        }
+        const { data: createdProfile } = await supabase
+          .from('profiles')
+          .upsert([
+            {
+              id: userId,
+              email: cleanEmail,
+              username: usernameFromEmail,
+              full_name: usernameFromEmail || 'Học Viên',
+              role: 'student',
+              is_teacher: false,
+              suspended: false,
+            },
+          ])
+          .select();
+        if (createdProfile && createdProfile.length > 0) finalProfile = createdProfile[0];
       }
 
       setProfile(finalProfile || null);
 
-      // KHI TÀI KHOẢN NÀY BỊ THẦY TẠM KHÓA (SUSPENDED) -> TỰ ĐỘNG ĐĂNG XUẤT NGAY
+      // KHI TÀI KHOẢN TẠM KHÓA
       if (finalProfile && finalProfile.suspended && !isMasterAdmin) {
         alert('🚫 TÀI KHOẢN TẠM KHÓA!\n\nTài khoản của em tạm thời bị khóa do vi phạm nội quy lớp học. Vui lòng liên hệ Thầy Hải để được hỗ trợ!');
         await supabase.auth.signOut();
@@ -254,16 +237,7 @@ export function AuthProvider({ children }) {
         ]);
       } catch (notifErr) {}
 
-      // NẾU LÀ HỌC SINH ĐĂNG KÝ MỚI -> ĐĂNG XUẤT NGAY THẬP TỬ ĐỂ BẮT CHỜ DUYỆT!
-      if (!isMasterAdmin) {
-        await supabase.auth.signOut();
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
-        return data;
-      }
-
-      await fetchProfile(data.user.id, cleanEmail);
+      await fetchProfile(data.user.id, data.user.email);
     }
 
     setLoading(false);
