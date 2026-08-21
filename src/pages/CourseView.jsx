@@ -64,9 +64,36 @@ export default function CourseView() {
     } catch (e) {}
   };
 
+  const [isEnrolled, setIsEnrolled] = useState(true);
+
+  const checkEnrollment = async () => {
+    const userIsTeacher = isTeacher || profile?.is_teacher || false;
+    if (userIsTeacher) {
+      setIsEnrolled(true);
+      return;
+    }
+    if (!user) {
+      setIsEnrolled(false);
+      return;
+    }
+    try {
+      const { data: eData } = await supabase
+        .from('course_enrollments')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setIsEnrolled(!!eData);
+    } catch (e) {
+      setIsEnrolled(false);
+    }
+  };
+
   useEffect(() => {
     fetchCourseData();
-  }, [courseId]);
+    checkEnrollment();
+  }, [courseId, user]);
 
   useEffect(() => {
     fetchActivities();
@@ -185,6 +212,30 @@ export default function CourseView() {
 
   if (loading) {
     return <LoadingSpinner text="Đang nạp dữ liệu chi tiết khóa học..." />;
+  }
+
+  if (!isEnrolled) {
+    return (
+      <div className="min-h-screen bg-slate-100 p-6 flex items-center justify-center font-sans">
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center space-y-4 max-w-md">
+          <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto text-3xl font-extrabold shadow-2xs">
+            🔒
+          </div>
+          <h3 className="text-base font-extrabold text-slate-900 uppercase">
+            BẠN CHƯA THAM GIA KHÓA HỌC NÀY
+          </h3>
+          <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+            Vui lòng về lại Trang chủ, nhấp nút <span className="font-extrabold text-amber-600">"🔑 Nhập Mã Gia Nhập Lớp"</span> và dán mã do Thầy Hải cung cấp để tham gia học nhé!
+          </p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-extrabold text-xs transition shadow-md cursor-pointer"
+          >
+            🏠 Về Trang Chủ Khóa Học
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (!course) {
