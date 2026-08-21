@@ -6,6 +6,7 @@ import { ArrowLeft, Gamepad2 } from 'lucide-react';
 import QuizEngine from '../components/lms/QuizEngine';
 import QuizBuilder from '../components/lms/QuizBuilder';
 import AudioRecordEngine from '../components/lms/AudioRecordEngine';
+import TeacherAudioGradingModal from '../components/lms/TeacherAudioGradingModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 // COMPONENT RENDER INTERACTIVE GAME / IFRAME (WORDWALL, QUIZIZZ, GAME HTML5 RESPONSIVE 100%)
@@ -69,6 +70,7 @@ export default function AssignmentView() {
 
   const [activity, setActivity] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -148,6 +150,20 @@ export default function AssignmentView() {
               </h1>
             </div>
           </div>
+
+          {userIsTeacher && (
+            <div className="flex items-center space-x-2 self-end sm:self-center">
+              {isAudioRecordType && (
+                <button
+                  type="button"
+                  onClick={() => setIsGradingModalOpen(true)}
+                  className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-extrabold shadow-sm transition cursor-pointer flex items-center space-x-1.5"
+                >
+                  <span>📊 Chấm Bài Ghi Âm & Xuất Excel</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* MỞ GIAO DIỆN CHUẨN XÁC THEO LOẠI HOẠT ĐỘNG */}
@@ -160,6 +176,13 @@ export default function AssignmentView() {
         ) : (
           <QuizEngine activity={activeAct} activityId={targetActivityId} />
         )}
+
+        {/* MODAL CHẤM ĐIỂM BÀI GHI ÂM CHO GIÁO VIÊN */}
+        <TeacherAudioGradingModal
+          isOpen={isGradingModalOpen}
+          onClose={() => setIsGradingModalOpen(false)}
+          activity={activeAct}
+        />
       </div>
     </div>
   );
