@@ -1350,7 +1350,18 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                         .from('media')
                                         .upload(fileName, file, { cacheControl: '3600', upsert: true });
 
-                                      if (!stErr && stData) {
+                                      if (stErr) {
+                                        console.error('Supabase Storage Upload Error:', stErr);
+                                        setToast({
+                                          isOpen: true,
+                                          type: 'error',
+                                          title: '⚠️ Lỗi Upload Storage',
+                                          message: `Cần cấu hình Public Bucket "media" trong Supabase: ${stErr.message}`
+                                        });
+                                        return;
+                                      }
+
+                                      if (stData) {
                                         const { data: pubData } = supabase.storage
                                           .from('media')
                                           .getPublicUrl(fileName);
@@ -1369,7 +1380,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                           setToast({
                                             isOpen: true,
                                             type: 'success',
-                                            title: 'Upload Storage Thành Công 100%',
+                                            title: 'Upload Supabase Storage Thành Công 100%',
                                             message: `Đã lưu Public URL: "${onlineUrl}" vào CSDL! Bấm "Lưu bài thi" để Học sinh nghe!`
                                           });
                                           return;
