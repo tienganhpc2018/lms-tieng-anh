@@ -1035,24 +1035,9 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
-                      {/* HIỂN THỊ BÀI NGHE AUDIO VÀ KHUNG IFRAME PREVIEW GOOGLE DRIVE ĐỒNG BỘ 100% ẢNH 1 THẦY HẢI */}
+                      {/* HIỂN THỊ CHỈ NGUYÊN THANH PHÁT AUDIO PLAYER HẸP DÀI BO TRÒN TẬN CÙNG TINH GỌN */}
                       {activeAudioSource && (
-                        <div className="p-4 bg-slate-950 border border-purple-500/30 rounded-3xl space-y-3 shadow-2xl my-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2 truncate">
-                              <span className="w-7 h-7 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center font-extrabold text-xs">
-                                🎵
-                              </span>
-                              <div className="truncate">
-                                <p className="text-xs font-extrabold text-purple-200 truncate">
-                                  {activeAudioSource?.includes('drive.google.com') ? 'File Audio Google Drive' : 'File Audio MP3 Online'}
-                                </p>
-                              </div>
-                            </div>
-
-                          </div>
-
-                          {/* PHƯƠNG ÁN 1: KHUNG PREVIEW IFRAME GOOGLE DRIVE HẸP VÀ DÀI BO TRÒN Y HỆT ẢNH 2 */}
+                        <div className="my-3">
                           {getGoogleDriveIframeUrl(activeAudioSource) ? (
                             <div className="relative w-full bg-slate-900 p-1 rounded-full border border-purple-500/40 shadow-inner overflow-hidden flex items-center h-[52px]">
                               <iframe
@@ -1066,7 +1051,6 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                               <div className="absolute right-0 top-0 bottom-0 w-14 bg-slate-900 pointer-events-none rounded-r-full" />
                             </div>
                           ) : (
-                            /* PHƯƠNG ÁN 2: THẺ AUDIO TRUYỀN THỐNG MỎNG MỊN BO TRÒN BẢO VỆ CHỐNG TẢI FILE */
                             <div className="w-full bg-white p-1 rounded-full border-2 border-purple-300 shadow-xl">
                               <audio
                                 controls
