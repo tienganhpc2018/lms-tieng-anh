@@ -13,11 +13,18 @@ export default function Auth() {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signIn, signUp, loginAsMasterTeacher } = useAuth();
+  const { user, signIn, signUp, loginAsMasterTeacher } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/dashboard';
+
+  // Nếu người dùng đã đăng nhập sẵn -> Tự động chuyển thẳng về /dashboard, không hiện màn hình đăng nhập nữa!
+  React.useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
