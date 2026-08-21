@@ -33,7 +33,10 @@ export default function Auth() {
         if (!regEmail.includes('@')) {
           regEmail = `${regEmail.toLowerCase()}@lms.edu.vn`;
         }
-        await signUp(regEmail, passVal, fullName.trim(), role);
+        await signUp(regEmail, passVal, fullName.trim(), 'student');
+        alert('🎉 ĐĂNG KÝ TÀI KHOẢN HỌC SINH THÀNH CÔNG!\n\nTài khoản của em đã được khởi tạo. Vui lòng nhắn Thầy Nguyễn Văn Hải phê duyệt để bắt đầu vào làm bài nhé!');
+        setIsSignUp(false);
+        return;
       } else {
         let targetEmail = inputVal;
         let matchedStudentProfile = null;
@@ -217,37 +220,9 @@ export default function Auth() {
           </div>
 
           {isSignUp && (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Bạn là:
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRole('student')}
-                  className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-2 ${
-                    role === 'student'
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <GraduationCap className="w-4 h-4" />
-                  <span>Học Sinh</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRole('teacher')}
-                  className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-2 ${
-                    role === 'teacher'
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Giáo Viên (Admin)</span>
-                </button>
-              </div>
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-extrabold text-emerald-900 leading-relaxed flex items-center space-x-2">
+              <GraduationCap className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+              <span>🎓 Vai trò tài khoản: <b>Học Sinh</b> (Quyền Giáo viên / Admin thuộc sở hữu độc quyền của Thầy Nguyễn Văn Hải).</span>
             </div>
           )}
 
