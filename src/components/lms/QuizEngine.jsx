@@ -17,6 +17,30 @@ import AdaptiveLearningModal from './AdaptiveLearningModal';
 import AiOmrScannerModal from './AiOmrScannerModal';
 import { exportOmrSheet } from '../../utils/exportOmrSheet';
 
+const getGoogleDriveIframeUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com') || trimmed.includes('googleusercontent.com')) {
+    const gMatch = trimmed.match(/\/file\/d\/([^\/\?]+)/) || trimmed.match(/id=([^\&]+)/) || trimmed.match(/\/d\/([^\/\?]+)/);
+    if (gMatch && gMatch[1]) {
+      return `https://drive.google.com/file/d/${gMatch[1]}/preview`;
+    }
+  }
+  return '';
+};
+
+const getGoogleDriveDirectViewUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com') || trimmed.includes('googleusercontent.com')) {
+    const gMatch = trimmed.match(/\/file\/d\/([^\/\?]+)/) || trimmed.match(/id=([^\&]+)/) || trimmed.match(/\/d\/([^\/\?]+)/);
+    if (gMatch && gMatch[1]) {
+      return `https://drive.google.com/file/d/${gMatch[1]}/view?usp=sharing`;
+    }
+  }
+  return trimmed;
+};
+
 export default function QuizEngine({ activity, activityId, onComplete }) {
   const navigate = useNavigate();
   const { user, profile, isTeacher: contextIsTeacher } = useAuth();
@@ -1009,37 +1033,57 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
-                      {/* HIỂN THỊ BÀI NGHE AUDIO DÀNH CHO HỌC SINH VÀ GIÁO VIÊN KHI THI THỬ (SÁNG RỰC NÚT PLAY ▶️ PHÁT TỐT 100%) */}
+                      {/* HIỂN THỊ BÀI NGHE AUDIO VÀ KHUNG IFRAME PREVIEW GOOGLE DRIVE DÀNH CHO HỌC SINH MƯỢT 100% */}
                       {activeAudioSource && (
                         <div className="p-4 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-3xl space-y-3 my-3 shadow-lg border border-purple-500/30">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div className="flex items-center space-x-2.5">
                               <span className="w-8 h-8 rounded-2xl bg-purple-500/30 border border-purple-400/40 text-purple-300 flex items-center justify-center font-extrabold text-sm animate-pulse">
                                 🎧
                               </span>
                               <div>
                                 <span className="text-xs font-extrabold text-purple-200 uppercase tracking-wide block">
-                                  BÀI NGHE AUDIO MP3 - THI THỬ TRỰC TUYẾN
+                                  BÀI NGHE AUDIO LISTENING - PART #{pIdx + 1}
                                 </span>
                                 <p className="text-[11px] text-emerald-400 font-bold">
-                                  ► Bấm Nút Play ▶️ Để Nghe Âm Thanh MP3 Bài Nghe Rõ Ràng 100%!
+                                  ► Bấm Nút Play ▶️ Trong Khung Hoặc Mở Tab Mới Để Nghe Rõ Ràng 100%!
                                 </p>
                               </div>
                             </div>
-                            <span className="px-2.5 py-1 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 rounded-xl text-[10px] font-extrabold uppercase">
-                              ✓ PHÁT MP3 MƯỢT MÀ
-                            </span>
+
+                            {/* NÚT BẤM NỔI BẬT MỞ TAB MỚI MANDATORY TARGET="_BLANK" TRÁNH MẤT BÀI LÀM */}
+                            <a
+                              href={getGoogleDriveDirectViewUrl(activeAudioSource)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-md transition transform active:scale-95 flex items-center justify-center space-x-1.5 border border-purple-300/40 cursor-pointer self-start sm:self-center"
+                            >
+                              <span>🎧 Bấm vào đây để mở bài nghe (Tab mới)</span>
+                            </a>
                           </div>
 
-                          {/* TRÌNH PHÁT AUDIO PLAYER CHUYÊN NGHIỆP SÁNG RỰC NÚT PLAY ▶️ HỖ TRỢ CORS VÀ PRELOAD */}
-                          <div className="bg-slate-950/80 p-2 rounded-2xl border border-purple-500/20 shadow-inner">
-                            <audio
-                              controls
-                              preload="auto"
-                              src={activeAudioSource}
-                              className="w-full h-10 rounded-xl outline-none accent-purple-500"
-                            />
-                          </div>
+                          {/* PHƯƠNG ÁN 1: KHUNG PREVIEW IFRAME GOOGLE DRIVE PHÁT TRỰC TIẾP TRONG TRANG BÀI THI */}
+                          {getGoogleDriveIframeUrl(activeAudioSource) ? (
+                            <div className="w-full bg-slate-950 p-2 rounded-2xl border border-purple-500/30 shadow-inner">
+                              <iframe
+                                src={getGoogleDriveIframeUrl(activeAudioSource)}
+                                width="100%"
+                                height="120"
+                                allow="autoplay"
+                                className="rounded-xl border-0 w-full"
+                              ></iframe>
+                            </div>
+                          ) : (
+                            /* PHƯƠNG ÁN 2: THẺ AUDIO TRUYỀN THỐNG */
+                            <div className="bg-slate-950/80 p-2 rounded-2xl border border-purple-500/20 shadow-inner">
+                              <audio
+                                controls
+                                preload="auto"
+                                src={activeAudioSource}
+                                className="w-full h-10 rounded-xl outline-none accent-purple-500"
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
 
