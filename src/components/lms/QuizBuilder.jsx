@@ -1328,12 +1328,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
                                     // Tạo BlobURL phát trực tiếp mượt mà ngay trong Modal không bao giờ bị 0:00 / 0:00
                                     const blobUrl = URL.createObjectURL(file);
-                                    const newParts = [...sectionParts];
-                                    newParts[pIdx].audioUrl = blobUrl;
-                                    newParts[pIdx].audio_blob = blobUrl;
-                                    newParts[pIdx].audioFileName = file.name;
-                                    setSectionParts([...newParts]);
-
                                     setToast({
                                       isOpen: true,
                                       type: 'info',
