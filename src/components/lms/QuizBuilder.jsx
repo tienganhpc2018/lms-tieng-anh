@@ -1418,7 +1418,55 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               </div>
                             </div>
 
-                            {/* 2. KHUNG KÉO THẢ DRAG AND DROP CHUẨN ĐÚNG Y HỆT 100% ẢNH 3 CỦA THẦY HẢI (media_1787302665575.png) */}
+                            {/* 2. KHUNG DÁN LINK GOOGLE DRIVE CHIA SẺ TRỰC TIẾP (THƯỜNG TRỰC DỄ NHÌN DỄ THẤY 100%) */}
+                            <div className="p-4 bg-slate-950 border border-purple-500/30 rounded-2xl space-y-2 shadow-md my-2">
+                              <label className="text-xs font-extrabold text-purple-300 uppercase flex items-center space-x-1.5">
+                                <span>🔗 NHẬP / DÁN LINK GOOGLE DRIVE HOẶC LINK MP3 ONLINE:</span>
+                              </label>
+                              <div className="flex flex-col sm:flex-row items-center gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Dán link Google Drive (https://drive.google.com/file/d/17oo1WfNVcn.../view)"
+                                  value={pItem.temp_link_input || pItem.audio_url || pItem.audioUrl || ''}
+                                  onChange={(e) => {
+                                    const newParts = [...sectionParts];
+                                    newParts[pIdx].temp_link_input = e.target.value;
+                                    setSectionParts([...newParts]);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && e.target.value) {
+                                      const rawVal = e.target.value.trim();
+                                      const updatedParts = [...sectionParts];
+                                      updatedParts[pIdx].audio_url = rawVal;
+                                      updatedParts[pIdx].audioUrl = rawVal;
+                                      updatedParts[pIdx].audioFileName = rawVal.includes('drive.google.com') ? 'File Audio Google Drive' : 'File Audio MP3 Online';
+                                      setSectionParts([...updatedParts]);
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-slate-900 border border-purple-500/50 rounded-xl text-xs text-emerald-300 w-full focus:outline-none focus:border-purple-400 font-mono shadow-inner"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const rawVal = (pItem.temp_link_input || pItem.audio_url || pItem.audioUrl || '').trim();
+                                    if (!rawVal) {
+                                      alert('Thầy Hải vui lòng dán đường dẫn link Google Drive vào ô text nhé!');
+                                      return;
+                                    }
+                                    const updatedParts = [...sectionParts];
+                                    updatedParts[pIdx].audio_url = rawVal;
+                                    updatedParts[pIdx].audioUrl = rawVal;
+                                    updatedParts[pIdx].audioFileName = rawVal.includes('drive.google.com') ? 'File Audio Google Drive' : 'File Audio MP3 Online';
+                                    setSectionParts([...updatedParts]);
+                                  }}
+                                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-extrabold shadow-md transition whitespace-nowrap cursor-pointer border border-emerald-300/30"
+                                >
+                                  ✓ Nhúng Link Google Drive
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* 3. KHUNG KÉO THẢ DRAG AND DROP DỰ PHÒNG CHUẨN ẢNH 3 */}
                             {!pItem.audio_url && !pItem.audioUrl && (
                               <div
                                 onDragOver={(e) => e.preventDefault()}
@@ -1468,45 +1516,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   const inputEl = document.getElementById(`part-audio-input-${pIdx}`);
                                   if (inputEl) inputEl.click();
                                 }}
-                                className="p-8 border-2 border-dashed border-slate-400 hover:border-purple-400 bg-slate-800/60 hover:bg-purple-950/30 rounded-3xl flex flex-col items-center justify-center space-y-3 cursor-pointer transition shadow-inner my-2"
+                                className="p-6 border-2 border-dashed border-slate-600 hover:border-purple-400 bg-slate-900/60 hover:bg-purple-950/30 rounded-2xl flex flex-col items-center justify-center space-y-2 cursor-pointer transition shadow-inner my-2"
                               >
-                                <div className="w-16 h-16 bg-slate-500/30 rounded-3xl flex items-center justify-center text-white text-3xl shadow-md border border-white/10">
+                                <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-white text-2xl shadow-md border border-white/10">
                                   ☁️ ⬆️
                                 </div>
-                                <p className="text-sm font-extrabold text-slate-200 text-center">
+                                <p className="text-xs font-extrabold text-slate-300 text-center">
                                   Drag and drop audio/video file to upload, or click to select
                                 </p>
-
-                                <div className="flex items-center space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                                  <span className="text-xs text-slate-400 font-bold">Or add via URL:</span>
-                                  <input
-                                    type="text"
-                                    placeholder="Dán link file audio .mp3 online (https://...) hoặc link Google Drive..."
-                                    value={pItem.temp_link_input || ''}
-                                    onChange={(e) => {
-                                      const newParts = [...sectionParts];
-                                      newParts[pIdx].temp_link_input = e.target.value;
-                                      setSectionParts([...newParts]);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && e.target.value) {
-                                        let urlVal = e.target.value.trim();
-                                        if (urlVal.includes('drive.google.com') || urlVal.includes('docs.google.com') || urlVal.includes('googleusercontent.com')) {
-                                          const gMatch = urlVal.match(/\/file\/d\/([^\/\?]+)/) || urlVal.match(/id=([^\&]+)/) || urlVal.match(/\/d\/([^\/\?]+)/);
-                                          if (gMatch && gMatch[1]) {
-                                            urlVal = `https://lh3.googleusercontent.com/d/${gMatch[1]}`;
-                                          }
-                                        }
-                                        const updatedParts = [...sectionParts];
-                                        updatedParts[pIdx].audio_url = urlVal;
-                                        updatedParts[pIdx].audioUrl = urlVal;
-                                        updatedParts[pIdx].audioFileName = urlVal.includes('drive.google.com') ? 'File Audio Google Drive' : 'File Audio MP3 Online';
-                                        setSectionParts([...updatedParts]);
-                                      }
-                                    }}
-                                    className="px-3.5 py-1.5 bg-slate-900 border border-slate-600 rounded-xl text-xs text-emerald-300 w-80 focus:outline-none focus:border-purple-400 font-mono"
-                                  />
-                                </div>
                               </div>
                             )}
 
