@@ -543,9 +543,9 @@ export default function Dashboard() {
                 </div>
               </div>
 
-                  {loading ? (
-                    <LoadingSpinner text="Đang tải danh sách khóa học..." />
-                  ) : filteredCourses.length === 0 ? (
+              {loading ? (
+                <LoadingSpinner text="Đang tải danh sách khóa học..." />
+              ) : filteredCourses.length === 0 ? (
                     <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl space-y-3 bg-slate-50/50">
                       <span className="text-3xl block">🔒</span>
                       <h3 className="text-sm font-extrabold text-slate-800">
