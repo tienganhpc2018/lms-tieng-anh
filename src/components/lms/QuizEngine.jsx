@@ -1195,6 +1195,9 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
           }
 
           // DẠNG TRẮC NGHIỆM ĐƠN LẺ KHÁC
+          const isListening = sectionType === 'listening' || q.type === 'listening' || Boolean(q.content?.audio_url) || Boolean(q.content?.audio_data);
+          const isReading = sectionType === 'reading' || q.type === 'reading' || Boolean(q.content?.passage);
+
           return (
             <div key={q.id || qIdx} className="p-3.5 bg-slate-50 border border-slate-200 rounded-3xl space-y-2 shadow-xs">
               <div className="flex items-center justify-between">
