@@ -186,42 +186,61 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
           setQuestions(safeData);
 
-          // KIỂM TRA HỌC SINH ĐÃ NỘP BÀI THI NÀY TRONG CSDL CHƯA (XỬ LÝ DỨT ĐIỂM LỖI HIỂN THỊ LẠI TRANG LÀM BÀI)
-          if (profile?.id) {
+          setQuestions(safeData);
+
+          // KIỂM TRA & NẠP BÀI LÀM CỦA HỌC SINH (HỖ TRỢ CẢ GIÁO VIÊN SOI TRUY VẾT BÀI LÀM VÀ HỌC SINH XEM LẠI LỜI GIẢI)
+          const searchParams = new URLSearchParams(window.location.search);
+          const urlSubmissionId = searchParams.get('submissionId');
+          const urlStudentId = searchParams.get('studentId');
+          const targetStudentId = urlStudentId || profile?.id;
+
+          if (targetStudentId || urlSubmissionId) {
             try {
-              const { data: sub } = await supabase
+              let subQuery = supabase
                 .from('submissions')
-                .select('*')
-                .eq('activity_id', actId)
-                .eq('student_id', profile.id)
-                .order('created_at', { ascending: false })
+                .select('*, profiles:student_id (full_name, email)')
+                .eq('activity_id', actId);
+
+              if (urlSubmissionId) {
+                subQuery = subQuery.eq('id', urlSubmissionId);
+              } else {
+                subQuery = subQuery.eq('student_id', targetStudentId);
+              }
+
+              const { data: subData } = await subQuery
+                .order('submitted_at', { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
-              if (sub) {
-                const savedAnswers = sub.answers_data?.userAnswers || {};
-                const savedImgs = sub.answers_data?.uploadedStudentImages || {};
-                const savedBadges = sub.answers_data?.badges || [];
+              if (subData) {
+                const savedAnswers = subData.answers_data?.userAnswers || subData.answers || {};
+                const savedImgs = subData.answers_data?.uploadedStudentImages || {};
+                const savedBadges = subData.answers_data?.badges || [];
 
                 setUserAnswers(savedAnswers);
                 setUploadedStudentImages(savedImgs);
                 setEarnedBadges(savedBadges);
-                setSubmitted(true);
+                setSubmitted(true); // BẬT CHẾ ĐỘ XEM LẠI BÀI LÀM VỚI MÀU ĐỎ CÂU SAI VÀ XANH CÂU ĐÚNG!
 
-                // NẠP ĐIỂM SỐ KẾT QUẢ ĐÃ THI
+                // TÍNH VÀ NẠP ĐIỂM SỐ KẾT QUẢ CỦA HỌC SINH ĐƯỢC SOI
+                const subScore = parseFloat(subData.score) || 0;
+                const subCorrect = subData.correct_count !== undefined ? subData.correct_count : Math.round((subScore / 10) * safeData.length);
+                const subTotalQ = subData.total_questions || safeData.length || 10;
+                const studentName = subData.profiles?.full_name || profile?.full_name || 'Học Viên';
+
                 setResultData({
-                  studentName: profile?.full_name || 'Học Viên',
-                  timeTakenStr: 'Đã hoàn thành',
-                  correctCount: sub.score ? Math.round((sub.score / 10) * safeData.length) : 0,
-                  totalQuestions: safeData.length,
-                  score: sub.score || 0,
-                  totalMarks: 10,
-                  isPassed: (sub.score || 0) >= 5,
-                  submittedAt: sub.created_at,
+                  studentName: studentName,
+                  timeTakenStr: subData.answers_data?.timeTakenStr || 'Đã hoàn thành',
+                  correctCount: subCorrect,
+                  totalQuestions: subTotalQ,
+                  score: subScore,
+                  totalMarks: subTotalQ,
+                  isPassed: subCorrect >= (subTotalQ * 0.5),
+                  submittedAt: subData.submitted_at || subData.created_at,
                 });
               }
             } catch (eErr) {
-              console.error('Error fetching student submission:', eErr);
+              console.error('Error fetching student submission for review:', eErr);
             }
           }
         }
