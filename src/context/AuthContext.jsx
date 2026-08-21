@@ -90,9 +90,10 @@ export function AuthProvider({ children }) {
           finalProfile.approved = true;
         }
       } else {
-        // HỌC SINH CHƯA ĐƯỢC THẦY HẢI DUYỆT (APPROVED === FALSE) -> TỰ ĐỘNG CHẶN TRUY CẬP VÀ ĐĂNG XUẤT NGAY
-        if (finalProfile && finalProfile.approved === false) {
-          alert(`⏳ TÀI KHOẢN CHỜ DUYỆT!\n\nTài khoản Học sinh của em (${finalProfile.full_name || finalProfile.username}) đã được tạo nhưng chưa được Thầy Nguyễn Văn Hải phê duyệt.\n\nVui lòng nhắn Thầy Hải duyệt tài khoản trước khi đăng nhập làm bài nhé!`);
+        // HỌC SINH CHƯA ĐƯỢC THẦY HẢI DUYỆT (APPROVED KHI KHÔNG BẰNG TRUE) -> TỰ ĐỘNG CHẶN TRUY CẬP VÀ ĐĂNG XUẤT NGAY
+        const isApprovedStudent = finalProfile && finalProfile.approved === true;
+        if (!isApprovedStudent) {
+          alert(`⏳ TÀI KHOẢN CHỜ THẦY NGUYỄN VĂN HẢI DUYỆT!\n\nTài khoản của học sinh "${finalProfile?.full_name || finalProfile?.username || cleanEmail.split('@')[0]}" đã được đăng ký nhưng CHƯA ĐƯỢC THẦY NGUYỄN VẢN HẢI PHÊ DUYỆT.\n\nVui lòng báo Thầy Hải mở Quản lý Học sinh hoặc bấm Duyệt trên Quả Chuông để kích hoạt tài khoản nhé!`);
           await supabase.auth.signOut();
           setUser(null);
           setProfile(null);
