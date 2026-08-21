@@ -673,6 +673,19 @@ export default function QuizBuilder({ activityId, onSaved }) {
         return;
       }
 
+      // DUAL-BINDING DỰ PHÒNG CHỐNG RỚT TRƯỜNG API: CẬP NHẬT AUDIO_URL SANG CẢ BẢNG ACTIVITIES
+      try {
+        const firstPartAudio = sectionParts[0]?.audioUrl || sectionParts[0]?.audio_data || listeningAudioUrl || '';
+        if (firstPartAudio && activityId) {
+          await supabase.from('activities').update({
+            audio_url: firstPartAudio,
+            audio_data: firstPartAudio,
+          }).eq('id', activityId);
+        }
+      } catch (actErr) {
+        console.warn('Cập nhật audio_url sang activities bỏ qua:', actErr);
+      }
+
       alert('🎉 ĐÃ LƯU BÀI THI THÀNH CÔNG THẦY NHÉ!\n\nĐề thi của Thầy đã được lưu vào bài học và TỰ ĐỘNG NẠP VÀO NGÂN HÀNG ĐỀ CHUNG!');
 
       setEditingQuestion(null);
