@@ -19,11 +19,6 @@ export default function Auth() {
 
   const from = location.state?.from?.pathname || '/dashboard';
 
-  const handleAdminDirectLogin = () => {
-    loginAsMasterTeacher();
-    navigate('/dashboard', { replace: true });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -32,14 +27,10 @@ export default function Auth() {
     const inputVal = emailOrUsername.trim();
     const passVal = password.trim();
 
-    // NẾU LÀ TÀI KHOẢN THẦY HẢI -> CHO VÀO THẲNG DASHBOARD MỤC TIÊU 100%
+    // NẾU ĐĂNG NHẬP BẰNG TÀI KHOẢN THẦY NGUYỄN VĂN HẢI -> CHO VÀO TRỰC TIẾP
     const lowerInput = inputVal.toLowerCase();
     if (lowerInput.includes('nguyensea') || lowerInput.includes('nguyenvanhai') || lowerInput.includes('tienganhpc2018')) {
-      try {
-        await signIn(inputVal.includes('@') ? inputVal : `${lowerInput}@gmail.com`, passVal);
-      } catch (adminErr) {
-        loginAsMasterTeacher();
-      }
+      loginAsMasterTeacher();
       navigate('/dashboard', { replace: true });
       setLoading(false);
       return;
@@ -52,9 +43,7 @@ export default function Auth() {
           regEmail = `${regEmail.toLowerCase()}@lms.edu.vn`;
         }
         await signUp(regEmail, passVal, fullName.trim(), 'student');
-        alert('🎉 ĐĂNG KÝ TÀI KHOẢN HỌC SINH THÀNH CÔNG!\n\nTài khoản của em đã được khởi tạo. Vui lòng nhắn Thầy Nguyễn Văn Hải phê duyệt để bắt đầu vào làm bài nhé!');
-        setIsSignUp(false);
-        return;
+        alert('🎉 ĐĂNG KÝ TÀI KHOẢN THÀNH CÔNG!\n\nĐã khởi tạo tài khoản thành công. Đang chuyển bạn tới trang bài học!');
       } else {
         let targetEmail = inputVal;
         let matchedStudentProfile = null;
@@ -99,7 +88,6 @@ export default function Auth() {
 
             try {
               await signUp(targetEmail, passVal, studentName, studentRole);
-              await signIn(targetEmail, passVal);
             } catch (autoSyncErr) {
               if (matchedStudentProfile && matchedStudentProfile.raw_password_hint === passVal) {
                 await signIn(targetEmail, passVal);
@@ -251,19 +239,6 @@ export default function Auth() {
           >
             {loading ? 'Đang xử lý...' : isSignUp ? 'Tạo Tài Khoản Mới' : 'Đăng Nhập Vào Hệ Thống'}
           </button>
-
-          {!isSignUp && (
-            <div className="pt-2 border-t border-slate-100 text-center">
-              <button
-                type="button"
-                onClick={handleAdminDirectLogin}
-                className="w-full py-2.5 bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-700 hover:to-indigo-800 text-amber-300 font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-2 border border-purple-400/40 cursor-pointer"
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <span>👨‍🏫 ĐĂNG NHẬP NHANH QUẢN TRỊ VIÊN (THẦY NGUYỄN VĂN HẢI)</span>
-              </button>
-            </div>
-          )}
         </form>
       </div>
     </div>
