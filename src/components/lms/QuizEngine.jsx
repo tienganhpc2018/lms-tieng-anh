@@ -1004,7 +1004,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                     return null;
                   };
 
-                  const activeAudioSource = extractAudio();
+                  const activeAudioSource = extractAudioForPart();
 
                   return (
                     <div key={pIdx} className="space-y-2 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
