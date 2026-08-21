@@ -1540,16 +1540,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   </div>
 
                                   <div className="flex items-center space-x-2">
-                                    {/* NÚT MỞ TAB MỚI MANDATORY TARGET="_BLANK" TRÁNH MẤT BÀI LÀM CỦA HỌC SINH */}
-                                    <a
-                                      href={getGoogleDriveDirectViewUrl(pItem.audio_url || pItem.audioUrl)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition flex items-center space-x-1"
-                                    >
-                                      <span>🎧 Mở Tab Mới</span>
-                                    </a>
-
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1570,25 +1560,27 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   </div>
                                 </div>
 
-                                {/* PHƯƠNG ÁN 1: KHUNG PREVIEW IFRAME GOOGLE DRIVE PHÁT TRỰC TIẾP TRONG TRANG - GỌN NHỎ H = 60PX */}
+                                {/* PHƯƠNG ÁN 1: KHUNG PREVIEW IFRAME GOOGLE DRIVE HẸP VÀ DÀI BO TRÒN Y HỆT ẢNH 2 */}
                                 {getGoogleDriveIframeUrl(pItem.audio_url || pItem.audioUrl) ? (
-                                  <div className="w-full bg-slate-900 p-1.5 rounded-2xl border border-purple-500/40 shadow-inner overflow-hidden">
+                                  <div className="relative w-full bg-slate-900 p-1 rounded-full border border-purple-500/40 shadow-inner overflow-hidden flex items-center h-[52px]">
                                     <iframe
                                       src={getGoogleDriveIframeUrl(pItem.audio_url || pItem.audioUrl)}
                                       width="100%"
-                                      height="60"
+                                      height="52"
                                       allow="autoplay"
-                                      className="rounded-xl border-0 w-full h-[60px] overflow-hidden"
+                                      className="rounded-full border-0 w-full h-[52px] overflow-hidden"
                                     ></iframe>
+                                    {/* LỚP CHE GÓC PHẢI LOẠI BỎ HOÀN TOÀN NÚT MỞ CỬA SỔ NHO ↗️ */}
+                                    <div className="absolute right-0 top-0 bottom-0 w-14 bg-slate-900 pointer-events-none rounded-r-full" />
                                   </div>
                                 ) : (
-                                  /* PHƯƠNG ÁN 2: THẺ AUDIO TRUYỀN THỐNG */
-                                  <div className="w-full bg-white p-1.5 rounded-full border-2 border-purple-300 shadow-xl">
+                                  /* PHƯƠNG ÁN 2: THẺ AUDIO TRUYỀN THỐNG MỎNG MỊN BO TRÒN */
+                                  <div className="w-full bg-white p-1 rounded-full border-2 border-purple-300 shadow-xl">
                                     <audio
                                       controls
                                       preload="auto"
                                       src={getGoogleDriveStreamUrl(pItem.audio_url || pItem.audioUrl)}
-                                      className="w-full h-11 outline-none accent-purple-600 rounded-full"
+                                      className="w-full h-10 outline-none accent-purple-600 rounded-full"
                                     />
                                   </div>
                                 )}
