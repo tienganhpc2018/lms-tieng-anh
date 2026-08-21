@@ -438,9 +438,9 @@ export default function TeacherAnalytics() {
                         type="button"
                         onClick={() => {
                           setSelectedStudentHistory(null);
-                          // ĐIỀU HƯỚNG TRỰC TIẾP TỚI BÀI LÀM CỦA HỌC SINH ĐỂ GIÁO VIÊN SOI CHI TIẾT CÂU ĐÚNG / SAI (MÀU ĐỎ)
+                          // ĐIỀU HƯỚNG TRỰC TIẾP TỚI BÀI LÀM CỦA HỌC SINH VỚI SUBMISSION ID & STUDENT ID ĐỂ GIÁO VIÊN SOI CHI TIẾT CÂU SAI MÀU ĐỎ
                           if (sub.activity_id) {
-                            navigate(`/assignment/${sub.activity_id}`);
+                            navigate(`/assignment/${sub.activity_id}?submissionId=${sub.id}&studentId=${sub.student_id}`);
                           } else {
                             alert(`BÀI LÀM CỦA HỌC SINH ${selectedStudentHistory.profile?.full_name}:\n\n- Điểm số: ${subScore}/10 điểm\n- Thời gian nộp: ${new Date(sub.submitted_at).toLocaleString('vi-VN')}\n- Trạng thái: ${isPass ? 'ĐẠT' : 'CHƯA ĐẠT'}`);
                           }
