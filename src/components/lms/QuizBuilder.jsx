@@ -1292,16 +1292,16 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           </div>
                         </div>
 
-                        {/* 1. NÚT TẢI FILE ÂM THANH MP3 TRỰC TIẾP TỪ MÁY TÍNH & BỘ NGHE THỬ 100% TỨC THÌ (TỐI GIẢN CHUẨN THẦY HẢI) */}
+                        {/* 1. NÚT TẢI FILE ÂM THANH MP3 VÀ BỘ TRÌNH PHÁT TRẮNG MỊN CỰC ĐẸP (Y HỆT BỨC ẢNH THẦY HẢI GỬI) */}
                         {selectedType?.toLowerCase().includes('listening') ? (
-                          <div className="p-4 bg-purple-50/90 border-2 border-dashed border-purple-300 rounded-3xl space-y-3 shadow-2xs">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                              <label className="text-xs font-extrabold text-purple-950 uppercase flex items-center space-x-1.5">
-                                <Volume2 className="w-4 h-4 text-purple-600 animate-bounce" />
+                          <div className="p-4 bg-slate-900 border-2 border-purple-500/40 rounded-3xl space-y-4 shadow-xl text-white">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <label className="text-xs font-extrabold text-purple-300 uppercase flex items-center space-x-2">
+                                <Volume2 className="w-4 h-4 text-purple-400 animate-bounce" />
                                 <span>🎵 FILE ÂM THANH BÀI NGHE CHO PART #{pIdx + 1}:</span>
                               </label>
 
-                              {/* NÚT TẢI FILE TỪ MÁY TÍNH */}
+                              {/* NÚT MẦU TÍM: 🔊 🎧 Upload File Audio Từ Máy (ĐÚNG 100% ẢNH THẦY GỬI) */}
                               <div>
                                 <button
                                   type="button"
@@ -1312,10 +1312,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                       inputEl.click();
                                     }
                                   }}
-                                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-2xl shadow-md transition transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer whitespace-nowrap"
+                                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-full shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer border border-purple-300/30 whitespace-nowrap"
                                 >
-                                  <Plus className="w-4 h-4" />
-                                  <span>📁 Tải File Audio MP3 Từ Máy Tính</span>
+                                  <Volume2 className="w-4 h-4 text-purple-200" />
+                                  <span>🔊 🎧 Upload File Audio Từ Máy</span>
                                 </button>
                                 <input
                                   id={`part-audio-input-${pIdx}`}
@@ -1331,8 +1331,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     setToast({
                                       isOpen: true,
                                       type: 'info',
-                                      title: 'Đang Mã Hóa Bài Nghe',
-                                      message: `Đang xử lý file âm thanh "${file.name}"...`
+                                      title: 'Đang Nạp File Âm Thanh',
+                                      message: `Đang xử lý file "${file.name}"...`
                                     });
 
                                     // Đọc Base64 đính kèm vĩnh viễn
@@ -1362,22 +1362,17 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               </div>
                             </div>
 
-                            {/* CHỈ KHI NẠP FILE XONG MỚI HIỂN THỊ TRÌNH PHÁT VÀ NÚT XÓA (TỐI GIẢN THEO CHỈ ĐẠO CỦA THẦY HẢI) */}
+                            {/* HIỂN THỊ THẺ TRÌNH PHÁT TRẮNG MỊN BO TRÒN RỰC RỠ Y HỆT BỨC ẢNH CỦA THẦY HẢI GỬI */}
                             {(pItem.audioUrl || pItem.audio_blob || pItem.audio_data || pItem.audio) ? (
-                              <div className="p-3 bg-white border border-purple-200 rounded-2xl space-y-2 shadow-2xs">
+                              <div className="p-4 bg-white/95 backdrop-blur-md rounded-2xl space-y-2 border border-purple-300 shadow-xl">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-2 truncate">
-                                    <span className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-extrabold text-sm">
-                                      🔊
+                                    <span className="w-7 h-7 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-extrabold text-xs">
+                                      🎵
                                     </span>
-                                    <div className="truncate">
-                                      <p className="text-xs font-extrabold text-purple-950 truncate">
-                                        {pItem.audioFileName || 'File Audio MP3 Gốc Đã Nạp'}
-                                      </p>
-                                      <p className="text-[10px] text-emerald-600 font-bold">
-                                        ✓ Đã nạp file âm thanh gốc! Bấm nút Play ▶️ nghe thử ngay!
-                                      </p>
-                                    </div>
+                                    <p className="text-xs font-extrabold text-slate-900 truncate">
+                                      {pItem.audioFileName || 'File Audio MP3 Gốc Đã Nạp'}
+                                    </p>
                                   </div>
 
                                   <button
@@ -1392,19 +1387,19 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                       newParts[pIdx].audioFileName = '';
                                       setSectionParts([...newParts]);
                                     }}
-                                    className="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                    className="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                                   >
-                                    ✕ Xóa file này
+                                    ✕ Xóa audio
                                   </button>
                                 </div>
 
-                                {/* BỘ NGHE THỬ ÂM THANH MP3 TRỰC TIẾP DÙNG BLOBLURL / DATA BASE64 PHÁT 100% KHÔNG BAO GIỜ BỊ 0:00 / 0:00 */}
-                                <div className="p-2.5 bg-slate-900 rounded-2xl border border-purple-400/30">
+                                {/* BỘ TRÌNH PHÁT AUDIO PLAYER TRẮNG MỊN VỚI THANH PHÁT ĐEN/TRẮNG Y HỆT BỨC ẢNH CỦA THẦY HẢI */}
+                                <div className="w-full bg-white p-1 rounded-2xl border border-slate-200 shadow-inner">
                                   <audio
                                     controls
                                     key={pItem.audio_blob || pItem.audioUrl || pItem.audio_data}
                                     src={pItem.audio_blob || pItem.audioUrl || pItem.audio_data || pItem.audio}
-                                    className="w-full h-9 outline-none accent-purple-500"
+                                    className="w-full h-11 outline-none accent-purple-600"
                                   />
                                 </div>
                               </div>
