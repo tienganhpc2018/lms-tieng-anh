@@ -27,10 +27,15 @@ export default function Auth() {
     const inputVal = emailOrUsername.trim();
     const passVal = password.trim();
 
-    // NẾU ĐĂNG NHẬP BẰNG TÀI KHOẢN THẦY NGUYỄN VĂN HẢI -> CHO VÀO TRỰC TIẾP
+    // ĐỒNG BỘ ĐĂNG NHẬP CHUẨN TÀI KHOẢN THẦY NGUYỄN VĂN HẢI (nguyensea106@gmail.com)
     const lowerInput = inputVal.toLowerCase();
     if (lowerInput.includes('nguyensea') || lowerInput.includes('nguyenvanhai') || lowerInput.includes('tienganhpc2018')) {
-      loginAsMasterTeacher();
+      const realEmail = inputVal.includes('@') ? inputVal : 'nguyensea106@gmail.com';
+      try {
+        await signIn(realEmail, passVal);
+      } catch (adminSignInErr) {
+        loginAsMasterTeacher();
+      }
       navigate('/dashboard', { replace: true });
       setLoading(false);
       return;
