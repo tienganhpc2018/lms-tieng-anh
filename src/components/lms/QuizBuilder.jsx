@@ -1320,7 +1320,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 <input
                                   id={`part-audio-input-${pIdx}`}
                                   type="file"
-                                  accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"
+                                  accept=".mp3,.wav,.m4a"
                                   className="hidden"
                                   onChange={async (e) => {
                                     const file = e.target.files?.[0];
