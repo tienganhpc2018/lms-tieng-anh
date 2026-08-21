@@ -1095,8 +1095,8 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                   })}
                                 </div>
 
-                                {/* KHUNG GIẢI THÍCH CHI TIẾT NGAY SAU MỖI CÂU HỎI */}
-                                {(cQ.explanation || pItem.explanation || submitted || isTeacher) && renderCompactExplanation(
+                                {/* KHUNG GIẢI THÍCH CHI TIẾT NGAY SAU MỖI CÂU HỎI (TUYỆT ĐỐI CHỈ HIỂN THỊ KHI ĐÃ NỘP BÀI HOẶC LÀ GIÁO VIÊN) */}
+                                {(submitted || isTeacher) && renderCompactExplanation(
                                   cQ.explanation || pItem.explanation || `Dẫn chứng & Phân tích: Đáp án đúng chính xác là "${correctText}".`,
                                   correctText,
                                   cQ,
