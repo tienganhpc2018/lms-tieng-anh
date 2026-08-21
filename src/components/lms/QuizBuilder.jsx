@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase, uploadLMSFile } from '../../lib/supabase';
 import { Plus, Trash2, Edit3, HelpCircle, CheckSquare, ListFilter, FileText, ChevronDown, Check, X, Upload, FileUp, Sparkles, Wand2, Volume2, Link as LinkIcon, Video, Eye, Sun, Type, Database, Shuffle, Award, Save, Code, Download, Headphones, BookOpen, Search, XCircle, PlayCircle, MessageSquareText, Clock, Tag, FileCode, Layers, Camera, Image as ImageIcon } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import AiQuizGeneratorModal from './AiQuizGeneratorModal';
@@ -1293,11 +1293,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   type="file"
                                   accept="audio/*"
                                   className="hidden"
-                                  onChange={(e) => {
+                                  onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
 
-                                    // Tạo Blob URL phát trực tiếp tức thì 100% mượt mà
+                                    // 1. Tạo Blob URL phát trực tiếp tức thì 100% mượt mà trong Modal
                                     const blobUrl = URL.createObjectURL(file);
                                     const initialParts = [...sectionParts];
                                     initialParts[pIdx].audioUrl = blobUrl;
@@ -1305,31 +1305,42 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     initialParts[pIdx].audio_url = blobUrl;
                                     initialParts[pIdx].audio = blobUrl;
                                     initialParts[pIdx].audioFileName = file.name;
-                                    setSectionParts(initialParts);
+                                    setSectionParts([...initialParts]);
 
                                     setToast({
                                       isOpen: true,
                                       type: 'info',
-                                      title: 'Đang Tải File Audio MP3',
-                                      message: `Đang nạp file âm thanh gốc "${file.name}"...`
+                                      title: 'Đang Tải Lên Hệ Thống Cloud',
+                                      message: `Đang lưu trữ file âm thanh gốc "${file.name}" lên Server Cloud...`
                                     });
 
+                                    // 2. Đọc Base64 làm dự phòng song song
                                     const reader = new FileReader();
-                                    reader.onload = (event) => {
+                                    reader.onload = async (event) => {
                                       const base64Audio = event.target.result;
+
+                                      // 3. TẢI FILE TRỰC TIẾP LÊN SUPABASE STORAGE LƯU TRỮ VĨNH VIỄN VỚI LINK HTTP THẬT
+                                      let publicCloudUrl = null;
+                                      try {
+                                        publicCloudUrl = await uploadLMSFile(file, 'activities');
+                                      } catch (cloudErr) {
+                                        console.warn('Upload Supabase Storage thất bại, chuyển Base64 dự phòng:', cloudErr);
+                                      }
+
+                                      const finalAudioSrc = publicCloudUrl || base64Audio;
                                       const newParts = [...sectionParts];
-                                      newParts[pIdx].audioUrl = blobUrl; // Dùng blobUrl phát cực mượt trong Modal
-                                      newParts[pIdx].audio_data = base64Audio; // Lưu Base64 vĩnh viễn vào DB (.wav, .mp3, .m4a)
-                                      newParts[pIdx].audio_url = base64Audio;
-                                      newParts[pIdx].audio = base64Audio;
+                                      newParts[pIdx].audioUrl = finalAudioSrc;
+                                      newParts[pIdx].audio_data = finalAudioSrc;
+                                      newParts[pIdx].audio_url = finalAudioSrc;
+                                      newParts[pIdx].audio = finalAudioSrc;
                                       newParts[pIdx].audioFileName = file.name;
-                                      setSectionParts(newParts);
+                                      setSectionParts([...newParts]);
 
                                       setToast({
                                         isOpen: true,
                                         type: 'success',
-                                        title: 'Nạp Bài Nghe Thành Công',
-                                        message: `Đã nạp thành công file âm thanh gốc "${file.name}"! Thầy có thể bấm Play ▶️ nghe thử mượt mà!`
+                                        title: 'Lưu Trữ Bài Nghe Thành Công',
+                                        message: `File âm thanh gốc "${file.name}" đã sẵn sàng 100% cho Giáo viên & Học sinh!`
                                       });
                                     };
                                     reader.readAsDataURL(file);
