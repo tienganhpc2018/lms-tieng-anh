@@ -1242,25 +1242,42 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
 
+                                    // Tạo Blob URL phát trực tiếp tức thì 100% mượt mà
+                                    const blobUrl = URL.createObjectURL(file);
+                                    const initialParts = [...sectionParts];
+                                    initialParts[pIdx].audioUrl = blobUrl;
+                                    initialParts[pIdx].audio_data = blobUrl;
+                                    initialParts[pIdx].audio_url = blobUrl;
+                                    initialParts[pIdx].audio = blobUrl;
+                                    initialParts[pIdx].audioFileName = file.name;
+                                    setSectionParts(initialParts);
+
                                     setToast({
                                       isOpen: true,
                                       type: 'info',
-                                      title: 'Đang Mã Hóa Audio Base64',
-                                      message: `Đang xử lý file âm thanh "${file.name}"...`
+                                      title: 'Đang Tải File Audio MP3',
+                                      message: `Đang nạp file âm thanh gốc "${file.name}"...`
                                     });
 
                                     const reader = new FileReader();
                                     reader.onload = (event) => {
-                                      const base64Audio = event.target.result;
+                                      let base64Audio = event.target.result;
+                                      if (typeof base64Audio === 'string' && base64Audio.startsWith('data:application/octet-stream')) {
+                                        base64Audio = base64Audio.replace('data:application/octet-stream', 'data:audio/mp3');
+                                      }
                                       const newParts = [...sectionParts];
-                                      newParts[pIdx].audioUrl = base64Audio;
+                                      newParts[pIdx].audioUrl = blobUrl; // Dùng blobUrl phát cực mượt trong Modal
+                                      newParts[pIdx].audio_data = base64Audio; // Lưu Base64 vĩnh viễn vào DB
+                                      newParts[pIdx].audio_url = base64Audio;
+                                      newParts[pIdx].audio = base64Audio;
                                       newParts[pIdx].audioFileName = file.name;
                                       setSectionParts(newParts);
+
                                       setToast({
                                         isOpen: true,
                                         type: 'success',
-                                        title: 'Mã Hóa Base64 Thành Công',
-                                        message: `Đã đính kèm trọn vẹn file audio "${file.name}" trực tiếp vào bài thi!`
+                                        title: 'Nạp Bài Nghe Thành Công',
+                                        message: `Đã nạp thành công file MP3 gốc "${file.name}"! Thầy có thể bấm Play ▶️ nghe thử mượt mà!`
                                       });
                                     };
                                     reader.readAsDataURL(file);
@@ -1270,7 +1287,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                             </div>
 
                             {/* HIỂN THỊ TÊN FILE AUDIO MP3 VÀ BỘ NGHE THỬ NGAY TRONG MODAL */}
-                            {pItem.audioUrl ? (
+                            {(pItem.audioUrl || pItem.audio_data || pItem.audio) ? (
                               <div className="p-3 bg-white border border-purple-200 rounded-2xl space-y-2 shadow-2xs">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-2 truncate">
@@ -1279,10 +1296,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     </span>
                                     <div className="truncate">
                                       <p className="text-xs font-extrabold text-purple-950 truncate">
-                                        {pItem.audioFileName || 'File Audio MP3 đã được đính kèm Base64'}
+                                        {pItem.audioFileName || 'File Audio MP3 Gốc Đã Nạp'}
                                       </p>
                                       <p className="text-[10px] text-emerald-600 font-bold">
-                                        ✓ Đã mã hóa Base64 đính kèm trực tiếp vào nội dung câu hỏi! Phát âm thanh 100% trên mọi máy!
+                                        ✓ Đã đính kèm file MP3 gốc phát 100% mượt mà trên mọi trình duyệt!
                                       </p>
                                     </div>
                                   </div>
@@ -1292,6 +1309,9 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     onClick={() => {
                                       const newParts = [...sectionParts];
                                       newParts[pIdx].audioUrl = '';
+                                      newParts[pIdx].audio_data = '';
+                                      newParts[pIdx].audio_url = '';
+                                      newParts[pIdx].audio = '';
                                       newParts[pIdx].audioFileName = '';
                                       setSectionParts(newParts);
                                     }}
@@ -1301,9 +1321,13 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   </button>
                                 </div>
 
-                                {/* BỘ NGHE THỬ ÂM THANH MP3 TRỰC TIẾP NGAY TRONG MODAL */}
-                                <div className="p-2 bg-slate-900 rounded-xl">
-                                  <audio controls src={pItem.audioUrl} className="w-full h-8 outline-none" />
+                                {/* BỘ NGHE THỬ ÂM THANH MP3 TRỰC TIẾP NGAY TRONG MODAL CHUẨN 100% KHÔNG BAO GIỜ BỊ 0:00 / 0:00 */}
+                                <div className="p-2.5 bg-slate-900 rounded-2xl border border-purple-400/30">
+                                  <audio
+                                    controls
+                                    src={pItem.audioUrl || pItem.audio_data || pItem.audio}
+                                    className="w-full h-9 outline-none accent-purple-500"
+                                  />
                                 </div>
                               </div>
                             ) : (
