@@ -4,8 +4,33 @@ import { supabase } from '../lib/supabase';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+  // Nạp session tức thì từ localStorage để F5 refresh không bao giờ bị văng về /auth
+  const [user, setUser] = useState(() => {
+    try {
+      const savedMaster = localStorage.getItem('lms_master_admin_session');
+      if (savedMaster) {
+        const parsed = JSON.parse(savedMaster);
+        return { id: parsed.id, email: parsed.email };
+      }
+      const saved = localStorage.getItem('lms_active_user_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { id: parsed.id, email: parsed.email };
+      }
+    } catch (e) {}
+    return null;
+  });
+
+  const [profile, setProfile] = useState(() => {
+    try {
+      const savedMaster = localStorage.getItem('lms_master_admin_session');
+      if (savedMaster) return JSON.parse(savedMaster);
+      const saved = localStorage.getItem('lms_active_user_session');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return null;
+  });
+
   const [loading, setLoading] = useState(true);
 
   // Lấy & Đồng bộ Profile người dùng từ Supabase DB
@@ -115,14 +140,20 @@ export function AuthProvider({ children }) {
           await supabase.auth.signOut();
           setUser(null);
           setProfile(null);
+          localStorage.removeItem('lms_active_user_session');
           setLoading(false);
           alert(`⏳ TÀI KHOẢN HỌC SINH ĐANG Ở TRẠNG THÁI CHỜ DUYỆT!\n\nTài khoản của em (${finalProfile?.full_name || finalProfile?.username || cleanEmail}) chưa được Thầy Nguyễn Văn Hải bấm phê duyệt.\n\nVui lòng nhắn Thầy Hải mở mục [QUẢN LÝ TÀI KHOẢN HỌC SINH] và nhấp nút "⏳ Chờ Duyệt" để kích hoạt tài khoản vào học nhé!`);
           return;
         }
       }
 
-      setUser({ id: userId, email: cleanEmail });
+      const activeUser = { id: userId, email: cleanEmail };
+      setUser(activeUser);
       setProfile(finalProfile || null);
+
+      if (finalProfile) {
+        localStorage.setItem('lms_active_user_session', JSON.stringify(finalProfile));
+      }
 
       // KHI TÀI KHOẢN TẠM KHÓA
       if (finalProfile && finalProfile.suspended && !isMasterAdmin) {
@@ -130,6 +161,7 @@ export function AuthProvider({ children }) {
         await supabase.auth.signOut();
         setUser(null);
         setProfile(null);
+        localStorage.removeItem('lms_active_user_session');
       }
     } catch (err) {
       console.error('Lỗi lấy thông tin hồ sơ:', err.message);
@@ -154,53 +186,62 @@ export function AuthProvider({ children }) {
       suspended: false
     };
     localStorage.setItem('lms_master_admin_session', JSON.stringify(teacherProfile));
+    localStorage.setItem('lms_active_user_session', JSON.stringify(teacherProfile));
     setProfile(teacherProfile);
     setUser({ id: teacherProfile.id, email: teacherProfile.email });
     return teacherProfile;
   };
 
   useEffect(() => {
-    // 1. Kiểm tra session Master Admin Thầy Hải từ LocalStorage trước
-    const savedMasterSession = localStorage.getItem('lms_master_admin_session');
-    if (savedMasterSession) {
+    let isMounted = true;
+    const initializeAuth = async () => {
       try {
-        const parsed = JSON.parse(savedMasterSession);
-        setProfile(parsed);
-        setUser({ id: parsed.id, email: parsed.email });
-        setLoading(false);
-        return;
-      } catch (e) {}
-    }
+        const savedMasterSession = localStorage.getItem('lms_master_admin_session');
+        if (savedMasterSession) {
+          const parsed = JSON.parse(savedMasterSession);
+          setProfile(parsed);
+          setUser({ id: parsed.id, email: parsed.email });
+          if (isMounted) setLoading(false);
+          return;
+        }
 
-    // 2. Check active Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const currentUser = session?.user || null;
-      if (currentUser) {
-        fetchProfile(currentUser.id, currentUser.email);
-      } else {
-        setUser(null);
-        setProfile(null);
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user || null;
+        if (currentUser) {
+          await fetchProfile(currentUser.id, currentUser.email);
+        } else {
+          const savedActive = localStorage.getItem('lms_active_user_session');
+          if (!savedActive) {
+            setUser(null);
+            setProfile(null);
+          }
+        }
+      } catch (err) {
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
-    });
+    };
 
-    // Lắng nghe thay đổi trạng thái đăng nhập
+    initializeAuth();
+
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user || null;
       if (currentUser) {
         await fetchProfile(currentUser.id, currentUser.email);
       } else {
         const savedAdmin = localStorage.getItem('lms_master_admin_session');
-        if (!savedAdmin) {
+        const savedActive = localStorage.getItem('lms_active_user_session');
+        if (!savedAdmin && !savedActive) {
           setUser(null);
           setProfile(null);
         }
       }
-      setLoading(false);
+      if (isMounted) setLoading(false);
     });
 
     return () => {
-      listener?.subscription.unsubscribe();
+      isMounted = false;
+      listener?.subscription?.unsubscribe();
     };
   }, []);
 
