@@ -912,13 +912,15 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                   const isPart1MC = (pItem.part_type === 'multiple_choice' || !pItem.part_type) && !isTrueFalse;
                   const isPart2Short = pItem.part_type === 'short_essay';
 
-                  // NGUỒN PHÁT AUDIO THÔNG MINH: ƯU TIÊN LẤY BASE64 DATA:AUDIO THẬT, BỎ BLOB TẠM THỜI
+                  // NGUỒN PHÁT AUDIO THÔNG MINH DUAL-BINDING: BẮT 100% CẢ ACTIVITY VÀ QUESTION PARTS CHỐNG RỚT TRƯỜNG API
                   const extractAudio = () => {
                     const candidates = [
                       pItem?.audio_data,
-                      pItem?.audio,
                       pItem?.audio_url,
                       pItem?.audioUrl,
+                      pItem?.audio,
+                      activity?.audio_url,
+                      activity?.content_url,
                       q?.audio_data,
                       q?.audio_url,
                       q?.audioUrl,
@@ -929,15 +931,15 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                       q?.content?.audio
                     ];
 
-                    // 1. Tìm chuỗi mã hóa Base64 thật (bắt đầu bằng data:audio)
-                    const base64Src = candidates.find(c => typeof c === 'string' && c.trim().startsWith('data:audio'));
+                    // 1. Lấy chuỗi mã hóa Base64 thật (bắt đầu bằng data:)
+                    const base64Src = candidates.find(c => typeof c === 'string' && c.trim().startsWith('data:'));
                     if (base64Src) return base64Src.trim();
 
-                    // 2. Tìm URL âm thanh hợp lệ (không phải blob: hỏng và không phải soundhelix)
+                    // 2. Lấy URL âm thanh online hợp lệ (không chứa blob: hỏng và không chứa soundhelix)
                     const validSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix') && !c.startsWith('blob:'));
                     if (validSrc) return validSrc.trim();
 
-                    // 3. Fallback tìm chuỗi bất kỳ hợp lệ ngoại trừ soundhelix
+                    // 3. Fallback lấy đường dẫn bất kỳ ngoại trừ soundhelix
                     const fallbackSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
                     if (fallbackSrc) return fallbackSrc.trim();
 
@@ -975,10 +977,12 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                             </span>
                           </div>
 
-                          {/* TRÌNH PHÁT AUDIO PLAYER CHUYÊN NGHIỆP SÁNG RỰC NÚT PLAY ▶️ */}
+                          {/* TRÌNH PHÁT AUDIO PLAYER CHUYÊN NGHIỆP SÁNG RỰC NÚT PLAY ▶️ HỖ TRỢ CORS VÀ PRELOAD */}
                           <div className="bg-slate-950/80 p-2 rounded-2xl border border-purple-500/20 shadow-inner">
                             <audio
                               controls
+                              preload="metadata"
+                              crossOrigin="anonymous"
                               src={activeAudioSource}
                               className="w-full h-10 rounded-xl outline-none accent-purple-500"
                             />
