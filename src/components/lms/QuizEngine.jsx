@@ -790,13 +790,15 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
               <span>🖨️ Tải Báo Cáo PDF Bài Thi</span>
             </button>
 
-            <button
-              onClick={() => exportQuizToWord(questions, activity?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
-            >
-              <FileText className="w-4 h-4 text-emerald-200" />
-              <span>🖨️ In Đề Thi Ra Giấy (Word)</span>
-            </button>
+            {isTeacher && (
+              <button
+                onClick={() => exportQuizToWord(questions, activity?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+              >
+                <FileText className="w-4 h-4 text-emerald-200" />
+                <span>🖨️ In Đề Thi Ra Giấy (Word)</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1253,9 +1255,13 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch pt-0.5">
                         {cOpts.map((opt, oIdx) => {
-                          const isSelected = selectedOptIndex === oIdx;
-                          const isThisCorrect = opt?.isCorrect;
                           const label = String.fromCharCode(65 + oIdx);
+                          const isSelected = selectedOptIndex !== undefined && selectedOptIndex !== null && (
+                            String(selectedOptIndex) === String(oIdx) ||
+                            String(selectedOptIndex).toLowerCase() === label.toLowerCase() ||
+                            (typeof selectedOptIndex === 'object' && String(selectedOptIndex?.index) === String(oIdx))
+                          );
+                          const isThisCorrect = Boolean(opt?.isCorrect);
 
                           let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
                           let resultBadge = null;
