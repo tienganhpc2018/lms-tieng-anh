@@ -605,23 +605,30 @@ export default function QuizBuilder({ activityId, onSaved }) {
       };
 
       if (['listening_section', 'reading_section', 'writing_section', 'multiple_choice'].includes(normType)) {
-        // CHUẨN HÓA LƯU VĨNH VIỄN FILE AUDIO MP3 BASE64 / URL THỰC TẾ CỦA TỪNG PART VÀO DATABASE
+        // CHUẨN HÓA LƯU VĨNH VIỄN FILE AUDIO BASE64 THẬT VÀO DATABASE (LOẠI BỎ BLOBLURL TẠM THỜI MÁY LOCAL)
         const partsToSave = sectionParts.map((p) => {
-          const realAudioData = p.audio_data || p.audio_url || p.audio || (typeof p.audioUrl === 'string' && p.audioUrl.startsWith('data:') ? p.audioUrl : '');
-          const finalAudio = realAudioData || p.audioUrl || '';
+          const allPossibles = [p.audio_data, p.audio, p.audio_url, p.audioUrl];
+          // Lấy chuỗi base64 thật
+          let realBase64 = allPossibles.find(c => typeof c === 'string' && c.trim().startsWith('data:audio')) || '';
+
+          if (!realBase64) {
+            // Lấy URL online thực tế không chứa blob:
+            realBase64 = allPossibles.find(c => typeof c === 'string' && c.trim() !== '' && !c.startsWith('blob:')) || '';
+          }
 
           return {
             ...p,
-            audioUrl: finalAudio,
-            audio_data: finalAudio,
-            audio_url: finalAudio,
-            audio: finalAudio,
+            audioUrl: realBase64,
+            audio_data: realBase64,
+            audio_url: realBase64,
+            audio: realBase64,
           };
         });
 
         customContent.parts = partsToSave;
-        customContent.audioUrl = listeningAudioUrl;
-        customContent.audio_data = listeningAudioUrl;
+        const mainAudio = listeningAudioUrl?.startsWith('data:') ? listeningAudioUrl : '';
+        customContent.audioUrl = mainAudio;
+        customContent.audio_data = mainAudio;
         customContent.audioFileName = uploadedAudioFileName;
         customContent.passage = sectionPassage;
         customContent.childQuestions = sectionChildQuestions;
