@@ -20,6 +20,30 @@ const getGoogleDriveStreamUrl = (url) => {
   return trimmed;
 };
 
+const getGoogleDriveIframeUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com') || trimmed.includes('googleusercontent.com')) {
+    const gMatch = trimmed.match(/\/file\/d\/([^\/\?]+)/) || trimmed.match(/id=([^\&]+)/) || trimmed.match(/\/d\/([^\/\?]+)/);
+    if (gMatch && gMatch[1]) {
+      return `https://drive.google.com/file/d/${gMatch[1]}/preview`;
+    }
+  }
+  return '';
+};
+
+const getGoogleDriveDirectViewUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com') || trimmed.includes('googleusercontent.com')) {
+    const gMatch = trimmed.match(/\/file\/d\/([^\/\?]+)/) || trimmed.match(/id=([^\&]+)/) || trimmed.match(/\/d\/([^\/\?]+)/);
+    if (gMatch && gMatch[1]) {
+      return `https://drive.google.com/file/d/${gMatch[1]}/view?usp=sharing`;
+    }
+  }
+  return trimmed;
+};
+
 export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1486,7 +1510,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               </div>
                             )}
 
-                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER CHUẨN NGUYÊN BẢN GỐC 100% ẢNH 3 CỦA THẦY HẢI (media_1787305598749.png) */}
+                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER & KHUNG IFRAME PREVIEW GOOGLE DRIVE XỊN XÒ THEO ĐÚNG YÊU CẦU THẦY HẢI */}
                             {(pItem.audio_url || pItem.audioUrl) && (
                               <div className="p-4 bg-slate-950 border border-purple-500/30 rounded-3xl space-y-3 shadow-2xl">
                                 <div className="flex items-center justify-between">
@@ -1501,33 +1525,59 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     </div>
                                   </div>
 
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newParts = [...sectionParts];
-                                      delete newParts[pIdx].audio_url;
-                                      delete newParts[pIdx].audioUrl;
-                                      delete newParts[pIdx].audio_data;
-                                      delete newParts[pIdx].audio_blob;
-                                      delete newParts[pIdx].audio;
-                                      delete newParts[pIdx].audioFileName;
-                                      delete newParts[pIdx].temp_link_input;
-                                      setSectionParts([...newParts]);
-                                    }}
-                                    className="px-3 py-1 text-[11px] font-extrabold text-rose-400 hover:bg-rose-500/20 rounded-xl transition cursor-pointer border border-rose-500/30"
-                                  >
-                                    ✕ Xóa audio
-                                  </button>
+                                  <div className="flex items-center space-x-2">
+                                    {/* NÚT MỞ TAB MỚI MANDATORY TARGET="_BLANK" TRÁNH MẤT BÀI LÀM CỦA HỌC SINH */}
+                                    <a
+                                      href={getGoogleDriveDirectViewUrl(pItem.audio_url || pItem.audioUrl)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition flex items-center space-x-1"
+                                    >
+                                      <span>🎧 Mở Tab Mới</span>
+                                    </a>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newParts = [...sectionParts];
+                                        delete newParts[pIdx].audio_url;
+                                        delete newParts[pIdx].audioUrl;
+                                        delete newParts[pIdx].audio_data;
+                                        delete newParts[pIdx].audio_blob;
+                                        delete newParts[pIdx].audio;
+                                        delete newParts[pIdx].audioFileName;
+                                        delete newParts[pIdx].temp_link_input;
+                                        setSectionParts([...newParts]);
+                                      }}
+                                      className="px-3 py-1 text-[11px] font-extrabold text-rose-400 hover:bg-rose-500/20 rounded-xl transition cursor-pointer border border-rose-500/30"
+                                    >
+                                      ✕ Xóa
+                                    </button>
+                                  </div>
                                 </div>
 
-                                <div className="w-full bg-white p-1.5 rounded-full border-2 border-purple-300 shadow-xl">
-                                  <audio
-                                    controls
-                                    preload="auto"
-                                    src={getGoogleDriveStreamUrl(pItem.audio_url || pItem.audioUrl)}
-                                    className="w-full h-11 outline-none accent-purple-600 rounded-full"
-                                  />
-                                </div>
+                                {/* PHƯƠNG ÁN 1: KHUNG PREVIEW IFRAME GOOGLE DRIVE PHÁT TRỰC TIẾP TRONG TRANG */}
+                                {getGoogleDriveIframeUrl(pItem.audio_url || pItem.audioUrl) ? (
+                                  <div className="w-full bg-slate-900 p-2 rounded-2xl border border-purple-500/40 shadow-inner">
+                                    <iframe
+                                      src={getGoogleDriveIframeUrl(pItem.audio_url || pItem.audioUrl)}
+                                      width="100%"
+                                      height="120"
+                                      allow="autoplay"
+                                      className="rounded-xl border-0 w-full"
+                                    ></iframe>
+                                  </div>
+                                ) : (
+                                  /* PHƯƠNG ÁN 2: THẺ AUDIO TRUYỀN THỐNG */
+                                  <div className="w-full bg-white p-1.5 rounded-full border-2 border-purple-300 shadow-xl">
+                                    <audio
+                                      controls
+                                      preload="auto"
+                                      src={getGoogleDriveStreamUrl(pItem.audio_url || pItem.audioUrl)}
+                                      className="w-full h-11 outline-none accent-purple-600 rounded-full"
+                                    />
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
