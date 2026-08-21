@@ -8,40 +8,37 @@ import { exportQuizToWord } from '../../utils/exportQuizWord';
 import { exportMultiCodeWord } from '../../utils/exportMultiCodeWord';
 import ExamMatrixModal from './ExamMatrixModal';
 import ExamPaperTimerModal from './ExamPaperTimerModal';
-const getGoogleDriveStreamUrl = (url) => {
-  if (!url || typeof url !== 'string') return '';
+const extractGoogleFileId = (url) => {
+  if (!url || typeof url !== 'string') return null;
   const trimmed = url.trim();
-  if (trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com') || trimmed.includes('googleusercontent.com')) {
-    const gMatch = trimmed.match(/\/file\/d\/([^\/\?]+)/) || trimmed.match(/id=([^\&]+)/) || trimmed.match(/\/d\/([^\/\?]+)/);
-    if (gMatch && gMatch[1]) {
-      return `https://lh3.googleusercontent.com/d/${gMatch[1]}`;
-    }
+  const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/) ||
+                trimmed.match(/id=([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+};
+
+const getGoogleDriveStreamUrl = (url) => {
+  const fileId = extractGoogleFileId(url);
+  if (fileId) {
+    return `https://lh3.googleusercontent.com/d/${fileId}`;
   }
-  return trimmed;
+  return url || '';
 };
 
 const getGoogleDriveIframeUrl = (url) => {
-  if (!url || typeof url !== 'string') return '';
-  const trimmed = url.trim();
-  if (trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com') || trimmed.includes('googleusercontent.com')) {
-    const gMatch = trimmed.match(/\/file\/d\/([^\/\?]+)/) || trimmed.match(/id=([^\&]+)/) || trimmed.match(/\/d\/([^\/\?]+)/);
-    if (gMatch && gMatch[1]) {
-      return `https://drive.google.com/file/d/${gMatch[1]}/preview`;
-    }
+  const fileId = extractGoogleFileId(url);
+  if (fileId) {
+    return `https://drive.google.com/file/d/${fileId}/preview`;
   }
   return '';
 };
 
 const getGoogleDriveDirectViewUrl = (url) => {
-  if (!url || typeof url !== 'string') return '';
-  const trimmed = url.trim();
-  if (trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com') || trimmed.includes('googleusercontent.com')) {
-    const gMatch = trimmed.match(/\/file\/d\/([^\/\?]+)/) || trimmed.match(/id=([^\&]+)/) || trimmed.match(/\/d\/([^\/\?]+)/);
-    if (gMatch && gMatch[1]) {
-      return `https://drive.google.com/file/d/${gMatch[1]}/view?usp=sharing`;
-    }
+  const fileId = extractGoogleFileId(url);
+  if (fileId) {
+    return `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
   }
-  return trimmed;
+  return url || '';
 };
 
 export default function QuizBuilder({ activityId, onSaved }) {
