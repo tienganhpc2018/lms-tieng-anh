@@ -1291,6 +1291,9 @@ export default function QuizBuilder({ activityId, onSaved }) {
                             />
                           </div>
                         </div>
+
+                        {/* 1. KHUNG UPLOAD AUDIO VÀ BỘ TRÌNH PHÁT TRẮNG MỊN CỰC ĐẸP KÈM DRAG AND DROP CHUẨN ẢNH 3 */}
+                        {selectedType?.toLowerCase().includes('listening') ? (
                           <div className="p-4 bg-slate-900 border-2 border-purple-500/40 rounded-3xl space-y-4 shadow-xl text-white">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               <label className="text-xs font-extrabold text-purple-300 uppercase flex items-center space-x-2">
@@ -1298,7 +1301,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 <span>🎵 FILE ÂM THANH BÀI NGHE CHO PART #{pIdx + 1}:</span>
                               </label>
 
-                              {/* NÚT MẦU TÍM: 🔊 🎧 Upload File Audio Từ Máy (ĐÚNG 100% ẢNH THẦY GỬI) */}
+                              {/* NÚT MẦU TÍM: 🔊 🎧 Upload File Audio Từ Máy (BẮT BUỘC TẢI LÊN SUPABASE STORAGE PUBLIC BUCKET) */}
                               <div className="flex items-center space-x-2">
                                 <button
                                   type="button"
@@ -1326,11 +1329,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     setToast({
                                       isOpen: true,
                                       type: 'info',
-                                      title: '⚡ Đang Upload File Audio',
-                                      message: `Đang tải vĩnh viễn file "${file.name}" lên máy chủ...`
+                                      title: '⚡ Đang Upload File Audio Lên Supabase Storage',
+                                      message: `Đang tải vĩnh viễn file "${file.name}" lên Public Bucket "media"...`
                                     });
 
-                                    // 1. UPLOAD FILE TRỰC TIẾP LÊN SUPABASE STORAGE BUCKET "MEDIA" NẠP LINK ONLINE THẬT 100%
+                                    // UPLOAD TRỰC TIẾP LÊN SUPABASE STORAGE BUCKET "MEDIA" NẠP CỘT audio_url CHUẨN KIẾN TRÚC
                                     try {
                                       const fileExt = file.name.split('.').pop();
                                       const fileName = `audios/listening_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -1339,7 +1342,18 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                         .from('media')
                                         .upload(fileName, file, { cacheControl: '3600', upsert: true });
 
-                                      if (!stErr && stData) {
+                                      if (stErr) {
+                                        console.error('Supabase Storage Upload Error:', stErr);
+                                        setToast({
+                                          isOpen: true,
+                                          type: 'error',
+                                          title: '⚠️ Lỗi Upload Storage (RLS/Bucket)',
+                                          message: `Cần chạy SQL tạo Storage Bucket "media" (Allow Public) trong Supabase! Chi tiết: ${stErr.message}`
+                                        });
+                                        return;
+                                      }
+
+                                      if (stData) {
                                         const { data: pubData } = supabase.storage
                                           .from('media')
                                           .getPublicUrl(fileName);
@@ -1347,71 +1361,54 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                         if (pubData?.publicUrl) {
                                           const onlineUrl = pubData.publicUrl;
                                           const updatedParts = [...sectionParts];
-                                          updatedParts[pIdx].audioUrl = onlineUrl;
-                                          updatedParts[pIdx].audio_blob = onlineUrl;
-                                          updatedParts[pIdx].audio_data = onlineUrl;
                                           updatedParts[pIdx].audio_url = onlineUrl;
-                                          updatedParts[pIdx].audio = onlineUrl;
+                                          updatedParts[pIdx].audioUrl = onlineUrl;
                                           updatedParts[pIdx].audioFileName = file.name;
-                                          setSectionParts([...updatedParts]);
+                                          // GỌT BỎ HOÀN TOÀN TRƯỜNG BASE64
+                                          delete updatedParts[pIdx].audio_data;
+                                          delete updatedParts[pIdx].audio_blob;
+                                          delete updatedParts[pIdx].audio;
 
-                                          try {
-                                            localStorage.setItem(`lms_audio_cache_${activityId}`, onlineUrl);
-                                          } catch (lErr) {}
+                                          setSectionParts([...updatedParts]);
 
                                           setToast({
                                             isOpen: true,
                                             type: 'success',
-                                            title: 'Upload Audio Thành Công 100%',
-                                            message: `Đã lưu vĩnh viễn file "${file.name}" thành URL Online! Bấm "Lưu bài thi" để Học sinh phát nghe!`
+                                            title: 'Upload Storage Thành Công 100%',
+                                            message: `Đã lưu Public URL: "${onlineUrl}" vào CSDL! Bấm "Lưu bài thi" để Học sinh nghe!`
                                           });
                                           return;
                                         }
                                       }
                                     } catch (stEx) {
                                       console.error('Storage upload exception:', stEx);
+                                      setToast({
+                                        isOpen: true,
+                                        type: 'error',
+                                        title: 'Lỗi Upload Storage',
+                                        message: stEx.message || 'Không thể kết nối Supabase Storage.'
+                                      });
                                     }
-
-                                    // 2. FALLBACK NẠP CHUỖI BASE64 NẾU BUCKET CHƯA MỞ
-                                    const reader = new FileReader();
-                                    reader.onload = (event) => {
-                                      const base64Audio = event.target.result;
-                                      if (typeof base64Audio === 'string') {
-                                        const updatedParts = [...sectionParts];
-                                        updatedParts[pIdx].audioUrl = base64Audio;
-                                        updatedParts[pIdx].audio_blob = base64Audio;
-                                        updatedParts[pIdx].audio_data = base64Audio;
-                                        updatedParts[pIdx].audio_url = base64Audio;
-                                        updatedParts[pIdx].audio = base64Audio;
-                                        updatedParts[pIdx].audioFileName = file.name;
-                                        setSectionParts([...updatedParts]);
-
-                                        try {
-                                          localStorage.setItem(`lms_audio_cache_${activityId}`, base64Audio);
-                                        } catch (lErr) {}
-
-                                        setToast({
-                                          isOpen: true,
-                                          type: 'success',
-                                          title: 'Đã Nạp File Audio Thành Công',
-                                          message: `Đã mã hóa file "${file.name}" vĩnh viễn! Bấm "Lưu bài thi" để áp dụng cho Học sinh!`
-                                        });
-                                      }
-                                    };
-                                    reader.readAsDataURL(file);
                                   }}
                                 />
                               </div>
                             </div>
 
                             {/* 2. KHUNG KÉO THẢ DRAG AND DROP HÌNH ĐÁM MÂY TẢI LÊN CHUẨN Y HỆT 100% ẢNH 3 CỦA THẦY HẢI (media_1787302665575.png) */}
-                            {!pItem.audio_data && !pItem.audio_url && !pItem.audioUrl && (
+                            {!pItem.audio_url && !pItem.audioUrl && (
                               <div
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={async (e) => {
                                   e.preventDefault();
                                   const file = e.dataTransfer.files?.[0];
                                   if (!file) return;
+
+                                  setToast({
+                                    isOpen: true,
+                                    type: 'info',
+                                    title: '⚡ Đang Upload File Audio Kéo Thả',
+                                    message: `Đang tải file "${file.name}" lên Supabase Storage...`
+                                  });
 
                                   try {
                                     const fileExt = file.name.split('.').pop();
@@ -1429,33 +1426,18 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                       if (pubData?.publicUrl) {
                                         const onlineUrl = pubData.publicUrl;
                                         const updatedParts = [...sectionParts];
-                                        updatedParts[pIdx].audioUrl = onlineUrl;
-                                        updatedParts[pIdx].audio_blob = onlineUrl;
-                                        updatedParts[pIdx].audio_data = onlineUrl;
                                         updatedParts[pIdx].audio_url = onlineUrl;
-                                        updatedParts[pIdx].audio = onlineUrl;
+                                        updatedParts[pIdx].audioUrl = onlineUrl;
                                         updatedParts[pIdx].audioFileName = file.name;
+                                        delete updatedParts[pIdx].audio_data;
+                                        delete updatedParts[pIdx].audio_blob;
+                                        delete updatedParts[pIdx].audio;
+
                                         setSectionParts([...updatedParts]);
                                         return;
                                       }
                                     }
                                   } catch (err) {}
-
-                                  const reader = new FileReader();
-                                  reader.onload = (ev) => {
-                                    const base64Audio = ev.target.result;
-                                    if (typeof base64Audio === 'string') {
-                                      const updatedParts = [...sectionParts];
-                                      updatedParts[pIdx].audioUrl = base64Audio;
-                                      updatedParts[pIdx].audio_blob = base64Audio;
-                                      updatedParts[pIdx].audio_data = base64Audio;
-                                      updatedParts[pIdx].audio_url = base64Audio;
-                                      updatedParts[pIdx].audio = base64Audio;
-                                      updatedParts[pIdx].audioFileName = file.name;
-                                      setSectionParts([...updatedParts]);
-                                    }
-                                  };
-                                  reader.readAsDataURL(file);
                                 }}
                                 onClick={() => {
                                   const inputEl = document.getElementById(`part-audio-input-${pIdx}`);
@@ -1474,17 +1456,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   <span className="text-xs text-slate-400 font-bold">Or add via URL:</span>
                                   <input
                                     type="text"
-                                    placeholder="Dán link file audio .mp3 online tại đây..."
+                                    placeholder="Dán link file audio .mp3 online (https://...) tại đây..."
                                     className="px-3.5 py-1.5 bg-slate-900 border border-slate-600 rounded-xl text-xs text-white w-72 focus:outline-none focus:border-purple-400 font-mono"
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter' && e.target.value) {
                                         const urlVal = e.target.value.trim();
                                         const updatedParts = [...sectionParts];
-                                        updatedParts[pIdx].audioUrl = urlVal;
-                                        updatedParts[pIdx].audio_blob = urlVal;
-                                        updatedParts[pIdx].audio_data = urlVal;
                                         updatedParts[pIdx].audio_url = urlVal;
-                                        updatedParts[pIdx].audio = urlVal;
+                                        updatedParts[pIdx].audioUrl = urlVal;
                                         updatedParts[pIdx].audioFileName = 'File MP3 Link Online';
                                         setSectionParts([...updatedParts]);
                                       }
@@ -1494,27 +1473,32 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               </div>
                             )}
 
-                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER TRẮNG MỊN BO TRÒN RỰC RỠ Y HỆT 100% BỨC ẢNH 2 CỦA THẦY HẢI */}
-                            {(pItem.audioUrl || pItem.audio_blob || pItem.audio_data || pItem.audio) ? (
+                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER TRẮNG MỊN BO TRÒN RỰC RỠ CHỈ PHÁT BẰNG PUBLIC STORAGE URL */}
+                            {(pItem.audio_url || pItem.audioUrl) && (
                               <div className="p-4 bg-slate-950 border border-purple-500/30 rounded-3xl space-y-3 shadow-2xl">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-2 truncate">
                                     <span className="w-7 h-7 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center font-extrabold text-xs">
                                       🎵
                                     </span>
-                                    <p className="text-xs font-extrabold text-purple-200 truncate">
-                                      {pItem.audioFileName || 'File Audio MP3 Gốc Đã Nạp'}
-                                    </p>
+                                    <div>
+                                      <p className="text-xs font-extrabold text-purple-200 truncate">
+                                        {pItem.audioFileName || 'File Audio MP3 Online'}
+                                      </p>
+                                      <p className="text-[10px] font-mono text-emerald-400 truncate max-w-md">
+                                        URL: {pItem.audio_url || pItem.audioUrl}
+                                      </p>
+                                    </div>
                                   </div>
 
                                   <button
                                     type="button"
                                     onClick={() => {
                                       const newParts = [...sectionParts];
-                                      delete newParts[pIdx].audioUrl;
-                                      delete newParts[pIdx].audio_blob;
-                                      delete newParts[pIdx].audio_data;
                                       delete newParts[pIdx].audio_url;
+                                      delete newParts[pIdx].audioUrl;
+                                      delete newParts[pIdx].audio_data;
+                                      delete newParts[pIdx].audio_blob;
                                       delete newParts[pIdx].audio;
                                       delete newParts[pIdx].audioFileName;
                                       setSectionParts([...newParts]);
@@ -1528,14 +1512,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 <div className="w-full bg-white p-1.5 rounded-full border-2 border-purple-300 shadow-xl">
                                   <audio
                                     controls
-                                    key={pItem.audio_blob || pItem.audioUrl || pItem.audio_data}
-                                    src={pItem.audio_blob || pItem.audioUrl || pItem.audio_data || pItem.audio}
+                                    preload="auto"
+                                    src={pItem.audio_url || pItem.audioUrl}
                                     className="w-full h-11 outline-none accent-purple-600 rounded-full"
                                   />
                                 </div>
-                              </div>
-                            ) : null}
-                          </div>
+                               </div>
+                             )}
+                           </div>
                         ) : ['reading_section', 'cloze_test', 'reading_tf'].includes(selectedType?.toLowerCase()) ? (
                           /* 2. CHỈ CÓ READING VÀ KNOWLEDGE OF LANGUAGE (CLOZE TEST) MỚI CÓ KHUNG ĐOẠN VĂN CHUNG */
                           <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-1">
