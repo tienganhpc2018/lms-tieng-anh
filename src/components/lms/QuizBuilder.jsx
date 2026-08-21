@@ -8,7 +8,17 @@ import { exportQuizToWord } from '../../utils/exportQuizWord';
 import { exportMultiCodeWord } from '../../utils/exportMultiCodeWord';
 import ExamMatrixModal from './ExamMatrixModal';
 import ExamPaperTimerModal from './ExamPaperTimerModal';
-import { exportOmrSheet } from '../../utils/exportOmrSheet';
+const getGoogleDriveStreamUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com') || trimmed.includes('googleusercontent.com')) {
+    const gMatch = trimmed.match(/\/file\/d\/([^\/\?]+)/) || trimmed.match(/id=([^\&]+)/) || trimmed.match(/\/d\/([^\/\?]+)/);
+    if (gMatch && gMatch[1]) {
+      return `https://lh3.googleusercontent.com/d/${gMatch[1]}`;
+    }
+  }
+  return trimmed;
+};
 
 export default function QuizBuilder({ activityId, onSaved }) {
   const [questions, setQuestions] = useState([]);
@@ -1505,7 +1515,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   <audio
                                     controls
                                     preload="auto"
-                                    src={pItem.audio_url || pItem.audioUrl}
+                                    src={getGoogleDriveStreamUrl(pItem.audio_url || pItem.audioUrl)}
                                     className="w-full h-11 outline-none accent-purple-600 rounded-full"
                                   />
                                 </div>
