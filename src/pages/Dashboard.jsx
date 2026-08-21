@@ -304,6 +304,20 @@ export default function Dashboard() {
     reader.readAsDataURL(file);
   };
 
+  const getDisplayName = (prof, usr) => {
+    const emailOrName = (prof?.email || usr?.email || prof?.username || '').toLowerCase();
+    if (emailOrName.includes('nguyensea') || emailOrName.includes('nguyenvanhai') || emailOrName.includes('tienganhpc2018')) {
+      return 'Nguyễn Văn Hải';
+    }
+    if (prof?.full_name && prof.full_name.trim() !== '' && prof.full_name !== prof.username) {
+      return prof.full_name.trim();
+    }
+    if (usr?.user_metadata?.full_name && usr.user_metadata.full_name.trim() !== '') {
+      return usr.user_metadata.full_name.trim();
+    }
+    return prof?.full_name || prof?.username || usr?.email?.split('@')[0] || 'Học Viên';
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
       <CenterToastModal
@@ -333,7 +347,7 @@ export default function Dashboard() {
               </span>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-md">
-                Chào mừng trở lại, {profile?.full_name || user?.email?.split('@')[0]}! 👋
+                Chào mừng trở lại, {getDisplayName(profile, user)}! 👋
               </h1>
 
               <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-semibold drop-shadow-sm">
@@ -658,7 +672,7 @@ export default function Dashboard() {
                               <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 border-t border-slate-100 pt-3">
                                 <span className="flex items-center space-x-1">
                                   <Users className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>GV: {courseItem.teacher?.full_name || 'Nguyễn Văn Hải'}</span>
+                                  <span>GV: {getDisplayName(courseItem.teacher, null)}</span>
                                 </span>
                                 <span className="text-emerald-600 font-extrabold group-hover:underline flex items-center space-x-1">
                                   <span>Vào Học</span>
