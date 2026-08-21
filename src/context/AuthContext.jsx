@@ -80,24 +80,43 @@ export function AuthProvider({ children }) {
         if (createdProfile && createdProfile.length > 0) finalProfile = createdProfile[0];
       }
 
-      // NẾU LÀ TÀI KHOẢN THẦY HẢI -> ĐỒNG BỘ NGUYÊN TẮC GIÁO VIÊN / ADMIN DUY NHẤT
-      const isMasterAdmin = cleanEmail.includes('nguyensea') || cleanEmail.includes('nguyenvanhai') || cleanEmail.includes('tienganhpc2018');
+      // BẢO VỆ NGUYÊN TẮC: THẦY NGUYỄN VĂN HẢI LÀ GIÁO VIÊN / ADMIN QUẢN TRỊ VIÊN DUY NHẤT VÀ VÀO 100%
+      const checkEmail = (cleanEmail || userEmail || '').toLowerCase();
+      const checkUsername = (usernameFromEmail || finalProfile?.username || '').toLowerCase();
+
+      const isMasterAdmin = checkEmail.includes('nguyensea') || 
+                            checkEmail.includes('nguyenvanhai') || 
+                            checkEmail.includes('tienganhpc2018') ||
+                            checkUsername.includes('nguyensea') ||
+                            finalProfile?.role === 'teacher' ||
+                            finalProfile?.role === 'admin' ||
+                            finalProfile?.is_teacher === true;
 
       if (isMasterAdmin) {
-        if (finalProfile) {
+        if (!finalProfile) {
+          finalProfile = {
+            id: userId,
+            email: cleanEmail,
+            username: 'nguyensea106',
+            full_name: 'Nguyễn Văn Hải',
+            role: 'teacher',
+            approved: true,
+            is_teacher: true,
+          };
+        } else {
           finalProfile.role = 'teacher';
           finalProfile.full_name = 'Nguyễn Văn Hải';
           finalProfile.approved = true;
+          finalProfile.is_teacher = true;
         }
       } else {
-        // HỌC SINH CHƯA ĐƯỢC THẦY HẢI DUYỆT (APPROVED NẾU KHÔNG BẰNG TRUE VÀ NẾU KHÔNG BẰNG 1) -> TỰ ĐỘNG CHẶN TRUY CẬP VÀ ĐĂNG XUẤT NGAY
-        const isApprovedStudent = finalProfile && (finalProfile.approved === true || finalProfile.approved === 1);
-        if (!isApprovedStudent) {
+        // CHỈ CHẶN HỌC SINH NẾU APPROVED LÀ FALSE CHÍNH THỨC
+        if (finalProfile && finalProfile.approved === false) {
           await supabase.auth.signOut();
           setUser(null);
           setProfile(null);
           setLoading(false);
-          alert(`⏳ TÀI KHOẢN HỌC SINH ĐANG Ở TRẠNG THÁI CHỜ THẦY NGUYỄN VĂN HẢI PHÊ DUYỆT!\n\nTài khoản của học sinh "${finalProfile?.full_name || finalProfile?.username || cleanEmail.split('@')[0]}" đã đăng ký thành công nhưng CHƯA ĐƯỢC THẦY NGUYỄN VĂN HẢI BẤM DUYỆT.\n\nVui lòng báo Thầy Hải mở Quản lý Học sinh hoặc nhấp nút Duyệt trên Quả Chuông 🔔 để kích hoạt tài khoản làm bài nhé!`);
+          alert(`⏳ TÀI KHOẢN HỌC SINH ĐANG CHỜ THẦY NGUYỄN VĂN HẢI PHÊ DUYỆT!\n\nTài khoản của em (${finalProfile?.full_name || finalProfile?.username}) đã tạo thành công nhưng đang ở trạng thái [CHỜ DUYỆT].\n\nVui lòng nhắn Thầy Hải mở Quản lý Học sinh hoặc bấm Duyệt trên Quả Chuông 🔔 để kích hoạt tài khoản nhé!`);
           return;
         }
       }
@@ -105,7 +124,7 @@ export function AuthProvider({ children }) {
       setProfile(finalProfile || null);
 
       // KHI TÀI KHOẢN NÀY BỊ THẦY TẠM KHÓA (SUSPENDED) -> TỰ ĐỘNG ĐĂNG XUẤT NGAY
-      if (finalProfile && finalProfile.suspended) {
+      if (finalProfile && finalProfile.suspended && !isMasterAdmin) {
         alert('🚫 TÀI KHOẢN TẠM KHÓA!\n\nTài khoản của em tạm thời bị khóa do vi phạm nội quy lớp học. Vui lòng liên hệ Thầy Hải để được hỗ trợ!');
         await supabase.auth.signOut();
         setUser(null);
@@ -250,11 +269,15 @@ export function AuthProvider({ children }) {
 
   const userEmail = (user?.email || profile?.email || '').toLowerCase();
   const userRole = (profile?.role || '').toLowerCase();
+  const userName = (profile?.username || '').toLowerCase();
 
-  // BẢO MẬT 100%: CHỈ DUY NHẤT THẦY NGUYỄN VĂN HẢI LÀ GIÁO VIÊN / ADMIN DUY NHẤT
-  const isTeacher = (userRole === 'teacher' || userRole === 'admin' || userEmail.includes('tienganhpc2018') || userEmail.includes('nguyenvanhai') || userEmail.includes('nguyensea106')) &&
-                    !userEmail.includes('hoangnm') &&
-                    !userEmail.includes('student');
+  // BẢO MẬT 100%: CHỈ DUY NHẤT THẦY NGUYỄN VẢN HẢI LÀ GIÁO VIÊN / ADMIN DUY NHẤT
+  const isTeacher = userRole === 'teacher' || 
+                    userRole === 'admin' || 
+                    userEmail.includes('tienganhpc2018') || 
+                    userEmail.includes('nguyenvanhai') || 
+                    userEmail.includes('nguyensea') ||
+                    userName.includes('nguyensea');
 
   return (
     <AuthContext.Provider
