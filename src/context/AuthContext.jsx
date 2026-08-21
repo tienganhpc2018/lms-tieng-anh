@@ -105,6 +105,22 @@ export function AuthProvider({ children }) {
         if (createdProfile && createdProfile.length > 0) finalProfile = createdProfile[0];
       }
 
+      // SIẾT CHẶT QUYỀN TRUY CẬP HỌC SINH MỚI: BẮT BUỘC BẰNG TRUE MỚI CHO VÀO
+      if (!isMasterAdmin) {
+        // Lấy danh sách duyệt thủ công nếu có
+        const approvedMap = JSON.parse(localStorage.getItem('lms_approved_students_v2') || '{}');
+        const isStudentApproved = finalProfile && (finalProfile.approved === true || finalProfile.approved === 1 || approvedMap[finalProfile.id] === true || approvedMap[finalProfile.email] === true);
+
+        if (!isStudentApproved) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          alert(`⏳ TÀI KHOẢN HỌC SINH ĐANG Ở TRẠNG THÁI CHỜ DUYỆT!\n\nTài khoản của em (${finalProfile?.full_name || finalProfile?.username || cleanEmail}) chưa được Thầy Nguyễn Văn Hải bấm phê duyệt.\n\nVui lòng nhắn Thầy Hải mở mục [QUẢN LÝ TÀI KHOẢN HỌC SINH] và nhấp nút "⏳ Chờ Duyệt" để kích hoạt tài khoản vào học nhé!`);
+          return;
+        }
+      }
+
       setUser({ id: userId, email: cleanEmail });
       setProfile(finalProfile || null);
 
