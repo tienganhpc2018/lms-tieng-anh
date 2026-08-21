@@ -912,8 +912,16 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                   const isPart1MC = (pItem.part_type === 'multiple_choice' || !pItem.part_type) && !isTrueFalse;
                   const isPart2Short = pItem.part_type === 'short_essay';
 
-                  // NGUỒN PHÁT AUDIO THÔNG MINH DUAL-BINDING: BẮT 100% CẢ ACTIVITY VÀ QUESTION PARTS CHỐNG RỚT TRƯỜNG API
+                  // NGUỒN PHÁT AUDIO THÔNG MINH DUAL-BINDING VÀ LOCAL CACHE: BẮT 100% CẢ LOCALSTORAGE, ACTIVITY VÀ QUESTION PARTS
                   const extractAudio = () => {
+                    // 1. Kiểm tra Local Cache trước nếu có
+                    try {
+                      const cachedAudio = localStorage.getItem(`lms_audio_cache_${activityId || activity?.id}`);
+                      if (cachedAudio && typeof cachedAudio === 'string' && cachedAudio.startsWith('data:')) {
+                        return cachedAudio.trim();
+                      }
+                    } catch (cErr) {}
+
                     const candidates = [
                       pItem?.audio_data,
                       pItem?.audio_url,
@@ -931,15 +939,15 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                       q?.content?.audio
                     ];
 
-                    // 1. Lấy chuỗi mã hóa Base64 thật (bắt đầu bằng data:)
+                    // 2. Lấy chuỗi mã hóa Base64 thật (bắt đầu bằng data:)
                     const base64Src = candidates.find(c => typeof c === 'string' && c.trim().startsWith('data:'));
                     if (base64Src) return base64Src.trim();
 
-                    // 2. Lấy URL âm thanh online hợp lệ (không chứa blob: hỏng và không chứa soundhelix)
+                    // 3. Lấy URL âm thanh online hợp lệ (không chứa blob: hỏng và không chứa soundhelix)
                     const validSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix') && !c.startsWith('blob:'));
                     if (validSrc) return validSrc.trim();
 
-                    // 3. Fallback lấy đường dẫn bất kỳ ngoại trừ soundhelix
+                    // 4. Fallback lấy đường dẫn bất kỳ ngoại trừ soundhelix
                     const fallbackSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
                     if (fallbackSrc) return fallbackSrc.trim();
 
