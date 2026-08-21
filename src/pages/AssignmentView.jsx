@@ -59,11 +59,10 @@ export default function AssignmentView() {
   // PHÂN TÍCH THAM SỐ URL ĐỂ QUYẾT ĐỊNH MỞ GIAO DIỆN SOI BÀI LÀM CỦA HỌC SINH HOẶC KHUNG SOẠN ĐỀ
   const searchParams = new URLSearchParams(window.location.search);
   const isReviewMode = searchParams.get('review') === 'true' || searchParams.has('submissionId') || searchParams.has('studentId');
-  const isExplicitEditMode = searchParams.get('edit') === 'true';
+  const isExplicitStudentView = searchParams.get('student_view') === 'true';
 
-  // Nếu Giáo viên đang xem bài làm của học sinh (có review/submissionId/studentId) -> Mở QuizEngine với màu đỏ câu sai!
-  // Chỉ mở QuizBuilder khi Giáo viên bấm "Sửa bài thi này" (isExplicitEditMode) hoặc khi truy cập tự do chưa nộp.
-  const showBuilderMode = userIsTeacher && isExplicitEditMode;
+  // Nếu là Giáo viên và KHÔNG ở chế độ xem lại bài làm học sinh -> MẶC ĐỊNH MỞ NGAY KHUNG SOẠN ĐỀ (QUIZBUILDER)!
+  const showBuilderMode = userIsTeacher && !isReviewMode && !isExplicitStudentView;
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
@@ -93,15 +92,15 @@ export default function AssignmentView() {
               {showBuilderMode ? (
                 <button
                   type="button"
-                  onClick={() => navigate(`/assignment/${targetActivityId}?review=true`)}
+                  onClick={() => navigate(`/assignment/${targetActivityId}?student_view=true`)}
                   className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition cursor-pointer"
                 >
-                  👁️ Mở Giao Diện Bài Làm & Lời Giải (Màu Đỏ)
+                  👁️ Xem Giao Diện Học Sinh
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={() => navigate(`/assignment/${targetActivityId}?edit=true`)}
+                  onClick={() => navigate(`/assignment/${targetActivityId}`)}
                   className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-extrabold shadow-sm transition cursor-pointer"
                 >
                   ✏️ Mở Khung Soạn Thảo Đề Thi
