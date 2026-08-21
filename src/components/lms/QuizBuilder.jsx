@@ -615,19 +615,17 @@ export default function QuizBuilder({ activityId, onSaved }) {
       };
 
       if (['listening_section', 'reading_section', 'writing_section', 'multiple_choice'].includes(normType)) {
-        // CHUẨN HÓA LƯU VĨNH VIỄN FILE AUDIO BASE64 THẬT VÀO DATABASE
+        // CHUẨN HÓA LƯU VĨNH VIỄN FILE AUDIO ONLINE VÀ LINK GOOGLE DRIVE CDN CHO TẤT CẢ CÁC PART (PART 1, PART 2, PART 3...)
         const partsToSave = sectionParts.map((p) => {
-          const allPossibles = [p.audio_data, p.audio, p.audio_url, p.audioUrl];
-          // Ưu tiên chuỗi mã hóa Base64 thật (dù là data:audio hay bất kỳ chuỗi base64 nào)
-          let realAudio = allPossibles.find(c => typeof c === 'string' && c.trim().startsWith('data:')) || '';
+          const allPossibles = [p.temp_link_input, p.audio_url, p.audioUrl, p.audio_data, p.audio];
+          let rawAudio = allPossibles.find(c => typeof c === 'string' && c.trim() !== '' && !c.startsWith('blob:')) || '';
 
-          if (!realAudio) {
-            realAudio = allPossibles.find(c => typeof c === 'string' && c.trim() !== '' && !c.startsWith('blob:')) || '';
+          if (!rawAudio) {
+            rawAudio = allPossibles.find(c => typeof c === 'string' && c.trim() !== '') || '';
           }
 
-          if (!realAudio) {
-            realAudio = allPossibles.find(c => typeof c === 'string' && c.trim() !== '') || '';
-          }
+          // Convert link Google Drive bất kỳ sang link stream CDN phát mượt 100%
+          const realAudio = getGoogleDriveStreamUrl(rawAudio);
 
           return {
             ...p,
@@ -685,7 +683,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
       // DUAL-BINDING DỰ PHÒNG CHỐNG RỚT TRƯỜNG API: CẬP NHẬT AUDIO_URL SANG CẢ BẢNG ACTIVITIES
       try {
-        const firstPartAudio = sectionParts[0]?.audioUrl || sectionParts[0]?.audio_data || listeningAudioUrl || '';
+        const firstPartAudio = getGoogleDriveStreamUrl(sectionParts[0]?.audio_url || sectionParts[0]?.audioUrl || sectionParts[0]?.audio_data || listeningAudioUrl || '');
         if (firstPartAudio && activityId) {
           await supabase.from('activities').update({
             audio_url: firstPartAudio,
