@@ -1027,38 +1027,37 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                         {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
                       </div>
 
-                      {/* HIỂN THỊ BÀI NGHE AUDIO VÀ KHUNG IFRAME PREVIEW GOOGLE DRIVE DÀNH CHO HỌC SINH MƯỢT 100% */}
+                      {/* HIỂN THỊ BÀI NGHE AUDIO VÀ KHUNG IFRAME PREVIEW GOOGLE DRIVE ĐỒNG BỘ 100% ẢNH 1 THẦY HẢI */}
                       {activeAudioSource && (
-                        <div className="p-4 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-3xl space-y-3 my-3 shadow-lg border border-purple-500/30">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div className="flex items-center space-x-2.5">
-                              <span className="w-8 h-8 rounded-2xl bg-purple-500/30 border border-purple-400/40 text-purple-300 flex items-center justify-center font-extrabold text-sm animate-pulse">
-                                🎧
+                        <div className="p-4 bg-slate-950 border border-purple-500/30 rounded-3xl space-y-3 shadow-2xl my-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2 truncate">
+                              <span className="w-7 h-7 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center font-extrabold text-xs">
+                                🎵
                               </span>
-                              <div>
-                                <span className="text-xs font-extrabold text-purple-200 uppercase tracking-wide block">
-                                  BÀI NGHE AUDIO LISTENING - PART #{pIdx + 1}
-                                </span>
-                                <p className="text-[11px] text-emerald-400 font-bold">
-                                  ► Bấm Nút Play ▶️ Trong Khung Hoặc Mở Tab Mới Để Nghe Rõ Ràng 100%!
+                              <div className="truncate">
+                                <p className="text-xs font-extrabold text-purple-200 truncate">
+                                  {activeAudioSource?.includes('drive.google.com') ? 'File Audio Google Drive' : 'File Audio MP3 Online'}
                                 </p>
                               </div>
                             </div>
 
-                            {/* NÚT BẤM NỔI BẬT MỞ TAB MỚI MANDATORY TARGET="_BLANK" TRÁNH MẤT BÀI LÀM */}
-                            <a
-                              href={getGoogleDriveDirectViewUrl(activeAudioSource)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-md transition transform active:scale-95 flex items-center justify-center space-x-1.5 border border-purple-300/40 cursor-pointer self-start sm:self-center"
-                            >
-                              <span>🎧 Bấm vào đây để mở bài nghe (Tab mới)</span>
-                            </a>
+                            <div className="flex items-center space-x-2">
+                              {/* NÚT MỞ TAB MỚI MANDATORY TARGET="_BLANK" TRÁNH MẤT BÀI LÀM CỦA HỌC SINH */}
+                              <a
+                                href={getGoogleDriveDirectViewUrl(activeAudioSource)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition flex items-center space-x-1"
+                              >
+                                <span>🎧 Mở Tab Mới</span>
+                              </a>
+                            </div>
                           </div>
 
                           {/* PHƯƠNG ÁN 1: KHUNG PREVIEW IFRAME GOOGLE DRIVE PHÁT TRỰC TIẾP TRONG TRANG BÀI THI */}
                           {getGoogleDriveIframeUrl(activeAudioSource) ? (
-                            <div className="w-full bg-slate-950 p-2 rounded-2xl border border-purple-500/30 shadow-inner">
+                            <div className="w-full bg-slate-900 p-2 rounded-2xl border border-purple-500/40 shadow-inner">
                               <iframe
                                 src={getGoogleDriveIframeUrl(activeAudioSource)}
                                 width="100%"
@@ -1069,12 +1068,12 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                             </div>
                           ) : (
                             /* PHƯƠNG ÁN 2: THẺ AUDIO TRUYỀN THỐNG */
-                            <div className="bg-slate-950/80 p-2 rounded-2xl border border-purple-500/20 shadow-inner">
+                            <div className="w-full bg-white p-1.5 rounded-full border-2 border-purple-300 shadow-xl">
                               <audio
                                 controls
                                 preload="auto"
-                                src={activeAudioSource}
-                                className="w-full h-10 rounded-xl outline-none accent-purple-500"
+                                src={getGoogleDriveStreamUrl(activeAudioSource)}
+                                className="w-full h-11 outline-none accent-purple-600 rounded-full"
                               />
                             </div>
                           )}
