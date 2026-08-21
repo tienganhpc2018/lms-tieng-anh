@@ -1292,7 +1292,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           </div>
                         </div>
 
-                        {/* 1. NÚT TẢI FILE ÂM THANH MP3 VÀ BỘ TRÌNH PHÁT TRẮNG MỊN CỰC ĐẸP (Y HỆT BỨC ẢNH THẦY HẢI GỬI) */}
+                        {/* 1. KHUNG UPLOAD AUDIO VÀ BỘ TRÌNH PHÁT TRẮNG MỊN CỰC ĐẸP KÈM DRAG AND DROP CHUẨN ẢNH 3 */}
                         {selectedType?.toLowerCase().includes('listening') ? (
                           <div className="p-4 bg-slate-900 border-2 border-purple-500/40 rounded-3xl space-y-4 shadow-xl text-white">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1302,13 +1302,12 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               </label>
 
                               {/* NÚT MẦU TÍM: 🔊 🎧 Upload File Audio Từ Máy (ĐÚNG 100% ẢNH THẦY GỬI) */}
-                              <div>
+                              <div className="flex items-center space-x-2">
                                 <button
                                   type="button"
                                   onClick={() => {
                                     const inputEl = document.getElementById(`part-audio-input-${pIdx}`);
                                     if (inputEl) {
-                                      inputEl.value = '';
                                       inputEl.click();
                                     }
                                   }}
@@ -1326,41 +1325,18 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
 
-                                    // 1. TẠO BLOBLURL VÀ NẠP TỨC THÌ TRONG 0.01 GIÂY ĐỂ TRÌNH PHÁT TRẮNG MỊN TRONG BỨC ẢNH 2 HIỆN RA NGAY LẬP TỨC!
-                                    const blobUrl = URL.createObjectURL(file);
-                                    const newParts = [...sectionParts];
-                                    newParts[pIdx].audioUrl = blobUrl;
-                                    newParts[pIdx].audio_blob = blobUrl;
-                                    newParts[pIdx].audioFileName = file.name;
-                                    setSectionParts([...newParts]);
-
-                                    setToast({
-                                      isOpen: true,
-                                      type: 'info',
-                                      title: 'Đang Nạp File Âm Thanh',
-                                      message: `Đang mã hóa file "${file.name}" đính kèm vĩnh viễn...`
-                                    });
-
-                                    // 2. ĐỌC BASE64 NẠP VĨNH VIỄN CHO DATABASE NGẦM PHÍA SAU
                                     const reader = new FileReader();
                                     reader.onload = (event) => {
                                       const base64Audio = event.target.result;
                                       if (typeof base64Audio === 'string') {
                                         const updatedParts = [...sectionParts];
-                                        updatedParts[pIdx].audioUrl = blobUrl;
-                                        updatedParts[pIdx].audio_blob = blobUrl;
+                                        updatedParts[pIdx].audioUrl = base64Audio;
+                                        updatedParts[pIdx].audio_blob = base64Audio;
                                         updatedParts[pIdx].audio_data = base64Audio;
                                         updatedParts[pIdx].audio_url = base64Audio;
                                         updatedParts[pIdx].audio = base64Audio;
                                         updatedParts[pIdx].audioFileName = file.name;
                                         setSectionParts([...updatedParts]);
-
-                                        setToast({
-                                          isOpen: true,
-                                          type: 'success',
-                                          title: 'Nạp Bài Nghe Thành Công',
-                                          message: `Đã nạp vĩnh viễn file "${file.name}"! Bấm "Lưu bài thi" để áp dụng cho Học sinh!`
-                                        });
                                       }
                                     };
                                     reader.readAsDataURL(file);
@@ -1369,7 +1345,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               </div>
                             </div>
 
-                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER TRẮNG MỊN NỔI BẬT HIỆN TỨC THÌ Y HỆT 100% BỨC ẢNH 2 CỦA THẦY HẢI GỬI */}
+                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER TRẮNG MỊN BO TRÒN RỰC RỠ Y HỆT 100% BỨC ẢNH 2 CỦA THẦY HẢI */}
                             {(pItem.audioUrl || pItem.audio_blob || pItem.audio_data || pItem.audio) ? (
                               <div className="p-4 bg-slate-950 border border-purple-500/30 rounded-3xl space-y-3 shadow-2xl">
                                 <div className="flex items-center justify-between">
@@ -1386,12 +1362,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     type="button"
                                     onClick={() => {
                                       const newParts = [...sectionParts];
-                                      newParts[pIdx].audioUrl = '';
-                                      newParts[pIdx].audio_blob = '';
-                                      newParts[pIdx].audio_data = '';
-                                      newParts[pIdx].audio_url = '';
-                                      newParts[pIdx].audio = '';
-                                      newParts[pIdx].audioFileName = '';
+                                      delete newParts[pIdx].audioUrl;
+                                      delete newParts[pIdx].audio_blob;
+                                      delete newParts[pIdx].audio_url;
+                                      delete newParts[pIdx].audio;
+                                      delete newParts[pIdx].audioFileName;
                                       setSectionParts([...newParts]);
                                     }}
                                     className="px-3 py-1 text-[11px] font-extrabold text-rose-400 hover:bg-rose-500/20 rounded-xl transition cursor-pointer border border-rose-500/30"
@@ -1400,7 +1375,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   </button>
                                 </div>
 
-                                {/* THẺ TRÌNH PHÁT AUDIO TRẮNG MỊN BO TRÒN RỰC RỠ Y HỆT 100% BỨC ẢNH 2 CỦA THẦY HẢI */}
                                 <div className="w-full bg-white p-1.5 rounded-full border-2 border-purple-300 shadow-xl">
                                   <audio
                                     controls
