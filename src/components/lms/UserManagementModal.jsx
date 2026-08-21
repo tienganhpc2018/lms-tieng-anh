@@ -361,7 +361,7 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
   };
 
   const handleToggleApproveUser = async (u) => {
-    const currentApproved = u.approved !== false;
+    const currentApproved = u.approved === true;
     const newApproved = !currentApproved;
 
     try {
@@ -374,7 +374,7 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
     setUsersList((prev) =>
       prev.map((item) => (item.id === u.id ? { ...item, approved: newApproved } : item))
     );
-    alert(`✅ Đã ${newApproved ? 'DUYỆT' : 'HỦY DUYỆT'} tài khoản học sinh "${u.full_name || u.username}"!`);
+    alert(`✅ Đã ${newApproved ? 'DUYỆT CHO PHÉP ĐĂNG NHẬP' : 'CHUYỂN VỀ TRẠNG THÁI CHỜ DUYỆT'} tài khoản học sinh "${u.full_name || u.username}"!`);
   };
 
   if (!isOpen) return null;
@@ -576,14 +576,15 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                             <button
                               type="button"
                               onClick={() => handleToggleApproveUser(u)}
-                              className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition flex items-center space-x-1 border cursor-pointer ${
+                              title={isApproved ? "Tài khoản đã được duyệt (Nhấp để chuyển về Chờ Duyệt)" : "Nhấp vào đây để DUYỆT cho học sinh vào làm bài"}
+                              className={`px-3 py-1 rounded-xl text-[11px] font-black transition flex items-center space-x-1.5 border cursor-pointer shadow-2xs ${
                                 isApproved
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
-                                  : 'bg-amber-100 text-amber-900 border-amber-300 animate-pulse hover:bg-amber-200'
+                                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200'
+                                  : 'bg-amber-100 text-amber-950 border-amber-400 font-extrabold animate-pulse hover:bg-amber-200 shadow-sm'
                               }`}
                             >
-                              <UserCheck className="w-3.5 h-3.5" />
-                              <span>{isApproved ? '✓ Đã Duyệt' : '⏳ Duyệt Ngay'}</span>
+                              <UserCheck className={`w-3.5 h-3.5 ${isApproved ? 'text-emerald-700' : 'text-amber-800'}`} />
+                              <span>{isApproved ? '✓ Đã Duyệt' : '⏳ Chờ Duyệt'}</span>
                             </button>
                           </td>
 
