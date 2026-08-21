@@ -964,44 +964,38 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                   const isPart1MC = (pItem.part_type === 'multiple_choice' || !pItem.part_type) && !isTrueFalse;
                   const isPart2Short = pItem.part_type === 'short_essay';
 
-                  // NGUỒN PHÁT AUDIO THÔNG MINH DUAL-BINDING VÀ LOCAL CACHE: BẮT 100% CẢ LOCALSTORAGE, ACTIVITY VÀ QUESTION PARTS
+                  // NGUỒN PHÁT AUDIO THÔNG MINH: LẤY 100% CHUỖI BASE64, BLOB HOẶC URL CHUẨN ĐÃ LƯU TRONG DB
                   const extractAudio = () => {
                     // 1. Kiểm tra Local Cache trước nếu có
                     try {
                       const cachedAudio = localStorage.getItem(`lms_audio_cache_${activityId || activity?.id}`);
-                      if (cachedAudio && typeof cachedAudio === 'string' && cachedAudio.startsWith('data:')) {
+                      if (cachedAudio && typeof cachedAudio === 'string' && cachedAudio.trim() !== '') {
                         return cachedAudio.trim();
                       }
                     } catch (cErr) {}
 
                     const candidates = [
-                      pItem?.audio_data,
+                      pItem?.audio_blob,
                       pItem?.audio_url,
                       pItem?.audioUrl,
+                      pItem?.audio_data,
                       pItem?.audio,
-                      activity?.audio_url,
-                      activity?.content_url,
-                      q?.audio_data,
-                      q?.audio_url,
-                      q?.audioUrl,
-                      q?.audio,
-                      q?.content?.audio_data,
+                      q?.content?.audio_blob,
                       q?.content?.audio_url,
                       q?.content?.audioUrl,
-                      q?.content?.audio
+                      q?.content?.audio_data,
+                      q?.content?.audio,
+                      activity?.audio_url,
+                      activity?.content_url,
                     ];
 
-                    // 2. Lấy chuỗi mã hóa Base64 thật (bắt đầu bằng data:)
-                    const base64Src = candidates.find(c => typeof c === 'string' && c.trim().startsWith('data:'));
+                    // Ưu tiên 1: Chuỗi mã hóa Base64 thật (data:audio/...)
+                    const base64Src = candidates.find(c => typeof c === 'string' && c.trim().startsWith('data:audio/'));
                     if (base64Src) return base64Src.trim();
 
-                    // 3. Lấy URL âm thanh online hợp lệ (không chứa blob: hỏng và không chứa soundhelix)
-                    const validSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix') && !c.startsWith('blob:'));
+                    // Ưu tiên 2: Đường dẫn blob hoặc http/https hợp lệ
+                    const validSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
                     if (validSrc) return validSrc.trim();
-
-                    // 4. Fallback lấy đường dẫn bất kỳ ngoại trừ soundhelix
-                    const fallbackSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
-                    if (fallbackSrc) return fallbackSrc.trim();
 
                     return null;
                   };
