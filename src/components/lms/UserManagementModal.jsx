@@ -360,6 +360,23 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
     URL.revokeObjectURL(url);
   };
 
+  const handleToggleApproveUser = async (u) => {
+    const currentApproved = u.approved !== false;
+    const newApproved = !currentApproved;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ approved: newApproved })
+        .eq('id', u.id);
+    } catch (err) {}
+
+    setUsersList((prev) =>
+      prev.map((item) => (item.id === u.id ? { ...item, approved: newApproved } : item))
+    );
+    alert(`✅ Đã ${newApproved ? 'DUYỆT' : 'HỦY DUYỆT'} tài khoản học sinh "${u.full_name || u.username}"!`);
+  };
+
   if (!isOpen) return null;
 
   const handleToggleUserRole = async (u) => {
@@ -504,6 +521,7 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                       <th className="p-3">Họ và tên (First / Last name)</th>
                       <th className="p-3">Username / Email</th>
                       <th className="p-3">Vai Trò (Role)</th>
+                      <th className="p-3">Duyệt TK</th>
                       <th className="p-3">Mật khẩu cấp</th>
                       <th className="p-3">Trạng thái khóa (Suspend)</th>
                       <th className="p-3 text-right">Thao tác Admin</th>
@@ -512,6 +530,7 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                     {filteredUsers.map((u) => {
                       const isTeacherUser = u.is_teacher || u.role === 'teacher' || u.role === 'admin' || u.email === 'nguyensea106@gmail.com';
+                      const isApproved = u.approved !== false;
 
                       return (
                         <tr key={u.id} className={`transition ${u.suspended ? 'bg-rose-50/50' : 'hover:bg-slate-50'}`}>
@@ -549,6 +568,22 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                             >
                               <span>{isTeacherUser ? '👨‍🏫 Giáo Viên (Admin)' : '🎓 Học Sinh'}</span>
                               <span className="text-[9px] opacity-75 font-semibold text-purple-700">(Đổi ⚡)</span>
+                            </button>
+                          </td>
+
+                          {/* CỘT DUYỆT TÀI KHOẢN (APPROVED) */}
+                          <td className="p-3">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleApproveUser(u)}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition flex items-center space-x-1 border cursor-pointer ${
+                                isApproved
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
+                                  : 'bg-amber-100 text-amber-900 border-amber-300 animate-pulse hover:bg-amber-200'
+                              }`}
+                            >
+                              <UserCheck className="w-3.5 h-3.5" />
+                              <span>{isApproved ? '✓ Đã Duyệt' : '⏳ Duyệt Ngay'}</span>
                             </button>
                           </td>
 
