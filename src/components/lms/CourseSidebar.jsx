@@ -103,7 +103,12 @@ export default function CourseSidebar({
                 {/* DỮ LIỆU ĐỘNG LẶP THEO TỪNG UNIT TRONG CSDL */}
                 {sections.map((sec) => {
                   const isUnitExpanded = navExpanded.units[sec.id] !== false;
-                  const secActivities = activities.filter((a) => a.section_id === sec.id);
+                  const secActivities = activities.filter((a) => {
+                    if (a.section_id !== sec.id) return false;
+                    if (isTeacher) return true;
+                    if (a.is_hidden) return false; // HỌC SINH TUYỆT ĐỐI BỊ ẨN KHỎI SIDEBAR
+                    return true;
+                  });
 
                   return (
                     <div key={sec.id} className="pt-1">
