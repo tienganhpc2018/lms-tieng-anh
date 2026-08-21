@@ -55,9 +55,20 @@ export function calculateGamificationBadges({ score, totalMarks, correctCount, t
     badges.push({
       id: 'persistent_learner',
       title: '🌟 CHĂM CHỈ KIÊN TRÌ',
-      description: 'Vượt qua bài kiểm tra xuất sắc!',
+      description: 'Vượt qua bài kiểm tra thành công!',
       bgGradient: 'from-sky-500 to-blue-500',
       icon: '🌟',
+    });
+  }
+
+  // 6. Fallback Huy hiệu Học Viên Tích Cực
+  if (badges.length === 0) {
+    badges.push({
+      id: 'active_student',
+      title: '🌱 HỌC VIÊN TÍCH CỰC',
+      description: 'Đã hoàn thành bài kiểm tra trực tuyến!',
+      bgGradient: 'from-slate-600 to-slate-800',
+      icon: '🎓',
     });
   }
 
