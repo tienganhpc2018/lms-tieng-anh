@@ -605,28 +605,31 @@ export default function QuizBuilder({ activityId, onSaved }) {
       };
 
       if (['listening_section', 'reading_section', 'writing_section', 'multiple_choice'].includes(normType)) {
-        // CHUẨN HÓA LƯU VĨNH VIỄN FILE AUDIO BASE64 THẬT VÀO DATABASE (LOẠI BỎ BLOBLURL TẠM THỜI MÁY LOCAL)
+        // CHUẨN HÓA LƯU VĨNH VIỄN FILE AUDIO BASE64 THẬT VÀO DATABASE
         const partsToSave = sectionParts.map((p) => {
           const allPossibles = [p.audio_data, p.audio, p.audio_url, p.audioUrl];
-          // Lấy chuỗi base64 thật
-          let realBase64 = allPossibles.find(c => typeof c === 'string' && c.trim().startsWith('data:audio')) || '';
+          // Ưu tiên chuỗi mã hóa Base64 thật (dù là data:audio hay bất kỳ chuỗi base64 nào)
+          let realAudio = allPossibles.find(c => typeof c === 'string' && c.trim().startsWith('data:')) || '';
 
-          if (!realBase64) {
-            // Lấy URL online thực tế không chứa blob:
-            realBase64 = allPossibles.find(c => typeof c === 'string' && c.trim() !== '' && !c.startsWith('blob:')) || '';
+          if (!realAudio) {
+            realAudio = allPossibles.find(c => typeof c === 'string' && c.trim() !== '' && !c.startsWith('blob:')) || '';
+          }
+
+          if (!realAudio) {
+            realAudio = allPossibles.find(c => typeof c === 'string' && c.trim() !== '') || '';
           }
 
           return {
             ...p,
-            audioUrl: realBase64,
-            audio_data: realBase64,
-            audio_url: realBase64,
-            audio: realBase64,
+            audioUrl: realAudio,
+            audio_data: realAudio,
+            audio_url: realAudio,
+            audio: realAudio,
           };
         });
 
         customContent.parts = partsToSave;
-        const mainAudio = listeningAudioUrl?.startsWith('data:') ? listeningAudioUrl : '';
+        const mainAudio = listeningAudioUrl || '';
         customContent.audioUrl = mainAudio;
         customContent.audio_data = mainAudio;
         customContent.audioFileName = uploadedAudioFileName;
@@ -1293,55 +1296,36 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   type="file"
                                   accept="audio/*"
                                   className="hidden"
-                                  onChange={async (e) => {
+                                  onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
-
-                                    // 1. Tạo Blob URL phát trực tiếp tức thì 100% mượt mà trong Modal
-                                    const blobUrl = URL.createObjectURL(file);
-                                    const initialParts = [...sectionParts];
-                                    initialParts[pIdx].audioUrl = blobUrl;
-                                    initialParts[pIdx].audio_data = blobUrl;
-                                    initialParts[pIdx].audio_url = blobUrl;
-                                    initialParts[pIdx].audio = blobUrl;
-                                    initialParts[pIdx].audioFileName = file.name;
-                                    setSectionParts([...initialParts]);
 
                                     setToast({
                                       isOpen: true,
                                       type: 'info',
-                                      title: 'Đang Tải Lên Hệ Thống Cloud',
-                                      message: `Đang lưu trữ file âm thanh gốc "${file.name}" lên Server Cloud...`
+                                      title: 'Đang Mã Hóa Bài Nghe Base64',
+                                      message: `Đang mã hóa file âm thanh "${file.name}" đính kèm trực tiếp vào bài thi...`
                                     });
 
-                                    // 2. Đọc Base64 làm dự phòng song song
                                     const reader = new FileReader();
-                                    reader.onload = async (event) => {
+                                    reader.onload = (event) => {
                                       const base64Audio = event.target.result;
+                                      if (typeof base64Audio === 'string') {
+                                        const newParts = [...sectionParts];
+                                        newParts[pIdx].audioUrl = base64Audio;
+                                        newParts[pIdx].audio_data = base64Audio;
+                                        newParts[pIdx].audio_url = base64Audio;
+                                        newParts[pIdx].audio = base64Audio;
+                                        newParts[pIdx].audioFileName = file.name;
+                                        setSectionParts([...newParts]);
 
-                                      // 3. TẢI FILE TRỰC TIẾP LÊN SUPABASE STORAGE LƯU TRỮ VĨNH VIỄN VỚI LINK HTTP THẬT
-                                      let publicCloudUrl = null;
-                                      try {
-                                        publicCloudUrl = await uploadLMSFile(file, 'activities');
-                                      } catch (cloudErr) {
-                                        console.warn('Upload Supabase Storage thất bại, chuyển Base64 dự phòng:', cloudErr);
+                                        setToast({
+                                          isOpen: true,
+                                          type: 'success',
+                                          title: 'Mã Hóa Base64 Thành Công',
+                                          message: `Đã đính kèm trọn vẹn file âm thanh "${file.name}" vào bài thi! Bấm "Lưu bài thi" để áp dụng cho Học sinh!`
+                                        });
                                       }
-
-                                      const finalAudioSrc = publicCloudUrl || base64Audio;
-                                      const newParts = [...sectionParts];
-                                      newParts[pIdx].audioUrl = finalAudioSrc;
-                                      newParts[pIdx].audio_data = finalAudioSrc;
-                                      newParts[pIdx].audio_url = finalAudioSrc;
-                                      newParts[pIdx].audio = finalAudioSrc;
-                                      newParts[pIdx].audioFileName = file.name;
-                                      setSectionParts([...newParts]);
-
-                                      setToast({
-                                        isOpen: true,
-                                        type: 'success',
-                                        title: 'Lưu Trữ Bài Nghe Thành Công',
-                                        message: `File âm thanh gốc "${file.name}" đã sẵn sàng 100% cho Giáo viên & Học sinh!`
-                                      });
                                     };
                                     reader.readAsDataURL(file);
                                   }}
