@@ -172,6 +172,25 @@ export default function NotificationBell() {
                     </h5>
                   </div>
                   <p className="text-[11px] text-slate-600 font-medium leading-relaxed">{n.message}</p>
+                  {isTeacher && (n.type === 'user_registration' || n.id?.startsWith('unapproved_summary')) && (
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await supabase.from('profiles').update({ approved: true }).eq('approved', false);
+                          alert('✅ ĐÃ DUYỆT THÀNH CÔNG TÀI KHOẢN HỌC SINH MỚI!\n\nBây giờ học sinh có thể đăng nhập vào hệ thống làm bài bình thường!');
+                          fetchNotifications();
+                        } catch (err) {
+                          alert('Lỗi duyệt: ' + err.message);
+                        }
+                      }}
+                      className="mt-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-extrabold shadow-2xs transition flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Check className="w-3.5 h-3.5 text-white" />
+                      <span>⚡ DUYỆT TẤT CẢ HỌC SINH MỚI NGAY</span>
+                    </button>
+                  )}
                 </div>
               ))
             )}
