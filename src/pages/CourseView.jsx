@@ -134,12 +134,93 @@ export default function CourseView() {
       }
 
       await fetchCourseData();
-      showToast('success', 'ĐÃ TẠO THÀNH CÔNG KHUNG 12 UNITS!', 'Đã khởi tạo đủ 12 Units chuẩn Tiếng Anh (mỗi Unit 7 Lessons). Thầy Hải có thể bắt đầu chèn bài thi và Whiteboard!');
     } catch (err) {
       alert('Lỗi tạo khung: ' + err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Nâng cấp Đặc Quyền: Nhân Bản Chủ Đề (Duplicate Unit kèm tất cả các Bài Học Con)
+  const handleDuplicateSection = async (sec, e) => {
+    if (e) e.stopPropagation();
+    setLoading(true);
+    try {
+      const newTitle = `${sec.title} (Bản sao)`;
+      const { data: newSec, error: secErr } = await supabase
+        .from('course_sections')
+        .insert([
+          {
+            course_id: courseId,
+            title: newTitle,
+            order_index: sections.length,
+          },
+        ])
+        .select()
+        .single();
+
+      if (secErr || !newSec) throw new Error('Không thể nhân bản chủ đề!');
+
+      const { data: oldActivities } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('section_id', sec.id)
+        .order('order_index', { ascending: true });
+
+      if (oldActivities && oldActivities.length > 0) {
+        const newActInserts = oldActivities.map((act) => ({
+          section_id: newSec.id,
+          title: act.title,
+          type: act.type,
+          content: act.content,
+          order_index: act.order_index,
+          is_hidden: act.is_hidden,
+        }));
+        await supabase.from('activities').insert(newActInserts);
+      }
+
+      setSections((prev) => [...prev, newSec]);
+      setActiveSectionId(newSec.id);
+
+      setEditingSection(newSec);
+      setEditSecTitle(newTitle);
+      setIsEditSecModalOpen(true);
+
+      showToast('success', 'ĐÃ NHÂN BẢN CHỦ ĐỀ!', `Đã nhân bản "${sec.title}" thành công kèm toàn bộ bài học con! Thầy Hải có thể đổi tên Chủ đề 2 ngay bây giờ.`);
+    } catch (err) {
+      alert('Lỗi nhân bản: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Nâng cấp: Di chuyển Chủ Đề LÊN / XUỐNG
+  const handleMoveSection = async (sec, direction, e) => {
+    if (e) e.stopPropagation();
+    const currentIndex = sections.findIndex((s) => s.id === sec.id);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= sections.length) return;
+
+    const newSections = [...sections];
+    const temp = newSections[currentIndex];
+    newSections[currentIndex] = newSections[targetIndex];
+    newSections[targetIndex] = temp;
+
+    newSections.forEach((s, idx) => {
+      s.order_index = idx;
+    });
+
+    setSections(newSections);
+
+    try {
+      await Promise.all([
+        supabase.from('course_sections').update({ order_index: newSections[currentIndex].order_index }).eq('id', newSections[currentIndex].id),
+        supabase.from('course_sections').update({ order_index: newSections[targetIndex].order_index }).eq('id', newSections[targetIndex].id),
+      ]);
+    } catch (err) {}
+
+    showToast('success', 'Đã Di Chuyển Chủ Đề', `Đã chuyển "${sec.title}" ${direction === 'up' ? 'lên trên' : 'xuống dưới'}!`);
   };
 
   // Nâng cấp: Di chuyển bài học LÊN / XUỐNG linh hoạt theo buổi dạy
@@ -580,7 +661,7 @@ export default function CourseView() {
                       {sections.find((s) => s.id === activeSectionId)?.title || 'Danh Sách Bài Học'}
                     </h2>
                     {userIsTeacher && activeSectionId && (
-                      <div className="flex items-center space-x-1 ml-2">
+                      <div className="flex items-center space-x-1.5 ml-2 flex-wrap gap-y-1">
                         <button
                           type="button"
                           title="Sửa tên Chủ Đề này"
@@ -594,8 +675,47 @@ export default function CourseView() {
                           }}
                           className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-950 font-extrabold text-[11px] rounded-lg transition border border-amber-300 cursor-pointer flex items-center space-x-1"
                         >
-                          <span>✏️ Sửa Tên Chủ Đề</span>
+                          <span>✏️ Sửa Tên</span>
                         </button>
+
+                        <button
+                          type="button"
+                          title="Nhân bản Chủ đề này thành Chủ đề 2 kèm toàn bộ các bài học con bên trong"
+                          onClick={() => {
+                            const currentSec = sections.find((s) => s.id === activeSectionId);
+                            if (currentSec) handleDuplicateSection(currentSec);
+                          }}
+                          className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 font-extrabold text-[11px] rounded-lg transition border border-purple-300 cursor-pointer flex items-center space-x-1 shadow-xs"
+                        >
+                          <span>📋 Duplicate (Nhân Bản)</span>
+                        </button>
+
+                        {/* Nút Di Chuyển Chủ Đề LÊN / XUỐNG */}
+                        <div className="flex items-center space-x-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                          <button
+                            type="button"
+                            title="Đẩy Chủ Đề này LÊN TRÊN"
+                            onClick={(e) => {
+                              const currentSec = sections.find((s) => s.id === activeSectionId);
+                              if (currentSec) handleMoveSection(currentSec, 'up', e);
+                            }}
+                            className="px-1.5 py-0.5 hover:bg-purple-700 hover:text-white text-slate-700 font-extrabold text-[11px] rounded transition cursor-pointer"
+                          >
+                            ⬆️
+                          </button>
+                          <button
+                            type="button"
+                            title="Đẩy Chủ Đề này XUỐNG DƯỚI"
+                            onClick={(e) => {
+                              const currentSec = sections.find((s) => s.id === activeSectionId);
+                              if (currentSec) handleMoveSection(currentSec, 'down', e);
+                            }}
+                            className="px-1.5 py-0.5 hover:bg-purple-700 hover:text-white text-slate-700 font-extrabold text-[11px] rounded transition cursor-pointer"
+                          >
+                            ⬇️
+                          </button>
+                        </div>
+
                         <button
                           type="button"
                           title="Xóa Chủ Đề này"
@@ -605,7 +725,7 @@ export default function CourseView() {
                           }}
                           className="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 font-extrabold text-[11px] rounded-lg transition border border-rose-300 cursor-pointer flex items-center space-x-1"
                         >
-                          <span>🗑️ Xóa Chủ Đề</span>
+                          <span>🗑️ Xóa</span>
                         </button>
                       </div>
                     )}
