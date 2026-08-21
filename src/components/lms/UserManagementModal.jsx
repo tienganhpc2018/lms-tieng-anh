@@ -530,7 +530,7 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                     {filteredUsers.map((u) => {
                       const isTeacherUser = u.is_teacher || u.role === 'teacher' || u.role === 'admin' || u.email === 'nguyensea106@gmail.com';
-                      const isApproved = u.approved !== false;
+                      const isApproved = isTeacherUser || u.approved === true;
 
                       return (
                         <tr key={u.id} className={`transition ${u.suspended ? 'bg-rose-50/50' : 'hover:bg-slate-50'}`}>
