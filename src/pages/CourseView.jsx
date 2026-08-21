@@ -23,6 +23,7 @@ export default function CourseView() {
   const [isAddActivityOpen, setIsAddActivityOpen] = useState(false);
   const [newActTitle, setNewActTitle] = useState('');
   const [newActType, setNewActType] = useState('whiteboard'); // Mặc định chọn Whiteboard chuẩn Ảnh
+  const [newActContent, setNewActContent] = useState('');
   const [creatingAct, setCreatingAct] = useState(false);
 
   const [isEnrolledModalOpen, setIsEnrolledModalOpen] = useState(false);
@@ -33,6 +34,7 @@ export default function CourseView() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editType, setEditType] = useState('quiz');
+  const [editContent, setEditContent] = useState('');
 
   const [schedulingAct, setSchedulingAct] = useState(null);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -327,15 +329,15 @@ export default function CourseView() {
     try {
       await supabase
         .from('activities')
-        .update({ title: editTitle, type: editType })
+        .update({ title: editTitle, type: editType, content: editContent })
         .eq('id', editingAct.id);
     } catch (err) {}
 
     setActivities((prev) =>
-      prev.map((a) => (a.id === editingAct.id ? { ...a, title: editTitle, type: editType } : a))
+      prev.map((a) => (a.id === editingAct.id ? { ...a, title: editTitle, type: editType, content: editContent } : a))
     );
     setIsEditModalOpen(false);
-    showToast('success', 'Đã Sửa Bài Học', 'Cập nhật tên và loại bài học thành công!');
+    showToast('success', 'Đã Sửa Bài Học', 'Cập nhật tên, loại và nội dung bài học thành công!');
   };
 
   // Cập nhật Cài Lịch Hẹn Giờ Khóa / Mở Tự Động
@@ -512,6 +514,7 @@ export default function CourseView() {
             section_id: targetSectionId,
             title: formattedTitle,
             type: dbType,
+            content: newActContent.trim(),
             order_index: activities.length,
           },
         ])
@@ -525,6 +528,7 @@ export default function CourseView() {
       if (newAct) {
         setIsAddActivityOpen(false);
         setNewActTitle('');
+        setNewActContent('');
         setActivities((prev) => [...prev, newAct]);
         setToast({ isOpen: true, type: 'success', title: 'Thành Công', message: 'Đã tạo bài học mới thành công!' });
 
@@ -1020,10 +1024,33 @@ export default function CourseView() {
                 >
                   <option value="whiteboard">🎨 Whiteboard (Bảng Tương Tác Giảng Dạy - Lưu Trực Tiếp)</option>
                   <option value="quiz">Quiz (Bài Kiểm Tra Trắc Nghiệm / Reading / Listening)</option>
+                  <option value="iframe">🎮 Interactive Game / Iframe (Nhúng Wordwall, Quizizz, Game HTML5)</option>
+                  <option value="audio_record">🎙️ Audio Record (Bài Luyện Nói / Ghi Âm Tiếng Anh)</option>
                   <option value="page">Page (Trang Bài Giảng / Tài Liệu)</option>
                   <option value="video">Interactive Video H5P (Video Tương Tác)</option>
                 </select>
               </div>
+
+              {(newActType === 'iframe' || newActType === 'audio_record') && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    {newActType === 'iframe'
+                      ? 'NỘI DUNG IFRAME / ĐƯỜNG LINK GAME (DÁN MÃ EMBED HOẶC LINK WORDWALL/QUIZIZZ)'
+                      : 'ĐỀ BÀI / YÊU CẦU CÂU NÓI CHO HỌC SINH GHI ÂM'}
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={newActContent}
+                    onChange={(e) => setNewActContent(e.target.value)}
+                    placeholder={
+                      newActType === 'iframe'
+                        ? 'Dán mã <iframe src="..."></iframe> từ Wordwall, Quizizz hoặc link https://wordwall.net/embed/...'
+                        : 'Ví dụ: Hãy đọc lại đoạn văn trên và ghi âm câu trả lời của em gửi Thầy Hải nhé!'
+                    }
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 text-slate-900 bg-slate-50"
+                  />
+                </div>
+              )}
 
               <div className="flex justify-end space-x-2 pt-2">
                 <button
@@ -1038,7 +1065,7 @@ export default function CourseView() {
                   disabled={creatingAct}
                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition"
                 >
-                  {creatingAct ? 'Đang Tạo Bài Học...' : '🚀 Tạo Bài Học & Mở Bảng'}
+                  {creatingAct ? 'Đang Tạo Bài Học...' : '🚀 Tạo Bài Học & Mở Khung'}
                 </button>
               </div>
             </form>
@@ -1077,10 +1104,33 @@ export default function CourseView() {
                 >
                   <option value="whiteboard">🎨 Whiteboard (Bảng Tương Tác Giảng Dạy)</option>
                   <option value="quiz">Quiz (Bài Kiểm Tra Trắc Nghiệm / Reading / Listening)</option>
+                  <option value="iframe">🎮 Interactive Game / Iframe (Nhúng Wordwall, Quizizz, Game HTML5)</option>
+                  <option value="audio_record">🎙️ Audio Record (Bài Luyện Nói / Ghi Âm Tiếng Anh)</option>
                   <option value="page">Page (Trang Bài Giảng / Tài Liệu)</option>
                   <option value="video">Interactive Video H5P (Video Tương Tác)</option>
                 </select>
               </div>
+
+              {(editType === 'iframe' || editType === 'audio_record') && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    {editType === 'iframe'
+                      ? 'NỘI DUNG IFRAME / ĐƯỜNG LINK GAME (DÁN MÃ EMBED HOẶC LINK WORDWALL/QUIZIZZ)'
+                      : 'ĐỀ BÀI / YÊU CẦU CÂU NÓI CHO HỌC SINH GHI ÂM'}
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    placeholder={
+                      editType === 'iframe'
+                        ? 'Dán mã <iframe src="..."></iframe> từ Wordwall, Quizizz hoặc link https://wordwall.net/embed/...'
+                        : 'Ví dụ: Hãy đọc lại đoạn văn trên và ghi âm câu trả lời của em gửi Thầy Hải nhé!'
+                    }
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-sky-500 text-slate-900 bg-slate-50"
+                  />
+                </div>
+              )}
 
               <div className="flex justify-end space-x-2 pt-2">
                 <button
