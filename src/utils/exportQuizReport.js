@@ -14,7 +14,12 @@ export function exportStudentPdfReport({
   aiGradingFeedback = '',
 }) {
   const formattedDate = submittedAt ? new Date(submittedAt).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN');
-  const isPassed = score >= totalMarks * 0.5;
+  
+  // TÍNH CHÍNH XÁC TỔNG SỐ CÂU VÀ ĐIỂM (TRÁNH LỖI 4/1 ĐIỂM)
+  const realTotalMarks = (totalQuestions && totalQuestions > 0) ? totalQuestions : (totalMarks && totalMarks > 1 ? totalMarks : 10);
+  const realCorrect = correctCount !== undefined && correctCount !== null ? correctCount : score;
+  const percentage = Math.round((realCorrect / realTotalMarks) * 100);
+  const isPassed = percentage >= 50;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -76,9 +81,9 @@ export function exportStudentPdfReport({
         }
         .score-box {
           text-align: center;
-          background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+          background: ${isPassed ? 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' : 'linear-gradient(135deg, #b91c1c 0%, #f59e0b 100%)'};
           color: white;
-          padding: 20px;
+          padding: 24px;
           border-radius: 16px;
           margin-bottom: 25px;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -98,19 +103,39 @@ export function exportStudentPdfReport({
           display: inline-block;
           background-color: #22c55e;
           color: white;
-          padding: 4px 12px;
+          padding: 4px 14px;
           border-radius: 20px;
-          font-size: 12px;
-          font-weight: 700;
+          font-size: 13px;
+          font-weight: 800;
         }
         .badge-fail {
           display: inline-block;
           background-color: #ef4444;
           color: white;
-          padding: 4px 12px;
+          padding: 4px 14px;
           border-radius: 20px;
-          font-size: 12px;
-          font-weight: 700;
+          font-size: 13px;
+          font-weight: 800;
+        }
+        .eval-box {
+          padding: 16px 20px;
+          border-radius: 12px;
+          margin-bottom: 25px;
+          border: 2px solid ${isPassed ? '#3b82f6' : '#ef4444'};
+          background-color: ${isPassed ? '#eff6ff' : '#fef2f2'};
+        }
+        .eval-title {
+          font-size: 14px;
+          font-weight: 800;
+          color: ${isPassed ? '#1e40af' : '#991b1b'};
+          margin-bottom: 6px;
+        }
+        .eval-desc {
+          font-size: 13px;
+          color: ${isPassed ? '#1e3a8a' : '#7f1d1d'};
+          line-height: 1.5;
+          margin: 0;
+          font-weight: 600;
         }
         .section-title {
           font-size: 16px;
@@ -167,15 +192,27 @@ export function exportStudentPdfReport({
       </div>
 
       <div class="score-box">
-        <div class="score-title">TỔNG ĐIỂM ĐẠT ĐƯỢC</div>
-        <div class="score-num">${score} / ${totalMarks} ĐIỂM</div>
+        <div class="score-title">TỔNG ĐIỂM ĐẠT ĐƯỢC THỜI THỰC</div>
+        <div class="score-num">${realCorrect} / ${realTotalMarks} ĐIỂM (${percentage}%)</div>
         <div>
           ${
             isPassed
-              ? `<span class="badge-pass">ĐẠT YÊU CẦU (PASSED)</span>`
-              : `<span class="badge-fail">CHƯA ĐẠT (NEEDS IMPROVEMENT)</span>`
+              ? `<span class="badge-pass">✓ ĐẠT YÊU CẦU (PASSED)</span>`
+              : `<span class="badge-fail">✕ CHƯA ĐẠT (NEEDS IMPROVEMENT)</span>`
           }
         </div>
+      </div>
+
+      <!-- KHUNG ĐÁNH GIÁ THỰC TẾ & HUY HIỆU KHEN THƯỞNG/CẢNH BÁO TRỰC TIẾP TRONG PDF BÁO CÁO -->
+      <div class="eval-box">
+        <div class="eval-title">
+          ${isPassed ? '🏆 DANH HIỆU KHEN THƯỞNG: 🌟 CHĂM CHỈ KIÊN TRÌ' : '⚠️ ĐÁNH GIÁ THỰC TẾ: CẦN CỐ GẮNG ÔN LẠI BÀI'}
+        </div>
+        <p class="eval-desc">
+          ${isPassed 
+            ? `Kết quả đạt ${realCorrect}/${realTotalMarks} câu (${percentage}%). Chúc mừng bạn đã xuất sắc vượt qua mốc điểm đạt bài kiểm tra!` 
+            : `"Kết quả đạt ${realCorrect}/${realTotalMarks} câu (${percentage}%). Bạn chưa đạt mốc 50% điểm số, cần xem kỹ lời giải và làm lại bài!"`}
+        </p>
       </div>
 
       ${
