@@ -1289,12 +1289,25 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               </label>
 
                               {/* NÚT TẢI FILE TỪ MÁY TÍNH LOCAL MÃ HÓA BASE64 TRỌN VẸN */}
-                              <label className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-2xl shadow-md transition transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer whitespace-nowrap">
-                                <Plus className="w-4 h-4" />
-                                <span>📁 Tải File Audio MP3 Từ Máy Tính</span>
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const inputEl = document.getElementById(`part-audio-input-${pIdx}`);
+                                    if (inputEl) {
+                                      inputEl.value = '';
+                                      inputEl.click();
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-2xl shadow-md transition transform active:scale-95 flex items-center justify-center space-x-2 cursor-pointer whitespace-nowrap"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  <span>📁 Tải File Audio MP3 Từ Máy Tính</span>
+                                </button>
                                 <input
+                                  id={`part-audio-input-${pIdx}`}
                                   type="file"
-                                  accept="audio/*"
+                                  accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"
                                   className="hidden"
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
@@ -1330,7 +1343,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     reader.readAsDataURL(file);
                                   }}
                                 />
-                              </label>
+                              </div>
                             </div>
 
                             {/* HIỂN THỊ TÊN FILE AUDIO MP3 VÀ BỘ NGHE THỬ NGAY TRONG MODAL */}
