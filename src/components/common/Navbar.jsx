@@ -67,9 +67,9 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO (GÓC PHẢI NAV BAR) */}
+          {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO (GÓC PHẢI NAV BAR) - ẨN HOÀN TOÀN KHI Ở TRANG AUTH */}
           <div className="flex items-center space-x-3" ref={dropdownRef}>
-            {user ? (
+            {user && location.pathname !== '/auth' ? (
               <div className="flex items-center space-x-2">
                 {/* 🔔 QUẢ CHUÔNG THÔNG BÁO THẬT NHẢY CHẤM ĐỎ DÀNH CHO HỌC SINH */}
                 <NotificationBell />
