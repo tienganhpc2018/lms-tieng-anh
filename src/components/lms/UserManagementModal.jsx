@@ -361,6 +361,9 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
   };
 
   const handleToggleApproveUser = async (u) => {
+    const isTeacherUser = (u.email || '').toLowerCase().includes('nguyensea') || u.role === 'teacher';
+    if (isTeacherUser) return;
+
     const currentApproved = u.approved === true;
     const newApproved = !currentApproved;
 
@@ -371,10 +374,21 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
         .eq('id', u.id);
     } catch (err) {}
 
+    // Đồng bộ vào LocalStorage duyệt
+    const approvedMap = JSON.parse(localStorage.getItem('lms_approved_students_v2') || '{}');
+    if (newApproved) {
+      approvedMap[u.id] = true;
+      if (u.email) approvedMap[u.email] = true;
+    } else {
+      delete approvedMap[u.id];
+      if (u.email) delete approvedMap[u.email];
+    }
+    localStorage.setItem('lms_approved_students_v2', JSON.stringify(approvedMap));
+
     setUsersList((prev) =>
       prev.map((item) => (item.id === u.id ? { ...item, approved: newApproved } : item))
     );
-    alert(`✅ Đã ${newApproved ? 'DUYỆT CHO PHÉP ĐĂNG NHẬP' : 'CHUYỂN VỀ TRẠNG THÁI CHỜ DUYỆT'} tài khoản học sinh "${u.full_name || u.username}"!`);
+    alert(`✅ Đã ${newApproved ? 'DUYỆT CHO PHÉP VÀO HỌC' : 'CHUYỂN VỀ TRẠNG THÁI CHỜ DUYỆT'} tài khoản học sinh "${u.full_name || u.username}"!`);
   };
 
   if (!isOpen) return null;
@@ -529,8 +543,9 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                     {filteredUsers.map((u) => {
-                      const isTeacherUser = u.is_teacher || u.role === 'teacher' || u.role === 'admin' || u.email === 'nguyensea106@gmail.com';
-                      const isApproved = isTeacherUser || u.approved === true;
+                      const isTeacherUser = u.is_teacher || u.role === 'teacher' || u.role === 'admin' || (u.email || '').toLowerCase().includes('nguyensea');
+                      const approvedMap = JSON.parse(localStorage.getItem('lms_approved_students_v2') || '{}');
+                      const isApproved = isTeacherUser || u.approved === true || u.approved === 1 || approvedMap[u.id] === true || approvedMap[u.email] === true;
 
                       return (
                         <tr key={u.id} className={`transition ${u.suspended ? 'bg-rose-50/50' : 'hover:bg-slate-50'}`}>
