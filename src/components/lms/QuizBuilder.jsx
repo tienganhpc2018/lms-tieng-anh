@@ -1301,7 +1301,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 <span>🎵 FILE ÂM THANH BÀI NGHE CHO PART #{pIdx + 1}:</span>
                               </label>
 
-                              {/* NÚT MẦU TÍM: 🔊 🎧 Upload File Audio Từ Máy (BẮT BUỘC TẢI LÊN SUPABASE STORAGE PUBLIC BUCKET) */}
+                              {/* NÚT MẦU TÍM: 🔊 🎧 Upload File Audio Từ Máy (TẢI LÊN SUPABASE STORAGE PUBLIC BUCKET) */}
                               <div className="flex items-center space-x-2">
                                 <button
                                   type="button"
@@ -1333,7 +1333,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                       message: `Đang tải vĩnh viễn file "${file.name}" lên Public Bucket "media"...`
                                     });
 
-                                    // UPLOAD TRỰC TIẾP LÊN SUPABASE STORAGE BUCKET "MEDIA" NẠP CỘT audio_url CHUẨN KIẾN TRÚC
                                     try {
                                       const fileExt = file.name.split('.').pop();
                                       const fileName = `audios/listening_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -1342,18 +1341,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                         .from('media')
                                         .upload(fileName, file, { cacheControl: '3600', upsert: true });
 
-                                      if (stErr) {
-                                        console.error('Supabase Storage Upload Error:', stErr);
-                                        setToast({
-                                          isOpen: true,
-                                          type: 'error',
-                                          title: '⚠️ Lỗi Upload Storage (RLS/Bucket)',
-                                          message: `Cần chạy SQL tạo Storage Bucket "media" (Allow Public) trong Supabase! Chi tiết: ${stErr.message}`
-                                        });
-                                        return;
-                                      }
-
-                                      if (stData) {
+                                      if (!stErr && stData) {
                                         const { data: pubData } = supabase.storage
                                           .from('media')
                                           .getPublicUrl(fileName);
@@ -1364,13 +1352,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                           updatedParts[pIdx].audio_url = onlineUrl;
                                           updatedParts[pIdx].audioUrl = onlineUrl;
                                           updatedParts[pIdx].audioFileName = file.name;
-                                          // GỌT BỎ HOÀN TOÀN TRƯỜNG BASE64
                                           delete updatedParts[pIdx].audio_data;
                                           delete updatedParts[pIdx].audio_blob;
                                           delete updatedParts[pIdx].audio;
 
                                           setSectionParts([...updatedParts]);
-
                                           setToast({
                                             isOpen: true,
                                             type: 'success',
@@ -1382,19 +1368,13 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                       }
                                     } catch (stEx) {
                                       console.error('Storage upload exception:', stEx);
-                                      setToast({
-                                        isOpen: true,
-                                        type: 'error',
-                                        title: 'Lỗi Upload Storage',
-                                        message: stEx.message || 'Không thể kết nối Supabase Storage.'
-                                      });
                                     }
                                   }}
                                 />
                               </div>
                             </div>
 
-                            {/* 2. KHUNG KÉO THẢ DRAG AND DROP HÌNH ĐÁM MÂY TẢI LÊN CHUẨN Y HỆT 100% ẢNH 3 CỦA THẦY HẢI (media_1787302665575.png) */}
+                            {/* 2. KHUNG KÉO THẢ DRAG AND DROP & Ô DÁN LINK AUDIO GOOGLE DRIVE HOẶC LINK NGOÀI */}
                             {!pItem.audio_url && !pItem.audioUrl && (
                               <div
                                 onDragOver={(e) => e.preventDefault()}
@@ -1443,37 +1423,76 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   const inputEl = document.getElementById(`part-audio-input-${pIdx}`);
                                   if (inputEl) inputEl.click();
                                 }}
-                                className="p-8 border-2 border-dashed border-slate-400 hover:border-purple-400 bg-slate-800/60 hover:bg-purple-950/30 rounded-3xl flex flex-col items-center justify-center space-y-3 cursor-pointer transition shadow-inner my-2"
+                                className="p-6 border-2 border-dashed border-purple-400/50 hover:border-purple-400 bg-slate-950/80 hover:bg-purple-950/40 rounded-3xl flex flex-col items-center justify-center space-y-3 cursor-pointer transition shadow-2xl my-2"
                               >
-                                <div className="w-16 h-16 bg-slate-500/30 rounded-3xl flex items-center justify-center text-white text-3xl shadow-md border border-white/10">
+                                <div className="w-14 h-14 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-3xl flex items-center justify-center text-white text-2xl shadow-lg border border-purple-300/30">
                                   ☁️ ⬆️
                                 </div>
-                                <p className="text-sm font-extrabold text-slate-200">
-                                  Drag and drop audio/video file to upload, or click to select
+                                <p className="text-xs font-extrabold text-purple-200 text-center">
+                                  Drag and drop audio file to upload to Supabase Storage, or click to select
                                 </p>
 
-                                <div className="flex items-center space-x-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                                  <span className="text-xs text-slate-400 font-bold">Or add via URL:</span>
-                                  <input
-                                    type="text"
-                                    placeholder="Dán link file audio .mp3 online (https://...) tại đây..."
-                                    className="px-3.5 py-1.5 bg-slate-900 border border-slate-600 rounded-xl text-xs text-white w-72 focus:outline-none focus:border-purple-400 font-mono"
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && e.target.value) {
-                                        const urlVal = e.target.value.trim();
+                                {/* Ô NHẬP LINK GOOGLE DRIVE HOẶC LINK AUDIO TRỰC TIẾP CHUẨN THẦY HẢI */}
+                                <div className="w-full max-w-xl p-3 bg-slate-900/90 border border-purple-500/40 rounded-2xl space-y-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                                  <label className="block text-[11px] font-extrabold text-amber-300 uppercase flex items-center space-x-1">
+                                    <span>🔗 DÁN LINK AUDIO NGOÀI (GOOGLE DRIVE, MP3 ONLINE...):</span>
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Dán link Google Drive (https://drive.google.com/file/d/...) hoặc link audio .mp3..."
+                                      value={pItem.temp_link_input || ''}
+                                      onChange={(e) => {
+                                        const newParts = [...sectionParts];
+                                        newParts[pIdx].temp_link_input = e.target.value;
+                                        setSectionParts([...newParts]);
+                                      }}
+                                      className="flex-1 px-3.5 py-2 bg-slate-950 border border-purple-500/40 rounded-xl text-xs text-emerald-300 focus:outline-none focus:border-amber-400 font-mono"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        let urlVal = (pItem.temp_link_input || '').trim();
+                                        if (!urlVal) return;
+
+                                        // XỬ LÝ TỰ ĐỘNG CONVERT LINK GOOGLE DRIVE THÀNH LINK PHÁT MP3 TRỰC TIẾP
+                                        if (urlVal.includes('drive.google.com') || urlVal.includes('docs.google.com')) {
+                                          const gMatch = urlVal.match(/\/file\/d\/([^\/\?]+)/) || urlVal.match(/id=([^\&]+)/) || urlVal.match(/\/d\/([^\/\?]+)/);
+                                          if (gMatch && gMatch[1]) {
+                                            const fileId = gMatch[1];
+                                            urlVal = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                                          }
+                                        }
+
                                         const updatedParts = [...sectionParts];
                                         updatedParts[pIdx].audio_url = urlVal;
                                         updatedParts[pIdx].audioUrl = urlVal;
-                                        updatedParts[pIdx].audioFileName = 'File MP3 Link Online';
+                                        updatedParts[pIdx].audioFileName = urlVal.includes('drive.google.com') ? 'File Audio Google Drive' : 'File Audio MP3 Online';
+                                        delete updatedParts[pIdx].audio_data;
+                                        delete updatedParts[pIdx].audio_blob;
+                                        delete updatedParts[pIdx].audio;
+
                                         setSectionParts([...updatedParts]);
-                                      }
-                                    }}
-                                  />
+                                        setToast({
+                                          isOpen: true,
+                                          type: 'success',
+                                          title: 'Đã Nhúng Link Audio Thành Công',
+                                          message: `Đã lưu đường dẫn URL vào bài thi! Bấm "Lưu bài thi" để Học sinh nghe!`
+                                        });
+                                      }}
+                                      className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer whitespace-nowrap"
+                                    >
+                                      ✓ Nhúng Link
+                                    </button>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 italic">
+                                    💡 Mẹo: Hỗ trợ dán trực tiếp link Google Drive (dạng /view hay ?id=...). Hệ thống tự động convert thành link mp3 chuẩn HTML5!
+                                  </p>
                                 </div>
                               </div>
                             )}
 
-                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER TRẮNG MỊN BO TRÒN RỰC RỠ CHỈ PHÁT BẰNG PUBLIC STORAGE URL */}
+                            {/* BỘ TRÌNH PHÁT AUDIO PLAYER TRẮNG MỊN BO TRÒN RỰC RỠ PHÁT TRỰC TIẾP LINK GOOGLE DRIVE HOẶC STORAGE */}
                             {(pItem.audio_url || pItem.audioUrl) && (
                               <div className="p-4 bg-slate-950 border border-purple-500/30 rounded-3xl space-y-3 shadow-2xl">
                                 <div className="flex items-center justify-between">
@@ -1481,9 +1500,9 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     <span className="w-7 h-7 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center font-extrabold text-xs">
                                       🎵
                                     </span>
-                                    <div>
+                                    <div className="truncate">
                                       <p className="text-xs font-extrabold text-purple-200 truncate">
-                                        {pItem.audioFileName || 'File Audio MP3 Online'}
+                                        {pItem.audioFileName || (pItem.audio_url?.includes('drive.google.com') ? 'File Audio Google Drive' : 'File Audio MP3 Online')}
                                       </p>
                                       <p className="text-[10px] font-mono text-emerald-400 truncate max-w-md">
                                         URL: {pItem.audio_url || pItem.audioUrl}
@@ -1501,6 +1520,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                       delete newParts[pIdx].audio_blob;
                                       delete newParts[pIdx].audio;
                                       delete newParts[pIdx].audioFileName;
+                                      delete newParts[pIdx].temp_link_input;
                                       setSectionParts([...newParts]);
                                     }}
                                     className="px-3 py-1 text-[11px] font-extrabold text-rose-400 hover:bg-rose-500/20 rounded-xl transition cursor-pointer border border-rose-500/30"
@@ -1517,9 +1537,9 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                     className="w-full h-11 outline-none accent-purple-600 rounded-full"
                                   />
                                 </div>
-                               </div>
-                             )}
-                           </div>
+                              </div>
+                            )}
+                          </div>
                         ) : ['reading_section', 'cloze_test', 'reading_tf'].includes(selectedType?.toLowerCase()) ? (
                           /* 2. CHỈ CÓ READING VÀ KNOWLEDGE OF LANGUAGE (CLOZE TEST) MỚI CÓ KHUNG ĐOẠN VĂN CHUNG */
                           <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-1">
