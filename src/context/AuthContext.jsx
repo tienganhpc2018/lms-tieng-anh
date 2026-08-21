@@ -60,8 +60,9 @@ export function AuthProvider({ children }) {
 
       // 3. Nếu thực sự chưa từng tồn tại trong CSDL -> Tự động khởi tạo profile mới
       if (!finalProfile) {
-        const newRole = cleanEmail.includes('teacher') ? 'teacher' : 'student';
-        const defaultName = usernameFromEmail || 'User';
+        const isMasterAdmin = cleanEmail.includes('nguyensea') || cleanEmail.includes('nguyenvanhai') || cleanEmail.includes('tienganhpc2018');
+        const newRole = isMasterAdmin ? 'teacher' : 'student';
+        const defaultName = isMasterAdmin ? 'Nguyễn Văn Hải' : (usernameFromEmail || 'Học Viên');
 
         const { data: createdProfile } = await supabase
           .from('profiles')
@@ -72,10 +73,20 @@ export function AuthProvider({ children }) {
               username: usernameFromEmail,
               full_name: defaultName,
               role: newRole,
+              approved: isMasterAdmin ? true : false,
             },
           ])
-          .select()
-        if (createdProfile) finalProfile = createdProfile;
+          .select();
+        if (createdProfile && createdProfile.length > 0) finalProfile = createdProfile[0];
+      }
+
+      // NẾU LÀ TÀI KHOẢN THẦY HẢI -> ĐỒNG BỘ NGUYÊN TẮC GIÁO VIÊN / ADMIN DUY NHẤT
+      if (cleanEmail.includes('nguyensea') || cleanEmail.includes('nguyenvanhai') || cleanEmail.includes('tienganhpc2018')) {
+        if (finalProfile) {
+          finalProfile.role = 'teacher';
+          finalProfile.full_name = 'Nguyễn Văn Hải';
+          finalProfile.approved = true;
+        }
       }
 
       setProfile(finalProfile || null);
@@ -126,16 +137,21 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  // Hàm Đăng ký tài khoản
-  const signUp = async (email, password, fullName, role = 'student') => {
+  // Hàm Đăng ký tài khoản (CHỈ CHO PHÉP VAI TRÒ HỌC SINH - GIÁO VIÊN DUY NHẤT LÀ NGUYỄN VĂN HẢI)
+  const signUp = async (email, password, fullName, _ignoredRole = 'student') => {
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+    const isMasterAdmin = cleanEmail.includes('nguyensea') || cleanEmail.includes('nguyenvanhai') || cleanEmail.includes('tienganhpc2018');
+    const finalRole = isMasterAdmin ? 'teacher' : 'student';
+    const finalName = isMasterAdmin ? 'Nguyễn Văn Hải' : (fullName?.trim() || 'Học Viên');
+
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: cleanEmail,
       password,
       options: {
         data: {
-          full_name: fullName,
-          role: role,
+          full_name: finalName,
+          role: finalRole,
         },
       },
     });
@@ -149,12 +165,14 @@ export function AuthProvider({ children }) {
       await supabase.from('profiles').upsert([
         {
           id: data.user.id,
-          email: email,
-          full_name: fullName,
-          role: role,
+          email: cleanEmail,
+          username: cleanEmail.split('@')[0],
+          full_name: finalName,
+          role: finalRole,
+          approved: isMasterAdmin ? true : false,
         },
       ]);
-      await fetchProfile(data.user.id, email);
+      await fetchProfile(data.user.id, cleanEmail);
     }
 
     setLoading(false);
@@ -194,8 +212,8 @@ export function AuthProvider({ children }) {
   const userEmail = (user?.email || profile?.email || '').toLowerCase();
   const userRole = (profile?.role || '').toLowerCase();
 
-  // BẢO MẬT 100%: CHỈ DUY NHẤT TÀI KHOẢN GIÁO VIÊN CHÍNH THỨC CỦA THẦY HẢI MỚI CÓ ISTEACHER = TRUE
-  const isTeacher = (userRole === 'teacher' || userEmail.includes('tienganhpc2018') || userEmail.includes('nguyenvanhai')) &&
+  // BẢO MẬT 100%: CHỈ DUY NHẤT THẦY NGUYỄN VĂN HẢI LÀ GIÁO VIÊN / ADMIN DUY NHẤT
+  const isTeacher = (userRole === 'teacher' || userRole === 'admin' || userEmail.includes('tienganhpc2018') || userEmail.includes('nguyenvanhai') || userEmail.includes('nguyensea106')) &&
                     !userEmail.includes('hoangnm') &&
                     !userEmail.includes('student');
 
