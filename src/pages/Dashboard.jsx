@@ -54,9 +54,17 @@ export default function Dashboard() {
   const [isMyCoursesOpen, setIsMyCoursesOpen] = useState(true);
 
   // Code Hướng Dẫn & Toast
+  const [showCodeCourseIds, setShowCodeCourseIds] = useState([]);
   const [visibleCodeIds, setVisibleCodeIds] = useState([]);
   const [copiedCode, setCopiedCode] = useState('');
   const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
+
+  const toggleShowCode = (courseId, e) => {
+    e.stopPropagation();
+    setShowCodeCourseIds((prev) =>
+      Array.isArray(prev) ? (prev.includes(courseId) ? prev.filter((id) => id !== courseId) : [...prev, courseId]) : [courseId]
+    );
+  };
 
   const showToast = (type, title, message) => {
     setToast({ isOpen: true, type, title, message });
