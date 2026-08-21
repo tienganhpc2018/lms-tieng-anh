@@ -362,6 +362,24 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
 
   if (!isOpen) return null;
 
+  const handleToggleUserRole = async (u) => {
+    const currentIsTeacher = u.is_teacher || u.role === 'teacher' || u.role === 'admin' || u.email === 'nguyensea106@gmail.com';
+    const newIsTeacher = !currentIsTeacher;
+    const newRole = newIsTeacher ? 'teacher' : 'student';
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ is_teacher: newIsTeacher, role: newRole })
+        .eq('id', u.id);
+    } catch (err) {}
+
+    setUsersList((prev) =>
+      prev.map((item) => (item.id === u.id ? { ...item, is_teacher: newIsTeacher, role: newRole } : item))
+    );
+    alert(`✅ Đã chuyển vai trò tài khoản "${u.full_name || u.username}" sang: ${newIsTeacher ? '👨‍🏫 Giáo Viên (Admin)' : '🎓 Học Sinh'}`);
+  };
+
   const filteredUsers = usersList.filter((u) => {
     const q = searchQuery.toLowerCase();
     return (
@@ -485,38 +503,60 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                     <tr>
                       <th className="p-3">Họ và tên (First / Last name)</th>
                       <th className="p-3">Username / Email</th>
+                      <th className="p-3">Vai Trò (Role)</th>
                       <th className="p-3">Mật khẩu cấp</th>
                       <th className="p-3">Trạng thái khóa (Suspend)</th>
                       <th className="p-3 text-right">Thao tác Admin</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {filteredUsers.map((u) => (
-                      <tr key={u.id} className={`transition ${u.suspended ? 'bg-rose-50/50' : 'hover:bg-slate-50'}`}>
-                        <td className="p-3">
-                          <div className="flex items-center space-x-2.5">
-                            <div className={`w-8 h-8 rounded-full font-extrabold flex items-center justify-center text-xs ${
-                              u.suspended ? 'bg-rose-200 text-rose-800' : 'bg-emerald-100 text-emerald-800'
-                            }`}>
-                              {(u.full_name || u.username || 'U')[0].toUpperCase()}
+                    {filteredUsers.map((u) => {
+                      const isTeacherUser = u.is_teacher || u.role === 'teacher' || u.role === 'admin' || u.email === 'nguyensea106@gmail.com';
+
+                      return (
+                        <tr key={u.id} className={`transition ${u.suspended ? 'bg-rose-50/50' : 'hover:bg-slate-50'}`}>
+                          <td className="p-3">
+                            <div className="flex items-center space-x-2.5">
+                              <div className={`w-8 h-8 rounded-full font-extrabold flex items-center justify-center text-xs ${
+                                u.suspended ? 'bg-rose-200 text-rose-800' : isTeacherUser ? 'bg-purple-200 text-purple-900' : 'bg-emerald-100 text-emerald-800'
+                              }`}>
+                                {(u.full_name || u.username || 'U')[0].toUpperCase()}
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-slate-900 block">{u.full_name || u.username}</span>
+                                {u.suspended && <span className="text-[10px] font-extrabold text-rose-600 block">🔒 KHÓA TẠM THỜI</span>}
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-extrabold text-slate-900 block">{u.full_name || u.username}</span>
-                              {u.suspended && <span className="text-[10px] font-extrabold text-rose-600 block">🔒 KHÓA TẠM THỜI</span>}
+                          </td>
+                          <td className="p-3">
+                            <div className="space-y-0.5">
+                              <span className="font-bold text-indigo-700 block">@{u.username || u.email?.split('@')[0]}</span>
+                              <span className="text-[11px] text-slate-500 block">{u.email}</span>
                             </div>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="space-y-0.5">
-                            <span className="font-bold text-indigo-700 block">@{u.username || u.email?.split('@')[0]}</span>
-                            <span className="text-[11px] text-slate-500 block">{u.email}</span>
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300 font-mono font-extrabold rounded-lg text-[11px]">
-                            {u.raw_password_hint || '123456'}
-                          </span>
-                        </td>
+                          </td>
+
+                          {/* CỘT VAI TRÒ (ROLE) CHUẨN 100% THEO YÊU CẦU THẦY HẢI */}
+                          <td className="p-3">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleUserRole(u)}
+                              title="Nhấp để đổi giữa Giáo Viên và Học Sinh"
+                              className={`px-3 py-1 rounded-xl text-[11px] font-black transition flex items-center space-x-1.5 cursor-pointer border shadow-2xs ${
+                                isTeacherUser
+                                  ? 'bg-purple-100 text-purple-900 border-purple-300 hover:bg-purple-200'
+                                  : 'bg-sky-50 text-sky-900 border-sky-200 hover:bg-sky-100'
+                              }`}
+                            >
+                              <span>{isTeacherUser ? '👨‍🏫 Giáo Viên (Admin)' : '🎓 Học Sinh'}</span>
+                              <span className="text-[9px] opacity-75 font-semibold text-purple-700">(Đổi ⚡)</span>
+                            </button>
+                          </td>
+
+                          <td className="p-3">
+                            <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300 font-mono font-extrabold rounded-lg text-[11px]">
+                              {u.raw_password_hint || '123456'}
+                            </span>
+                          </td>
                         <td className="p-3">
                           <button
                             type="button"
@@ -550,8 +590,9 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                           </button>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
+                    );
+                  })}
+                </tbody>
                 </table>
               </div>
             </div>
