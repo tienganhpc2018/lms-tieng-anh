@@ -9,7 +9,7 @@ import ClassFeed from '../features/community/ClassFeed';
 import { 
   BookOpen, Plus, Users, Search, Key, Sparkles, FolderOpen, Crown, ChevronRight, 
   ChevronDown, Home, Lock, BarChart3, HelpCircle, FileText, CheckCircle2, Copy, 
-  Check, Palette, Layers, Award, FileQuestion, ArrowRight, X, Clock
+  Check, Palette, Layers, Award, FileQuestion, ArrowRight, X, Clock, Eye, EyeOff
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
