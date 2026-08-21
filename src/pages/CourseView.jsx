@@ -26,6 +26,10 @@ export default function CourseView() {
   const [newActContent, setNewActContent] = useState('');
   const [creatingAct, setCreatingAct] = useState(false);
 
+  // Preview Game Modal
+  const [isPreviewGameOpen, setIsPreviewGameOpen] = useState(false);
+  const [previewGameCode, setPreviewGameCode] = useState('');
+
   const [isEnrolledModalOpen, setIsEnrolledModalOpen] = useState(false);
   const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
 
@@ -1032,12 +1036,26 @@ export default function CourseView() {
               </div>
 
               {(newActType === 'iframe' || newActType === 'audio_record') && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {newActType === 'iframe'
-                      ? 'NỘI DUNG IFRAME / ĐƯỜNG LINK GAME (DÁN MÃ EMBED HOẶC LINK WORDWALL/QUIZIZZ)'
-                      : 'ĐỀ BÀI / YÊU CẦU CÂU NÓI CHO HỌC SINH GHI ÂM'}
-                  </label>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      {newActType === 'iframe'
+                        ? 'NỘI DUNG IFRAME / ĐƯỜNG LINK GAME (DÁN MÃ EMBED HOẶC LINK WORDWALL/QUIZIZZ)'
+                        : 'ĐỀ BÀI / YÊU CẦU CÂU NÓI CHO HỌC SINH GHI ÂM'}
+                    </label>
+                    {newActType === 'iframe' && newActContent.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewGameCode(newActContent.trim());
+                          setIsPreviewGameOpen(true);
+                        }}
+                        className="px-2 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-900 font-extrabold text-[11px] rounded-md border border-purple-300 transition cursor-pointer"
+                      >
+                        👁️ Xem Thử Game Iframe
+                      </button>
+                    )}
+                  </div>
                   <textarea
                     rows={4}
                     value={newActContent}
@@ -1112,12 +1130,26 @@ export default function CourseView() {
               </div>
 
               {(editType === 'iframe' || editType === 'audio_record') && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                    {editType === 'iframe'
-                      ? 'NỘI DUNG IFRAME / ĐƯỜNG LINK GAME (DÁN MÃ EMBED HOẶC LINK WORDWALL/QUIZIZZ)'
-                      : 'ĐỀ BÀI / YÊU CẦU CÂU NÓI CHO HỌC SINH GHI ÂM'}
-                  </label>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">
+                      {editType === 'iframe'
+                        ? 'NỘI DUNG IFRAME / ĐƯỜNG LINK GAME (DÁN MÃ EMBED HOẶC LINK WORDWALL/QUIZIZZ)'
+                        : 'ĐỀ BÀI / YÊU CẦU CÂU NÓI CHO HỌC SINH GHI ÂM'}
+                    </label>
+                    {editType === 'iframe' && editContent.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewGameCode(editContent.trim());
+                          setIsPreviewGameOpen(true);
+                        }}
+                        className="px-2 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-900 font-extrabold text-[11px] rounded-md border border-purple-300 transition cursor-pointer"
+                      >
+                        👁️ Xem Thử Game Iframe
+                      </button>
+                    )}
+                  </div>
                   <textarea
                     rows={4}
                     value={editContent}
@@ -1302,6 +1334,52 @@ export default function CourseView() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PREVIEW XEM THỬ GAME IFRAME KHI SOẠN BÀI */}
+      {isPreviewGameOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-xs p-4 font-sans">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+            <div className="bg-purple-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base flex items-center space-x-2">
+                <span>👁️ XEM THỬ KHUNG GAME IFRAME (PREVIEW MODE)</span>
+              </h3>
+              <button
+                onClick={() => setIsPreviewGameOpen(false)}
+                className="text-slate-300 hover:text-white font-extrabold text-sm"
+              >
+                ✕ Đóng
+              </button>
+            </div>
+            <div className="p-4 bg-slate-900 flex-1 overflow-hidden min-h-[500px]">
+              {previewGameCode.includes('src=') ? (
+                <iframe
+                  src={previewGameCode.match(/src=["']([^"']+)["']/)?.[1] || ''}
+                  title="Preview Game"
+                  className="w-full h-full min-h-[500px] border-0 rounded-2xl"
+                  allow="fullscreen; autoplay; microphone; camera"
+                  allowFullScreen
+                />
+              ) : previewGameCode.startsWith('http://') || previewGameCode.startsWith('https://') ? (
+                <iframe
+                  src={previewGameCode}
+                  title="Preview Game"
+                  className="w-full h-full min-h-[500px] border-0 rounded-2xl"
+                  allow="fullscreen; autoplay; microphone; camera"
+                  allowFullScreen
+                />
+              ) : (
+                <iframe
+                  srcDoc={previewGameCode}
+                  title="Preview Game"
+                  className="w-full h-full min-h-[500px] border-0 rounded-2xl"
+                  allow="fullscreen; autoplay; microphone; camera"
+                  allowFullScreen
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
