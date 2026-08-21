@@ -39,13 +39,107 @@ export default function CourseView() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
 
-  // Modals Quản trị Chủ đề (Sửa tên & Xóa)
+  // Modals Quản trị Chủ đề (Sửa tên, Xóa & Tạo Unit Mới)
   const [editingSection, setEditingSection] = useState(null);
   const [isEditSecModalOpen, setIsEditSecModalOpen] = useState(false);
   const [editSecTitle, setEditSecTitle] = useState('');
 
+  const [isAddSecModalOpen, setIsAddSecModalOpen] = useState(false);
+  const [newSecTitle, setNewSecTitle] = useState('');
+  const [creatingSec, setCreatingSec] = useState(false);
+
   const showToast = (type, title, message) => {
     setToast({ isOpen: true, type, title, message });
+  };
+
+  // Nâng cấp: Tạo Unit / Chủ Đề Mới (Unit 2, Unit 3...)
+  const handleCreateSection = async (e) => {
+    e.preventDefault();
+    if (!newSecTitle.trim()) return;
+    setCreatingSec(true);
+    try {
+      const { data, error } = await supabase
+        .from('course_sections')
+        .insert([
+          {
+            course_id: courseId,
+            title: newSecTitle.trim(),
+            order_index: sections.length,
+          },
+        ])
+        .select()
+        .single();
+
+      if (data) {
+        setSections((prev) => [...prev, data]);
+        setActiveSectionId(data.id);
+        setIsAddSecModalOpen(false);
+        setNewSecTitle('');
+        showToast('success', 'Đã Thêm Unit Mới', `Đã tạo "${data.title}" thành công! Thầy có thể bắt đầu thêm 7 bài học vào Unit này.`);
+      }
+    } catch (err) {
+      alert('Lỗi tạo Unit: ' + err.message);
+    } finally {
+      setCreatingSec(false);
+    }
+  };
+
+  // Nâng cấp Thần Kỳ: Tự Động Tạo Sẵn Khung 12 Units (Mỗi Unit 7 Lessons Chuẩn)
+  const handleAutoCreate12UnitsTemplate = async () => {
+    if (!window.confirm('Thầy có muốn tự động tạo sẵn Khung 12 Units (mỗi Unit có sẵn 7 Lessons từ Lesson 1 đến Lesson 7) không?')) return;
+    setLoading(true);
+    try {
+      const unitNames = [
+        'Unit 1: Hobbies',
+        'Unit 2: Healthy Living',
+        'Unit 3: Community Service',
+        'Unit 4: Music and Arts',
+        'Unit 5: Food and Drink',
+        'Unit 6: Visit to School',
+        'Unit 7: Traffic',
+        'Unit 8: Films',
+        'Unit 9: Festivals around the world',
+        'Unit 10: Energy Sources',
+        'Unit 11: Travelling in the future',
+        'Unit 12: An Overcrowded World'
+      ];
+
+      const lessonNames = [
+        'Lesson 1: Getting started',
+        'Lesson 2: A closer look 1',
+        'Lesson 3: A closer look 2',
+        'Lesson 4: Communication',
+        'Lesson 5: Skills 1',
+        'Lesson 6: Skills 2',
+        'Lesson 7: Looking back & Project'
+      ];
+
+      for (let i = 0; i < unitNames.length; i++) {
+        const uTitle = unitNames[i];
+        const { data: newSec } = await supabase
+          .from('course_sections')
+          .insert([{ course_id: courseId, title: uTitle, order_index: sections.length + i }])
+          .select()
+          .single();
+
+        if (newSec) {
+          const actInserts = lessonNames.map((lName, lIdx) => ({
+            section_id: newSec.id,
+            title: lName,
+            type: 'quiz',
+            order_index: lIdx
+          }));
+          await supabase.from('activities').insert(actInserts);
+        }
+      }
+
+      await fetchCourseData();
+      showToast('success', 'ĐÃ TẠO THÀNH CÔNG KHUNG 12 UNITS!', 'Đã khởi tạo đủ 12 Units chuẩn Tiếng Anh (mỗi Unit 7 Lessons). Thầy Hải có thể bắt đầu chèn bài thi và Whiteboard!');
+    } catch (err) {
+      alert('Lỗi tạo khung: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Nâng cấp: Di chuyển bài học LÊN / XUỐNG linh hoạt theo buổi dạy
@@ -522,6 +616,25 @@ export default function CourseView() {
                 {userIsTeacher && (
                   <div className="flex items-center space-x-2 flex-wrap gap-2">
                     <button
+                      onClick={() => setIsAddSecModalOpen(true)}
+                      className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer border border-purple-400/40"
+                      title="Tạo thêm Unit 2, Unit 3..."
+                    >
+                      <Plus className="w-4 h-4 text-amber-300" />
+                      <span>➕ + Thêm Unit Mới</span>
+                    </button>
+
+                    {sections.length <= 1 && (
+                      <button
+                        onClick={handleAutoCreate12UnitsTemplate}
+                        className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer border border-amber-300"
+                        title="Tự động tạo sẵn đủ 12 Units (mỗi Unit 7 Lessons chuẩn)"
+                      >
+                        <span>🪄 Tạo Bộ 12 Units Chuẩn (Mỗi Unit 7 Lessons)</span>
+                      </button>
+                    )}
+
+                    <button
                       onClick={() => setIsAddActivityOpen(true)}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
                     >
@@ -531,6 +644,38 @@ export default function CourseView() {
                   </div>
                 )}
               </div>
+
+              {/* THANH TABS CHỌN NHANH CÁC UNITS (UNIT 1, UNIT 2, UNIT 3...) */}
+              {sections.length > 0 && (
+                <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-thin border-b border-slate-100 pt-2">
+                  {sections.map((sec) => {
+                    const isActive = sec.id === activeSectionId;
+                    return (
+                      <button
+                        key={sec.id}
+                        type="button"
+                        onClick={() => handleSelectSection(sec.id)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition flex-shrink-0 cursor-pointer border ${
+                          isActive
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        <span>{sec.title}</span>
+                      </button>
+                    );
+                  })}
+                  {userIsTeacher && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddSecModalOpen(true)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 flex-shrink-0 cursor-pointer"
+                    >
+                      + Thêm Unit Mới
+                    </button>
+                  )}
+                </div>
+              )}
 
               {loading ? (
                 <LoadingSpinner text="Đang tải bài học..." />
@@ -931,6 +1076,48 @@ export default function CourseView() {
                   className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer"
                 >
                   💾 Lưu Tên Chủ Đề
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL TẠO CHỦ ĐỀ / UNIT MỚI */}
+      {isAddSecModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 font-sans">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
+            <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
+              <span>➕ Tạo Thêm Unit / Chủ Đề Mới</span>
+            </h3>
+            <form onSubmit={handleCreateSection} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tên Unit / Chủ Đề mới:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newSecTitle}
+                  onChange={(e) => setNewSecTitle(e.target.value)}
+                  placeholder={`VD: Unit ${sections.length + 1}: Healthy Living`}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddSecModalOpen(false)}
+                  className="px-4 py-2 text-slate-600 text-xs font-bold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingSec}
+                  className="px-5 py-2 bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer"
+                >
+                  {creatingSec ? 'Đang tạo...' : '➕ Tạo Unit Mới'}
                 </button>
               </div>
             </form>
