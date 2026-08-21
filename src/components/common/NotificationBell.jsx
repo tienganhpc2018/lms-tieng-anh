@@ -25,25 +25,32 @@ export default function NotificationBell() {
 
       let list = data || [];
 
-      // 2. DÀNH RIÊNG CHO GIÁO VIÊN NGUYỄN VĂN HẢI: KIỂM TRA SỐ LƯỢNG HỌC SINH MỚI CHƯA DUYỆT (APPROVED === FALSE)
+      // 2. DÀNH RIÊNG CHO GIÁO VIÊN NGUYỄN VẢN HẢI: TRA CỨU SỐ LƯỢNG HỌC SINH MỚI CHƯA ĐƯỢC DUYỆT
       if (isTeacher) {
         try {
-          const { data: unapprovedUsers } = await supabase
+          const { data: allProfiles } = await supabase
             .from('profiles')
-            .select('*')
-            .eq('approved', false);
+            .select('*');
 
-          if (unapprovedUsers && unapprovedUsers.length > 0) {
-            const firstUnapproved = unapprovedUsers[0];
-            const unapprovedNotif = {
-              id: 'unapproved_summary_' + unapprovedUsers.length,
-              title: '🎓 Học Sinh Mới Đang Chờ Duyệt!',
-              message: `Có ${unapprovedUsers.length} học sinh mới (ví dụ: "${firstUnapproved.full_name || firstUnapproved.username}") vừa tạo tài khoản và đang chờ Thầy Hải phê duyệt.`,
-              type: 'user_registration',
-              read: false,
-              created_at: firstUnapproved.created_at || new Date().toISOString(),
-            };
-            list = [unapprovedNotif, ...list];
+          if (allProfiles) {
+            const unapprovedUsers = allProfiles.filter((p) => {
+              const pEmail = (p.email || '').toLowerCase();
+              const isMaster = pEmail.includes('nguyensea') || pEmail.includes('nguyenvanhai') || pEmail.includes('tienganhpc2018');
+              return !isMaster && p.role !== 'teacher' && p.approved !== true && p.approved !== 1;
+            });
+
+            if (unapprovedUsers.length > 0) {
+              const namesList = unapprovedUsers.slice(0, 3).map((u) => u.full_name || u.username).join(', ');
+              const unapprovedNotif = {
+                id: 'unapproved_summary_' + unapprovedUsers.length,
+                title: `🎓 Có ${unapprovedUsers.length} Học Sinh Mới Đang Chờ Duyệt!`,
+                message: `Học sinh: ${namesList}${unapprovedUsers.length > 3 ? '...' : ''} vừa tạo tài khoản và đang chờ Thầy Hải phê duyệt để vào học.`,
+                type: 'user_registration',
+                read: false,
+                created_at: new Date().toISOString(),
+              };
+              list = [unapprovedNotif, ...list];
+            }
           }
         } catch (unapprovedErr) {}
       }
