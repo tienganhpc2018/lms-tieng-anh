@@ -39,8 +39,80 @@ export default function CourseView() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
 
+  // Modals Quản trị Chủ đề (Sửa tên & Xóa)
+  const [editingSection, setEditingSection] = useState(null);
+  const [isEditSecModalOpen, setIsEditSecModalOpen] = useState(false);
+  const [editSecTitle, setEditSecTitle] = useState('');
+
   const showToast = (type, title, message) => {
     setToast({ isOpen: true, type, title, message });
+  };
+
+  // Nâng cấp: Di chuyển bài học LÊN / XUỐNG linh hoạt theo buổi dạy
+  const handleMoveActivity = async (act, direction, e) => {
+    e.stopPropagation();
+    const currentIndex = activities.findIndex((a) => a.id === act.id);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= activities.length) return;
+
+    const newActivities = [...activities];
+    const temp = newActivities[currentIndex];
+    newActivities[currentIndex] = newActivities[targetIndex];
+    newActivities[targetIndex] = temp;
+
+    newActivities.forEach((item, idx) => {
+      item.order_index = idx;
+    });
+
+    setActivities(newActivities);
+
+    try {
+      await Promise.all([
+        supabase.from('activities').update({ order_index: newActivities[currentIndex].order_index }).eq('id', newActivities[currentIndex].id),
+        supabase.from('activities').update({ order_index: newActivities[targetIndex].order_index }).eq('id', newActivities[targetIndex].id),
+      ]);
+    } catch (err) {}
+
+    showToast('success', 'Đã Di Chuyển Bài Học', `Đã chuyển bài học "${act.title.replace('[WHITEBOARD]', '').trim()}" ${direction === 'up' ? 'lên trên' : 'xuống dưới'}!`);
+  };
+
+  // Nâng cấp: Sửa Tên Chủ Đề
+  const handleSaveEditSection = async (e) => {
+    e.preventDefault();
+    if (!editingSection || !editSecTitle.trim()) return;
+    try {
+      await supabase
+        .from('course_sections')
+        .update({ title: editSecTitle.trim() })
+        .eq('id', editingSection.id);
+    } catch (err) {}
+
+    setSections((prev) =>
+      prev.map((s) => (s.id === editingSection.id ? { ...s, title: editSecTitle.trim() } : s))
+    );
+    setIsEditSecModalOpen(false);
+    showToast('success', 'Đã Đổi Tên Chủ Đề', 'Tên chủ đề đã được cập nhật thành công!');
+  };
+
+  // Nâng cấp: Xóa Chủ Đề
+  const handleDeleteSection = async (sec, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm(`Thầy có chắc chắn muốn xóa Chủ đề "${sec.title}" cùng toàn bộ bài học bên trong không?`)) return;
+
+    try {
+      await supabase.from('activities').delete().eq('section_id', sec.id);
+      await supabase.from('course_sections').delete().eq('id', sec.id);
+    } catch (err) {}
+
+    const remaining = sections.filter((s) => s.id !== sec.id);
+    setSections(remaining);
+    if (remaining.length > 0) {
+      setActiveSectionId(remaining[0].id);
+    } else {
+      setActiveSectionId(null);
+    }
+    showToast('success', 'Đã Xóa Chủ Đề', `Đã xóa chủ đề "${sec.title}" thành công!`);
   };
 
   // 1-Click Ẩn / Hiện Bài học
@@ -407,22 +479,56 @@ export default function CourseView() {
 
           <div className="lg:col-span-3 space-y-6">
             <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                <div>
-                  <h2 className="text-lg font-extrabold text-slate-900">
-                    {sections.find((s) => s.id === activeSectionId)?.title || 'Danh Sách Bài Học'}
-                  </h2>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2 flex-wrap gap-1">
+                    <h2 className="text-lg font-extrabold text-slate-900">
+                      {sections.find((s) => s.id === activeSectionId)?.title || 'Danh Sách Bài Học'}
+                    </h2>
+                    {userIsTeacher && activeSectionId && (
+                      <div className="flex items-center space-x-1 ml-2">
+                        <button
+                          type="button"
+                          title="Sửa tên Chủ Đề này"
+                          onClick={() => {
+                            const currentSec = sections.find((s) => s.id === activeSectionId);
+                            if (currentSec) {
+                              setEditingSection(currentSec);
+                              setEditSecTitle(currentSec.title);
+                              setIsEditSecModalOpen(true);
+                            }
+                          }}
+                          className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-950 font-extrabold text-[11px] rounded-lg transition border border-amber-300 cursor-pointer flex items-center space-x-1"
+                        >
+                          <span>✏️ Sửa Tên Chủ Đề</span>
+                        </button>
+                        <button
+                          type="button"
+                          title="Xóa Chủ Đề này"
+                          onClick={() => {
+                            const currentSec = sections.find((s) => s.id === activeSectionId);
+                            if (currentSec) handleDeleteSection(currentSec);
+                          }}
+                          className="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 font-extrabold text-[11px] rounded-lg transition border border-rose-300 cursor-pointer flex items-center space-x-1"
+                        >
+                          <span>🗑️ Xóa Chủ Đề</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500">Hiển thị {displayableActivities.length} bài học trong chủ đề này</p>
                 </div>
 
                 {userIsTeacher && (
-                  <button
-                    onClick={() => setIsAddActivityOpen(true)}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>+ Thêm Bài Học Mới</span>
-                  </button>
+                  <div className="flex items-center space-x-2 flex-wrap gap-2">
+                    <button
+                      onClick={() => setIsAddActivityOpen(true)}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Thêm Bài Học Mới</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -513,9 +619,28 @@ export default function CourseView() {
                         </div>
 
                         <div className="flex items-center space-x-2 flex-shrink-0 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
-                          {/* CÁC THAO TÁC CỦA GIÁO VIÊN: SỬA - ẨN - HẸN GIỜ KHÓA - XÓA */}
+                          {/* CÁC THAO TÁC CỦA GIÁO VIÊN: LÊN - XUỐNG - SỬA - ẨN - HẸN GIỜ KHÓA - XÓA */}
                           {userIsTeacher && (
-                            <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center space-x-1 flex-wrap gap-y-1" onClick={(e) => e.stopPropagation()}>
+                              {/* Nút di chuyển Lên / Xuống */}
+                              <div className="flex items-center space-x-0.5 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                                <button
+                                  type="button"
+                                  title="Đẩy bài học này LÊN TRÊN"
+                                  onClick={(e) => handleMoveActivity(act, 'up', e)}
+                                  className="px-1.5 py-0.5 hover:bg-emerald-600 hover:text-white text-slate-700 font-extrabold text-[11px] rounded transition cursor-pointer"
+                                >
+                                  ⬆️
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Đẩy bài học này XUỐNG DƯỚI"
+                                  onClick={(e) => handleMoveActivity(act, 'down', e)}
+                                  className="px-1.5 py-0.5 hover:bg-emerald-600 hover:text-white text-slate-700 font-extrabold text-[11px] rounded transition cursor-pointer"
+                                >
+                                  ⬇️
+                                </button>
+                              </div>
                               <button
                                 type="button"
                                 title="Chỉnh sửa tên & loại bài học"
@@ -766,6 +891,47 @@ export default function CourseView() {
                     💾 Lưu Cài Đặt Lịch
                   </button>
                 </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CHỈNH SỬA TÊN CHỦ ĐỀ */}
+      {isEditSecModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 font-sans">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
+            <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
+              <span>✏️ Sửa Tên Chủ Đề</span>
+            </h3>
+            <form onSubmit={handleSaveEditSection} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tên Chủ Đề mới:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editSecTitle}
+                  onChange={(e) => setEditSecTitle(e.target.value)}
+                  placeholder="VD: Chủ Đề 1: Unit 1 - Hobbies"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditSecModalOpen(false)}
+                  className="px-4 py-2 text-slate-600 text-xs font-bold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer"
+                >
+                  💾 Lưu Tên Chủ Đề
+                </button>
               </div>
             </form>
           </div>
