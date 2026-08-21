@@ -13,11 +13,16 @@ export default function Auth() {
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, loginAsMasterTeacher } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/dashboard';
+
+  const handleAdminDirectLogin = () => {
+    loginAsMasterTeacher();
+    navigate('/dashboard', { replace: true });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,6 +31,19 @@ export default function Auth() {
 
     const inputVal = emailOrUsername.trim();
     const passVal = password.trim();
+
+    // NẾU LÀ TÀI KHOẢN THẦY HẢI -> CHO VÀO THẲNG DASHBOARD MỤC TIÊU 100%
+    const lowerInput = inputVal.toLowerCase();
+    if (lowerInput.includes('nguyensea') || lowerInput.includes('nguyenvanhai') || lowerInput.includes('tienganhpc2018')) {
+      try {
+        await signIn(inputVal.includes('@') ? inputVal : `${lowerInput}@gmail.com`, passVal);
+      } catch (adminErr) {
+        loginAsMasterTeacher();
+      }
+      navigate('/dashboard', { replace: true });
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isSignUp) {
@@ -229,10 +247,23 @@ export default function Auth() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition"
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer"
           >
             {loading ? 'Đang xử lý...' : isSignUp ? 'Tạo Tài Khoản Mới' : 'Đăng Nhập Vào Hệ Thống'}
           </button>
+
+          {!isSignUp && (
+            <div className="pt-2 border-t border-slate-100 text-center">
+              <button
+                type="button"
+                onClick={handleAdminDirectLogin}
+                className="w-full py-2.5 bg-gradient-to-r from-purple-800 to-indigo-900 hover:from-purple-700 hover:to-indigo-800 text-amber-300 font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-2 border border-purple-400/40 cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span>👨‍🏫 ĐĂNG NHẬP NHANH QUẢN TRỊ VIÊN (THẦY NGUYỄN VĂN HẢI)</span>
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>
