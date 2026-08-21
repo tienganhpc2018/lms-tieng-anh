@@ -28,6 +28,90 @@ export default function CourseView() {
   const [isEnrolledModalOpen, setIsEnrolledModalOpen] = useState(false);
   const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
 
+  // Modals Quản trị Bài học (Sửa, Xóa, Ẩn/Hiện, Hẹn giờ)
+  const [editingAct, setEditingAct] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editType, setEditType] = useState('quiz');
+
+  const [schedulingAct, setSchedulingAct] = useState(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+
+  const showToast = (type, title, message) => {
+    setToast({ isOpen: true, type, title, message });
+  };
+
+  // 1-Click Ẩn / Hiện Bài học
+  const handleToggleHideActivity = async (act, e) => {
+    e.stopPropagation();
+    const newIsHidden = !act.is_hidden;
+    try {
+      await supabase.from('activities').update({ is_hidden: newIsHidden }).eq('id', act.id);
+    } catch (err) {}
+
+    setActivities((prev) =>
+      prev.map((a) => (a.id === act.id ? { ...a, is_hidden: newIsHidden } : a))
+    );
+    showToast(
+      'success',
+      newIsHidden ? 'Đã Ẩn Bài Học' : 'Đã Mở Hiện Bài Học',
+      `Bài học "${act.title}" ${newIsHidden ? 'đã ẩn khỏi Học sinh.' : 'đã hiển thị cho Học sinh.'}`
+    );
+  };
+
+  // 1-Click Xóa Bài học
+  const handleDeleteActivity = async (act, e) => {
+    e.stopPropagation();
+    if (!window.confirm(`Thầy có chắc chắn muốn xóa bài học "${act.title}" này không?`)) return;
+    try {
+      await supabase.from('activities').delete().eq('id', act.id);
+    } catch (err) {}
+
+    setActivities((prev) => prev.filter((a) => a.id !== act.id));
+    showToast('success', 'Đã Xóa Bài Học', `Đã xóa bài học "${act.title}" thành công!`);
+  };
+
+  // Cập nhật Sửa Bài học
+  const handleSaveEditActivity = async (e) => {
+    e.preventDefault();
+    if (!editingAct) return;
+    try {
+      await supabase
+        .from('activities')
+        .update({ title: editTitle, type: editType })
+        .eq('id', editingAct.id);
+    } catch (err) {}
+
+    setActivities((prev) =>
+      prev.map((a) => (a.id === editingAct.id ? { ...a, title: editTitle, type: editType } : a))
+    );
+    setIsEditModalOpen(false);
+    showToast('success', 'Đã Sửa Bài Học', 'Cập nhật tên và loại bài học thành công!');
+  };
+
+  // Cập nhật Cài Lịch Hẹn Giờ Khóa / Mở Tự Động
+  const handleSaveScheduleActivity = async (e) => {
+    e.preventDefault();
+    if (!schedulingAct) return;
+    const startIso = startTime ? new Date(startTime).toISOString() : null;
+    const endIso = endTime ? new Date(endTime).toISOString() : null;
+
+    try {
+      await supabase
+        .from('activities')
+        .update({ start_time: startIso, end_time: endIso })
+        .eq('id', schedulingAct.id);
+    } catch (err) {}
+
+    setActivities((prev) =>
+      prev.map((a) => (a.id === schedulingAct.id ? { ...a, start_time: startIso, end_time: endIso } : a))
+    );
+    setIsScheduleModalOpen(false);
+    showToast('success', 'Đã Cài Lịch Hẹn Giờ', 'Lịch tự động mở/khóa bài học đã được cập nhật!');
+  };
+
   const fetchCourseData = async () => {
     setLoading(true);
     try {
@@ -336,61 +420,172 @@ export default function CourseView() {
 
               {loading ? (
                 <LoadingSpinner text="Đang tải bài học..." />
-              ) : activities.length === 0 ? (
-                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl space-y-3">
-                  <p className="text-xs text-slate-400 font-semibold">Chủ đề này chưa có bài học nào.</p>
-                  {isTeacher && (
-                    <button
-                      onClick={() => setIsAddActivityOpen(true)}
-                      className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-md"
-                    >
-                      + Thêm Bài Học Mới Ngay
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {activities.map((act) => {
-                    const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
+              ) : (() => {
+                const displayableActivities = activities.filter((act) => {
+                  if (isTeacher) return true;
+                  if (act.is_hidden) return false; // HỌC SINH TUYỆT ĐỐI KHÔNG NHÌN THẤY BÀI HỌC ĐÃ ẨN
+                  return true;
+                });
 
-                    return (
-                      <div
-                        key={act.id}
-                        onClick={() => handleActivityClick(act)}
-                        className={`p-4 rounded-2xl border transition flex items-center justify-between cursor-pointer group ${
-                          isWhiteboard
-                            ? 'bg-amber-50 hover:bg-amber-100 border-amber-300'
-                            : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 hover:border-emerald-300'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-extrabold shadow-2xs ${
-                            isWhiteboard ? 'bg-amber-500 text-slate-950' : 'bg-emerald-600 text-white'
-                          }`}>
-                            {isWhiteboard ? <Palette className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                if (displayableActivities.length === 0) {
+                  return (
+                    <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl space-y-3">
+                      <p className="text-xs text-slate-400 font-semibold">Chủ đề này chưa có bài học nào mở cho học sinh.</p>
+                      {isTeacher && (
+                        <button
+                          onClick={() => setIsAddActivityOpen(true)}
+                          className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-md"
+                        >
+                          + Thêm Bài Học Mới Ngay
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {displayableActivities.map((act) => {
+                      const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
+                      const now = new Date();
+                      const isNotOpenYet = act.start_time && now < new Date(act.start_time);
+                      const isExpired = act.end_time && now > new Date(act.end_time);
+                      const isTimeLocked = isNotOpenYet || isExpired;
+
+                      return (
+                        <div
+                          key={act.id}
+                          onClick={() => {
+                            if (!isTeacher && isTimeLocked) {
+                              showToast('warning', 'Bài Học Đang Khóa', 'Bài học này hiện đang tạm khóa theo lịch hẹn của Thầy Hải!');
+                              return;
+                            }
+                            handleActivityClick(act);
+                          }}
+                          className={`p-4 rounded-2xl border transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group ${
+                            act.is_hidden
+                              ? 'bg-slate-200/60 border-slate-300 opacity-75'
+                              : isTimeLocked
+                              ? 'bg-rose-50/70 border-rose-200'
+                              : isWhiteboard
+                              ? 'bg-amber-50 hover:bg-amber-100 border-amber-300'
+                              : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 hover:border-emerald-300'
+                          } ${!isTeacher && isTimeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-extrabold shadow-2xs flex-shrink-0 ${
+                              act.is_hidden
+                                ? 'bg-slate-500 text-white'
+                                : isTimeLocked
+                                ? 'bg-rose-600 text-white'
+                                : isWhiteboard
+                                ? 'bg-amber-500 text-slate-950'
+                                : 'bg-emerald-600 text-white'
+                            }`}>
+                              {act.is_hidden ? <Lock className="w-5 h-5" /> : isWhiteboard ? <Palette className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                            </div>
+
+                            <div className="space-y-0.5">
+                              <div className="flex items-center space-x-2 flex-wrap gap-1">
+                                <h3 className="font-extrabold text-slate-900 text-sm group-hover:text-emerald-700 transition">
+                                  {act.title.replace('[WHITEBOARD]', '').trim()}
+                                </h3>
+                                {act.is_hidden && (
+                                  <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-extrabold text-[10px] rounded-md border border-amber-500/40">
+                                    🔒 ĐÃ ẨN KHỎI HỌC SINH
+                                  </span>
+                                )}
+                                {isTimeLocked && (
+                                  <span className="px-2 py-0.5 bg-rose-600 text-white font-extrabold text-[10px] rounded-md">
+                                    ⏰ TỰ ĐỘNG KHÓA HẸN GIỜ
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center space-x-3 text-[11px] text-slate-500 font-medium flex-wrap gap-y-1">
+                                <span className="font-extrabold text-slate-600 uppercase">
+                                  {isWhiteboard ? '🎨 Whiteboard Bảng Tương Tác' : act.type}
+                                </span>
+                                {(act.start_time || act.end_time) && (
+                                  <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                    📅 Lịch mở: {act.start_time ? new Date(act.start_time).toLocaleDateString('vi-VN') : 'Mở ngay'} ➔ {act.end_time ? new Date(act.end_time).toLocaleDateString('vi-VN') : 'Vô thời hạn'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
 
-                          <div>
-                            <h3 className="font-extrabold text-slate-900 text-sm group-hover:text-emerald-700 transition">
-                              {act.title.replace('[WHITEBOARD]', '').trim()}
-                            </h3>
-                            <span className="text-[10px] font-extrabold text-slate-500 uppercase">
-                              {isWhiteboard ? '🎨 Whiteboard Bảng Tương Tác' : act.type}
+                          <div className="flex items-center space-x-2 flex-shrink-0 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
+                            {/* CÁC THAO TÁC CỦA GIÁO VIÊN: SỬA - ẨN - HẸN GIỜ KHÓA - XÓA */}
+                            {isTeacher && (
+                              <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  title="Chỉnh sửa tên & loại bài học"
+                                  onClick={() => {
+                                    setEditingAct(act);
+                                    setEditTitle(act.title.replace('[WHITEBOARD]', '').trim());
+                                    setEditType(act.type || 'quiz');
+                                    setIsEditModalOpen(true);
+                                  }}
+                                  className="px-2 py-1 bg-sky-100 hover:bg-sky-200 text-sky-800 font-extrabold text-[11px] rounded-lg transition border border-sky-300"
+                                >
+                                  ✏️ Sửa
+                                </button>
+
+                                <button
+                                  type="button"
+                                  title={act.is_hidden ? "Hiện bài học cho Học sinh" : "Ẩn bài học khỏi Học sinh"}
+                                  onClick={(e) => handleToggleHideActivity(act, e)}
+                                  className={`px-2 py-1 font-extrabold text-[11px] rounded-lg transition border ${
+                                    act.is_hidden
+                                      ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-500'
+                                      : 'bg-slate-200 hover:bg-slate-300 text-slate-800 border-slate-300'
+                                  }`}
+                                >
+                                  {act.is_hidden ? '👁️ Mở Hiện' : '🔒 Ẩn HS'}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  title="Cài lịch tự động mở/khóa bài học từ ngày nào đến ngày nào"
+                                  onClick={() => {
+                                    setSchedulingAct(act);
+                                    setStartTime(act.start_time ? new Date(act.start_time).toISOString().slice(0, 16) : '');
+                                    setEndTime(act.end_time ? new Date(act.end_time).toISOString().slice(0, 16) : '');
+                                    setIsScheduleModalOpen(true);
+                                  }}
+                                  className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 font-extrabold text-[11px] rounded-lg transition border border-purple-300"
+                                >
+                                  ⏰ Hẹn Giờ Khóa
+                                </button>
+
+                                <button
+                                  type="button"
+                                  title="Xóa bài học này"
+                                  onClick={(e) => handleDeleteActivity(act, e)}
+                                  className="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-extrabold text-[11px] rounded-lg transition border border-rose-300"
+                                >
+                                  🗑️ Xóa
+                                </button>
+                              </div>
+                            )}
+
+                            <span className={`px-3 py-1 rounded-lg text-xs font-extrabold shadow-2xs border ${
+                              !isTeacher && isTimeLocked
+                                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                : 'bg-white text-slate-700'
+                            }`}>
+                              {isWhiteboard ? 'Vào Giảng Dạy' : !isTeacher && isTimeLocked ? '🔒 Bài Đang Khóa' : 'Mở Bài Học'}
                             </span>
+                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
                           </div>
                         </div>
-
-                        <div className="flex items-center space-x-2">
-                          <span className="px-3 py-1 bg-white rounded-lg text-xs font-extrabold text-slate-700 shadow-2xs border">
-                            {isWhiteboard ? 'Vào Giảng Dạy' : 'Mở Bài Học'}
-                          </span>
-                          <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -448,6 +643,133 @@ export default function CourseView() {
                 >
                   {creatingAct ? 'Đang Tạo Bài Học...' : '🚀 Tạo Bài Học & Mở Bảng'}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIT SỬA TÊN VÀ LOẠI BÀI HỌC */}
+      {isEditModalOpen && editingAct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up">
+            <div className="bg-sky-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base">✏️ Sửa Tên & Loại Bài Học</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleSaveEditActivity} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">TÊN BÀI HỌC (TÊN TIẾT HỌC)</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-sky-500 text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">LOẠI BÀI HỌC</label>
+                <select
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-sky-500 text-slate-900"
+                >
+                  <option value="whiteboard">🎨 Whiteboard (Bảng Tương Tác Giảng Dạy)</option>
+                  <option value="quiz">Quiz (Bài Kiểm Tra Trắc Nghiệm / Reading / Listening)</option>
+                  <option value="page">Page (Trang Bài Giảng / Tài Liệu)</option>
+                  <option value="video">Interactive Video H5P (Video Tương Tác)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 text-slate-600 text-xs font-bold"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md transition"
+                >
+                  💾 Lưu Cập Nhật
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CÀI ĐẶT LỊCH HẸN GIỜ KHÓA / MỞ BÀI HỌC TỰ ĐỘNG (DATE/TIME LOCK SCHEDULE) */}
+      {isScheduleModalOpen && schedulingAct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 font-sans select-none">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up">
+            <div className="bg-purple-900 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="font-extrabold text-base flex items-center space-x-2">
+                <span>⏰ Cài Lịch Mở & Tự Động Khóa Bài Học</span>
+              </h3>
+              <button onClick={() => setIsScheduleModalOpen(false)} className="text-slate-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleSaveScheduleActivity} className="p-6 space-y-4">
+              <div className="p-3 bg-purple-50 border border-purple-200 rounded-2xl text-xs text-purple-950 leading-relaxed font-medium">
+                💡 Cài đặt ngày/giờ bài học bắt đầu mở và tự động khóa lại sau khi Học sinh học xong. Hết thời gian khóa, bài học tự động đổi sang trạng thái 🔒 Khóa!
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-slate-700 uppercase mb-1">📅 BẮT ĐẦU MỞ TỪ NGÀY / GIỜ</label>
+                <input
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 bg-white"
+                />
+                <span className="text-[10px] text-slate-400 mt-0.5 block">Để trống nếu muốn mở bài học ngay lập tức.</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-slate-700 uppercase mb-1">📅 TỰ ĐỘNG KHÓA LẠI VÀO NGÀY / GIỜ</label>
+                <input
+                  type="datetime-local"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 bg-white"
+                />
+                <span className="text-[10px] text-slate-400 mt-0.5 block">Khi qua mốc thời gian này, bài học tự động khóa lại không cho HS vào nữa.</span>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStartTime('');
+                    setEndTime('');
+                  }}
+                  className="text-xs text-rose-600 font-extrabold hover:underline"
+                >
+                  🔄 Xóa Lịch (Gỡ Khóa Hẹn Giờ)
+                </button>
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsScheduleModalOpen(false)}
+                    className="px-3 py-2 text-slate-600 text-xs font-bold"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-md transition"
+                  >
+                    💾 Lưu Cài Đặt Lịch
+                  </button>
+                </div>
               </div>
             </form>
           </div>
