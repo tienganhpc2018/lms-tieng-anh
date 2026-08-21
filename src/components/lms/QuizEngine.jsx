@@ -20,9 +20,12 @@ import { exportOmrSheet } from '../../utils/exportOmrSheet';
 const extractGoogleFileId = (url) => {
   if (!url || typeof url !== 'string') return null;
   const trimmed = url.trim();
+  if (/^[a-zA-Z0-9_-]{25,50}$/.test(trimmed)) return trimmed;
+
   const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
                 trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/) ||
-                trimmed.match(/id=([a-zA-Z0-9_-]+)/);
+                trimmed.match(/[\?&]id=([a-zA-Z0-9_-]+)/) ||
+                trimmed.match(/\/d\/([a-zA-Z0-9_-]{25,50})/);
   return match ? match[1] : null;
 };
 
