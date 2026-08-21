@@ -51,36 +51,13 @@ export function AuthProvider({ children }) {
               .from('profiles')
               .update({ id: userId, email: cleanEmail })
               .eq('id', profileByEmail.id);
-            finalProfile.id = userId;
           } catch (linkErr) {
             console.warn('Link profile ID notice:', linkErr);
           }
         }
       }
 
-      // 3. Nếu thực sự chưa từng tồn tại trong CSDL -> Tự động khởi tạo profile mới
-      if (!finalProfile) {
-        const isMasterAdmin = cleanEmail.includes('nguyensea') || cleanEmail.includes('nguyenvanhai') || cleanEmail.includes('tienganhpc2018');
-        const newRole = isMasterAdmin ? 'teacher' : 'student';
-        const defaultName = isMasterAdmin ? 'Nguyễn Văn Hải' : (usernameFromEmail || 'Học Viên');
-
-        const { data: createdProfile } = await supabase
-          .from('profiles')
-          .upsert([
-            {
-              id: userId,
-              email: cleanEmail,
-              username: usernameFromEmail,
-              full_name: defaultName,
-              role: newRole,
-              approved: isMasterAdmin ? true : false,
-            },
-          ])
-          .select();
-        if (createdProfile && createdProfile.length > 0) finalProfile = createdProfile[0];
-      }
-
-      // BẢO VỆ NGUYÊN TẮC: THẦY NGUYỄN VĂN HẢI LÀ GIÁO VIÊN / ADMIN QUẢN TRỊ VIÊN DUY NHẤT VÀ VÀO 100%
+      // 3. BẢO VỆ ĐẶC QUYỀN 100%: THẦY NGUYỄN VẢN HẢI LÀ GIÁO VIÊN / ADMIN DUY NHẤT VÀ VÀO 100% VĨNH VIỄN
       const checkEmail = (cleanEmail || userEmail || '').toLowerCase();
       const checkUsername = (usernameFromEmail || finalProfile?.username || '').toLowerCase();
 
@@ -96,27 +73,51 @@ export function AuthProvider({ children }) {
         if (!finalProfile) {
           finalProfile = {
             id: userId,
-            email: cleanEmail,
+            email: cleanEmail || 'nguyensea106@gmail.com',
             username: 'nguyensea106',
             full_name: 'Nguyễn Văn Hải',
             role: 'teacher',
             approved: true,
             is_teacher: true,
+            suspended: false
           };
         } else {
           finalProfile.role = 'teacher';
           finalProfile.full_name = 'Nguyễn Văn Hải';
           finalProfile.approved = true;
           finalProfile.is_teacher = true;
+          finalProfile.suspended = false;
         }
       } else {
-        // CHỈ CHẶN HỌC SINH NẾU APPROVED LÀ FALSE CHÍNH THỨC
-        if (finalProfile && finalProfile.approved === false) {
+        // NẾU HỌC SINH MỚI CHƯA CÓ PROFILE -> TẠO MỚI PROFILE TẠM
+        if (!finalProfile) {
+          const { data: createdProfile } = await supabase
+            .from('profiles')
+            .upsert([
+              {
+                id: userId,
+                email: cleanEmail,
+                username: usernameFromEmail,
+                full_name: usernameFromEmail || 'Học Viên',
+                role: 'student',
+                is_teacher: false,
+                suspended: false,
+              },
+            ])
+            .select();
+          if (createdProfile && createdProfile.length > 0) finalProfile = createdProfile[0];
+        }
+
+        // KIỂM TRA TRẠNG THÁI DUYỆT CỦA HỌC SINH MỚI
+        const approvedMap = JSON.parse(localStorage.getItem('lms_approved_students_v1') || '{}');
+        const isApprovedByTeacher = finalProfile && (finalProfile.approved === true || approvedMap[finalProfile.id] === true || approvedMap[cleanEmail] === true);
+
+        if (!isApprovedByTeacher) {
           await supabase.auth.signOut();
           setUser(null);
           setProfile(null);
           setLoading(false);
-          alert(`⏳ TÀI KHOẢN HỌC SINH ĐANG CHỜ THẦY NGUYỄN VĂN HẢI PHÊ DUYỆT!\n\nTài khoản của em (${finalProfile?.full_name || finalProfile?.username}) đã tạo thành công nhưng đang ở trạng thái [CHỜ DUYỆT].\n\nVui lòng nhắn Thầy Hải mở Quản lý Học sinh hoặc bấm Duyệt trên Quả Chuông 🔔 để kích hoạt tài khoản nhé!`);
+          alert(`⏳ TÀI KHOẢN HỌC SINH MỚI CHỜ THẦY NGUYỄN VẢN HẢI PHÊ DUYỆT!\n\nTài khoản của học sinh "${finalProfile?.full_name || finalProfile?.username || cleanEmail.split('@')[0]}" đã đăng ký thành công nhưng đang ở trạng thái [CHỜ DUYỆT].\n\nVui lòng nhắn Thầy Hải mở Quản lý Học sinh hoặc bấm Duyệt trên Quả Chuông 🔔 để kích hoạt tài khoản làm bài nhé!`);
           return;
         }
       }
