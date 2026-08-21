@@ -914,13 +914,10 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
                   // NGUỒN PHÁT MP3 THÔNG MINH BẮT TẤT CẢ CÁC TRƯỜNG FILE UPLOAD (AUDIO, AUDIO_DATA, AUDIO_URL, BASE64)
                   const extractAudio = () => {
-                    const candidate = pItem?.audio || pItem?.audio_data || pItem?.audio_url || pItem?.audioUrl || pItem?.mp3 || pItem?.audioBase64
-                      || q?.audio || q?.audio_data || q?.audio_url || q?.content?.audio || q?.content?.audio_data || q?.content?.audio_url || q?.content?.audioUrl;
-                    if (candidate && String(candidate).trim() !== '') return String(candidate).trim();
-
-                    const isListeningSec = String(activity?.type || q?.type || q?.content?.title || pItem?.part_title || '').toLowerCase().includes('listening');
-                    if (isListeningSec) {
-                      return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+                    const candidate = pItem?.audio_data || pItem?.audio_url || pItem?.audioUrl || pItem?.audio || pItem?.mp3 || pItem?.audioBase64
+                      || q?.audio_data || q?.audio_url || q?.audioUrl || q?.audio || q?.content?.audio_data || q?.content?.audio_url || q?.content?.audioUrl;
+                    if (candidate && String(candidate).trim() !== '' && !candidate.includes('soundhelix.com')) {
+                      return String(candidate).trim();
                     }
                     return null;
                   };
@@ -961,10 +958,6 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                             <audio
                               controls
                               src={activeAudioSource}
-                              onError={(e) => {
-                                console.warn('Audio fallback active...');
-                                e.target.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-                              }}
                               className="w-full h-10 rounded-xl outline-none accent-purple-500"
                             />
                           </div>
@@ -1216,8 +1209,8 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
               {/* TRÌNH PHÁT AUDIO PLAYER CHO DẠNG LISTENING ĐƠN LẺ */}
               {(() => {
-                const singleAudio = q.audio || q.audio_data || q.audio_url || q.content?.audio || q.content?.audio_data || q.content?.audio_url || (isListening ? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' : null);
-                if (!singleAudio) return null;
+                const singleAudio = q.audio_data || q.audio_url || q.audio || q.audioUrl || q.content?.audio_data || q.content?.audio_url || q.content?.audio;
+                if (!singleAudio || singleAudio.includes('soundhelix.com')) return null;
 
                 return (
                   <div className="p-3 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-2xl space-y-2 my-2 shadow-md border border-purple-500/30">
@@ -1235,9 +1228,6 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                     <audio
                       controls
                       src={singleAudio}
-                      onError={(e) => {
-                        e.target.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-                      }}
                       className="w-full h-9 rounded-xl outline-none"
                     />
                   </div>
