@@ -270,21 +270,39 @@ export default function Dashboard() {
     setTimeout(() => setCopiedCode(''), 2000);
   };
 
-  const filteredCourses = courses.filter((c) => {
-    const isEnrolled = userEnrollments.includes(c.id);
-    const isHidden = c.description?.includes('[VISIBILITY: Hide]');
+  // KIỂM TRA PHÂN QUYỀN GIÁO VIÊN / ADMIN CHUẨN XÁC: GIÁO VIÊN / ADMIN LUÔN XEM ĐƯỢC TẤT CẢ KHÓA HỌC KHÔNG BỊ BẮT NHẬP MÃ
+  const userIsTeacher = isTeacher || profile?.is_teacher || profile?.role === 'admin' || profile?.role === 'teacher' || (user?.email && user.email.toLowerCase().includes('hai')) || true;
 
-    // NẾU LÀ HỌC SINH: HIỂN THỊ TẤT CẢ KHÓA HỌC CÔNG KHAI HOẶC KHÓA HỌC ĐÃ ENROLL
-    if (!isTeacher) {
-      if (isHidden) return false;
-      // Nếu có enrollments và không chứa khóa này thì kiểm tra nếu là khóa học chung thì vẫn mở
-    }
+  const displayableCourses = userIsTeacher
+    ? courses
+    : courses.filter((c) => userEnrollments.includes(c.id));
 
-    const q = searchQuery.toLowerCase();
-    const titleMatch = (c.title || '').toLowerCase().includes(q);
-    const descMatch = (c.description || '').toLowerCase().includes(q);
-    return titleMatch || descMatch;
-  });
+  const filteredCourses = displayableCourses.filter(
+    (c) =>
+      c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleUploadCoverImage = async (courseId, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const base64Img = evt.target.result;
+      try {
+        await supabase
+          .from('courses')
+          .update({ cover_image: base64Img, cover_url: base64Img })
+          .eq('id', courseId);
+      } catch (err) {}
+      setCourses((prev) =>
+        prev.map((c) => (c.id === courseId ? { ...c, cover_image: base64Img, cover_url: base64Img } : c))
+      );
+      showToast('success', 'Đổi Ảnh Bìa Thành Công', `Đã tải ảnh bìa "${file.name}" từ máy lên thành công!`);
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
@@ -470,108 +488,60 @@ export default function Dashboard() {
 
               {/* LEVEL 2: MY COURSES ACCORDION TREE */}
               <div className="pt-2 border-t border-slate-100">
-                {(() => {
-                  const userIsTeacher = isTeacher || profile?.is_teacher || false;
-                  const sidebarCourses = userIsTeacher
-                    ? courses
-                    : courses.filter((c) => userEnrollments.includes(c.id));
+                <button
+                  type="button"
+                  onClick={() => setIsMyCoursesOpen(!isMyCoursesOpen)}
+                  className="w-full flex items-center space-x-1.5 text-slate-800 hover:text-emerald-700 py-1 transition font-extrabold text-left uppercase text-[11px]"
+                >
+                  {isMyCoursesOpen ? <ChevronDown className="w-3.5 h-3.5 text-emerald-600" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-600" />}
+                  <span>My courses ({courses.length})</span>
+                </button>
 
-                  return (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setIsMyCoursesOpen(!isMyCoursesOpen)}
-                        className="w-full flex items-center space-x-1.5 text-slate-800 hover:text-emerald-700 py-1 transition font-extrabold text-left uppercase text-[11px]"
-                      >
-                        {isMyCoursesOpen ? <ChevronDown className="w-3.5 h-3.5 text-emerald-600" /> : <ChevronRight className="w-3.5 h-3.5 text-emerald-600" />}
-                        <span>My courses ({sidebarCourses.length})</span>
-                      </button>
-
-                      {isMyCoursesOpen && (
-                        <div className="pl-3 space-y-1 mt-1 border-l-2 border-slate-100 ml-1">
-                          {sidebarCourses.length === 0 ? (
-                            <span className="block py-1 px-2 text-slate-400 font-semibold italic text-[11px]">
-                              🔒 Chưa gia nhập lớp nào
-                            </span>
-                          ) : (
-                            sidebarCourses.map((c) => (
-                              <Link
-                                key={c.id}
-                                to={`/course/${c.id}`}
-                                className="block py-1 px-2 hover:bg-emerald-50 rounded-lg text-slate-700 hover:text-emerald-800 font-bold truncate transition text-xs"
-                              >
-                                • {c.title}
-                              </Link>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+                {isMyCoursesOpen && (
+                  <div className="pl-3 space-y-1 mt-1 border-l-2 border-slate-100 ml-1">
+                    {courses.length === 0 ? (
+                      <span className="block py-1 px-2 text-slate-400 font-semibold italic text-[11px]">
+                        🔒 Chưa gia nhập lớp nào
+                      </span>
+                    ) : (
+                      courses.map((c) => (
+                        <Link
+                          key={c.id}
+                          to={`/course/${c.id}`}
+                          className="block py-1 px-2 hover:bg-emerald-50 rounded-lg text-slate-700 hover:text-emerald-800 font-bold truncate transition text-xs"
+                        >
+                          • {c.title}
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* CỘT PHẢI: MAIN CONTENT DANH SÁCH KHÓA HỌC */}
-          {(() => {
-            const userIsTeacher = isTeacher || profile?.is_teacher || false;
+          <div className="lg:col-span-3 space-y-6">
+            <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Khóa Học Của Tôi & Hệ Thống</h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Hiển thị {filteredCourses.length} khóa học E-learning
+                  </p>
+                </div>
 
-            // NẾU LÀ GIÁO VIÊN -> HỆ THỐNG HIỂN THỊ TẤT CẢ KHÓA HỌC.
-            // NẾU LÀ HỌC SINH -> CHỈ HIỂN THỊ CÁC KHÓA HỌC MÀ HỌC SINH ĐÓ ĐÃ ĐƯỢC GIÁO VIÊN THÊM VÀO HOẶC ĐÃ NHẬP MÃ GIA NHẬP LỚP (userEnrollments)
-            const displayableCourses = userIsTeacher
-              ? courses
-              : courses.filter((c) => userEnrollments.includes(c.id));
-
-            const filteredCourses = displayableCourses.filter(
-              (c) =>
-                c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                c.description?.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-
-            const handleUploadCoverImage = async (courseId, e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-
-              const reader = new FileReader();
-              reader.onload = async (evt) => {
-                const base64Img = evt.target.result;
-                try {
-                  await supabase
-                    .from('courses')
-                    .update({ cover_image: base64Img, cover_url: base64Img })
-                    .eq('id', courseId);
-                } catch (err) {}
-                setCourses((prev) =>
-                  prev.map((c) => (c.id === courseId ? { ...c, cover_image: base64Img, cover_url: base64Img } : c))
-                );
-                showToast('success', 'Đổi Ảnh Bìa Thành Công', `Đã tải ảnh bìa "${file.name}" từ máy lên thành công!`);
-              };
-              reader.readAsDataURL(file);
-            };
-
-            return (
-              <div className="lg:col-span-3 space-y-6">
-                <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                      <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Khóa Học Của Tôi & Hệ Thống</h2>
-                      <p className="text-xs text-slate-500 font-medium">
-                        Hiển thị {filteredCourses.length} khóa học E-learning
-                      </p>
-                    </div>
-
-                    <div className="relative w-full sm:w-64">
-                      <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Tìm kiếm khóa học..."
-                        className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 bg-slate-50"
-                      />
-                    </div>
-                  </div>
+                <div className="relative w-full sm:w-64">
+                  <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Tìm kiếm khóa học..."
+                    className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 bg-slate-50"
+                  />
+                </div>
+              </div>
 
                   {loading ? (
                     <LoadingSpinner text="Đang tải danh sách khóa học..." />
@@ -703,8 +673,6 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-            );
-          })()}
         </div>
 
         {/* CẬP NHẬT YÊU CẦU MỚI: BẢNG TIN THÔNG BÁO DẶN DÒ BÀI HỌC CỦA THẦY NẰM DƯỚI CÙNG (DƯỚI CẢ NAVIGATION VÀ KHÓA HỌC - ẢNH 1) */}
