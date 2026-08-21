@@ -16,8 +16,10 @@ import AdaptiveLearningModal from './AdaptiveLearningModal';
 import AiOmrScannerModal from './AiOmrScannerModal';
 import { exportOmrSheet } from '../../utils/exportOmrSheet';
 
-export default function QuizEngine({ activity }) {
-  const { profile } = useAuth();
+export default function QuizEngine({ activity, activityId, onComplete }) {
+  const navigate = useNavigate();
+  const { user, profile, isTeacher: contextIsTeacher } = useAuth();
+  const isTeacher = contextIsTeacher || profile?.is_teacher || false;
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userAnswers, setUserAnswers] = useState({});
