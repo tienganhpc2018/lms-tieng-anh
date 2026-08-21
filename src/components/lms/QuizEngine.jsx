@@ -996,33 +996,26 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                       pItem?.audio_data,
                       pItem?.audio,
                       pItem?.audio_blob,
+                      q?.content?.parts?.[pIdx]?.audio_url,
+                      q?.content?.parts?.[pIdx]?.audioUrl,
+                      q?.content?.parts?.[pIdx]?.audio_data,
+                      q?.content?.sectionParts?.[pIdx]?.audio_url,
+                      q?.content?.sectionParts?.[pIdx]?.audioUrl,
+                      activity?.content?.parts?.[pIdx]?.audio_url,
+                      activity?.content?.sectionParts?.[pIdx]?.audio_url,
+                      activity?.audio_url,
+                      activity?.content_url,
                     ];
 
-                    // Nếu là Part 1 (pIdx === 0) thì cho phép fallback lấy activity audio chung
-                    if (pIdx === 0) {
-                      candidates.push(activity?.audio_url, activity?.content_url);
-                      try {
-                        const cachedAudio = localStorage.getItem(`lms_audio_cache_${activityId || activity?.id}`);
-                        if (cachedAudio && typeof cachedAudio === 'string' && cachedAudio.trim() !== '') {
-                          candidates.unshift(cachedAudio.trim());
-                        }
-                      } catch (cErr) {}
-                    }
-
-                    // Tự động convert link Google Drive bất kỳ sang link stream CDN HTML5 MP3 trực tiếp
-                    const rawSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
-                    if (rawSrc) {
-                      let urlVal = rawSrc.trim();
-                      if (urlVal.includes('drive.google.com') || urlVal.includes('docs.google.com') || urlVal.includes('googleusercontent.com')) {
-                        const gMatch = urlVal.match(/\/file\/d\/([^\/\?]+)/) || urlVal.match(/id=([^\&]+)/) || urlVal.match(/\/d\/([^\/\?]+)/);
-                        if (gMatch && gMatch[1]) {
-                          return `https://lh3.googleusercontent.com/d/${gMatch[1]}`;
-                        }
+                    try {
+                      const cachedAudio = localStorage.getItem(`lms_audio_cache_${activityId || activity?.id}`);
+                      if (cachedAudio && typeof cachedAudio === 'string' && cachedAudio.trim() !== '') {
+                        candidates.unshift(cachedAudio.trim());
                       }
-                      return urlVal;
-                    }
+                    } catch (cErr) {}
 
-                    return null;
+                    const rawSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
+                    return rawSrc ? rawSrc.trim() : null;
                   };
 
                   const activeAudioSource = extractAudioForPart();
