@@ -1309,13 +1309,10 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
                                     const reader = new FileReader();
                                     reader.onload = (event) => {
-                                      let base64Audio = event.target.result;
-                                      if (typeof base64Audio === 'string' && base64Audio.startsWith('data:application/octet-stream')) {
-                                        base64Audio = base64Audio.replace('data:application/octet-stream', 'data:audio/mp3');
-                                      }
+                                      const base64Audio = event.target.result;
                                       const newParts = [...sectionParts];
                                       newParts[pIdx].audioUrl = blobUrl; // Dùng blobUrl phát cực mượt trong Modal
-                                      newParts[pIdx].audio_data = base64Audio; // Lưu Base64 vĩnh viễn vào DB
+                                      newParts[pIdx].audio_data = base64Audio; // Lưu Base64 vĩnh viễn vào DB (.wav, .mp3, .m4a)
                                       newParts[pIdx].audio_url = base64Audio;
                                       newParts[pIdx].audio = base64Audio;
                                       newParts[pIdx].audioFileName = file.name;
@@ -1325,7 +1322,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                         isOpen: true,
                                         type: 'success',
                                         title: 'Nạp Bài Nghe Thành Công',
-                                        message: `Đã nạp thành công file MP3 gốc "${file.name}"! Thầy có thể bấm Play ▶️ nghe thử mượt mà!`
+                                        message: `Đã nạp thành công file âm thanh gốc "${file.name}"! Thầy có thể bấm Play ▶️ nghe thử mượt mà!`
                                       });
                                     };
                                     reader.readAsDataURL(file);
