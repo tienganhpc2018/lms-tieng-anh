@@ -2,10 +2,63 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Gamepad2 } from 'lucide-react';
 import QuizEngine from '../components/lms/QuizEngine';
 import QuizBuilder from '../components/lms/QuizBuilder';
+import AudioRecordEngine from '../components/lms/AudioRecordEngine';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+
+// COMPONENT RENDER INTERACTIVE GAME / IFRAME (WORDWALL, QUIZIZZ, GAME HTML5 RESPONSIVE 100%)
+function IframeGameView({ activity }) {
+  const content = activity?.content || '';
+
+  let iframeUrl = '';
+  if (content.includes('src=')) {
+    const match = content.match(/src=["']([^"']+)["']/);
+    if (match) iframeUrl = match[1];
+  } else if (content.startsWith('http://') || content.startsWith('https://')) {
+    iframeUrl = content;
+  }
+
+  return (
+    <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200 shadow-sm space-y-4 font-sans select-none">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h2 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
+          <Gamepad2 className="w-5 h-5 text-purple-600" />
+          <span>🎮 TRÒ CHƠI TƯƠNG TÁC / GAME HTML5 E-LEARNING</span>
+        </h2>
+        <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+          Wordwall / Quizizz / HTML5
+        </span>
+      </div>
+
+      <div className="w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-inner min-h-[650px] relative">
+        {iframeUrl ? (
+          <iframe
+            src={iframeUrl}
+            title={activity?.title || 'Interactive Game'}
+            className="w-full h-full min-h-[650px] border-0"
+            allow="fullscreen; autoplay; microphone; camera; midi; encrypted-media"
+            allowFullScreen
+          />
+        ) : content.includes('<') ? (
+          <iframe
+            srcDoc={content}
+            title={activity?.title || 'Interactive Game'}
+            className="w-full h-full min-h-[650px] border-0"
+            allow="fullscreen; autoplay; microphone; camera; midi; encrypted-media"
+            allowFullScreen
+          />
+        ) : (
+          <div className="p-12 text-center text-slate-400 space-y-2">
+            <p className="text-sm font-bold">⚠️ Chưa có mã Embed Iframe hoặc Đường link Game!</p>
+            <p className="text-xs">Thầy Hải vui lòng bấm nút "✏️ Mở Khung Soạn Thảo" và dán mã Embed hoặc link Wordwall / Quizizz vào nhé.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function AssignmentView() {
   const { id } = useParams();
@@ -50,19 +103,20 @@ export default function AssignmentView() {
   }, [targetActivityId]);
 
   if (loading) {
-    return <LoadingSpinner text="Đang nạp đề thi thử..." />;
+    return <LoadingSpinner text="Đang nạp bài học..." />;
   }
 
   const activeAct = activity || { id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử Online', type: 'quiz' };
   const userIsTeacher = isTeacher || profile?.is_teacher || false;
 
-  // PHÂN TÍCH THAM SỐ URL ĐỂ QUYẾT ĐỊNH MỞ GIAO DIỆN SOI BÀI LÀM CỦA HỌC SINH HOẶC KHUNG SOẠN ĐỀ
   const searchParams = new URLSearchParams(window.location.search);
   const isReviewMode = searchParams.get('review') === 'true' || searchParams.has('submissionId') || searchParams.has('studentId');
   const isExplicitStudentView = searchParams.get('student_view') === 'true';
 
-  // Nếu là Giáo viên và KHÔNG ở chế độ xem lại bài làm học sinh -> MẶC ĐỊNH MỞ NGAY KHUNG SOẠN ĐỀ (QUIZBUILDER)!
-  const showBuilderMode = userIsTeacher && !isReviewMode && !isExplicitStudentView;
+  const isIframeType = activeAct.type === 'iframe';
+  const isAudioRecordType = activeAct.type === 'audio_record';
+
+  const showBuilderMode = userIsTeacher && !isReviewMode && !isExplicitStudentView && !isIframeType && !isAudioRecordType;
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
@@ -79,39 +133,29 @@ export default function AssignmentView() {
             </button>
             <div>
               <span className="text-[10px] font-extrabold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-md">
-                {showBuilderMode ? 'TRÌNH SOẠN ĐỀ THI 20 DẠNG CÂU HỎI' : isReviewMode ? 'TRUY VẾT BÀI LÀM VÀ LỜI GIẢI HỌC SINH' : 'ĐỀ THI THỬ TRỰC TUYẾN'}
+                {isIframeType
+                  ? '🎮 GAME TƯƠNG TÁC E-LEARNING'
+                  : isAudioRecordType
+                  ? '🎙️ BÀI LUYỆN NÓI GHI ÂM'
+                  : showBuilderMode
+                  ? 'TRÌNH SOẠN ĐỀ THI 20 DẠNG CÂU HỎI'
+                  : isReviewMode
+                  ? 'TRUY VẾT BÀI LÀM VÀ LỜI GIẢI HỌC SINH'
+                  : 'ĐỀ THI THỬ TRỰC TUYẾN'}
               </span>
               <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
-                {(activeAct?.title || 'Bài Kiểm Tra / Thi Thử').replace('[WHITEBOARD]', '').trim()}
+                {(activeAct?.title || 'Bài Học').replace('[WHITEBOARD]', '').trim()}
               </h1>
             </div>
           </div>
-
-          {userIsTeacher && (
-            <div className="flex items-center space-x-2 self-end sm:self-center">
-              {showBuilderMode ? (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/assignment/${targetActivityId}?student_view=true`)}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition cursor-pointer"
-                >
-                  👁️ Xem Giao Diện Học Sinh
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/assignment/${targetActivityId}`)}
-                  className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-extrabold shadow-sm transition cursor-pointer"
-                >
-                  ✏️ Mở Khung Soạn Thảo Đề Thi
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* MỞ GIAO DIỆN CHUẨN XÁC THEO MỤC ĐÍCH */}
-        {showBuilderMode ? (
+        {/* MỞ GIAO DIỆN CHUẨN XÁC THEO LOẠI HOẠT ĐỘNG */}
+        {isIframeType ? (
+          <IframeGameView activity={activeAct} />
+        ) : isAudioRecordType ? (
+          <AudioRecordEngine activity={activeAct} />
+        ) : showBuilderMode ? (
           <QuizBuilder activity={activeAct} activityId={targetActivityId} />
         ) : (
           <QuizEngine activity={activeAct} activityId={targetActivityId} />
