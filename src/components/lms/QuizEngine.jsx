@@ -1220,12 +1220,59 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                     ]
                 ).map((cQ, cIdx) => {
                   const childKey = `${q.id}_c${cIdx}`;
-                  const selectedOptIndex = userAnswers[childKey];
                   const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
-                  const correctOptIndex = cOpts.findIndex((o) => o?.isCorrect);
-                  const isCorrect = submitted && selectedOptIndex === correctOptIndex;
-                  const isWrong = submitted && selectedOptIndex !== undefined && selectedOptIndex !== correctOptIndex;
-                  const correctText = cOpts.find((o) => o?.isCorrect)?.text || 'Đáp án đúng';
+
+                  // HÀM BẮT CHÍNH XÁC ĐÁP ÁN ĐÚNG CỦA CÂU HỎI
+                  const getCorrectOptionIndex = () => {
+                    if (!Array.isArray(cOpts) || cOpts.length === 0) return -1;
+                    const foundIdx = cOpts.findIndex(
+                      (o) => o?.isCorrect || o?.is_correct || o?.correct || o?.status === 'correct'
+                    );
+                    if (foundIdx !== -1) return foundIdx;
+                    const rawAns = cQ?.correct_answer || cQ?.answer || q?.content?.answer || q?.content?.correct_answer;
+                    if (rawAns !== undefined && rawAns !== null) {
+                      const strAns = String(rawAns).trim().toUpperCase();
+                      if (['A', 'B', 'C', 'D'].includes(strAns)) {
+                        return strAns.charCodeAt(0) - 65;
+                      }
+                      const idxByText = cOpts.findIndex((o) => {
+                        const t = typeof o === 'string' ? o : (o.text || o.label || '');
+                        return t.toLowerCase().includes(String(rawAns).toLowerCase());
+                      });
+                      if (idxByText !== -1) return idxByText;
+                    }
+                    return 0;
+                  };
+
+                  // HÀM BẮT CHÍNH XÁC VÀ LƯU VỊ TRÍ HỌC SINH ĐÃ CHỌN
+                  const getStudentSelectedIndex = () => {
+                    const userAns = userAnswers[childKey];
+                    if (userAns === undefined || userAns === null || userAns === '') return -1;
+                    if (typeof userAns === 'number') return userAns;
+                    if (typeof userAns === 'string') {
+                      const trimmed = userAns.trim();
+                      if (!isNaN(trimmed) && trimmed !== '') return Number(trimmed);
+                      const upper = trimmed.toUpperCase();
+                      if (['A', 'B', 'C', 'D'].includes(upper)) {
+                        return upper.charCodeAt(0) - 65;
+                      }
+                      const idxByText = cOpts.findIndex((o) => {
+                        const t = typeof o === 'string' ? o : (o.text || o.label || '');
+                        return t.toLowerCase().includes(trimmed.toLowerCase()) || trimmed.toLowerCase().includes(t.toLowerCase());
+                      });
+                      if (idxByText !== -1) return idxByText;
+                    }
+                    if (typeof userAns === 'object' && userAns.index !== undefined) {
+                      return Number(userAns.index);
+                    }
+                    return -1;
+                  };
+
+                  const correctOptIdx = getCorrectOptionIndex();
+                  const studentSelectedIdx = getStudentSelectedIndex();
+                  const isStudentCorrect = (studentSelectedIdx !== -1 && studentSelectedIdx === correctOptIdx);
+                  const isStudentWrong = (studentSelectedIdx !== -1 && studentSelectedIdx !== correctOptIdx);
+                  const correctText = cOpts[correctOptIdx]?.text || cOpts[correctOptIdx]?.label || 'Đáp án đúng';
 
                   const maxOptLen = Math.max(...cOpts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
 
@@ -1241,7 +1288,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                       key={cIdx}
                       className={`p-2.5 bg-white border rounded-xl space-y-1.5 transition ${
                         submitted
-                          ? isCorrect
+                          ? isStudentCorrect
                             ? 'border-emerald-400 bg-emerald-50/20'
                             : 'border-rose-400 bg-rose-50/20'
                           : 'border-slate-200'
@@ -1256,26 +1303,25 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch pt-0.5">
                         {cOpts.map((opt, oIdx) => {
                           const label = String.fromCharCode(65 + oIdx);
-                          const isSelected = selectedOptIndex !== undefined && selectedOptIndex !== null && (
-                            String(selectedOptIndex) === String(oIdx) ||
-                            String(selectedOptIndex).toLowerCase() === label.toLowerCase() ||
-                            (typeof selectedOptIndex === 'object' && String(selectedOptIndex?.index) === String(oIdx))
-                          );
-                          const isThisCorrect = Boolean(opt?.isCorrect);
+                          const isSelected = (studentSelectedIdx === oIdx);
+                          const isThisCorrectOpt = (correctOptIdx === oIdx);
 
                           let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
                           let resultBadge = null;
 
                           if (submitted) {
-                            if (isSelected && isThisCorrect) {
+                            if (isSelected && isThisCorrectOpt) {
+                              // HỌC SINH CHỌN ĐÚNG
                               btnStyle = 'bg-emerald-600 text-white font-black border-emerald-600 shadow-md ring-2 ring-emerald-400';
                               resultBadge = <span className="text-[9px] font-black bg-emerald-800 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">✓ Đúng</span>;
-                            } else if (isSelected && !isThisCorrect) {
+                            } else if (isSelected && !isThisCorrectOpt) {
+                              // HỌC SINH CHỌN SAI -> HIGHLIGHT MÀU ĐỎ GẠCH NGANG CÂU SAI
                               btnStyle = 'bg-rose-600 text-white font-black border-rose-600 line-through shadow-md ring-2 ring-rose-400';
-                              resultBadge = <span className="text-[9px] font-black bg-rose-950 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">✕ Bạn chọn</span>;
-                            } else if (isThisCorrect) {
-                              btnStyle = 'bg-emerald-100 border-2 border-emerald-500 text-emerald-950 font-black shadow-xs';
-                              resultBadge = <span className="text-[9px] font-black bg-emerald-700 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">★ Đáp án đúng</span>;
+                              resultBadge = <span className="text-[9px] font-black bg-rose-950 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">✕ HS Chọn (Sai)</span>;
+                            } else if (isThisCorrectOpt && isStudentWrong) {
+                              // HIGHLIGHT ĐÁP ÁN ĐÚNG BẰNG MÀU ĐỎ CHÓI LỌI KHI HỌC SINH LÀM SAI
+                              btnStyle = 'bg-rose-50 border-2 border-rose-500 text-rose-950 font-black shadow-xs';
+                              resultBadge = <span className="text-[9px] font-black bg-rose-600 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">★ Đáp án đúng</span>;
                             }
                           } else if (isSelected) {
                             btnStyle = 'bg-emerald-600 text-white font-bold border-transparent shadow-xs';
@@ -1294,7 +1340,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                 }`}>
                                   {label}
                                 </span>
-                                <span className="leading-snug truncate">{opt.text}</span>
+                                <span className="leading-snug truncate">{typeof opt === 'string' ? opt : (opt.text || opt.label || '')}</span>
                               </div>
                               {resultBadge}
                             </button>
@@ -1306,7 +1352,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                         cQ.explanation || (cQ.question ? null : q.content?.explanation),
                         correctText,
                         cQ,
-                        cOpts[selectedOptIndex]?.text
+                        cOpts[studentSelectedIdx]?.text || cOpts[studentSelectedIdx]?.label
                       )}
                     </div>
                   );
