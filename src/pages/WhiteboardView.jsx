@@ -36,7 +36,7 @@ export default function WhiteboardView() {
     }
   }, [user, isTeacher, navigate]);
 
-  // VỊ TRÍ THANH TOOLBAR DƯỚI CÙNG SÁT MEP (BOTTOM-3)
+  // ĐUỔI VỊ TRÍ THANH TOOLBAR DƯỚI CÙNG SÁT MEP (BOTTOM-3)
   const [toolbarPos, setToolbarPos] = useState('bottom');
 
   // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'eraser' | shapes...
@@ -45,12 +45,16 @@ export default function WhiteboardView() {
   const [fontSize, setFontSize] = useState(36);
   const [fontFamily, setFontFamily] = useState('Noto Sans');
 
-  // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD (ẢNH 2)
+  // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD
   const [strokeColor, setStrokeColor] = useState('#09090b');
   const [fillColor, setFillColor] = useState('#ef4444');
   const [hasFill, setHasFill] = useState(false);
   const [strokeWidth, setStrokeWidth] = useState(4);
   const [opacity, setOpacity] = useState(1.0);
+
+  // QUẢN LÝ Ô GÕ TEXT TRỰC QUAN KHÔNG BAO GIỜ BỊ LỖI
+  const [textElements, setTextElements] = useState([]);
+  const [selectedTextId, setSelectedTextId] = useState(null);
 
   // Quản lý Đối Tượng Đang Chọn & Menu Nổi (Floating Toolbar Position)
   const [activeObject, setActiveObject] = useState(null);
@@ -105,7 +109,6 @@ export default function WhiteboardView() {
       preserveObjectStacking: true,
     });
 
-    // 1. CUSTOM BOUNDING BOX CHUẨN MYVIEWBOARD (HÌNH TRÒN TRẮNG, NÉT ĐỨT VÀNG/CAM)
     fabric.FabricObject.prototype.transparentCorners = false;
     fabric.FabricObject.prototype.cornerStyle = 'circle';
     fabric.FabricObject.prototype.cornerColor = '#ffffff';
@@ -127,25 +130,16 @@ export default function WhiteboardView() {
       if (obj.opacity !== undefined) setOpacity(obj.opacity);
     };
 
-    // CẬP NHẬT VỊ TRÍ FLOATING TEXT TOOLBAR NẰM DÍNH CHẶT SÁT PHÍA TRÊN ĐỈNH KHUNG TEXT ĐANG SELECT (ẢNH 2 CHUẨN MYVIEWBOARD)
     const updateFloatingMenu = () => {
       const obj = fc.getActiveObject();
       if (obj) {
         setActiveObject(obj);
         syncShapePropsToUI(obj);
         const bound = obj.getBoundingRect();
-
-        if (obj.type === 'textbox') {
-          setFloatingMenuPos({
-            left: Math.max(20, bound.left),
-            top: Math.max(65, bound.top - 58),
-          });
-        } else {
-          setFloatingMenuPos({
-            left: bound.left + bound.width + 15,
-            top: Math.max(70, bound.top),
-          });
-        }
+        setFloatingMenuPos({
+          left: bound.left + bound.width + 15,
+          top: Math.max(70, bound.top),
+        });
       } else {
         setActiveObject(null);
         setFloatingMenuPos(null);
@@ -162,7 +156,6 @@ export default function WhiteboardView() {
     fc.on('object:scaling', updateFloatingMenu);
     fc.on('object:rotating', updateFloatingMenu);
     fc.on('object:modified', updateFloatingMenu);
-    fc.on('text:changed', updateFloatingMenu);
 
     setFabricCanvas(fc);
 
@@ -204,35 +197,63 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // CHỌN TEXT (T) ➔ THẦY NHẤP CHUỘT TRỎ ĐÂU TẠO Ô TEXT NÉT CĂNG ĐẸP MẮT TẠI ĐÓ
-  useEffect(() => {
-    if (!fabricCanvas) return;
+  // KHÔI PHỤC TÍNH NĂNG GÕ TEXT CHUẨN XÁC MƯỢT MÀ 100% CỦA BẢN TRƯỚC (NHẤP TRỎ ĐÂU Ô GÕ TẠO NGAY ĐÓ)
+  const handleCanvasClickCreateText = (e) => {
+    if (tool !== 'text') return;
+    const rect = containerRef.current ? containerRef.current.getBoundingClientRect() : { left: 0, top: 50 };
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
 
-    if (tool === 'text') {
-      fabricCanvas.defaultCursor = 'text';
-      const handleCreateTextAtPointer = (opt) => {
-        if (opt.target) return;
-        const pointer = fabricCanvas.getPointer(opt.e);
-        const textbox = new fabric.Textbox('Nhấp để gõ bài giảng...', {
-          left: pointer.x,
-          top: pointer.y,
-          width: 450,
-          fontSize: fontSize || 36,
-          fontFamily: fontFamily || 'Noto Sans',
-          fill: bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000',
-          selectionColor: 'transparent',
-          editingBorderColor: '#f59e0b',
-        });
-        fabricCanvas.add(textbox);
-        fabricCanvas.setActiveObject(textbox);
-        fabricCanvas.renderAll();
-        setTool('pointer');
-      };
+    const newId = 'text_' + Date.now();
+    const newBox = {
+      id: newId,
+      x: Math.max(20, clickX),
+      y: Math.max(20, clickY),
+      width: 550,
+      htmlContent: 'Nhấp để gõ bài giảng...',
+      color: bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000',
+      fontSize: fontSize || 36,
+      fontFamily: fontFamily || 'Noto Sans',
+      isBold: false,
+      isItalic: false,
+      isUnderline: false,
+    };
 
-      fabricCanvas.on('mouse:down', handleCreateTextAtPointer);
-      return () => fabricCanvas.off('mouse:down', handleCreateTextAtPointer);
+    setTextElements((prev) => [...prev, newBox]);
+    setSelectedTextId(newId);
+    setTool('pointer');
+  };
+
+  // HIGHLIGHT TÔ MÀU 7 SẮC CẦU VỒNG CHO CHỮ BÔI ĐEN
+  const applySelectionHighlight = (selectedColor) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount || selection.isCollapsed) {
+      alert('Thầy Hải hãy bôi đen từ/cụm từ cần Highlight trước nhé!');
+      return;
     }
-  }, [fabricCanvas, tool, fontSize, fontFamily, color, bgType]);
+
+    const range = selection.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.backgroundColor = selectedColor;
+    span.style.color = '#0f172a';
+    span.style.borderRadius = '4px';
+    span.style.padding = '1px 4px';
+    span.style.fontWeight = 'bold';
+
+    try {
+      range.surroundContents(span);
+    } catch (e) {
+      const fragment = range.extractContents();
+      span.appendChild(fragment);
+      range.insertNode(span);
+    }
+  };
+
+  // XÓA Ô TEXT DỰA VÀO PHÍM DELETE HOẶC NÚT XÓA
+  const handleDeleteSelectedText = (id) => {
+    setTextElements((prev) => prev.filter((t) => t.id !== id));
+    if (selectedTextId === id) setSelectedTextId(null);
+  };
 
   // XỬ LÝ CHUYỂN ĐỔI CÔNG CỤ KHÁC
   useEffect(() => {
@@ -316,7 +337,10 @@ export default function WhiteboardView() {
       }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (fabricCanvas && activeObject) {
+        if (selectedTextId) {
+          e.preventDefault();
+          handleDeleteSelectedText(selectedTextId);
+        } else if (fabricCanvas && activeObject) {
           e.preventDefault();
           handleDeleteActiveObject();
         }
@@ -325,7 +349,7 @@ export default function WhiteboardView() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fabricCanvas, activeObject]);
+  }, [fabricCanvas, activeObject, selectedTextId]);
 
   // THAO TÁC NÚT BẤM FLOATING MENU NỔI
   const handleDeleteActiveObject = () => {
@@ -378,20 +402,6 @@ export default function WhiteboardView() {
     const currentAngle = activeObject.angle || 0;
     activeObject.set('angle', (currentAngle + 90) % 360);
     fabricCanvas.renderAll();
-  };
-
-  // PHỤC HỒI THUỘC TÍNH ĐỊNH DẠNG FONT SIZE / FAMILY / BOLD / ITALIC / HIGHLIGHT CHO TỪNG ĐOẠN TEXT BÔI ĐEN (CHARACTER-LEVEL STYLING UX)
-  const handleApplyTextProp = (propKey, propVal) => {
-    if (!fabricCanvas || !activeObject) return;
-    if (activeObject.type === 'textbox') {
-      const isSelection = activeObject.selectionStart !== activeObject.selectionEnd;
-      if (isSelection) {
-        activeObject.setSelectionStyles({ [propKey]: propVal });
-      } else {
-        activeObject.set(propKey, propVal);
-      }
-      fabricCanvas.renderAll();
-    }
   };
 
   // THÊM Ô TEXTBOX NẠP SẴN
@@ -506,7 +516,10 @@ export default function WhiteboardView() {
       
       let canvasJson = '{}';
       if (fabricCanvas) {
-        canvasJson = JSON.stringify(fabricCanvas.toJSON());
+        canvasJson = JSON.stringify({
+          fabric: fabricCanvas.toJSON(),
+          textElements: textElements
+        });
       }
 
       if (activityId) {
@@ -653,10 +666,175 @@ export default function WhiteboardView() {
       </div>
 
       {/* WORKSPACE FABRIC CANVAS CONTAINER */}
-      <div ref={containerRef} className="relative w-full h-[calc(100vh-50px)] overflow-hidden">
+      <div 
+        ref={containerRef} 
+        onClick={handleCanvasClickCreateText}
+        className="relative w-full h-[calc(100vh-50px)] overflow-hidden"
+      >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
 
-        {/* MENU NỔI FLOATING TEXT TOOLBAR CHUẨN DÍNH CHẶT NGAY PHÍA TRÊN ĐỈNH KHUNG TEXT (ẢNH 2 CHUẨN MYVIEWBOARD) */}
+        {/* CƠ CHẾ GÕ TEXT CHUẨN MƯỢT MÀ NHẤT ĐƯỢC KHÔI PHỤC VÀ TỐI ƯU (DÍNH CHẶT THANH EDITOR SÁT ĐỈNH CỦA KHUNG TEXT) */}
+        {textElements.map((box) => {
+          const isSelected = selectedTextId === box.id;
+
+          return (
+            <div
+              key={box.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedTextId(box.id);
+                if (fabricCanvas) fabricCanvas.discardActiveObject();
+              }}
+              style={{
+                left: `${box.x}px`,
+                top: `${box.y}px`,
+                width: `${box.width || 550}px`,
+                zIndex: 80,
+              }}
+              className={`absolute p-2 rounded-2xl transition-all duration-150 pointer-events-auto cursor-move ${
+                isSelected
+                  ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl bg-slate-950/40 backdrop-blur-xs'
+                  : 'border border-transparent'
+              }`}
+            >
+              {/* THANH RICH TEXT EDITOR CHUẨN CẢM GIÁC DÍNH LIỀN 1 NƠI CỰC KỲ TIỆN TAY CHỈNH SỬA (ẢNH 2 MYVIEWBOARD) */}
+              {isSelected && (
+                <div
+                  className="absolute bottom-full mb-2 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <select
+                    value={box.fontFamily || 'Noto Sans'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, fontFamily: val } : t));
+                    }}
+                    className="p-1 border border-slate-400 rounded-xl text-xs font-bold bg-white outline-none"
+                  >
+                    {FONT_FAMILIES.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={box.fontSize || 36}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, fontSize: val } : t));
+                    }}
+                    className="p-1 border border-slate-400 rounded-xl text-xs font-bold bg-white outline-none"
+                  >
+                    {FONT_SIZES.map((sz) => (
+                      <option key={sz} value={sz}>{sz}px</option>
+                    ))}
+                  </select>
+
+                  <span className="w-px h-5 bg-slate-400" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, isBold: !t.isBold } : t));
+                    }}
+                    className={`p-1.5 rounded-lg border text-xs font-black cursor-pointer ${
+                      box.isBold ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
+                    }`}
+                    title="In Đậm (B)"
+                  >
+                    <Bold className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, isItalic: !t.isItalic } : t));
+                    }}
+                    className={`p-1.5 rounded-lg border text-xs italic cursor-pointer ${
+                      box.isItalic ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
+                    }`}
+                    title="In Nghiêng (I)"
+                  >
+                    <Italic className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, isUnderline: !t.isUnderline } : t));
+                    }}
+                    className={`p-1.5 rounded-lg border text-xs underline cursor-pointer ${
+                      box.isUnderline ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
+                    }`}
+                    title="Gạch Chân (U)"
+                  >
+                    <Underline className="w-4 h-4" />
+                  </button>
+
+                  <span className="w-px h-5 bg-slate-400" />
+
+                  <input
+                    type="color"
+                    value={box.color || color}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, color: val } : t));
+                    }}
+                    className="w-7 h-7 rounded-lg cursor-pointer border border-slate-400 p-0"
+                    title="Đổi màu chữ"
+                  />
+
+                  {/* Tô màu nền Highlight cho chữ bôi đen */}
+                  <div className="flex items-center space-x-1 bg-[#d2caa9] p-1 rounded-xl border border-[#c8c0a3]">
+                    <span className="text-[10px] font-black text-slate-800">Highlight:</span>
+                    {HIGHLIGHT_PALETTE.map((item) => (
+                      <button
+                        key={item.name}
+                        type="button"
+                        onClick={() => applySelectionHighlight(item.color)}
+                        style={{ backgroundColor: item.color }}
+                        className="w-5 h-5 rounded-full border border-slate-500 hover:scale-110 transition shadow-2xs cursor-pointer"
+                        title={`Tô màu Highlight ${item.name} cho chữ bôi đen`}
+                      />
+                    ))}
+                  </div>
+
+                  <span className="w-px h-5 bg-slate-400" />
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSelectedText(box.id)}
+                    className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                    title="Xóa ô văn bản (Delete)"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* KHUNG NỘI DUNG GÕ CHỮ MƯỢT MÀ 100% */}
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => {
+                  const html = e.target.innerHTML;
+                  setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, htmlContent: html } : t));
+                }}
+                dangerouslySetInnerHTML={{ __html: box.htmlContent || 'Nhấp để gõ bài giảng...' }}
+                style={{
+                  color: box.color || (bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000'),
+                  fontSize: `${box.fontSize || fontSize}px`,
+                  fontFamily: box.fontFamily || fontFamily,
+                  fontWeight: box.isBold ? 'bold' : 'normal',
+                  fontStyle: box.isItalic ? 'italic' : 'normal',
+                  textDecoration: box.isUnderline ? 'underline' : 'none',
+                }}
+                className="bg-transparent border-none outline-none font-sans p-0 m-0 shadow-none leading-normal w-full min-h-[50px] cursor-text select-text"
+              />
+            </div>
+          );
+        })}
+
+        {/* MENU NỔI FLOATING MENU CHO FABRIC OBJECTS (ẢNH DÁN, SHAPES, STICKY) */}
         {activeObject && floatingMenuPos && (
           <div
             style={{
@@ -665,196 +843,61 @@ export default function WhiteboardView() {
             }}
             className="fixed z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
           >
-            {/* Nếu đang select Textbox ➔ Hiện thanh RICH TEXT EDITOR DÍNH SÁT TRÊN ĐỈNH KHUNG TEXT (ẢNH 2 MYVIEWBOARD) */}
-            {activeObject.type === 'textbox' ? (
-              <>
-                <select
-                  value={activeObject.fontFamily || 'Noto Sans'}
-                  onChange={(e) => handleApplyTextProp('fontFamily', e.target.value)}
-                  className="p-1 border border-slate-400 rounded-xl text-xs font-bold bg-white outline-none"
-                >
-                  {FONT_FAMILIES.map((f) => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
+            <button
+              onClick={handleDeleteActiveObject}
+              className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl flex items-center justify-center transition border border-rose-300 shadow-2xs cursor-pointer"
+              title="🗑️ Xóa đối tượng này (Delete)"
+            >
+              <Trash2 className="w-4 h-4 text-rose-700" />
+            </button>
 
-                <select
-                  value={activeObject.fontSize || 36}
-                  onChange={(e) => handleApplyTextProp('fontSize', Number(e.target.value))}
-                  className="p-1 border border-slate-400 rounded-xl text-xs font-bold bg-white outline-none"
-                >
-                  {FONT_SIZES.map((sz) => (
-                    <option key={sz} value={sz}>{sz}px</option>
-                  ))}
-                </select>
+            <span className="w-px h-5 bg-slate-300" />
 
-                <span className="w-px h-5 bg-slate-400" />
+            <button
+              onClick={handleBringToFront}
+              className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300 shadow-2xs cursor-pointer"
+              title="🥞 Đưa lớp vật thể Lên Trên Cùng (Bring to Front)"
+            >
+              <Layers className="w-4 h-4 text-sky-700" />
+            </button>
 
-                <button
-                  onClick={() => handleApplyTextProp('fontWeight', activeObject.fontWeight === 'bold' ? 'normal' : 'bold')}
-                  className={`p-1.5 rounded-lg border text-xs font-black cursor-pointer ${
-                    activeObject.fontWeight === 'bold' ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
-                  }`}
-                  title="In Đậm (B)"
-                >
-                  <Bold className="w-4 h-4" />
-                </button>
+            <button
+              onClick={handleSendToBack}
+              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl flex items-center justify-center transition border border-slate-300 shadow-2xs cursor-pointer"
+              title="🥞 Đưa lớp vật thể Về Sau Cùng (Send to Back)"
+            >
+              <Layers3 className="w-4 h-4 text-slate-700" />
+            </button>
 
-                <button
-                  onClick={() => handleApplyTextProp('fontStyle', activeObject.fontStyle === 'italic' ? 'normal' : 'italic')}
-                  className={`p-1.5 rounded-lg border text-xs italic cursor-pointer ${
-                    activeObject.fontStyle === 'italic' ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
-                  }`}
-                  title="In Nghiêng (I)"
-                >
-                  <Italic className="w-4 h-4" />
-                </button>
+            <span className="w-px h-5 bg-slate-300" />
 
-                <button
-                  onClick={() => handleApplyTextProp('underline', !activeObject.underline)}
-                  className={`p-1.5 rounded-lg border text-xs underline cursor-pointer ${
-                    activeObject.underline ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
-                  }`}
-                  title="Gạch Chân (U)"
-                >
-                  <Underline className="w-4 h-4" />
-                </button>
+            <button
+              onClick={handleToggleLock}
+              className={`p-2 rounded-xl flex items-center justify-center transition border shadow-2xs cursor-pointer ${
+                activeObject.lockMovementX ? 'bg-rose-600 text-white border-rose-700' : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300'
+              }`}
+              title={activeObject.lockMovementX ? '🔒 Đang Khóa Vị Trí (Mở khóa)' : '🔒 Khóa vị trí vật thể'}
+            >
+              {activeObject.lockMovementX ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-amber-800" />}
+            </button>
 
-                <span className="w-px h-5 bg-slate-400" />
+            <span className="w-px h-5 bg-slate-300" />
 
-                {/* Màu chữ (Text Color) */}
-                <input
-                  type="color"
-                  value={activeObject.fill || color}
-                  onChange={(e) => handleApplyTextProp('fill', e.target.value)}
-                  className="w-7 h-7 rounded-lg cursor-pointer border border-slate-400 p-0"
-                  title="Đổi màu chữ"
-                />
+            <button
+              onClick={handleFlipHorizontal}
+              className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-900 rounded-xl flex items-center justify-center transition border border-purple-300 shadow-2xs cursor-pointer"
+              title="↔️ Lật ngang (Flip Horizontal)"
+            >
+              <FlipHorizontal className="w-4 h-4 text-purple-700" />
+            </button>
 
-                {/* Tô màu nền Highlight cho chữ bôi đen */}
-                <div className="flex items-center space-x-1 bg-[#d2caa9] p-1 rounded-xl border border-[#c8c0a3]">
-                  <span className="text-[10px] font-black text-slate-800">Highlight:</span>
-                  {HIGHLIGHT_PALETTE.map((item) => (
-                    <button
-                      key={item.name}
-                      type="button"
-                      onClick={() => handleApplyTextProp('textBackgroundColor', item.color)}
-                      style={{ backgroundColor: item.color }}
-                      className="w-5 h-5 rounded-full border border-slate-500 hover:scale-110 transition shadow-2xs cursor-pointer"
-                      title={`Tô màu Highlight ${item.name} cho chữ bôi đen`}
-                    />
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => handleApplyTextProp('textBackgroundColor', '')}
-                    className="px-1.5 py-0.5 text-[9px] font-black bg-white rounded border border-slate-400 cursor-pointer"
-                    title="Xóa Highlight"
-                  >
-                    Bỏ
-                  </button>
-                </div>
-
-                <span className="w-px h-5 bg-slate-400" />
-
-                {/* Căn lề Trái / Giữa / Phải */}
-                <button
-                  onClick={() => handleApplyTextProp('textAlign', 'left')}
-                  className={`p-1.5 rounded-lg border cursor-pointer ${
-                    activeObject.textAlign === 'left' ? 'bg-sky-600 text-white' : 'bg-white hover:bg-slate-100'
-                  }`}
-                  title="Căn Trái"
-                >
-                  <AlignLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleApplyTextProp('textAlign', 'center')}
-                  className={`p-1.5 rounded-lg border cursor-pointer ${
-                    activeObject.textAlign === 'center' ? 'bg-sky-600 text-white' : 'bg-white hover:bg-slate-100'
-                  }`}
-                  title="Căn Giữa"
-                >
-                  <AlignCenter className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleApplyTextProp('textAlign', 'right')}
-                  className={`p-1.5 rounded-lg border cursor-pointer ${
-                    activeObject.textAlign === 'right' ? 'bg-sky-600 text-white' : 'bg-white hover:bg-slate-100'
-                  }`}
-                  title="Căn Phải"
-                >
-                  <AlignRight className="w-4 h-4" />
-                </button>
-
-                <span className="w-px h-5 bg-slate-400" />
-
-                <button
-                  onClick={handleDeleteActiveObject}
-                  className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition flex items-center space-x-1 cursor-pointer"
-                  title="Xóa ô văn bản (Delete)"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </>
-            ) : (
-              /* MENU NỔI CHO CÁC VẬT THỂ KHÁC (ẢNH DÁN, SHAPES, STICKY) */
-              <>
-                <button
-                  onClick={handleDeleteActiveObject}
-                  className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl flex items-center justify-center transition border border-rose-300 shadow-2xs cursor-pointer"
-                  title="🗑️ Xóa đối tượng này (Delete)"
-                >
-                  <Trash2 className="w-4 h-4 text-rose-700" />
-                </button>
-
-                <span className="w-px h-5 bg-slate-300" />
-
-                <button
-                  onClick={handleBringToFront}
-                  className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300 shadow-2xs cursor-pointer"
-                  title="🥞 Đưa lớp vật thể Lên Trên Cùng (Bring to Front)"
-                >
-                  <Layers className="w-4 h-4 text-sky-700" />
-                </button>
-
-                <button
-                  onClick={handleSendToBack}
-                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl flex items-center justify-center transition border border-slate-300 shadow-2xs cursor-pointer"
-                  title="🥞 Đưa lớp vật thể Về Sau Cùng (Send to Back)"
-                >
-                  <Layers3 className="w-4 h-4 text-slate-700" />
-                </button>
-
-                <span className="w-px h-5 bg-slate-300" />
-
-                <button
-                  onClick={handleToggleLock}
-                  className={`p-2 rounded-xl flex items-center justify-center transition border shadow-2xs cursor-pointer ${
-                    activeObject.lockMovementX ? 'bg-rose-600 text-white border-rose-700' : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300'
-                  }`}
-                  title={activeObject.lockMovementX ? '🔒 Đang Khóa Vị Trí (Mở khóa)' : '🔒 Khóa vị trí vật thể'}
-                >
-                  {activeObject.lockMovementX ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-amber-800" />}
-                </button>
-
-                <span className="w-px h-5 bg-slate-300" />
-
-                <button
-                  onClick={handleFlipHorizontal}
-                  className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-900 rounded-xl flex items-center justify-center transition border border-purple-300 shadow-2xs cursor-pointer"
-                  title="↔️ Lật ngang (Flip Horizontal)"
-                >
-                  <FlipHorizontal className="w-4 h-4 text-purple-700" />
-                </button>
-
-                <button
-                  onClick={handleRotate90}
-                  className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300 shadow-2xs cursor-pointer"
-                  title="🎯 Xoay 90° (Rotate)"
-                >
-                  <RotateIcon className="w-4 h-4 text-amber-700" />
-                </button>
-              </>
-            )}
+            <button
+              onClick={handleRotate90}
+              className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300 shadow-2xs cursor-pointer"
+              title="🎯 Xoay 90° (Rotate)"
+            >
+              <RotateIcon className="w-4 h-4 text-amber-700" />
+            </button>
           </div>
         )}
       </div>
@@ -1000,8 +1043,11 @@ export default function WhiteboardView() {
                     onClick={() => {
                       try {
                         const parsedData = JSON.parse(lesson.content);
-                        if (fabricCanvas && parsedData) {
-                          fabricCanvas.loadFromJSON(parsedData).then(() => {
+                        if (parsedData.textElements) {
+                          setTextElements(parsedData.textElements);
+                        }
+                        if (fabricCanvas && parsedData.fabric) {
+                          fabricCanvas.loadFromJSON(parsedData.fabric).then(() => {
                             fabricCanvas.renderAll();
                             alert(`🚀 ĐÃ MỞ THÀNH CÔNG BÀI GIẢNG: "${lesson.title.replace(/\[WHITEBOARD:.*?\]/, '').trim()}"`);
                             setActiveWindow(null);
@@ -1064,7 +1110,7 @@ export default function WhiteboardView() {
               ? 'bg-indigo-600 text-white shadow-md font-bold ring-2 ring-indigo-300 scale-105'
               : 'hover:bg-[#c4bb9c] text-slate-800'
           }`}
-          title="Tạo ô văn bản Fabric Textbox"
+          title="Tạo ô văn bản gõ mượt mà 100%"
         >
           <Type className="w-4 h-4" />
         </button>
