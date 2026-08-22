@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { BookOpen, LogOut, User, ChevronDown, Calendar, Folder, FileText, Settings, Award, Menu } from 'lucide-react';
 import UserManagementModal from '../lms/UserManagementModal';
+import ForcePasswordChangeModal from '../lms/ForcePasswordChangeModal';
 import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
@@ -11,7 +12,18 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isForcePasswordChangeOpen, setIsForcePasswordChangeOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (user && !isTeacher) {
+      const changedUsers = JSON.parse(localStorage.getItem('lms_changed_passwords_v2') || '{}');
+      const uKey = profile?.id || profile?.username || user.email;
+      if (uKey && !changedUsers[uKey]) {
+        setIsForcePasswordChangeOpen(true);
+      }
+    }
+  }, [user, profile, isTeacher]);
 
   const handleSignOut = async () => {
     setIsUserDropdownOpen(false);
@@ -185,6 +197,13 @@ export default function Navbar() {
       <UserManagementModal
         isOpen={isUserMgmtOpen}
         onClose={() => setIsUserMgmtOpen(false)}
+      />
+
+      {/* MODAL BẮT BUỘC ĐỔI MẬT KHẨU LẦN ĐẦU CHO HỌC SINH */}
+      <ForcePasswordChangeModal
+        isOpen={isForcePasswordChangeOpen}
+        user={profile || { full_name: displayName, username: user?.email }}
+        onPasswordChanged={() => setIsForcePasswordChangeOpen(false)}
       />
     </nav>
   );
