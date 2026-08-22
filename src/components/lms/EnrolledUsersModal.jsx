@@ -9,6 +9,7 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
   const [users, setUsers] = useState([]);
   const [allStudentsList, setAllStudentsList] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [selectedEnrolledUserIds, setSelectedEnrolledUserIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEnrolPopupOpen, setIsEnrolPopupOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -113,8 +114,6 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     }
   }, [isOpen, courseId]);
 
-  if (!isOpen) return null;
-
   // GHI DANH HÀNG LOẠT HỌC SINH ĐƯỢC CHỌN VÀO KHÓA HỌC (ENROL USERS)
   const handleEnrolSelectedUsers = async () => {
     if (selectedUserIds.length === 0) {
@@ -188,6 +187,12 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     );
   };
 
+  const toggleSelectEnrolledUser = (uid) => {
+    setSelectedEnrolledUserIds((prev) =>
+      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
+    );
+  };
+
   const alphabet = ['All', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
   const handleEnrolByClass = async () => {
@@ -238,14 +243,6 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     return matchesSearch && matchesLetter && matchesClass;
   });
 
-  const [selectedEnrolledUserIds, setSelectedEnrolledUserIds] = useState([]);
-
-  const toggleSelectEnrolledUser = (uid) => {
-    setSelectedEnrolledUserIds((prev) =>
-      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
-    );
-  };
-
   const handleSelectAllEnrolled = () => {
     if (selectedEnrolledUserIds.length === filteredEnrolledUsers.length) {
       setSelectedEnrolledUserIds([]);
@@ -273,6 +270,9 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
 
   const enrolledUserIdsSet = new Set((users || []).map((u) => u?.user_id).filter(Boolean));
   const availableStudentsToEnrol = (allStudentsList || []).filter((s) => s && !enrolledUserIdsSet.has(s.id));
+
+  // CHỈ CHECK isOpen TẠI ĐÂY (SANH SAU KHI ĐÃ KHAI BÁO TẤT CẢ HOOKS HOÀN HẢO)
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in font-sans select-none">
