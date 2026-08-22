@@ -56,9 +56,8 @@ export default function WhiteboardView() {
   // Quản lý Text / Sticky Objects & Selected State
   const [selectedTextId, setSelectedTextId] = useState(null);
 
-  // Quản lý Ảnh chụp từ Snipping Tool & Shapes & HOVER IN / OUT THÔNG MINH
+  // Quản lý Ảnh chụp từ Snipping Tool & Shapes & NHẤP CHỌN HIỆN / THẢ OUT TỰ ẨN SẠCH SẼ
   const [selectedObjId, setSelectedObjId] = useState(null);
-  const [hoveredObjId, setHoveredObjId] = useState(null); // RÊ CHUỘT VÀO NÚT TỰ HIỆN / RÊ RA NÚT TỰ ẨN
 
   const [draggingObjId, setDraggingObjId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -66,6 +65,10 @@ export default function WhiteboardView() {
   // THU PHÓNG BẰNG GÓC KÉO RESIZE & XOAY VẬT THỂ
   const [resizingObjId, setResizingObjId] = useState(null);
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, w: 0, h: 0 });
+
+  // SELECT TOOL KHOANH VÙNG CHỌN TỰ ĐỘNG (RUBBERBAND SELECTION BOX)
+  const [isSelectingArea, setIsSelectingArea] = useState(false);
+  const [selectionBox, setSelectionBox] = useState(null); // { startX, startY, currentX, currentY }
 
   // PAN CANVAS VÔ HẠN BẰNG BÀN TAY
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -92,13 +95,7 @@ export default function WhiteboardView() {
 
   // VÒNG QUAY HỌC SINH
   const [rawStudentInput, setRawStudentInput] = useState(
-    "Nguyễn Minh Hoàng\
-Đinh Thành Nhơn\
-Đoàn Ngọc Khánh Dương\
-Hà Nguyễn Minh Thư\
-Đinh Trần Thảo Ngân\
-Trần Quốc Bảo\
-Lê Thị Mai Anh"
+    "Nguyễn Minh Hoàng\nĐinh Thành Nhơn\nĐoàn Ngọc Khánh Dương\nHà Nguyễn Minh Thư\nĐinh Trần Thảo Ngân\nTrần Quốc Bảo\nLê Thị Mai Anh"
   );
   const [calledStudents, setCalledStudents] = useState([]);
   const [removeCalled, setRemoveCalled] = useState(true);
@@ -156,7 +153,7 @@ Lê Thị Mai Anh"
     return 'crosshair';
   };
 
-  const isDrawingToolActive = tool !== 'pointer' && tool !== 'hand' && tool !== 'text' && tool !== 'sticky';
+  const isDrawingToolActive = (tool !== 'pointer' && tool !== 'hand' && tool !== 'text' && tool !== 'sticky') && isDrawing;
 
   // XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
   const handleDeleteSelectedElement = () => {
@@ -490,6 +487,15 @@ Lê Thị Mai Anh"
       objectElements: JSON.parse(JSON.stringify(curPage.objectElements || [])),
     };
 
+    setPages((prev) => {
+      const copy = [...prev];
+      copy[currentPageIndex] = {
+        ...copy[currentPageIndex],
+        canvasData: dataUrl,
+      };
+      return copy;
+    });
+
     const newStack = historyStack.slice(0, historyIndex + 1);
     setHistoryStack([...newStack, snapshot]);
     setHistoryIndex(newStack.length);
@@ -700,7 +706,7 @@ Lê Thị Mai Anh"
     }
   };
 
-  // KÉO RÊ VẬT THỂ BẰNG CON TRỎ HOẶC MOVER
+  // KÉO RÊ VẬT THỂ BẰNG CON TRỎ HOẶC TRỰC TIẾP
   const handleStartDragElement = (id, isImage, e) => {
     e.stopPropagation();
 
@@ -728,11 +734,18 @@ Lê Thị Mai Anh"
     }
   };
 
-  // CÔNG CỤ BÀN TAY PAN CANVAS TRƯỢT NỘI DUNG SANG TRÁI / PHẢI HOẶC TRÊN / DƯỚI
+  // CÔNG CỤ BÀN TAY PAN CANVAS VÀ SELECT TOOL KHOANH VÙNG VẬT THỂ
   const handleStartPan = (e) => {
     if (tool === 'hand') {
       setIsPanning(true);
       setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    } else if (tool === 'pointer') {
+      // BẮT ĐẦU KHOANH VÙNG CHỌN (SELECT TOOL LASSO RUBBERBAND)
+      const rect = containerRef.current ? containerRef.current.getBoundingClientRect() : { left: 0, top: 50 };
+      const clickX = e.clientX - rect.left - panOffset.x;
+      const clickY = e.clientY - rect.top - panOffset.y;
+      setIsSelectingArea(true);
+      setSelectionBox({ startX: clickX, startY: clickY, currentX: clickX, currentY: clickY });
     } else {
       startDrawing(e);
     }
@@ -743,6 +756,11 @@ Lê Thị Mai Anh"
       const newOffsetX = e.clientX - panStart.x;
       const newOffsetY = e.clientY - panStart.y;
       setPanOffset({ x: newOffsetX, y: newOffsetY });
+    } else if (isSelectingArea && tool === 'pointer' && selectionBox) {
+      const rect = containerRef.current ? containerRef.current.getBoundingClientRect() : { left: 0, top: 50 };
+      const curX = e.clientX - rect.left - panOffset.x;
+      const curY = e.clientY - rect.top - panOffset.y;
+      setSelectionBox((prev) => prev ? { ...prev, currentX: curX, currentY: curY } : null);
     } else if (resizingObjId) {
       const dx = e.clientX - resizeStart.x;
       const dy = e.clientY - resizeStart.y;
@@ -791,6 +809,55 @@ Lê Thị Mai Anh"
   const handleMouseUpGlobal = (e) => {
     if (isPanning) {
       setIsPanning(false);
+    } else if (isSelectingArea && selectionBox) {
+      // THẢ CHUỘT SELECT TOOL ➔ PHÁT HIỆN TỰ ĐỘNG CÁC VẬT THỂ NẰM TRONG KHUNG KHOANH VÙNG
+      const selX = Math.min(selectionBox.startX, selectionBox.currentX);
+      const selY = Math.min(selectionBox.startY, selectionBox.currentY);
+      const selW = Math.abs(selectionBox.currentX - selectionBox.startX);
+      const selH = Math.abs(selectionBox.currentY - selectionBox.startY);
+
+      if (selW > 15 && selH > 15) {
+        const curPage = pages[currentPageIndex] || createEmptyPage();
+        
+        // Kiểm tra xem có ảnh nào nằm trong khung khoanh vùng không
+        const foundImage = (curPage.objectElements || []).find((img) => {
+          const imgX = img.x;
+          const imgY = img.y;
+          const imgW = img.width || 700;
+          const imgH = img.height || 480;
+          return (
+            imgX < selX + selW &&
+            imgX + imgW > selX &&
+            imgY < selY + selH &&
+            imgY + imgH > selY
+          );
+        });
+
+        // Kiểm tra xem có ô text nào nằm trong khung khoanh vùng không
+        const foundText = (curPage.textElements || []).find((txt) => {
+          const txtX = txt.x;
+          const txtY = txt.y;
+          const txtW = txt.width || 400;
+          const txtH = 100;
+          return (
+            txtX < selX + selW &&
+            txtX + txtW > selX &&
+            txtY < selY + selH &&
+            txtY + txtH > selY
+          );
+        });
+
+        if (foundImage) {
+          setSelectedObjId(foundImage.id);
+          setSelectedTextId(null);
+        } else if (foundText) {
+          setSelectedTextId(foundText.id);
+          setSelectedObjId(null);
+        }
+      }
+
+      setIsSelectingArea(false);
+      setSelectionBox(null);
     } else if (resizingObjId) {
       setResizingObjId(null);
       saveSnapshotState();
@@ -1195,8 +1262,8 @@ Lê Thị Mai Anh"
         onClick={(e) => {
           if (tool === 'text') {
             handleCanvasClickToCreateText(e);
-          } else if (tool === 'pointer') {
-            // Khi nhấp ra vùng trống ngoài cùng ➔ Bỏ chọn ảnh để bảng hoàn toàn sạch sẽ
+          } else if (tool === 'pointer' && !isSelectingArea) {
+            // Khi nhấp ra ngoài nền ➔ Bỏ chọn cả ẢNH và Ô TEXT
             setSelectedObjId(null);
             setSelectedTextId(null);
           }
@@ -1211,6 +1278,23 @@ Lê Thị Mai Anh"
           }}
           className="absolute top-0 left-0 touch-none"
         />
+
+        {/* SELECT TOOL KHOANH VÙNG CHỌN (LASSO RUBBERBAND SELECTION BOX REALTIME PREVIEW) */}
+        {isSelectingArea && selectionBox && (
+          <div
+            style={{
+              left: `${Math.min(selectionBox.startX, selectionBox.currentX) + panOffset.x}px`,
+              top: `${Math.min(selectionBox.startY, selectionBox.currentY) + panOffset.y}px`,
+              width: `${Math.abs(selectionBox.currentX - selectionBox.startX)}px`,
+              height: `${Math.abs(selectionBox.currentY - selectionBox.startY)}px`,
+            }}
+            className="absolute border-2 border-dashed border-sky-400 bg-sky-500/15 rounded-xl pointer-events-none z-[80] transition-all duration-75 shadow-lg"
+          >
+            <span className="absolute -top-6 left-1 bg-sky-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-xs uppercase">
+              🎯 Select Tool Khoanh Vùng
+            </span>
+          </div>
+        )}
 
         {/* SVG LAYER REALTIME LIVE PREVIEW VẼ SHAPES NỔI TRÊN ĐỈNH (z-50) */}
         {isDrawing && (tool.startsWith('shape_') || tool === 'line' || tool.endsWith('_arrow')) && (
@@ -1245,16 +1329,13 @@ Lê Thị Mai Anh"
           </svg>
         )}
 
-        {/* THIẾT KẾ UX/UI ĐỈNH CAO: HOVER IN -> HIỆN NÚT & BẢNG 16 ICON | HOVER OUT / UNSELECT -> TỰ ẨN BIẾN MẤT 100% SẠCH SẼ */}
+        {/* BỨC ẢNH: BÁM CHỌN KHI CÓ SELECT TOOL KHOANH VÙNG HOẶC NHẤP CHỌN CHUẨN */}
         {(currentPage.objectElements || []).map((obj) => {
-          // HIỂN THỊ NÚT VÀ KHUNG VIỀN KHI VỪA NHẤP CHỌN HOẶC KHI RÊ CHUỘT VÀO BỨC ẢNH (HOVER IN -> HIỆN | HOVER OUT -> ẨN)
-          const isShowControls = selectedObjId === obj.id || hoveredObjId === obj.id;
+          const isSelected = selectedObjId === obj.id;
 
           return (
             <div
               key={obj.id}
-              onMouseEnter={() => setHoveredObjId(obj.id)}
-              onMouseLeave={() => setHoveredObjId(null)}
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedObjId(obj.id);
@@ -1270,13 +1351,13 @@ Lê Thị Mai Anh"
                 top: `${obj.y + panOffset.y}px`,
                 width: `${obj.width || 700}px`,
                 height: `${obj.height || 480}px`,
-                zIndex: isDrawingToolActive ? 5 : (isShowControls ? 35 : (obj.zIndex ?? 10)),
+                zIndex: isDrawingToolActive ? 5 : (isSelected ? 35 : (obj.zIndex ?? 10)),
                 transform: `rotate(${obj.rotation || 0}deg) scaleX(${obj.flipH ? -1 : 1}) scaleY(${obj.flipV ? -1 : 1})`,
               }}
               className={`absolute group select-none pointer-events-auto rounded-xl transition-all duration-150 ${
                 tool === 'pointer' ? 'cursor-move' : ''
               } ${
-                isShowControls
+                isSelected
                   ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl'
                   : 'border border-transparent'
               }`}
@@ -1288,8 +1369,8 @@ Lê Thị Mai Anh"
                 className="w-full h-full object-contain pointer-events-none rounded-xl"
               />
 
-              {/* 4 NÚT CẠNH TRÒN XÁM + 4 GÓC TAM GIÁC: TỰ ĐỘNG HIỆN KHI RÊ CHUỘT VÀO VÀ TỰ ẨN KHI RÊ CHUỘT RA */}
-              {isShowControls && (
+              {/* 4 NÚT CẠNH TRÒN XÁM + 4 GÓC TAM GIÁC */}
+              {isSelected && (
                 <>
                   <div
                     onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
@@ -1340,8 +1421,8 @@ Lê Thị Mai Anh"
                 </>
               )}
 
-              {/* BẢNG MENU CÔNG CỤ NỔI NẰM BÊN PHẢI: TỰ ĐỘNG HIỆN KHI RÊ CHUỘT VÀO VÀ TỰ ẨN BIẾN MẤT TỰ ĐỘNG KHI RÊ CHUỘT RA RA */}
-              {isShowControls && (
+              {/* BẢNG MENU CÔNG CỤ NỔI NẰM BÊN PHẢI CHUẨN GRID 4X4 */}
+              {isSelected && (
                 <div
                   className="absolute top-0 -right-44 z-[90] bg-white/95 backdrop-blur-md text-slate-900 rounded-3xl shadow-2xl p-3 border-2 border-slate-200 w-40 grid grid-cols-4 gap-2 animate-scale-up font-sans"
                   onClick={(e) => e.stopPropagation()}
@@ -1504,7 +1585,7 @@ Lê Thị Mai Anh"
           );
         })}
 
-        {/* RENDER Ô TEXT & STICKY */}
+        {/* RENDER Ô TEXT & STICKY HOÀN HẢO */}
         {(currentPage.textElements || []).map((box) => {
           const isSelected = selectedTextId === box.id;
           const isSticky = box.type === 'sticky';
@@ -1532,15 +1613,15 @@ Lê Thị Mai Anh"
                 borderColor: isSticky ? (box.borderColor || '#fde047') : 'transparent',
                 zIndex: 45,
               }}
-              className={`absolute group p-3 transition duration-150 rounded-2xl relative pointer-events-auto ${
-                tool === 'pointer' ? 'cursor-pointer' : ''
-              } ${
+              className={`absolute group p-2 transition-all duration-150 rounded-2xl relative pointer-events-auto cursor-move ${
                 isSticky ? 'shadow-xl border-2 rotate-1 hover:rotate-0' : ''
-              } ${isSelected ? 'ring-4 ring-indigo-500 shadow-2xl bg-slate-900/60 backdrop-blur-xs' : 'hover:ring-2 hover:ring-indigo-300'}`}
+              } ${
+                isSelected
+                  ? 'ring-2 ring-indigo-400 border border-indigo-500/50 shadow-xl bg-slate-900/40 backdrop-blur-xs'
+                  : 'border border-transparent'
+              }`}
             >
-              
-
-              {/* THANH TOOLBAR DÍNH LIỀN Ô VĂN BẢN */}
+              {/* THANH TOOLBAR DÍNH LIỀN Ô VĂN BẢN: CHỈ HIỆN KHI THẦY NHẤP CHỌN */}
               {isSelected && (
                 <div
                   className={`absolute left-0 z-[90] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/60 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up font-sans ${
@@ -2151,8 +2232,7 @@ Lê Thị Mai Anh"
 
             <button
               onClick={() => {
-                const allList = rawStudentInput.split('\
-').map((s) => s.trim()).filter((s) => s.length > 0);
+                const allList = rawStudentInput.split('\n').map((s) => s.trim()).filter((s) => s.length > 0);
                 const availableList = removeCalled
                   ? allList.filter((s) => !calledStudents.includes(s))
                   : allList;
@@ -2273,9 +2353,9 @@ Lê Thị Mai Anh"
                   className="p-3 bg-slate-50 hover:bg-sky-50 border border-slate-200 rounded-2xl flex items-center justify-between transition"
                 >
                   <div>
-                    <h4 className="font-extrabold text-xs text-slate-900">{lesson.title.replace(/\[WHITEBOARD:.*?\]/, '').trim()}</h4>
+                    <h4 className="font-extrabold text-xs text-slate-900">{lesson.title.replace(/[WHITEBOARD:.*?]/, '').trim()}</h4>
                     <span className="text-[10px] font-extrabold text-sky-700 uppercase bg-sky-100 px-2 py-0.5 rounded-md mt-1 inline-block">
-                      {lesson.title.match(/\[WHITEBOARD:(.*?)\]/)?.[1] || 'Unit 1'}
+                      {lesson.title.match(/[WHITEBOARD:(.*?)]/)?.[1] || 'Unit 1'}
                     </span>
                     <span className="text-[10px] text-slate-400 ml-2">
                       {new Date(lesson.created_at).toLocaleDateString('vi-VN')}
@@ -2301,7 +2381,7 @@ Lê Thị Mai Anh"
                               };
                             }
                           }, 100);
-                          alert(`🚀 ĐÃ MỞ THÀNH CÔNG BÀI GIẢNG: "${lesson.title.replace(/\[WHITEBOARD:.*?\]/, '').trim()}"`);
+                          alert(`🚀 ĐÃ MỞ THÀNH CÔNG BÀI GIẢNG: "${lesson.title.replace(/[WHITEBOARD:.*?]/, '').trim()}"`);
                           setActiveWindow(null);
                         }
                       } catch (e) {
@@ -2329,18 +2409,19 @@ Lê Thị Mai Anh"
           <Move className="w-4 h-4 animate-pulse" />
         </button>
 
+        {/* NÚT SELECT TOOL MŨI TÊN (KHOANH VÙNG CHỌN TỰ ĐỘNG KHỐI VẬT THỂ) */}
         <button
           onClick={() => {
             setTool('pointer');
             setSelectedTextId(null);
             setSelectedObjId(null);
           }}
-          className={`p-2 rounded-xl transition cursor-pointer ${
+          className={`p-2 rounded-xl transition cursor-pointer relative ${
             tool === 'pointer'
               ? 'bg-sky-600 text-white shadow-md font-bold ring-2 ring-sky-300 scale-105'
               : 'hover:bg-[#c4bb9c] text-slate-800'
           }`}
-          title="Con trỏ dừng vẽ / Chọn & di chuyển bất kỳ vật thể nào"
+          title="Select Tool (Kéo rê khoanh vùng để tự động chọn & di chuyển khối vật thể)"
         >
           <MousePointer className="w-4 h-4" />
         </button>
