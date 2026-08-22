@@ -40,10 +40,10 @@ export default function WhiteboardView() {
   const [pages, setPages] = useState([createEmptyPage()]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
-  // VẤN ĐỀ 1: CHỈ CÓ DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (BOTTOM-3) - KHÔNG BAO GIỜ BỊ 2 THANH CHỒNG LÊN NHAU
+  // CHỈ RENDER DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (BOTTOM-3)
   const [toolbarPos, setToolbarPos] = useState('bottom');
 
-  // Công cụ active
+  // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'eraser' ...
   const [tool, setTool] = useState('pointer');
   const [color, setColor] = useState('#dc2626');
   const [fontSize, setFontSize] = useState(32);
@@ -127,7 +127,39 @@ export default function WhiteboardView() {
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
   const FONT_SIZES = [14, 18, 24, 32, 40, 48, 64, 80, 96];
 
-  // VẤN ĐỀ 2: XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
+  // THAY THẾ DẤU CHỘNG (+) THÀNH NGỌN BÚT ✏️ CHUYÊN NGHIỆP TRỰC QUAN 100%
+  const getCursorStyle = () => {
+    if (tool === 'hand') {
+      return isPanning ? 'grabbing' : 'grab';
+    }
+    if (tool === 'pointer') {
+      return 'default';
+    }
+    if (tool === 'text') {
+      return 'text';
+    }
+    if (tool === 'eraser') {
+      const eraserSvg = encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23ef4444' stroke='%23ffffff' stroke-width='2'><rect x='4' y='8' width='16' height='12' rx='3'/></svg>`
+      );
+      return `url("data:image/svg+xml;utf8,${eraserSvg}") 4 16, auto`;
+    }
+    if (tool === 'highlighter') {
+      const hlSvg = encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='%23fef08a' stroke='%23000000' stroke-width='1.5'><path d='m9 11-6 6v3h3l6-6'/><path d='m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4'/></svg>`
+      );
+      return `url("data:image/svg+xml;utf8,${hlSvg}") 2 24, auto`;
+    }
+
+    // MẶC ĐỊNH BÚT VIẾT ✏️ HOẶC SHAPES: NGỌN BÚT NẮM CHUẨN XÁC NẤC ĐẦU BÚT
+    const strokeHex = encodeURIComponent(color || '#ffffff');
+    const penSvg = encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='${color === '#000000' ? '%23ffffff' : strokeHex}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'/><path d='m15 5 4 4'/></svg>`
+    );
+    return `url("data:image/svg+xml;utf8,${penSvg}") 0 22, auto`;
+  };
+
+  // XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
   const handleDeleteSelectedElement = () => {
     if (selectedTextId) {
       setPages((prev) => {
@@ -1001,12 +1033,12 @@ export default function WhiteboardView() {
         </div>
       </div>
 
-      {/* WORKSPACE CANVAS AREA */}
+      {/* WORKSPACE CANVAS AREA (BIẾN ĐỔI NGỌN BÚT TỰ NHIÊN ✏️ THAY CHO DẤU CHỘNG +) */}
       <div
         ref={containerRef}
         onMouseDown={handleStartPan}
         style={{
-          cursor: tool === 'hand' ? (isPanning ? 'grabbing' : 'grab') : tool === 'pointer' ? 'default' : 'crosshair',
+          cursor: getCursorStyle(),
         }}
         className="relative w-full h-[calc(100vh-50px)] overflow-hidden"
         onClick={(e) => {
@@ -1056,7 +1088,7 @@ export default function WhiteboardView() {
           </svg>
         )}
 
-        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG (VẤN ĐỀ 2: CÓ NÚT XÓA 🗑️ MÀU ĐỎ RÕ RÀNG) */}
+        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
           return (
@@ -1091,7 +1123,7 @@ export default function WhiteboardView() {
                 className="w-full h-full object-contain pointer-events-none rounded-xl"
               />
 
-              {/* THANH ĐIỀU CHỈNH ẢNH DÁN (CÓ NÚT XÓA 🗑️ ĐỎ TƯƠI CỰC KỲ RÕ NẾT) */}
+              {/* THANH ĐIỀU CHỈNH ẢNH DÁN */}
               {isSelected && (
                 <div className="absolute -top-11 left-0 bg-slate-900 text-white rounded-2xl shadow-2xl px-3 py-1 flex items-center space-x-2 text-xs border border-slate-700 z-50 animate-scale-up font-sans">
                   <span className="font-extrabold text-amber-400">🖼️ Ảnh dán bài tập</span>
@@ -1131,7 +1163,6 @@ export default function WhiteboardView() {
                     ➖
                   </button>
 
-                  {/* VẤN ĐỀ 2: NÚT XÓA 🗑️ MÀU ĐỎ NỔI BẬT NẾT RÕ RÀNG */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1149,7 +1180,7 @@ export default function WhiteboardView() {
           );
         })}
 
-        {/* RENDER Ô TEXT & STICKY (VẤN ĐỀ 2: CÓ NÚT XÓA 🗑️ MÀU ĐỎ RÕ RÀNG) */}
+        {/* RENDER Ô TEXT & STICKY */}
         {(currentPage.textElements || []).map((box) => {
           const isSelected = selectedTextId === box.id;
           const isSticky = box.type === 'sticky';
@@ -1192,7 +1223,7 @@ export default function WhiteboardView() {
                 <span>Kéo rê</span>
               </div>
 
-              {/* THANH TOOLBAR DÍNH LIỀN NGAY SÁT TRÊN ĐỈNH Ô VĂN BẢN (CÓ NÚT XÓA 🗑️ MÀU ĐỎ NỔI BẬT) */}
+              {/* THANH TOOLBAR DÍNH LIỀN NGAY SÁT TRÊN ĐỈNH Ô VĂN BẢN */}
               {isSelected && (
                 <div className="absolute bottom-full mb-2 left-0 z-[90] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/60 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up font-sans">
                   <select
@@ -1335,7 +1366,6 @@ export default function WhiteboardView() {
                     className="w-7 h-7 rounded-lg cursor-pointer border border-slate-300 p-0"
                   />
 
-                  {/* VẤN ĐỀ 2: NÚT XÓA 🗑️ MÀU ĐỎ TƯƠI HIỂN THỊ CỰC KỲ RÕ RÀNG */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1967,7 +1997,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (VẤN ĐỀ 1: BOTTOM-3) */}
+      {/* DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (BOTTOM-3) */}
       <div className={getToolbarStyle()}>
         <button
           onClick={toggleToolbarPosition}
@@ -2098,7 +2128,6 @@ export default function WhiteboardView() {
           <Redo className="w-4 h-4" />
         </button>
 
-        {/* VẤN ĐỀ 2: NÚT XÓA 🗑️ MÀU ĐỎ DÙNG ĐỂ XÓA BẤT KỲ DỤNG CỤ SHAPES, TEXT HOẶC ẢNH ĐƯỢC CHỌN */}
         <button
           onClick={handleDeleteSelectedElement}
           className="p-2 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition text-rose-600 cursor-pointer font-bold"
