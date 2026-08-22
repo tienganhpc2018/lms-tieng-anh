@@ -364,29 +364,36 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
     const isTeacherUser = (u.email || '').toLowerCase().includes('nguyensea') || u.role === 'teacher';
     if (isTeacherUser) return;
 
-    const currentApproved = u.approved === true;
+    const currentApproved = u.approved === true || u.approved === 1;
     const newApproved = !currentApproved;
 
     try {
-      await supabase
-        .from('profiles')
-        .update({ approved: newApproved })
-        .eq('id', u.id);
+      if (u.id) {
+        await supabase.from('profiles').update({ approved: newApproved }).eq('id', u.id);
+      }
+      if (u.username) {
+        await supabase.from('profiles').update({ approved: newApproved }).eq('username', u.username);
+      }
+      if (u.email) {
+        await supabase.from('profiles').update({ approved: newApproved }).ilike('email', u.email);
+      }
     } catch (err) {}
 
     // Đồng bộ vào LocalStorage duyệt
     const approvedMap = JSON.parse(localStorage.getItem('lms_approved_students_v2') || '{}');
     if (newApproved) {
       approvedMap[u.id] = true;
+      if (u.username) approvedMap[u.username] = true;
       if (u.email) approvedMap[u.email] = true;
     } else {
       delete approvedMap[u.id];
+      if (u.username) delete approvedMap[u.username];
       if (u.email) delete approvedMap[u.email];
     }
     localStorage.setItem('lms_approved_students_v2', JSON.stringify(approvedMap));
 
     setUsersList((prev) =>
-      prev.map((item) => (item.id === u.id ? { ...item, approved: newApproved } : item))
+      prev.map((item) => (item.id === u.id || item.username === u.username ? { ...item, approved: newApproved } : item))
     );
     alert(`✅ Đã ${newApproved ? 'DUYỆT CHO PHÉP VÀO HỌC' : 'CHUYỂN VỀ TRẠNG THÁI CHỜ DUYỆT'} tài khoản học sinh "${u.full_name || u.username}"!`);
   };
