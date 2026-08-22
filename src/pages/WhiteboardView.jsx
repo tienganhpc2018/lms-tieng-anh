@@ -56,9 +56,8 @@ export default function WhiteboardView() {
   // Quản lý Text / Sticky Objects & Selected State
   const [selectedTextId, setSelectedTextId] = useState(null);
 
-  // Quản lý Ảnh chụp từ Snipping Tool & Shapes & HOVER IN / OUT THÔNG MINH
+  // Quản lý Ảnh chụp từ Snipping Tool & Shapes & NHẤP CHỌN HIỆN / THẢ OUT TỰ ẨN SẠCH SẼ
   const [selectedObjId, setSelectedObjId] = useState(null);
-  const [hoveredObjId, setHoveredObjId] = useState(null); // RÊ CHUỘT VÀO NÚT TỰ HIỆN / RÊ RA NÚT TỰ ẨN
 
   const [draggingObjId, setDraggingObjId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -150,6 +149,7 @@ export default function WhiteboardView() {
     return 'crosshair';
   };
 
+  // ĐẢM BẢO Z-INDEX CANVAS LUÔN Ở TẦNG CAO TRÊN ĐỈNH ẢNH KHI VẼ CHÚ THÍCH
   const isDrawingToolActive = tool !== 'pointer' && tool !== 'hand' && tool !== 'text' && tool !== 'sticky';
 
   // XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
@@ -472,7 +472,7 @@ export default function WhiteboardView() {
     return () => window.removeEventListener('paste', handlePaste);
   }, [panOffset, currentPageIndex]);
 
-  // UNDO & REDO SNAPSHOT STATE MANAGEMENT
+  // UNDO & REDO SNAPSHOT STATE MANAGEMENT - ĐẢM BẢO LƯU THÀNH NÉT VẼ ĐÈ ẢNH TRÊN CANVAS
   const saveSnapshotState = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -483,6 +483,15 @@ export default function WhiteboardView() {
       textElements: JSON.parse(JSON.stringify(curPage.textElements || [])),
       objectElements: JSON.parse(JSON.stringify(curPage.objectElements || [])),
     };
+
+    setPages((prev) => {
+      const copy = [...prev];
+      copy[currentPageIndex] = {
+        ...copy[currentPageIndex],
+        canvasData: dataUrl,
+      };
+      return copy;
+    });
 
     const newStack = historyStack.slice(0, historyIndex + 1);
     setHistoryStack([...newStack, snapshot]);
@@ -694,7 +703,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // KÉO RÊ VẬT THỂ BẰNG CON TRỎ HOẶC MOVER
+  // KÉO RÊ VẬT THỂ BẰNG CON TRỎ HOẶC TRỰC TIẾP
   const handleStartDragElement = (id, isImage, e) => {
     e.stopPropagation();
 
@@ -796,7 +805,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // CANVAS DRAWING LOGIC
+  // CANVAS DRAWING LOGIC - ĐẢM BẢO LƯU NÉT VẼ ĐÈ ẢNH TRÊN CANVAS
   const startDrawing = (e) => {
     if (tool === 'pointer' || tool === 'hand') return;
     const canvas = canvasRef.current;
@@ -1190,13 +1199,13 @@ export default function WhiteboardView() {
           if (tool === 'text') {
             handleCanvasClickToCreateText(e);
           } else if (tool === 'pointer') {
-            // Khi nhấp ra vùng trống ngoài cùng ➔ Bỏ chọn ảnh để bảng hoàn toàn sạch sẽ
+            // Khi nhấp ra ngoài nền ➔ Bỏ chọn cả ẢNH và Ô TEXT để Bảng sạch sẽ 100% đúng ý Thầy Hải
             setSelectedObjId(null);
             setSelectedTextId(null);
           }
         }}
       >
-        {/* CANVAS VẼ CHUẨN */}
+        {/* CANVAS VẼ CHUẨN - NẾU LÀ CÔNG CỤ VẼ THÌ ĐƯỢC ĐẶT Z-INDEX 40 ĐỂ NÉT VẼ ĐÈ VĨNH VIỄN LÊN ẢNH VÀ ĐƯỢC LƯU TRỰC TIẾP */}
         <canvas
           ref={canvasRef}
           style={{
@@ -1239,16 +1248,13 @@ export default function WhiteboardView() {
           </svg>
         )}
 
-        {/* THIẾT KẾ UX/UI ĐỈNH CAO: HOVER IN -> HIỆN NÚT & BẢNG 16 ICON | HOVER OUT / UNSELECT -> TỰ ẨN BIẾN MẤT 100% SẠCH SẼ */}
+        {/* BỨC ẢNH: CỨ NHẤP VÀO THÌ HIỆN BẢNG 16 ICON VÀ NÚT CO KÉO, THẢ OUT BỎ CHỌN THÌ TỰ ẨN 100% SẠCH SẼ */}
         {(currentPage.objectElements || []).map((obj) => {
-          // HIỂN THỊ NÚT VÀ KHUNG VIỀN KHI VỪA NHẤP CHỌN HOẶC KHI RÊ CHUỘT VÀO BỨC ẢNH (HOVER IN -> HIỆN | HOVER OUT -> ẨN)
-          const isShowControls = selectedObjId === obj.id || hoveredObjId === obj.id;
+          const isSelected = selectedObjId === obj.id;
 
           return (
             <div
               key={obj.id}
-              onMouseEnter={() => setHoveredObjId(obj.id)}
-              onMouseLeave={() => setHoveredObjId(null)}
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedObjId(obj.id);
@@ -1264,13 +1270,13 @@ export default function WhiteboardView() {
                 top: `${obj.y + panOffset.y}px`,
                 width: `${obj.width || 700}px`,
                 height: `${obj.height || 480}px`,
-                zIndex: isDrawingToolActive ? 5 : (isShowControls ? 35 : (obj.zIndex ?? 10)),
+                zIndex: isDrawingToolActive ? 5 : (isSelected ? 35 : (obj.zIndex ?? 10)),
                 transform: `rotate(${obj.rotation || 0}deg) scaleX(${obj.flipH ? -1 : 1}) scaleY(${obj.flipV ? -1 : 1})`,
               }}
               className={`absolute group select-none pointer-events-auto rounded-xl transition-all duration-150 ${
                 tool === 'pointer' ? 'cursor-move' : ''
               } ${
-                isShowControls
+                isSelected
                   ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl'
                   : 'border border-transparent'
               }`}
@@ -1282,8 +1288,8 @@ export default function WhiteboardView() {
                 className="w-full h-full object-contain pointer-events-none rounded-xl"
               />
 
-              {/* 4 NÚT CẠNH TRÒN XÁM + 4 GÓC TAM GIÁC: TỰ ĐỘNG HIỆN KHI RÊ CHUỘT VÀO VÀ TỰ ẨN KHI RÊ CHUỘT RA */}
-              {isShowControls && (
+              {/* 4 NÚT CẠNH TRÒN XÁM + 4 GÓC TAM GIÁC: CHỈ HIỆN KHI THẦY NHẤP CHỌN, THẢ CHUỘT RA NGOÀI TỰ ẨN 100% */}
+              {isSelected && (
                 <>
                   <div
                     onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
@@ -1334,8 +1340,8 @@ export default function WhiteboardView() {
                 </>
               )}
 
-              {/* BẢNG MENU CÔNG CỤ NỔI NẰM BÊN PHẢI: TỰ ĐỘNG HIỆN KHI RÊ CHUỘT VÀO VÀ TỰ ẨN BIẾN MẤT TỰ ĐỘNG KHI RÊ CHUỘT RA RA */}
-              {isShowControls && (
+              {/* BẢNG MENU CÔNG CỤ NỔI NẰM BÊN PHẢI: CHỈ HIỆN KHI THẦY NHẤP CHỌN, THẢ OUT TỰ ẨN 100% */}
+              {isSelected && (
                 <div
                   className="absolute top-0 -right-44 z-[90] bg-white/95 backdrop-blur-md text-slate-900 rounded-3xl shadow-2xl p-3 border-2 border-slate-200 w-40 grid grid-cols-4 gap-2 animate-scale-up font-sans"
                   onClick={(e) => e.stopPropagation()}
@@ -1498,7 +1504,7 @@ export default function WhiteboardView() {
           );
         })}
 
-        {/* RENDER Ô TEXT & STICKY */}
+        {/* RENDER Ô TEXT & STICKY: XÓA BỎ CHỮ "KÉO RÊ" GÂY NHẦM LẪN BÀI HỌC - KHI THẢ RA NÓ MẤT VIỀN, NHẤP LẠI KHUNG TEXT THÌ NÓ HIỆN */}
         {(currentPage.textElements || []).map((box) => {
           const isSelected = selectedTextId === box.id;
           const isSticky = box.type === 'sticky';
@@ -1526,23 +1532,17 @@ export default function WhiteboardView() {
                 borderColor: isSticky ? (box.borderColor || '#fde047') : 'transparent',
                 zIndex: 45,
               }}
-              className={`absolute group p-3 transition duration-150 rounded-2xl relative pointer-events-auto ${
-                tool === 'pointer' ? 'cursor-pointer' : ''
+              className={`absolute group p-2 transition-all duration-150 rounded-2xl relative pointer-events-auto ${
+                tool === 'pointer' ? 'cursor-move' : ''
               } ${
                 isSticky ? 'shadow-xl border-2 rotate-1 hover:rotate-0' : ''
-              } ${isSelected ? 'ring-4 ring-indigo-500 shadow-2xl bg-slate-900/60 backdrop-blur-xs' : 'hover:ring-2 hover:ring-indigo-300'}`}
+              } ${
+                isSelected
+                  ? 'ring-2 ring-indigo-400 border border-indigo-500/50 shadow-xl bg-slate-900/40 backdrop-blur-xs'
+                  : 'border border-transparent'
+              }`}
             >
-              {/* NÚT MOVER DRAG HANDLE */}
-              <div
-                onMouseDown={(e) => handleStartDragElement(box.id, false, e)}
-                className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-3 py-0.5 text-[10px] font-black shadow-md cursor-grab active:cursor-grabbing flex items-center space-x-1 z-[60]"
-                title="Nắm vào đây để kéo di chuyển ô chữ"
-              >
-                <Move className="w-3 h-3" />
-                <span>Kéo rê</span>
-              </div>
-
-              {/* THANH TOOLBAR DÍNH LIỀN Ô VĂN BẢN */}
+              {/* THANH TOOLBAR DÍNH LIỀN Ô VĂN BẢN: CHỈ HIỆN KHI THẦY NHẤP CHỌN, THẢ OUT RA LÀ TỰ MẤT SẠCH SẼ HOÀN TOÀN */}
               {isSelected && (
                 <div
                   className={`absolute left-0 z-[90] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/60 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up font-sans ${
