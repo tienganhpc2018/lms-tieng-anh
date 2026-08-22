@@ -586,20 +586,32 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* NÚT IN THẺ TÀI KHOẢN HỌC SINH KHỔ A4 CẮT PHÁT CHO CẢ LỚP */}
+                  <select
+                    value={selectedClassFilter}
+                    onChange={(e) => setSelectedClassFilter(e.target.value)}
+                    className="bg-emerald-50 text-emerald-900 border border-emerald-300 font-extrabold text-xs px-3 py-2 rounded-xl outline-none cursor-pointer shadow-2xs"
+                  >
+                    {['Tất cả lớp', '7A3', '7A4', '7A5', '7A6', '9A2', '9A5'].map((cls) => (
+                      <option key={cls} value={cls}>
+                        🏫 {cls === 'Tất cả lớp' ? 'Tất cả các lớp' : `Lớp ${cls}`}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* NÚT IN THẺ TÀI KHOẢN HỌC SINH KHỔ A4 CẮT PHÁT CHO NGUYÊN LỚP ĐÃ LỌC */}
                   <button
                     type="button"
                     onClick={handlePrintStudentCards}
-                    className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5 border border-emerald-500/40"
+                    className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1.5 border border-emerald-500/40 cursor-pointer"
                   >
                     <Printer className="w-4 h-4" />
-                    <span>🖨️ In Thẻ Tài Khoản Cả Lớp (PDF A4)</span>
+                    <span>🖨️ In Thẻ Tài Khoản {selectedClassFilter === 'Tất cả lớp' ? 'Cả Lớp' : `[Lớp ${selectedClassFilter}]`} (PDF A4)</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActiveTab('add')}
-                    className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1"
+                    className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center space-x-1 cursor-pointer"
                   >
                     <UserPlus className="w-4 h-4" />
                     <span>+ Add new user</span>
