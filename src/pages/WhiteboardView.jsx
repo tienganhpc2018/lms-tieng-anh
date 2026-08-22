@@ -1538,15 +1538,7 @@ Lê Thị Mai Anh"
                 isSticky ? 'shadow-xl border-2 rotate-1 hover:rotate-0' : ''
               } ${isSelected ? 'ring-4 ring-indigo-500 shadow-2xl bg-slate-900/60 backdrop-blur-xs' : 'hover:ring-2 hover:ring-indigo-300'}`}
             >
-              {/* NÚT MOVER DRAG HANDLE */}
-              <div
-                onMouseDown={(e) => handleStartDragElement(box.id, false, e)}
-                className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-3 py-0.5 text-[10px] font-black shadow-md cursor-grab active:cursor-grabbing flex items-center space-x-1 z-[60]"
-                title="Nắm vào đây để kéo di chuyển ô chữ"
-              >
-                <Move className="w-3 h-3" />
-                <span>Kéo rê</span>
-              </div>
+              
 
               {/* THANH TOOLBAR DÍNH LIỀN Ô VĂN BẢN */}
               {isSelected && (
