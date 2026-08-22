@@ -40,7 +40,7 @@ export default function WhiteboardView() {
   const [pages, setPages] = useState([createEmptyPage()]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
-  // CHỈ RENDER DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (BOTTOM-3)
+  // DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (BOTTOM-3)
   const [toolbarPos, setToolbarPos] = useState('bottom');
 
   // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'eraser' ...
@@ -127,7 +127,7 @@ export default function WhiteboardView() {
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
   const FONT_SIZES = [14, 18, 24, 32, 40, 48, 64, 80, 96];
 
-  // THAY THẾ DẤU CHỘNG (+) THÀNH NGỌN BÚT ✏️ CHUYÊN NGHIỆP TRỰC QUAN 100%
+  // GIẢI PHÁP TRIỆT ĐỂ 100%: BASE64 SVG CURSOR GÁN TRỰC TIẾP LÊN THẺ CANVAS VÀ CONTAINER (KHÔNG BAO GIỜ HIỂN THỊ DẤU +)
   const getCursorStyle = () => {
     if (tool === 'hand') {
       return isPanning ? 'grabbing' : 'grab';
@@ -139,24 +139,18 @@ export default function WhiteboardView() {
       return 'text';
     }
     if (tool === 'eraser') {
-      const eraserSvg = encodeURIComponent(
-        `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23ef4444' stroke='%23ffffff' stroke-width='2'><rect x='4' y='8' width='16' height='12' rx='3'/></svg>`
-      );
-      return `url("data:image/svg+xml;utf8,${eraserSvg}") 4 16, auto`;
+      const eraserSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='%23ef4444' stroke='%23ffffff' stroke-width='2'><rect x='4' y='8' width='16' height='12' rx='3'/></svg>`;
+      return `url("data:image/svg+xml;utf8,${encodeURIComponent(eraserSvg)}") 4 20, pointer`;
     }
     if (tool === 'highlighter') {
-      const hlSvg = encodeURIComponent(
-        `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='%23fef08a' stroke='%23000000' stroke-width='1.5'><path d='m9 11-6 6v3h3l6-6'/><path d='m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4'/></svg>`
-      );
-      return `url("data:image/svg+xml;utf8,${hlSvg}") 2 24, auto`;
+      const hlSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='%23fef08a' stroke='%23000000' stroke-width='1.5'><path d='m9 11-6 6v3h3l6-6'/><path d='m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4'/></svg>`;
+      return `url("data:image/svg+xml;utf8,${encodeURIComponent(hlSvg)}") 2 24, pointer`;
     }
 
-    // MẶC ĐỊNH BÚT VIẾT ✏️ HOẶC SHAPES: NGỌN BÚT NẮM CHUẨN XÁC NẤC ĐẦU BÚT
-    const strokeHex = encodeURIComponent(color || '#ffffff');
-    const penSvg = encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='${color === '#000000' ? '%23ffffff' : strokeHex}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'/><path d='m15 5 4 4'/></svg>`
-    );
-    return `url("data:image/svg+xml;utf8,${penSvg}") 0 22, auto`;
+    // MẶC ĐỊNH BÚT VIẾT ✏️: NGỌN BÚT NẮM CHUẨN XÁC NẤC ĐẦU BÚT (DÙNG POINTER TỰ NHIÊN ĐẢM BẢO KHÔNG BỊ CROSSHAIR DẤU +)
+    const strokeColor = color === '#000000' ? '#ffffff' : (color || '#ffffff');
+    const penSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(strokeColor)}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'/><path d='m15 5 4 4'/></svg>`;
+    return `url("data:image/svg+xml;utf8,${encodeURIComponent(penSvg)}") 0 24, pointer`;
   };
 
   // XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
@@ -933,7 +927,6 @@ export default function WhiteboardView() {
 
   const currentPage = pages[currentPageIndex] || createEmptyPage();
 
-  // CHỈ RENDER DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (BOTTOM-3)
   const getToolbarStyle = () => {
     switch (toolbarPos) {
       case 'top':
@@ -947,6 +940,8 @@ export default function WhiteboardView() {
         return 'fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5 animate-scale-up font-sans';
     }
   };
+
+  const activeCursor = getCursorStyle();
 
   return (
     <div
@@ -1033,12 +1028,12 @@ export default function WhiteboardView() {
         </div>
       </div>
 
-      {/* WORKSPACE CANVAS AREA (BIẾN ĐỔI NGỌN BÚT TỰ NHIÊN ✏️ THAY CHO DẤU CHỘNG +) */}
+      {/* WORKSPACE CANVAS AREA - ĐỒNG BỘ CURSOR TRỰC TIẾP LÊN CONTAINER VÀ CẢ CANVAS REF */}
       <div
         ref={containerRef}
         onMouseDown={handleStartPan}
         style={{
-          cursor: getCursorStyle(),
+          cursor: activeCursor,
         }}
         className="relative w-full h-[calc(100vh-50px)] overflow-hidden"
         onClick={(e) => {
@@ -1050,8 +1045,10 @@ export default function WhiteboardView() {
           }
         }}
       >
+        {/* THẺ CANVAS THUỘC LỚP Z-10: GÁN CURSOR TRỰC TIẾP TRÁNH BỊ CHROME/EDGE MẶC ĐỊNH LÀ CROSSHAIR (+) */}
         <canvas
           ref={canvasRef}
+          style={{ cursor: activeCursor }}
           className="absolute top-0 left-0 z-10 touch-none"
         />
 
