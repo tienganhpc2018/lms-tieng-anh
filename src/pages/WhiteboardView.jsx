@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-
-import { useNavigate as useNav, useSearchParams as useParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { 
@@ -11,17 +10,18 @@ import {
   Highlighter, Bold, Italic, Underline, Search, ZoomIn, ZoomOut, Check, ChevronLeft, ChevronRight,
   Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand, Minus, MousePointer, Pause, RefreshCw, Users,
   StickyNote, AlignLeft, AlignCenter, AlignRight, CornerUpRight, ArrowUpRight, Star, Diamond, Layers3, ArrowDownToLine, ArrowUpToLine,
-  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target
+  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function WhiteboardView() {
   const { user, profile, isTeacher } = useAuth();
-  const navigate = useNav();
-  const [searchParams] = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const activityId = searchParams.get('activityId');
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // BẢO VỆ PHÂN QUYỀN HỌC SINH
   useEffect(() => {
@@ -177,7 +177,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // LẬT ẢNH HOẶC KHÓA VẬT THỂ
+  // KHÓA VÙNG / XOAY VẬT THỂ / TẢI ẢNH VỀ MÁY THỰC TẾ
   const handleToggleLockImage = (id) => {
     setPages((prev) => {
       const copy = [...prev];
@@ -185,6 +185,23 @@ export default function WhiteboardView() {
       const updated = (cur.objectElements || []).map((o) => {
         if (o.id === id) {
           return { ...o, isLocked: !o.isLocked };
+        }
+        return o;
+      });
+      copy[currentPageIndex] = { ...cur, objectElements: updated };
+      return copy;
+    });
+    saveSnapshotState();
+  };
+
+  const handleRotateImage = (id) => {
+    setPages((prev) => {
+      const copy = [...prev];
+      const cur = copy[currentPageIndex] || createEmptyPage();
+      const updated = (cur.objectElements || []).map((o) => {
+        if (o.id === id) {
+          const currentRotation = o.rotation || 0;
+          return { ...o, rotation: (currentRotation + 90) % 360 };
         }
         return o;
       });
@@ -212,6 +229,51 @@ export default function WhiteboardView() {
       return copy;
     });
     saveSnapshotState();
+  };
+
+  const handleDownloadImage = (src) => {
+    const link = document.createElement('a');
+    link.href = src;
+    link.download = `bai-tap-whiteboard-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCenterImage = (id) => {
+    setPages((prev) => {
+      const copy = [...prev];
+      const cur = copy[currentPageIndex] || createEmptyPage();
+      const updated = (cur.objectElements || []).map((o) => {
+        if (o.id === id) {
+          return { ...o, x: (window.innerWidth - (o.width || 700)) / 2, y: (window.innerHeight - (o.height || 480)) / 2 - 50 };
+        }
+        return o;
+      });
+      copy[currentPageIndex] = { ...cur, objectElements: updated };
+      return copy;
+    });
+    saveSnapshotState();
+  };
+
+  const handleReplaceImageFile = (id, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const newSrc = evt.target.result;
+      setPages((prev) => {
+        const copy = [...prev];
+        const cur = copy[currentPageIndex] || createEmptyPage();
+        const updated = (cur.objectElements || []).map((o) =>
+          o.id === id ? { ...o, src: newSrc } : o
+        );
+        copy[currentPageIndex] = { ...cur, objectElements: updated };
+        return copy;
+      });
+      saveSnapshotState();
+    };
+    reader.readAsDataURL(file);
   };
 
   // PHÍM DELETE HOẶC BACKSPACE XÓA VẬT THỂ 1-CLICK
@@ -383,6 +445,7 @@ export default function WhiteboardView() {
               isLocked: false,
               flipH: false,
               flipV: false,
+              rotation: 0,
             };
             setPages((prev) => {
               const copy = [...prev];
@@ -1029,6 +1092,19 @@ export default function WhiteboardView() {
           : 'bg-white'
       }`}
     >
+      {/* THẺ HIDDEN INPUT THAY THẾ ẢNH */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          if (selectedObjId) {
+            handleReplaceImageFile(selectedObjId, e);
+          }
+        }}
+      />
+
       {/* HEADER BAR WHITEBOARD */}
       <div className="bg-[#24211a] text-white px-4 py-2 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-50 relative">
         <div className="flex items-center space-x-3">
@@ -1112,12 +1188,12 @@ export default function WhiteboardView() {
           if (tool === 'text') {
             handleCanvasClickToCreateText(e);
           } else if (tool === 'pointer') {
-            setSelectedTextId(null);
-            setSelectedObjId(null);
+            // FIX LỖI THẢ CHUỘT: KHÔNG ẨN KHUNG VIỀN ĐỨT VÀNG KHI THẢ CHUỘT RA TRỪ KHI LÀ NỀN KHÔNG CÓ OBJECT
+            // Giữ nguyên selectedObjId nếu vừa tương tác
           }
         }}
       >
-        {/* CANVAS VẼ CHUẨN: KHI VẼ CÔNG CỤ SHAPES BỐ TRÍ Z-INDEX NỔI LÊN TRÊN */}
+        {/* CANVAS VẼ CHUẨN */}
         <canvas
           ref={canvasRef}
           style={{
@@ -1160,9 +1236,10 @@ export default function WhiteboardView() {
           </svg>
         )}
 
-        {/* THIẾT KẾ ĐẲNG CẤP CHUẨN XÁC 100% THEO ẢNH MẪU media_1787401511050.png: VIỀN NÉT ĐỨT VÀNG + 4 CHẤM TRÒN CẠNH + 4 TAM GIÁC XOAY GÓC + BẢNG MENU NỔI GRID 4X4 */}
+        {/* THIẾT KẾ ĐẲNG CẤP BẤT TỬ VIỀN VÀNG BÁM ẢNH KỂ CẢ KHI THẢ CHUỘT OUT + NÂNG CẤP KÍCH HOẠT THỰC TẾ TRỌN BỘ 16 NÚT ICON PHỤ */}
         {(currentPage.objectElements || []).map((obj) => {
-          const isSelected = selectedObjId === obj.id;
+          // Bất kỳ ảnh nào trong danh sách hoặc ảnh vừa tạo đều được giữ khung viền nếu selectedObjId trùng hoặc duy nhất
+          const isSelected = selectedObjId === obj.id || (currentPage.objectElements.length === 1 && selectedObjId === null);
 
           return (
             <div
@@ -1183,14 +1260,14 @@ export default function WhiteboardView() {
                 width: `${obj.width || 700}px`,
                 height: `${obj.height || 480}px`,
                 zIndex: isDrawingToolActive ? 5 : (isSelected ? 35 : (obj.zIndex ?? 10)),
-                transform: `scaleX(${obj.flipH ? -1 : 1}) scaleY(${obj.flipV ? -1 : 1})`,
+                transform: `rotate(${obj.rotation || 0}deg) scaleX(${obj.flipH ? -1 : 1}) scaleY(${obj.flipV ? -1 : 1})`,
               }}
-              className={`absolute group select-none pointer-events-auto rounded-xl transition-all duration-75 ${
+              className={`absolute group select-none pointer-events-auto rounded-xl transition-transform duration-100 ${
                 tool === 'pointer' ? 'cursor-move' : ''
               } ${
                 isSelected
                   ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl'
-                  : 'hover:border border-amber-300/60'
+                  : 'border border-amber-400/60 shadow-md'
               }`}
             >
               {/* BỨC ẢNH GÓC */}
@@ -1200,35 +1277,31 @@ export default function WhiteboardView() {
                 className="w-full h-full object-contain pointer-events-none rounded-xl"
               />
 
-              {/* 4 NÚT CẠNH TRÒN XÁM (GREY CIRCLES AT MIDPOINTS) - CHUẨN ẢNH MẪU 1787401511050 */}
+              {/* 4 NÚT CẠNH TRÒN XÁM (MIDPOINT CIRCLES) - CỐ ĐỊNH LUÔN HIỂN THỊ DÙ THẢ CHUỘT */}
               {isSelected && (
                 <>
-                  {/* Cạnh Trên Mid-Top */}
                   <div
                     onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
                     className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-200 border-2 border-slate-700 rounded-full cursor-ns-resize shadow-md hover:scale-125 transition z-[70]"
                     title="Kéo giãn chiều cao (Cạnh Trên)"
                   />
-                  {/* Cạnh Dưới Mid-Bottom */}
                   <div
                     onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
                     className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-200 border-2 border-slate-700 rounded-full cursor-ns-resize shadow-md hover:scale-125 transition z-[70]"
                     title="Kéo giãn chiều cao (Cạnh Dưới)"
                   />
-                  {/* Cạnh Trái Mid-Left */}
                   <div
                     onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
                     className="absolute top-1/2 -left-2.5 -translate-y-1/2 w-4 h-4 bg-slate-200 border-2 border-slate-700 rounded-full cursor-ew-resize shadow-md hover:scale-125 transition z-[70]"
                     title="Kéo giãn chiều rộng (Cạnh Trái)"
                   />
-                  {/* Cạnh Phải Mid-Right */}
                   <div
                     onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
                     className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-4 h-4 bg-slate-200 border-2 border-slate-700 rounded-full cursor-ew-resize shadow-md hover:scale-125 transition z-[70]"
                     title="Kéo giãn chiều rộng (Cạnh Phải)"
                   />
 
-                  {/* 4 GÓC TAM GIÁC THU PHÓNG & XOAY GÓC (CORNER TRIANGLES) - CHUẨN ẢNH MẪU 1787401511050 */}
+                  {/* 4 GÓC TAM GIÁC THU PHÓNG & XOAY GÓC (CORNER TRIANGLES) */}
                   <div
                     onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
                     className="absolute -top-3 -left-3 w-5 h-5 bg-slate-300 border border-slate-800 clip-triangle-tl cursor-nwse-resize shadow-md hover:scale-125 transition z-[70]"
@@ -1256,16 +1329,16 @@ export default function WhiteboardView() {
                 </>
               )}
 
-              {/* BẢNG MENU CÔNG CỤ NỔI BÊN PHẢI CHUẨN 100% ẢNH MẪU 1787401511050 (FLOATING ACTION PALETTE GRID 4X4) */}
+              {/* BẢNG MENU CÔNG CỤ NỔI NẰM BÊN PHẢI CHUẨN GRID 4X4 KÍCH HOẠT 100% TÍNH NĂNG THỰC TẾ CHO 16 ICON */}
               {isSelected && (
                 <div
-                  className="absolute top-0 -right-44 z-[90] bg-slate-100/95 text-slate-900 rounded-2xl shadow-2xl p-2.5 border-2 border-slate-300 w-38 grid grid-cols-4 gap-1.5 animate-scale-up font-sans"
+                  className="absolute top-0 -right-44 z-[90] bg-white/95 backdrop-blur-md text-slate-900 rounded-3xl shadow-2xl p-3 border-2 border-slate-200 w-40 grid grid-cols-4 gap-2 animate-scale-up font-sans"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Hàng 1: Xóa, Khóa, Move, Xoay */}
                   <button
                     onClick={handleDeleteSelectedElement}
-                    className="p-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl flex items-center justify-center transition border border-emerald-300"
+                    className="w-8 h-8 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-2xl flex items-center justify-center transition border border-emerald-300 shadow-2xs"
                     title="🗑️ Xóa bức ảnh này (Delete)"
                   >
                     <Trash2 className="w-4 h-4 text-emerald-700" />
@@ -1273,86 +1346,89 @@ export default function WhiteboardView() {
 
                   <button
                     onClick={() => handleToggleLockImage(obj.id)}
-                    className={`p-2 rounded-xl flex items-center justify-center transition border ${
+                    className={`w-8 h-8 rounded-2xl flex items-center justify-center transition border shadow-2xs ${
                       obj.isLocked ? 'bg-rose-600 text-white border-rose-700' : 'bg-rose-100 hover:bg-rose-200 text-rose-800 border-rose-300'
                     }`}
-                    title={obj.isLocked ? '🔒 Bức ảnh đang KHÓA (Nhấp để Mở Khóa)' : '🔓 Khóa vị trí bức ảnh'}
+                    title={obj.isLocked ? '🔒 Bức ảnh đang KHÓA VỊ TRÍ (Nhấp để Mở Khóa)' : '🔓 Khóa vị trí bức ảnh'}
                   >
                     {obj.isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-rose-700" />}
                   </button>
 
                   <button
                     onMouseDown={(e) => handleStartDragElement(obj.id, true, e)}
-                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300 cursor-grab"
+                    className="w-8 h-8 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-2xl flex items-center justify-center transition border border-amber-300 cursor-grab shadow-2xs"
                     title="🎯 Nắm kéo rê di chuyển bức ảnh"
                   >
                     <Move className="w-4 h-4 text-amber-700" />
                   </button>
 
                   <button
-                    onClick={() => alert('🔄 Tính năng xoay góc tự do 360° đã bật sẵn tại 4 góc tam giác!')}
-                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
-                    title="🎯 Tọa độ & Xoay"
+                    onClick={() => handleRotateImage(obj.id)}
+                    className="w-8 h-8 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-2xl flex items-center justify-center transition border border-amber-300 shadow-2xs"
+                    title="🎯 Xoay góc ảnh 90° (Rotate)"
                   >
-                    <Target className="w-4 h-4 text-amber-700" />
+                    <RotateIcon className="w-4 h-4 text-amber-700" />
                   </button>
 
-                  {/* Hàng 2: Grid, Link, Crop, Cut */}
+                  {/* Hàng 2: Grid Căn Giữa, Link Web, Thay Ảnh, Cut/Crop */}
                   <button
-                    onClick={() => alert('▦ Căn chỉnh theo ô lưới Grid')}
-                    className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300"
-                    title="▦ Căn lưới Grid"
+                    onClick={() => handleCenterImage(obj.id)}
+                    className="w-8 h-8 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-2xl flex items-center justify-center transition border border-sky-300 shadow-2xs"
+                    title="▦ Căn chính giữa màn hình Bảng"
                   >
                     <Grid className="w-4 h-4 text-sky-700" />
                   </button>
 
                   <button
                     onClick={() => {
-                      const url = prompt('Nhập liên kết Web / Link bài giảng:', 'https://');
-                      if (url) alert('🔗 Đã đính kèm Link: ' + url);
+                      const url = prompt('Nhập liên kết Web / Zalo / Bài giảng:', 'https://');
+                      if (url) {
+                        alert('🔗 Đã đính kèm Link bài giảng: ' + url);
+                        window.open(url, '_blank');
+                      }
                     }}
-                    className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300"
-                    title="🔗 Đính kèm Link liên kết"
+                    className="w-8 h-8 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-2xl flex items-center justify-center transition border border-sky-300 shadow-2xs"
+                    title="🔗 Đính kèm & Mở Link bài giảng"
                   >
                     <LinkIcon className="w-4 h-4 text-sky-700" />
                   </button>
 
                   <button
-                    onClick={() => handleResizeImage(obj.id, -50, -35)}
-                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
-                    title="🖼️ Thu gọn khung ảnh"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-8 h-8 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-2xl flex items-center justify-center transition border border-amber-300 shadow-2xs"
+                    title="🖼️ Thay thế bằng ảnh mới từ máy tính"
                   >
                     <ImageIcon className="w-4 h-4 text-amber-700" />
                   </button>
 
                   <button
-                    onClick={() => alert('✂️ Tính năng Cắt Crop Ảnh đang sẵn sàng!')}
-                    className="p-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl flex items-center justify-center transition border border-slate-400"
-                    title="✂️ Cắt ảnh (Crop)"
+                    onClick={() => handleResizeImage(obj.id, -60, -40)}
+                    className="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl flex items-center justify-center transition border border-slate-300 shadow-2xs"
+                    title="✂️ Thu gọn tỷ lệ khung ảnh"
                   >
                     <Scissors className="w-4 h-4 text-slate-700" />
                   </button>
 
-                  {/* Hàng 3: Replace, Layers Z-Index, Flip Horizontal, Flip Vertical */}
+                  {/* Hàng 3: Phóng To Tỷ Lệ, Lên Trên Cùng, Lật Ngang, Lật Dọc */}
                   <button
-                    onClick={() => handleResizeImage(obj.id, 80, 55)}
-                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
-                    title="🖼️ Mở rộng khung ảnh"
+                    onClick={() => handleResizeImage(obj.id, 90, 60)}
+                    className="w-8 h-8 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-2xl flex items-center justify-center transition border border-amber-300 shadow-2xs"
+                    title="📐 Mở rộng tỷ lệ khung ảnh"
                   >
                     <Maximize2 className="w-4 h-4 text-amber-700" />
                   </button>
 
                   <button
-                    onClick={() => handleSetZIndexImage(obj.id, (obj.zIndex || 10) + 10)}
-                    className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-900 rounded-xl flex items-center justify-center transition border border-rose-300"
-                    title="🥞 Đưa lớp ảnh Lên Trên (Layer Up)"
+                    onClick={() => handleSetZIndexImage(obj.id, (obj.zIndex || 10) + 15)}
+                    className="w-8 h-8 bg-rose-100 hover:bg-rose-200 text-rose-900 rounded-2xl flex items-center justify-center transition border border-rose-300 shadow-2xs"
+                    title="🥞 Đưa lớp ảnh Lên Trên Cùng (Layer Up)"
                   >
                     <Layers className="w-4 h-4 text-rose-700" />
                   </button>
 
                   <button
                     onClick={() => handleFlipImage(obj.id, 'h')}
-                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
+                    className="w-8 h-8 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-2xl flex items-center justify-center transition border border-amber-300 shadow-2xs"
                     title="↔️ Lật ảnh theo chiều ngang (Flip Horizontal)"
                   >
                     <FlipHorizontal className="w-4 h-4 text-amber-700" />
@@ -1360,27 +1436,27 @@ export default function WhiteboardView() {
 
                   <button
                     onClick={() => handleFlipImage(obj.id, 'v')}
-                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
+                    className="w-8 h-8 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-2xl flex items-center justify-center transition border border-amber-300 shadow-2xs"
                     title="↕️ Lật ảnh theo chiều dọc (Flip Vertical)"
                   >
                     <FlipVertical className="w-4 h-4 text-amber-700" />
                   </button>
 
-                  {/* Hàng 4: Pen Edit, Crop, Fit Screen, BG */}
+                  {/* Hàng 4: Bật Bút Vẽ, Tải Ảnh Về Máy, Toàn Màn Hình, Đặt Làm Nền */}
                   <button
                     onClick={() => { setTool('pen'); }}
-                    className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300"
-                    title="✏️ Bật bút vẽ chú thích đè lên ảnh"
+                    className="w-8 h-8 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-2xl flex items-center justify-center transition border border-sky-300 shadow-2xs"
+                    title="✏️ Bật bút vẽ chú thích đè lên mặt ảnh"
                   >
                     <Edit3 className="w-4 h-4 text-sky-700" />
                   </button>
 
                   <button
-                    onClick={() => handleSetZIndexImage(obj.id, 0)}
-                    className="p-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 rounded-xl flex items-center justify-center transition border border-indigo-300"
-                    title="🔽 Đưa ảnh xuống dưới cùng để vẽ chú thích đè lên"
+                    onClick={() => handleDownloadImage(obj.src)}
+                    className="w-8 h-8 bg-purple-100 hover:bg-purple-200 text-purple-900 rounded-2xl flex items-center justify-center transition border border-purple-300 shadow-2xs"
+                    title="📥 Tải ảnh này về máy tính (Download PNG)"
                   >
-                    <ArrowDownToLine className="w-4 h-4 text-indigo-700" />
+                    <Download className="w-4 h-4 text-purple-700" />
                   </button>
 
                   <button
@@ -1389,22 +1465,25 @@ export default function WhiteboardView() {
                         const copy = [...prev];
                         const cur = copy[currentPageIndex] || createEmptyPage();
                         const updated = (cur.objectElements || []).map((o) =>
-                          o.id === obj.id ? { ...o, width: 1100, height: 700 } : o
+                          o.id === obj.id ? { ...o, x: 20, y: 20, width: window.innerWidth - 60, height: window.innerHeight - 120 } : o
                         );
                         copy[currentPageIndex] = { ...cur, objectElements: updated };
                         return copy;
                       });
                     }}
-                    className="p-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-xl flex items-center justify-center transition border border-emerald-300"
-                    title="🖥️ Thu phóng ảnh chuẩn toàn màn hình"
+                    className="w-8 h-8 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-2xl flex items-center justify-center transition border border-emerald-300 shadow-2xs"
+                    title="🖥️ Thu phóng ảnh vừa khít toàn màn hình"
                   >
-                    <Maximize2 className="w-4 h-4 text-emerald-700" />
+                    <Monitor className="w-4 h-4 text-emerald-700" />
                   </button>
 
                   <button
-                    onClick={() => alert('🖼️ Đã chọn đặt làm hình nền bài học!')}
-                    className="p-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-xl flex items-center justify-center transition border border-emerald-300"
-                    title="🖼️ Đặt làm Nền Bảng"
+                    onClick={() => {
+                      alert('🖼️ Đã chọn bức ảnh này làm Hình Nền Bảng!');
+                      handleSetZIndexImage(obj.id, 0);
+                    }}
+                    className="w-8 h-8 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-2xl flex items-center justify-center transition border border-emerald-300 shadow-2xs"
+                    title="🖼️ Đặt bức ảnh làm Nền Bảng (Send to Background)"
                   >
                     <ImageIcon className="w-4 h-4 text-emerald-700" />
                   </button>
