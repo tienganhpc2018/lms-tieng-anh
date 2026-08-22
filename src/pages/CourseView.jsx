@@ -1390,6 +1390,7 @@ export default function CourseView() {
         onClose={() => setIsEnrolledModalOpen(false)}
         courseId={courseId}
         courseTitle={course?.title}
+        isTeacher={userIsTeacher}
       />
 
       {/* TOAST MODAL */}
