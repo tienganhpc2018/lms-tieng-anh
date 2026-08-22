@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Square, Circle, Triangle, Minus, ArrowRight, PaintBucket, CircleDot, Sun } from 'lucide-react';
+import { X, Square, Circle, Triangle, Minus, ArrowRight, PaintBucket, CircleDot, Sun, CheckCircle, XCircle } from 'lucide-react';
 
 export default function ShapesModulePanel({
   isOpen,
@@ -14,6 +14,8 @@ export default function ShapesModulePanel({
   setStrokeWidth,
   opacity,
   setOpacity,
+  isDashed,
+  setIsDashed,
   onSelectShape,
   activeObject,
   fabricCanvas
@@ -68,6 +70,15 @@ export default function ShapesModulePanel({
     }
   };
 
+  const handleToggleDashed = () => {
+    const nextDashed = !isDashed;
+    if (setIsDashed) setIsDashed(nextDashed);
+    if (activeObject && fabricCanvas) {
+      activeObject.set('strokeDashArray', nextDashed ? [8, 8] : null);
+      fabricCanvas.renderAll();
+    }
+  };
+
   return (
     <div className="fixed top-16 left-16 z-[100] bg-[#ded8be] border-4 border-[#b8af91] rounded-3xl shadow-2xl p-4 w-96 font-sans text-slate-900 animate-scale-up">
       {/* HEADER POPUP SHAPES */}
@@ -101,7 +112,7 @@ export default function ShapesModulePanel({
         </div>
       </div>
 
-      {/* 2 THANH TRƯỢT CONTROL: ĐỘ DÀY VIỀN & ĐỘ TRONG SUỐT (CHUẨN ẢNH MYVIEWBOARD) */}
+      {/* THANH TRƯỢT CONTROL: ĐỘ DÀY VIỀN & ĐỘ TRONG SUỐT & CHỌN NÉT ĐỨT / NÉT LIỀN */}
       <div className="bg-[#d2caa9] p-3 rounded-2xl border border-[#c8c0a3] space-y-3 mb-3">
         {/* Thanh trượt 1: Độ dày viền khung bo (Stroke Width) */}
         <div>
@@ -157,9 +168,23 @@ export default function ShapesModulePanel({
             />
           </div>
         </div>
+
+        {/* CHỌN NẾT VIỀN: NẾT LIỀN HOẶC NẾT ĐỨT (DASHED LINE) THEO YÊU CẦU THẦY HẢI */}
+        <div className="flex items-center justify-between pt-2 border-t border-[#c8c0a3] text-xs font-extrabold">
+          <span>Kiểu Nét Viền Khung:</span>
+          <button
+            type="button"
+            onClick={handleToggleDashed}
+            className={`px-3 py-1 rounded-xl border text-[11px] transition font-black cursor-pointer ${
+              isDashed ? 'bg-amber-600 text-white border-amber-700' : 'bg-slate-200 text-slate-800 border-slate-400'
+            }`}
+          >
+            {isDashed ? '✂️ Viền Nét Đứt' : '➖ Viền Nét Liền'}
+          </button>
+        </div>
       </div>
 
-      {/* GRID ICONS DẠNG KHỐI HÌNH HỌC THEO MYVIEWBOARD */}
+      {/* GRID ICONS DẠNG KHỐI HÌNH HỌC + 2 ICON CHẤM BÀI DẤU TICK XANH VÀ DẤU X ĐỎ THEO YÊU CẦU THẦY HẢI */}
       <div className="bg-[#d2caa9] p-3 rounded-2xl border border-[#c8c0a3] space-y-2 mb-3">
         <div className="grid grid-cols-4 gap-2 text-center text-xs font-black">
           <button
@@ -216,22 +241,25 @@ export default function ShapesModulePanel({
             <span className="text-[10px]">Mũi Tên</span>
           </button>
 
+          {/* ========================================================================= */}
+          {/* 2 ICON CHẤM BÀI: DẤU TICK XANH (CHECK) VÀ DẤU X ĐỎ THEO CHỈ ĐẠO CỦA THẦY HẢI */}
+          {/* ========================================================================= */}
           <button
-            onClick={() => onSelectShape('polygon5')}
-            className="p-2.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-xl border border-slate-600 flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="Ngũ Giác (5 cạnh)"
+            onClick={() => onSelectShape('check')}
+            className="p-2.5 bg-emerald-100 hover:bg-emerald-200 border-2 border-emerald-600 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
+            title="✔️ Dấu Tick Xanh Đánh Dấu Đúng"
           >
-            <span className="text-xs font-black border border-slate-800 px-1 rounded">5</span>
-            <span className="text-[10px]">Ngũ Giác</span>
+            <CheckCircle className="w-5 h-5 text-emerald-600" />
+            <span className="text-[10px] text-emerald-900 font-extrabold">Tick Xanh</span>
           </button>
 
           <button
-            onClick={() => onSelectShape('polygon6')}
-            className="p-2.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-xl border border-slate-600 flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="Lục Giác (6 cạnh)"
+            onClick={() => onSelectShape('cross')}
+            className="p-2.5 bg-rose-100 hover:bg-rose-200 border-2 border-rose-600 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
+            title="❌ Dấu X Đỏ Đánh Dấu Sai"
           >
-            <span className="text-xs font-black border border-slate-800 px-1 rounded">6</span>
-            <span className="text-[10px]">Lục Giác</span>
+            <XCircle className="w-5 h-5 text-rose-600" />
+            <span className="text-[10px] text-rose-900 font-extrabold">X Đỏ</span>
           </button>
         </div>
 
