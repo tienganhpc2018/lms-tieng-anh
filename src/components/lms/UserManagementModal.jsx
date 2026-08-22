@@ -428,8 +428,8 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
   });
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in font-sans select-none">
-      <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center z-40 p-4 pt-20 sm:pt-24 animate-fade-in font-sans select-none">
+      <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[80vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden my-auto">
         {/* HEADER QUẢN LÝ TÀI KHOẢN NGUYÊN BẢN GNOMIO MOODLE */}
         <div className="p-6 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
           <div>
