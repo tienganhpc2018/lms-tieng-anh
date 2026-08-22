@@ -187,13 +187,54 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
 
   const alphabet = ['All', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
+  const AVAILABLE_CLASSES = ['Tất cả lớp', '7A3', '7A4', '7A5', '7A6', '9A2', '9A5'];
+  const [selectedClassFilter, setSelectedClassFilter] = useState('Tất cả lớp');
+
+  const handleEnrolByClass = async () => {
+    let targetStudents = allStudentsList;
+    if (selectedClassFilter !== 'Tất cả lớp') {
+      targetStudents = allStudentsList.filter((s) => {
+        const cls = (s.class_name || s.class || s.user_class || '').toUpperCase();
+        return cls.includes(selectedClassFilter.toUpperCase());
+      });
+    }
+
+    if (targetStudents.length === 0) {
+      alert(`Hiện tại chưa có học sinh nào được phân vào [${selectedClassFilter}]! Thầy Hải có thể phân lớp cho học sinh ở bảng Quản Lý Học Sinh nhé.`);
+      return;
+    }
+
+    if (!confirm(`Thầy Hải có chắc chắn muốn ghi danh ${targetStudents.length} học sinh thuộc [${selectedClassFilter}] vào khóa học này?`)) return;
+
+    setEnrolling(true);
+    try {
+      const newEntries = targetStudents.map((st) => ({
+        course_id: courseId,
+        user_id: st.id,
+        role: 'student',
+        status: 'active',
+      }));
+
+      await supabase.from('course_enrollments').upsert(newEntries, { onConflict: 'course_id,user_id' });
+      alert(`🎉 ĐÃ GHI DANH THÀNH CÔNG ${targetStudents.length} HỌC SINH [${selectedClassFilter}] VÀO KHÓA HỌC NÀY!`);
+      await fetchEnrolledUsers();
+    } catch (err) {
+      alert('Lỗi ghi danh: ' + err.message);
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   const filteredEnrolledUsers = users.filter((u) => {
     const p = u.profile || {};
     const name = (p.full_name || p.username || '').toLowerCase();
+    const cls = (p.class_name || p.class || p.user_class || '').toUpperCase();
+
     const matchesSearch = name.includes(searchQuery.toLowerCase()) || (p.email || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (letterFilter === 'All') return matchesSearch;
-    return matchesSearch && name.toUpperCase().startsWith(letterFilter);
+    const matchesLetter = letterFilter === 'All' || name.toUpperCase().startsWith(letterFilter);
+    const matchesClass = selectedClassFilter === 'Tất cả lớp' || cls.includes(selectedClassFilter.toUpperCase());
+
+    return matchesSearch && matchesLetter && matchesClass;
   });
 
   const enrolledUserIdsSet = new Set(users.map((u) => u.user_id));
@@ -221,16 +262,32 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
           <div className="flex items-center space-x-2">
             {isTeacher && (
               <>
-                <button
-                  type="button"
-                  onClick={handleEnrolAllSchoolStudents}
-                  disabled={enrolling}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 border border-emerald-400/40 cursor-pointer animate-pulse"
-                  title="Đưa toàn bộ 34 em học sinh vừa tạo vào khóa học này"
-                >
-                  <UserPlus className="w-4 h-4 text-amber-300" />
-                  <span>🚀 GHI DANH TẤT CẢ {allStudentsList.length} HỌC SINH VÀO KHÓA HỌC NÀY</span>
-                </button>
+                {/* SELECT CHỌN LỚP ĐỂ GHI DANH TỰ ĐỘNG NỔI BẬT DÀNH CHO THẦY HẢI */}
+                <div className="flex items-center space-x-1.5 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+                  <Filter className="w-4 h-4 text-emerald-400 ml-1" />
+                  <select
+                    value={selectedClassFilter}
+                    onChange={(e) => setSelectedClassFilter(e.target.value)}
+                    className="bg-slate-900 text-emerald-300 font-extrabold text-xs px-2 py-1 rounded-lg border border-slate-700 outline-none cursor-pointer"
+                  >
+                    {AVAILABLE_CLASSES.map((cls) => (
+                      <option key={cls} value={cls}>
+                        🏫 {cls === 'Tất cả lớp' ? 'Tất cả các lớp' : `Lớp ${cls}`}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={handleEnrolByClass}
+                    disabled={enrolling}
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-lg shadow-sm transition flex items-center space-x-1 border border-emerald-400/40 cursor-pointer"
+                    title={`Ghi danh tất cả học sinh thuộc [${selectedClassFilter}] vào khóa này`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Ghi Danh {selectedClassFilter === 'Tất cả lớp' ? 'Cả Lớp' : `[Lớp ${selectedClassFilter}]`}</span>
+                  </button>
+                </div>
 
                 <button
                   type="button"
