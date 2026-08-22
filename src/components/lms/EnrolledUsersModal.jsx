@@ -13,45 +13,75 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
   const [letterFilter, setLetterFilter] = useState('All');
   const [enrolling, setEnrolling] = useState(false);
 
+  const defaultClassList = [
+    { id: 'st_1', username: 'antnh', full_name: 'Trịnh Nguyễn Hoài An', email: 'antnh@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_2', username: 'annt', full_name: 'Ngô Thái An', email: 'annt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_3', username: 'annvk', full_name: 'Nguyễn Võ Khánh An', email: 'annvk@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_4', username: 'binhltt', full_name: 'Lê Thị Thanh Bình', email: 'binhltt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_5', username: 'chaunnb', full_name: 'Nguyễn Ngọc Bảo Châu', email: 'chaunnb@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_6', username: 'nhondt', full_name: 'Đinh Thành Nhơn', email: 'nhondt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_7', username: 'ngandtt', full_name: 'Đinh Trần Thảo Ngân', email: 'ngandtt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_8', username: 'khanhdn', full_name: 'Đoàn Ngọc Khánh Dương', email: 'khanhdn@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_9', username: 'thuhnm', full_name: 'Hà Nguyễn Minh Thư', email: 'thuhnm@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_10', username: 'hoangnm', full_name: 'Nguyễn Minh Hoàng', email: 'hoangnm@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_11', username: 'yenlt', full_name: 'Lê Thị Yến', email: 'yenlt@lms.edu.vn', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_12', username: 'lieunt', full_name: 'Nguyễn Thị Liễu', email: 'lieunt@lms.edu.vn', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_13', username: 'linhht', full_name: 'Hoàng Thùy Linh', email: 'linhht@lms.edu.vn', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+    { id: 'st_14', username: 'mypt', full_name: 'Phạm Trà My', email: 'mypt@lms.edu.vn', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+  ];
+
   const fetchEnrolledUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('course_enrollments')
         .select('*, profile:user_id (*)')
         .eq('course_id', courseId)
         .order('enrolled_at', { ascending: false });
 
-      let list = data || [];
-
-      // Đồng bộ từ LocalStorage nếu có dữ liệu nạp CSV
+      let dbList = data || [];
       const savedCsvStudents = JSON.parse(localStorage.getItem('lms_csv_uploaded_students_v2') || '[]');
-      const isEnrolledAll = localStorage.getItem('lms_csv_enrolled_all_v2') === 'true';
 
-      if (savedCsvStudents.length > 0 && isEnrolledAll) {
-        const enrolledMap = {};
-        list.forEach((u) => {
-          const pName = (u.profile?.username || u.profile?.full_name || '').toLowerCase();
-          if (pName) enrolledMap[pName] = u;
-        });
+      const enrolledMap = {};
+      dbList.forEach((u) => {
+        const pName = (u.profile?.username || u.profile?.full_name || '').toLowerCase();
+        if (pName) enrolledMap[pName] = u;
+      });
 
-        savedCsvStudents.forEach((st, idx) => {
-          const stName = (st.username || st.full_name || '').toLowerCase();
-          if (stName && !enrolledMap[stName]) {
-            list.push({
-              id: 'enrol_csv_' + idx,
-              course_id: courseId,
-              user_id: st.id,
-              role: 'student',
-              status: 'active',
-              enrolled_at: new Date().toISOString(),
-              profile: st,
-            });
-          }
-        });
-      }
+      // Gộp defaultClassList
+      defaultClassList.forEach((st, idx) => {
+        const stName = (st.username || st.full_name || '').toLowerCase();
+        if (stName && !enrolledMap[stName]) {
+          enrolledMap[stName] = {
+            id: 'enrol_def_' + idx,
+            course_id: courseId,
+            user_id: st.id,
+            role: 'student',
+            status: 'active',
+            enrolled_at: new Date().toISOString(),
+            profile: st,
+          };
+        }
+      });
 
-      setUsers(list);
+      // Gộp savedCsvStudents
+      savedCsvStudents.forEach((st, idx) => {
+        const stName = (st.username || st.full_name || '').toLowerCase();
+        if (stName && !enrolledMap[stName]) {
+          enrolledMap[stName] = {
+            id: 'enrol_csv_' + idx,
+            course_id: courseId,
+            user_id: st.id,
+            role: 'student',
+            status: 'active',
+            enrolled_at: new Date().toISOString(),
+            profile: st,
+          };
+        }
+      });
+
+      const finalList = Object.values(enrolledMap);
+      setUsers(finalList);
     } catch (err) {
       console.warn('Fetch enrolled error:', err);
     } finally {
@@ -67,22 +97,21 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
         .eq('role', 'student')
         .order('full_name', { ascending: true });
 
-      let list = data || [];
+      let dbList = data || [];
       const savedCsvStudents = JSON.parse(localStorage.getItem('lms_csv_uploaded_students_v2') || '[]');
-      if (savedCsvStudents.length > 0) {
-        const map = {};
-        list.forEach((s) => {
-          if (s.username) map[s.username.toLowerCase()] = s;
-        });
-        savedCsvStudents.forEach((st) => {
-          if (st.username && !map[st.username.toLowerCase()]) {
-            map[st.username.toLowerCase()] = st;
-          }
-        });
-        list = Object.values(map);
-      }
+      
+      const map = {};
+      defaultClassList.forEach((st) => {
+        map[st.username.toLowerCase()] = st;
+      });
+      dbList.forEach((s) => {
+        if (s.username) map[s.username.toLowerCase()] = s;
+      });
+      savedCsvStudents.forEach((st) => {
+        if (st.username) map[st.username.toLowerCase()] = st;
+      });
 
-      setAllStudentsList(list);
+      setAllStudentsList(Object.values(map));
     } catch (err) {}
   };
 
