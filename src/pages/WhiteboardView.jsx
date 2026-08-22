@@ -36,7 +36,7 @@ export default function WhiteboardView() {
     }
   }, [user, isTeacher, navigate]);
 
-  // ĐUỔI VỊ TRÍ THANH TOOLBAR DƯỚI CÙNG SÁT MEP (BOTTOM-3)
+  // VỊ TRÍ THANH TOOLBAR DƯỚI CÙNG SÁT MEP (BOTTOM-3)
   const [toolbarPos, setToolbarPos] = useState('bottom');
 
   // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'eraser' | shapes...
@@ -197,19 +197,21 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // KHÔI PHỤC TÍNH NĂNG GÕ TEXT CHUẨN XÁC MƯỢT MÀ 100% CỦA BẢN TRƯỚC (NHẤP TRỎ ĐÂU Ô GÕ TẠO NGAY ĐÓ)
+  // CHUẨN XÁC 100%: NHẤP TRỎ ĐÂU TẠO Ô TEXT NÉT CĂNG TẠI ĐÓ (KHÔNG KHỐI VUÔNG MỜ, KHÔNG VIỀN ĐEN)
   const handleCanvasClickCreateText = (e) => {
     if (tool !== 'text') return;
-    const rect = containerRef.current ? containerRef.current.getBoundingClientRect() : { left: 0, top: 50 };
+
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
     const newId = 'text_' + Date.now();
     const newBox = {
       id: newId,
-      x: Math.max(20, clickX),
-      y: Math.max(20, clickY),
-      width: 550,
+      x: Math.max(10, clickX),
+      y: Math.max(10, clickY),
+      width: 480,
       htmlContent: 'Nhấp để gõ bài giảng...',
       color: bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000',
       fontSize: fontSize || 36,
@@ -669,11 +671,11 @@ export default function WhiteboardView() {
       <div 
         ref={containerRef} 
         onClick={handleCanvasClickCreateText}
-        className="relative w-full h-[calc(100vh-50px)] overflow-hidden"
+        className={`relative w-full h-[calc(100vh-50px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : ''}`}
       >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
 
-        {/* CƠ CHẾ GÕ TEXT CHUẨN MƯỢT MÀ NHẤT ĐƯỢC KHÔI PHỤC VÀ TỐI ƯU (DÍNH CHẶT THANH EDITOR SÁT ĐỈNH CỦA KHUNG TEXT) */}
+        {/* CƠ CHẾ GÕ TEXT CHUẨN MƯỢT MÀ 100%: TỎ CHUỘT NHẤP ĐÂU Ô GÕ XUẤT HIỆN CHÍNH XÁC 100% TẠI ĐÓ (KHÔNG KHỐI VUÔNG MỜ, KHÔNG VIỀN ĐEN) */}
         {textElements.map((box) => {
           const isSelected = selectedTextId === box.id;
 
@@ -688,19 +690,19 @@ export default function WhiteboardView() {
               style={{
                 left: `${box.x}px`,
                 top: `${box.y}px`,
-                width: `${box.width || 550}px`,
+                width: `${box.width || 480}px`,
                 zIndex: 80,
               }}
-              className={`absolute p-2 rounded-2xl transition-all duration-150 pointer-events-auto cursor-move ${
+              className={`absolute p-1.5 rounded-xl transition-all duration-150 pointer-events-auto cursor-move ${
                 isSelected
-                  ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl bg-slate-950/40 backdrop-blur-xs'
+                  ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl bg-slate-900/30'
                   : 'border border-transparent'
               }`}
             >
               {/* THANH RICH TEXT EDITOR CHUẨN CẢM GIÁC DÍNH LIỀN 1 NƠI CỰC KỲ TIỆN TAY CHỈNH SỬA (ẢNH 2 MYVIEWBOARD) */}
               {isSelected && (
                 <div
-                  className="absolute bottom-full mb-2 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
+                  className="absolute bottom-full mb-1 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <select
@@ -811,7 +813,7 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* KHUNG NỘI DUNG GÕ CHỮ MƯỢT MÀ 100% */}
+              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG 100% KHÔNG CÓ VIỀN ĐEN HAY VUÔNG MỜ */}
               <div
                 contentEditable
                 suppressContentEditableWarning
@@ -828,7 +830,7 @@ export default function WhiteboardView() {
                   fontStyle: box.isItalic ? 'italic' : 'normal',
                   textDecoration: box.isUnderline ? 'underline' : 'none',
                 }}
-                className="bg-transparent border-none outline-none font-sans p-0 m-0 shadow-none leading-normal w-full min-h-[50px] cursor-text select-text"
+                className="bg-transparent border-none outline-none font-sans p-0 m-0 shadow-none leading-normal w-full min-h-[45px] cursor-text select-text"
               />
             </div>
           );
