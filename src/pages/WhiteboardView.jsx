@@ -11,7 +11,7 @@ import {
   Highlighter, Bold, Italic, Underline, Search, ZoomIn, ZoomOut, Check, ChevronLeft, ChevronRight,
   Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand, Minus, MousePointer, Pause, RefreshCw, Users,
   StickyNote, AlignLeft, AlignCenter, AlignRight, CornerUpRight, ArrowUpRight, Star, Diamond, Layers3, ArrowDownToLine, ArrowUpToLine,
-  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket
+  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket, GripHorizontal
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ShapesModulePanel from '../components/whiteboard/ShapesModulePanel';
@@ -55,6 +55,10 @@ export default function WhiteboardView() {
   // QUẢN LÝ Ô GÕ TEXT TRỰC QUAN KHÔNG BAO GIỜ BỊ LỖI
   const [textElements, setTextElements] = useState([]);
   const [selectedTextId, setSelectedTextId] = useState(null);
+
+  // KÉO RÊ DI CHUYỂN Ô TEXT (DRAG & DROP TEXT)
+  const [draggingTextId, setDraggingTextId] = useState(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
 
   // Quản lý Đối Tượng Đang Chọn & Menu Nổi (Floating Toolbar Position)
   const [activeObject, setActiveObject] = useState(null);
@@ -134,7 +138,7 @@ export default function WhiteboardView() {
       const obj = fc.getActiveObject();
       if (obj) {
         setActiveObject(obj);
-        setSelectedTextId(null); // Khi chọn object canvas ➔ nhả ô text!
+        setSelectedTextId(null);
         syncShapePropsToUI(obj);
         const bound = obj.getBoundingRect();
         setFloatingMenuPos({
@@ -198,7 +202,45 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // XỬ LÝ CLICK RA NGOÀI VÙNG TRỐNG (CLICK OUTSIDE BẢNG) ➔ NHẢ CHUỘT TỰ ĐỘNG ẨN KHUNG VIỀN VÀ THÀNH TOOLBAR CHỈ ĐỂ LẠI CHỮ CHUẨN ĐẸP 100%
+  // SỰ KIỆN ĐÈ GIỮ RÊ MỚI DI CHUYỂN Ô TEXTBOX THEO CHUỘT
+  const handleStartDragText = (e, id) => {
+    e.stopPropagation();
+    setSelectedTextId(id);
+    setDraggingTextId(id);
+    const box = textElements.find((t) => t.id === id);
+    if (box) {
+      dragOffsetRef.current = {
+        x: e.clientX - box.x,
+        y: e.clientY - box.y,
+      };
+    }
+  };
+
+  const handleMouseMoveGlobal = (e) => {
+    if (!draggingTextId) return;
+    const newX = e.clientX - dragOffsetRef.current.x;
+    const newY = e.clientY - dragOffsetRef.current.y;
+    setTextElements((prev) =>
+      prev.map((t) => (t.id === draggingTextId ? { ...t, x: Math.max(0, newX), y: Math.max(0, newY) } : t))
+    );
+  };
+
+  const handleMouseUpGlobal = () => {
+    if (draggingTextId) {
+      setDraggingTextId(null);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMoveGlobal);
+    window.addEventListener('mouseup', handleMouseUpGlobal);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMoveGlobal);
+      window.removeEventListener('mouseup', handleMouseUpGlobal);
+    };
+  }, [draggingTextId]);
+
+  // XỬ LÝ CLICK RA NGOÀI VÙNG TRỐNG (CLICK OUTSIDE BẢNG)
   const handleCanvasContainerClick = (e) => {
     if (tool === 'text') {
       if (!containerRef.current) return;
@@ -225,7 +267,6 @@ export default function WhiteboardView() {
       setSelectedTextId(newId);
       setTool('pointer');
     } else {
-      // Nhấp ra ngoài vùng trống Bảng khi ở tool pointer ➔ NHẢ CHUỘT TỰ ĐỘNG ẨN VIỀN TEXT & KHUNG TOOLBAR
       setSelectedTextId(null);
     }
   };
@@ -679,34 +720,41 @@ export default function WhiteboardView() {
       >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
 
-        {/* Ô GÕ TEXT TRỰC QUAN HỖ TRỢ NHẢ CHUỘT UNFOCUS CLICK OUTSIDE TỰ ĐỘNG ẨN KHUNG VIỀN VÀ TOOLBAR CHỈ HIỂN THỊ NGUYÊN VẸN NẾT CHỮ NẾT CĂNG RÕ RÀNG TRÊN BẢNG */}
+        {/* Ô GÕ TEXT TRỰC QUAN HỖ TRỢ KÉO RÊ DI CHUYỂN (DRAGGABLE) THOẢI MÁI THEO THẦY HẢI CHỈ ĐẠO (ẢNH media_1787414900314.png) */}
         {textElements.map((box) => {
           const isSelected = selectedTextId === box.id;
 
           return (
             <div
               key={box.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedTextId(box.id);
-                if (fabricCanvas) fabricCanvas.discardActiveObject();
-              }}
               style={{
                 left: `${box.x}px`,
                 top: `${box.y}px`,
                 width: `${box.width || 450}px`,
                 zIndex: 80,
               }}
-              className={`absolute p-1 rounded-xl transition-all duration-150 pointer-events-auto cursor-move ${
+              className={`absolute p-1 rounded-xl transition-all duration-75 pointer-events-auto ${
                 isSelected
                   ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl bg-slate-900/20'
                   : 'border border-transparent bg-transparent'
               }`}
             >
+              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) TRỰC QUAN Ở VIỀN TRÊN DÙNG ĐỂ RÊ CHUỘT THOẢI MÁI */}
+              {isSelected && (
+                <div
+                  onMouseDown={(e) => handleStartDragText(e, box.id)}
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 z-[110] bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black shadow-md cursor-grab active:cursor-grabbing flex items-center space-x-1 border border-amber-300"
+                  title="Nhấn giữ chuột tại đây để Kéo Rê di chuyển ô Text"
+                >
+                  <GripHorizontal className="w-3.5 h-3.5" />
+                  <span>Kéo Di Chuyển</span>
+                </div>
+              )}
+
               {/* THANH RICH TEXT EDITOR CHUẨN CẢM GIÁC DÍNH LIỀN 1 NƠI CỰC KỲ TIỆN TAY CHỈNH SỬA (CHỈ HIỂN THỊ KHI ĐANG ĐƯỢC CHỌN) */}
               {isSelected && (
                 <div
-                  className="absolute bottom-full mb-1 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
+                  className="absolute bottom-full mb-3 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <select
@@ -821,6 +869,11 @@ export default function WhiteboardView() {
               <div
                 contentEditable
                 suppressContentEditableWarning
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedTextId(box.id);
+                  if (fabricCanvas) fabricCanvas.discardActiveObject();
+                }}
                 onBlur={(e) => {
                   const html = e.target.innerHTML;
                   setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, htmlContent: html } : t));
