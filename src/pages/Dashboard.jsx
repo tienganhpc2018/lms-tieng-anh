@@ -59,13 +59,75 @@ export default function Dashboard() {
   const [copiedCode, setCopiedCode] = useState('');
   const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
 
-  // State Ẩn Khóa Học & Menu 3 dấu chấm (Hidden from students & Delete Course)
+  // State Ẩn Khóa Học & Đánh Dấu Yêu Thích & Thư Viện 20+ Ảnh AI
   const [hiddenCourseIds, setHiddenCourseIds] = useState(() => {
     return JSON.parse(localStorage.getItem('lms_hidden_courses_v2') || '[]');
+  });
+  const [starredCourseIds, setStarredCourseIds] = useState(() => {
+    return JSON.parse(localStorage.getItem('lms_starred_courses_v2') || '[]');
   });
   const [activeDropdownCourseId, setActiveDropdownCourseId] = useState(null);
   const [editingCourse, setEditingCourse] = useState(null);
   const [editCourseTitle, setEditCourseTitle] = useState('');
+  const [coverPickerCourse, setCoverPickerCourse] = useState(null);
+
+  const AI_COVER_LIBRARY = [
+    { id: 1, title: 'English Global Success 3D', url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80' },
+    { id: 2, title: 'Smart Classroom & AI', url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80' },
+    { id: 3, title: 'Modern E-Library', url: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&auto=format&fit=crop&q=80' },
+    { id: 4, title: 'Language Study Lab', url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&auto=format&fit=crop&q=80' },
+    { id: 5, title: 'Advanced Grammar & Books', url: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80' },
+    { id: 6, title: 'Teacher Presentation 3D', url: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&auto=format&fit=crop&q=80' },
+    { id: 7, title: 'Digital Knowledge Network', url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80' },
+    { id: 8, title: 'Oxford Student Campus', url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80' },
+    { id: 9, title: 'Future Education Tech', url: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=800&auto=format&fit=crop&q=80' },
+    { id: 10, title: 'English Test Online 3D', url: 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800&auto=format&fit=crop&q=80' },
+    { id: 11, title: 'Vocabulary & Mindmap', url: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=800&auto=format&fit=crop&q=80' },
+    { id: 12, title: 'IELTS & Speaking Practice', url: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800&auto=format&fit=crop&q=80' },
+    { id: 13, title: 'World Communication Map', url: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop&q=80' },
+    { id: 14, title: 'Creative Writing & Notes', url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&auto=format&fit=crop&q=80' },
+    { id: 15, title: 'Smart Graduation Certificate', url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&auto=format&fit=crop&q=80' },
+    { id: 16, title: 'Digital Tablet Learning', url: 'https://images.unsplash.com/photo-1588072432836-e10032774350?w=800&auto=format&fit=crop&q=80' },
+    { id: 17, title: 'Global Team Discussion', url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80' },
+    { id: 18, title: 'English Story Books Art', url: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?w=800&auto=format&fit=crop&q=80' },
+    { id: 19, title: 'High School English Test', url: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=800&auto=format&fit=crop&q=80' },
+    { id: 20, title: 'AI Assistant E-Learning', url: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&auto=format&fit=crop&q=80' },
+  ];
+
+  const toggleStarCourse = (courseId, e) => {
+    e.stopPropagation();
+    setActiveDropdownCourseId(null);
+
+    const isStarred = starredCourseIds.includes(courseId);
+    const updated = isStarred
+      ? starredCourseIds.filter((id) => id !== courseId)
+      : [...starredCourseIds, courseId];
+
+    setStarredCourseIds(updated);
+    localStorage.setItem('lms_starred_courses_v2', JSON.stringify(updated));
+
+    showToast(
+      'success',
+      isStarred ? 'Đã Bỏ Đánh Dấu Yêu Thích' : '⭐ Đã Đánh Dấu Khóa Học Yêu Thích',
+      isStarred ? 'Khóa học đã trở về thứ tự bình thường.' : 'Khóa học được ghim lên ĐẦU danh sách Dashboard!'
+    );
+  };
+
+  const handleSelectPresetCover = async (courseId, imgUrl) => {
+    try {
+      try {
+        await supabase.from('courses').update({ cover_image: imgUrl }).eq('id', courseId);
+      } catch (err) {}
+
+      setCourses((prev) =>
+        prev.map((c) => (c.id === courseId ? { ...c, cover_image: imgUrl, cover_url: imgUrl } : c))
+      );
+      showToast('success', 'Đã Đổi Ảnh Bìa Khóa Học', 'Hình ảnh AI 3D mới đã được áp dụng làm ảnh bìa khóa học!');
+      setCoverPickerCourse(null);
+    } catch (err) {
+      showToast('error', 'Lỗi Đổi Ảnh', err.message);
+    }
+  };
 
   const toggleHideCourse = async (courseId, e) => {
     e.stopPropagation();
@@ -349,6 +411,12 @@ export default function Dashboard() {
       c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const sortedCourses = [...filteredCourses].sort((a, b) => {
+    const aStar = starredCourseIds.includes(a.id) ? 1 : 0;
+    const bStar = starredCourseIds.includes(b.id) ? 1 : 0;
+    return bStar - aStar;
+  });
 
   const handleUploadCoverImage = async (courseId, e) => {
     const file = e.target.files?.[0];
@@ -640,23 +708,18 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      {filteredCourses.map((courseItem, idx) => {
-                        const COURSE_COVER_PRESETS = [
-                          'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80',
-                          'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
-                          'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&auto=format&fit=crop&q=80',
-                          'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&auto=format&fit=crop&q=80',
-                          'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80',
-                          'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&auto=format&fit=crop&q=80',
-                        ];
-                        const bgImg = courseItem.cover_url || courseItem.cover_image || COURSE_COVER_PRESETS[idx % COURSE_COVER_PRESETS.length];
+                      {sortedCourses.map((courseItem, idx) => {
+                        const bgImg = courseItem.cover_url || courseItem.cover_image || AI_COVER_LIBRARY[idx % AI_COVER_LIBRARY.length].url;
                         const createdDateFormatted = new Date(courseItem.created_at || Date.now()).toLocaleDateString('vi-VN');
+                        const isStarred = starredCourseIds.includes(courseItem.id);
 
                         return (
                           <div
                             key={courseItem.id}
                             onClick={() => navigate(`/course/${courseItem.id}`)}
-                            className="bg-white border border-slate-200 hover:border-emerald-400 rounded-3xl overflow-hidden transition duration-300 cursor-pointer group space-y-0 shadow-2xs hover:shadow-xl flex flex-col justify-between"
+                            className={`bg-white border rounded-3xl overflow-hidden transition duration-300 cursor-pointer group space-y-0 shadow-2xs hover:shadow-xl flex flex-col justify-between relative ${
+                              isStarred ? 'border-amber-400 ring-2 ring-amber-400/30' : 'border-slate-200 hover:border-emerald-400'
+                            }`}
                           >
                             {/* KHỐI ẢNH BÌA COVER THẨM MỸ SẮC NÉT (ĐÃ BỎ CHỮ THCS VÀ BỎ NÚT ĐÈ BANNERS TRẦN) */}
                             <div className="relative h-40 w-full overflow-hidden bg-slate-900">
@@ -666,14 +729,22 @@ export default function Dashboard() {
                                 className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition duration-500"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+                              
+                              {/* CỜ GHIM NGÔI SAO YÊU THÍCH SÁNG VÀNG NỔI BẬT */}
+                              {isStarred && (
+                                <span className="absolute top-3 left-3 bg-amber-500 text-slate-950 text-xs font-black px-2.5 py-1 rounded-xl shadow-lg border border-amber-300 flex items-center space-x-1 animate-pulse">
+                                  <span>⭐ Yêu Thích</span>
+                                </span>
+                              )}
                             </div>
 
                             <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
                               <div>
                                 <div className="flex justify-between items-start gap-2">
                                   <div className="space-y-1 flex-1">
-                                    <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition leading-snug">
-                                      {courseItem.title}
+                                    <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition leading-snug flex items-center space-x-1.5">
+                                      {isStarred && <span className="text-amber-500">⭐</span>}
+                                      <span>{courseItem.title}</span>
                                     </h3>
 
                                     {/* NHÃN HIDDEN FROM STUDENTS CHUẨN MOODLE (ẢNH 2) */}
@@ -697,7 +768,16 @@ export default function Dashboard() {
                                       </button>
 
                                       {activeDropdownCourseId === courseItem.id && (
-                                        <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl py-1.5 z-30 text-xs font-bold text-slate-700 space-y-1 animate-scale-up">
+                                        <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl py-1.5 z-30 text-xs font-bold text-slate-700 space-y-1 animate-scale-up">
+                                          {/* NÚT ĐÁNH DẤU YÊU THÍCH STAR THIS COURSE */}
+                                          <button
+                                            type="button"
+                                            onClick={(e) => toggleStarCourse(courseItem.id, e)}
+                                            className="w-full text-left px-3 py-1.5 hover:bg-amber-50 flex items-center space-x-2 text-amber-700 font-extrabold"
+                                          >
+                                            <span>{isStarred ? '⭐ Unstar this course (Bỏ ghim)' : '⭐ Star this course (Ghim Yêu Thích)'}</span>
+                                          </button>
+
                                           <button
                                             type="button"
                                             onClick={(e) => toggleHideCourse(courseItem.id, e)}
@@ -719,12 +799,25 @@ export default function Dashboard() {
                                             <span>✏️ Edit course settings (Sửa tên)</span>
                                           </button>
 
-                                          {/* NÚT THAY ẢNH BÌA TINH TẾ ĐẶT TRONG MENU 3 CHẤM */}
+                                          {/* NÚT MỞ THƯ VIỆN 20+ ẢNH BÌA AI MẪU 1-CLICK */}
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveDropdownCourseId(null);
+                                              setCoverPickerCourse(courseItem);
+                                            }}
+                                            className="w-full text-left px-3 py-1.5 hover:bg-purple-50 flex items-center space-x-2 text-purple-700 font-extrabold"
+                                          >
+                                            <span>🎨 Thư viện 20+ Ảnh Bìa AI 3D (1-Click)</span>
+                                          </button>
+
+                                          {/* NÚT THAY ẢNH BÌA TINH TẾ TỪ MÁY TÍNH */}
                                           <label
                                             onClick={(e) => e.stopPropagation()}
-                                            className="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center space-x-2 text-purple-700 cursor-pointer"
+                                            className="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center space-x-2 text-slate-600 cursor-pointer"
                                           >
-                                            <span>🖼️ Change cover image (Tải ảnh mới)</span>
+                                            <span>🖼️ Change cover image (Tải ảnh từ máy)</span>
                                             <input
                                               type="file"
                                               accept="image/*"
@@ -1024,7 +1117,7 @@ export default function Dashboard() {
               <h3 className="font-extrabold text-base text-slate-900 flex items-center space-x-2">
                 <span>✏️ Edit Course Settings - Sửa Tên Khóa Học</span>
               </h3>
-              <button onClick={() => setEditingCourse(null)} className="text-slate-400 hover:text-slate-700">✕</button>
+              <button onClick={() => setEditingCourse(null)} className="text-slate-400 hover:text-slate-700 font-extrabold">✕</button>
             </div>
 
             <form onSubmit={handleUpdateCourseTitle} className="space-y-4">
@@ -1051,12 +1144,76 @@ export default function Dashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-md transition"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-md transition cursor-pointer"
                 >
                   Save changes (Lưu thay đổi)
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL THƯ VIỆN 20+ ẢNH BÌA AI 3D CHỌN 1-CLICK CHO THẦY HẢI */}
+      {coverPickerCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 font-sans select-none">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col border border-slate-200 overflow-hidden animate-scale-up">
+            <div className="p-6 bg-purple-900 text-white flex justify-between items-center border-b border-purple-800">
+              <div>
+                <h3 className="font-extrabold text-lg text-amber-300 flex items-center space-x-2">
+                  <span>🎨 Thư Viện 20+ Ảnh Bìa AI 3D E-Learning Sắc Nét</span>
+                </h3>
+                <p className="text-xs text-purple-200 font-semibold mt-0.5">
+                  Nhấp 1-Click vào hình ảnh bên dưới để thay làm ảnh bìa cho khóa: <strong className="text-amber-300">{coverPickerCourse.title}</strong>
+                </p>
+              </div>
+
+              <button
+                onClick={() => setCoverPickerCourse(null)}
+                className="p-2 hover:bg-purple-800 rounded-xl text-purple-200 hover:text-white transition font-extrabold"
+              >
+                ✕ Đóng
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 bg-slate-50">
+              {AI_COVER_LIBRARY.map((preset) => (
+                <div
+                  key={preset.id}
+                  onClick={() => handleSelectPresetCover(coverPickerCourse.id, preset.url)}
+                  className="group relative rounded-2xl overflow-hidden border-2 border-slate-200 hover:border-purple-600 shadow-xs hover:shadow-xl transition duration-300 cursor-pointer bg-slate-900"
+                >
+                  <div className="h-28 w-full overflow-hidden">
+                    <img
+                      src={preset.url}
+                      alt={preset.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition duration-500 opacity-90"
+                    />
+                  </div>
+                  <div className="p-2.5 bg-white space-y-1">
+                    <span className="text-[11px] font-extrabold text-slate-800 block truncate group-hover:text-purple-700">
+                      {preset.title}
+                    </span>
+                    <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md inline-block">
+                      1-Click Áp Dụng ✨
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 bg-white border-t border-slate-200 flex justify-between items-center">
+              <span className="text-xs font-extrabold text-slate-500">
+                Hiển thị <strong className="text-purple-700">20/20</strong> ảnh bìa AI 3D cao cấp
+              </span>
+              <button
+                type="button"
+                onClick={() => setCoverPickerCourse(null)}
+                className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold text-xs rounded-xl transition"
+              >
+                Hủy
+              </button>
+            </div>
           </div>
         </div>
       )}
