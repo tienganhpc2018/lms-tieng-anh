@@ -333,12 +333,14 @@ export default function UserManagementModal({ isOpen, onClose }) {
     reader.readAsText(file);
   };
 
+  const [csvUploadClassName, setCsvUploadClassName] = useState('7A3');
+
   const handleResetCsvStudents = () => {
-    if (confirm('Thầy Hải có chắc chắn muốn xóa toàn bộ danh sách CSV cũ để nạp lại file CSV mới từ đầu?')) {
+    if (confirm('Thầy Hải có chắc chắn muốn xóa toàn bộ danh sách CSV cũ để nạp lại từ đầu?')) {
       localStorage.removeItem('lms_csv_uploaded_students_v2');
       localStorage.removeItem('lms_csv_enrolled_all_v2');
       fetchUsers();
-      alert('🧹 Đã xóa danh sách CSV cũ! Bây giờ Thầy Hải có thể chọn file CSV mới để nạp lại nhé!');
+      alert('🧹 Đã làm sạch toàn bộ dữ liệu CSV cũ! Bây giờ Thầy Hải có thể chọn nạp lại các file CSV mới nhé!');
     }
   };
 
@@ -356,43 +358,41 @@ export default function UserManagementModal({ isOpen, onClose }) {
         raw_password_hint: r.password.trim(),
         full_name: `${r.lastname} ${r.firstname}`.trim() || r.username,
         email: r.email?.trim() || `${r.username.trim().toLowerCase()}@lms.edu.vn`,
+        class_name: r.class_name || r.class || csvUploadClassName,
         role: 'student',
         approved: true,
         suspended: false,
         created_at: new Date().toISOString(),
       }));
 
-      // 1. Ghi đè 100% bằng chính xác N học sinh từ file CSV của Thầy Hải
-      localStorage.setItem('lms_csv_uploaded_students_v2', JSON.stringify(newCreatedUsers));
-      localStorage.setItem('lms_csv_enrolled_all_v2', 'true');
+      // 1. CỘNG DỒN TÍCH LŨY - GIỮ NGUYÊN 100% TOÀN BỘ CÁC LỚP ĐÃ UPLOAD TRƯỚC ĐÓ
+      const existingSaved = JSON.parse(localStorage.getItem('lms_csv_uploaded_students_v2') || '[]');
+      const uniqueMap = {};
+
+      // Giữ vĩnh viễn toàn bộ học sinh của các lớp đã nạp trước
+      existingSaved.forEach((st) => {
+        if (st.username) uniqueMap[st.username.toLowerCase()] = st;
+      });
+
+      // Thêm / cập nhật học sinh từ file CSV lớp mới nạp
+      newCreatedUsers.forEach((st) => {
+        if (st.username) {
+          const key = st.username.toLowerCase();
+          uniqueMap[key] = { ...(uniqueMap[key] || {}), ...st };
+        }
+      });
+
+      const finalAccumulatedList = Object.values(uniqueMap);
+      localStorage.setItem('lms_csv_uploaded_students_v2', JSON.stringify(finalAccumulatedList));
 
       // 2. Thử insert vào Supabase DB
       try {
-        await supabase.from('profiles').upsert(newCreatedUsers, { onConflict: 'username' });
+        await supabase.from('profiles').upsert(finalAccumulatedList, { onConflict: 'username' });
       } catch (dbErr) {}
-
-      // 3. Tự động ghi danh vào tất cả các khóa học
-      try {
-        const { data: courses } = await supabase.from('courses').select('id');
-        if (courses && courses.length > 0) {
-          const enrollments = [];
-          newCreatedUsers.forEach((u) => {
-            courses.forEach((c) => {
-              enrollments.push({
-                course_id: c.id,
-                user_id: u.id,
-                role: 'student',
-                status: 'active',
-              });
-            });
-          });
-          await supabase.from('course_enrollments').upsert(enrollments);
-        }
-      } catch (enrollErr) {}
 
       fetchUsers();
 
-      alert(`🚀 ĐÃ NẠP & LƯU CHÍNH XÁC ${newCreatedUsers.length} HỌC SINH TỪ FILE CSV CỦA THẦY HẢI!\n\nThầy Hải mở danh sách [Browse list of users] để xem đúng ${newCreatedUsers.length + 1} học sinh nhé!`);
+      alert(`🎉 ĐÃ CỘNG DỒN THÀNH CÔNG ${newCreatedUsers.length} HỌC SINH MỚI TỪ FILE CSV [LỚP ${csvUploadClassName}]!\n\nTỔNG CỘNG HỆ THỐNG ĐÃ LƯU ĐẦY ĐỦ ${finalAccumulatedList.length + 1} HỌC SINH TOÀN TRƯỜNG!\n(Dữ liệu tất cả các lớp up trước đó đều được bảo toàn vĩnh viễn 100%)`);
       setCsvFile(null);
       setCsvPreviewRows([]);
       setActiveTab('browse');
@@ -859,9 +859,27 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
               </div>
 
               <div className="space-y-3">
-                <label className="block text-xs font-extrabold text-slate-800 uppercase">
-                  Chọn File .CSV danh sách học sinh:
-                </label>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="block text-xs font-extrabold text-slate-800 uppercase">
+                    Chọn File .CSV danh sách học sinh:
+                  </label>
+
+                  <div className="flex items-center space-x-2 bg-purple-100/70 px-3 py-1.5 rounded-xl border border-purple-200">
+                    <span className="text-xs font-extrabold text-purple-900 uppercase">🏫 Chọn Lớp:</span>
+                    <select
+                      value={csvUploadClassName}
+                      onChange={(e) => setCsvUploadClassName(e.target.value)}
+                      className="bg-white border border-purple-300 text-purple-900 font-extrabold text-xs px-2.5 py-1 rounded-lg shadow-2xs outline-none cursor-pointer"
+                    >
+                      {['7A3', '7A4', '7A5', '7A6', '9A2', '9A5'].map((clsName) => (
+                        <option key={clsName} value={clsName}>
+                          Lớp {clsName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="p-8 border-2 border-dashed border-purple-300 hover:border-purple-500 rounded-3xl bg-white text-center space-y-2 cursor-pointer relative">
                   <input
                     type="file"
@@ -871,9 +889,9 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                   />
                   <Upload className="w-10 h-10 text-purple-500 mx-auto" />
                   <p className="font-extrabold text-sm text-slate-800">
-                    {csvFile ? `File đã chọn: ${csvFile.name}` : 'Kéo thả file CSV vào đây hoặc Bấm để chọn file'}
+                    {csvFile ? `File đã chọn: ${csvFile.name} (Gán vào Lớp ${csvUploadClassName})` : 'Kéo thả file CSV vào đây hoặc Bấm để chọn file'}
                   </p>
-                  <p className="text-xs text-slate-400">Định dạng CSV chứa các cột: username, password, firstname, lastname, email</p>
+                  <p className="text-xs text-slate-400">Định dạng CSV chứa các cột: username, password, firstname, lastname, email, class</p>
                 </div>
               </div>
 
