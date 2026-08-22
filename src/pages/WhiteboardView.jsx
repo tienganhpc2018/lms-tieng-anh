@@ -127,7 +127,7 @@ export default function WhiteboardView() {
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
   const FONT_SIZES = [14, 18, 24, 32, 40, 48, 64, 80, 96];
 
-  // GIẢI PHÁP TRIỆT ĐỂ 100%: BASE64 SVG CURSOR GÁN TRỰC TIẾP LÊN THẺ CANVAS VÀ CONTAINER (KHÔNG BAO GIỜ HIỂN THỊ DẤU +)
+  // TRẢ LẠI CON TRỎ CHUỘT HỆ THỐNG RÕ RÀNG 100% RÕ NẾT KHÔNG BAO GIỜ BỊ CHE HOẶC ẨN
   const getCursorStyle = () => {
     if (tool === 'hand') {
       return isPanning ? 'grabbing' : 'grab';
@@ -139,18 +139,9 @@ export default function WhiteboardView() {
       return 'text';
     }
     if (tool === 'eraser') {
-      const eraserSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='%23ef4444' stroke='%23ffffff' stroke-width='2'><rect x='4' y='8' width='16' height='12' rx='3'/></svg>`;
-      return `url("data:image/svg+xml;utf8,${encodeURIComponent(eraserSvg)}") 4 20, pointer`;
+      return 'cell';
     }
-    if (tool === 'highlighter') {
-      const hlSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='%23fef08a' stroke='%23000000' stroke-width='1.5'><path d='m9 11-6 6v3h3l6-6'/><path d='m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4'/></svg>`;
-      return `url("data:image/svg+xml;utf8,${encodeURIComponent(hlSvg)}") 2 24, pointer`;
-    }
-
-    // MẶC ĐỊNH BÚT VIẾT ✏️: NGỌN BÚT NẮM CHUẨN XÁC NẤC ĐẦU BÚT (DÙNG POINTER TỰ NHIÊN ĐẢM BẢO KHÔNG BỊ CROSSHAIR DẤU +)
-    const strokeColor = color === '#000000' ? '#ffffff' : (color || '#ffffff');
-    const penSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='${encodeURIComponent(strokeColor)}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'/><path d='m15 5 4 4'/></svg>`;
-    return `url("data:image/svg+xml;utf8,${encodeURIComponent(penSvg)}") 0 24, pointer`;
+    return 'crosshair';
   };
 
   // XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
@@ -1028,7 +1019,7 @@ export default function WhiteboardView() {
         </div>
       </div>
 
-      {/* WORKSPACE CANVAS AREA - ĐỒNG BỘ CURSOR TRỰC TIẾP LÊN CONTAINER VÀ CẢ CANVAS REF */}
+      {/* WORKSPACE CANVAS AREA */}
       <div
         ref={containerRef}
         onMouseDown={handleStartPan}
@@ -1045,7 +1036,6 @@ export default function WhiteboardView() {
           }
         }}
       >
-        {/* THẺ CANVAS THUỘC LỚP Z-10: GÁN CURSOR TRỰC TIẾP TRÁNH BỊ CHROME/EDGE MẶC ĐỊNH LÀ CROSSHAIR (+) */}
         <canvas
           ref={canvasRef}
           style={{ cursor: activeCursor }}
@@ -1177,10 +1167,11 @@ export default function WhiteboardView() {
           );
         })}
 
-        {/* RENDER Ô TEXT & STICKY */}
+        {/* RENDER Ô TEXT & STICKY (SỬA LỖI CHE THANH ĐIỀU KHIỂN ĐỈNH BẢNG: TỰ ĐỘNG ĐẨY ĐỊNH DẠNG XUỐNG DƯỚI KHI Ô TEXT NẰM Ở ĐỈNH (box.y < 90px)) */}
         {(currentPage.textElements || []).map((box) => {
           const isSelected = selectedTextId === box.id;
           const isSticky = box.type === 'sticky';
+          const isNearTop = box.y < 90; // Ô text sát đỉnh trên cùng
 
           return (
             <div
@@ -1220,9 +1211,13 @@ export default function WhiteboardView() {
                 <span>Kéo rê</span>
               </div>
 
-              {/* THANH TOOLBAR DÍNH LIỀN NGAY SÁT TRÊN ĐỈNH Ô VĂN BẢN */}
+              {/* THANH TOOLBAR DÍNH LIỀN Ô VĂN BẢN (KHÔNG BAO GIỜ CHE CON TRỎ / HEADER: TỰ ĐỘNG XUỐNG DƯỚI KHI Ở ĐỈNH (top-full mt-2)) */}
               {isSelected && (
-                <div className="absolute bottom-full mb-2 left-0 z-[90] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/60 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up font-sans">
+                <div
+                  className={`absolute left-0 z-[90] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/60 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up font-sans ${
+                    isNearTop ? 'top-full mt-2' : 'bottom-full mb-2'
+                  }`}
+                >
                   <select
                     value={box.fontFamily || 'Noto Sans'}
                     onChange={(e) => {
