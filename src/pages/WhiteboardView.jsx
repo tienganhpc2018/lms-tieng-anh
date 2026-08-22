@@ -149,8 +149,8 @@ export default function WhiteboardView() {
     return 'crosshair';
   };
 
-  // ĐẢM BẢO Z-INDEX CANVAS LUÔN Ở TẦNG CAO TRÊN ĐỈNH ẢNH KHI VẼ CHÚ THÍCH
-  const isDrawingToolActive = tool !== 'pointer' && tool !== 'hand' && tool !== 'text' && tool !== 'sticky';
+  // ĐẢM BẢO Z-INDEX CANVAS CHỈ CAO KHI ĐANG VẼ REALTIME (isDrawing === true) VÀ TỰ ĐỘNG XUỐNG THẤP ĐỂ RÊ ẢNH ĐƯỢC TỨC THÌ KHI DỪNG VẼ
+  const isDrawingToolActive = (tool !== 'pointer' && tool !== 'hand' && tool !== 'text' && tool !== 'sticky') && isDrawing;
 
   // XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
   const handleDeleteSelectedElement = () => {
@@ -805,7 +805,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // CANVAS DRAWING LOGIC - ĐẢM BẢO LƯU NÉT VẼ ĐÈ ẢNH TRÊN CANVAS
+  // CANVAS DRAWING LOGIC - ĐẢM BẢO LƯU NÉT VẼ ĐÈ ẢNH TRÊN CANVAS VÀ TỰ ĐỘNG RESET TRẢ Z-INDEX VỀ THẤP ĐỂ RÊ ẢNH ĐƯỢC TỨC THÌ KHÔNG BỊ CẢN TRỞ
   const startDrawing = (e) => {
     if (tool === 'pointer' || tool === 'hand') return;
     const canvas = canvasRef.current;
@@ -899,6 +899,8 @@ export default function WhiteboardView() {
       }
     }
 
+    // TỰ ĐỘNG DỪNG VẼ -> RESET CON TRỎ VỀ POINTER VÀ TRẢ Z-INDEX VỀ THẤP ĐỂ THẦY HẢI KÉO RÊ BỨC ẢNH ĐƯỢC NGAY LẬP TỨC!
+    setTool('pointer');
     saveSnapshotState();
   };
 
@@ -1205,7 +1207,7 @@ export default function WhiteboardView() {
           }
         }}
       >
-        {/* CANVAS VẼ CHUẨN - NẾU LÀ CÔNG CỤ VẼ THÌ ĐƯỢC ĐẶT Z-INDEX 40 ĐỂ NÉT VẼ ĐÈ VĨNH VIỄN LÊN ẢNH VÀ ĐƯỢC LƯU TRỰC TIẾP */}
+        {/* CANVAS VẼ CHUẨN - KHI ĐANG VẼ REALTIME (isDrawing === true) Z-INDEX NỔI LÊN 40, DỪNG VẼ SẼ TRẢ VỀ Z-INDEX 10 ĐỂ THẦY HẢI KÉO RÊ BỨC ẢNH ĐƯỢC NGAY TỨC THÌ */}
         <canvas
           ref={canvasRef}
           style={{
@@ -1248,7 +1250,7 @@ export default function WhiteboardView() {
           </svg>
         )}
 
-        {/* BỨC ẢNH: CỨ NHẤP VÀO THÌ HIỆN BẢNG 16 ICON VÀ NÚT CO KÉO, THẢ OUT BỎ CHỌN THÌ TỰ ẨN 100% SẠCH SẼ */}
+        {/* BỨC ẢNH: CỨ NHẤP VÀO THÌ HIỆN BẢNG 16 ICON VÀ NÚT CO KÉO, THẢ OUT BỎ CHỌN THÌ TỰ ẨN 100% SẠCH SẼ - RÊ KÉO ĐƯỢC TỨC THÌ NAY CẢ KHI VỪA CHÚ THÍCH XONG */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
 
@@ -1270,12 +1272,10 @@ export default function WhiteboardView() {
                 top: `${obj.y + panOffset.y}px`,
                 width: `${obj.width || 700}px`,
                 height: `${obj.height || 480}px`,
-                zIndex: isDrawingToolActive ? 5 : (isSelected ? 35 : (obj.zIndex ?? 10)),
+                zIndex: isDrawingToolActive ? 5 : (isSelected ? 35 : (obj.zIndex ?? 20)),
                 transform: `rotate(${obj.rotation || 0}deg) scaleX(${obj.flipH ? -1 : 1}) scaleY(${obj.flipV ? -1 : 1})`,
               }}
-              className={`absolute group select-none pointer-events-auto rounded-xl transition-all duration-150 ${
-                tool === 'pointer' ? 'cursor-move' : ''
-              } ${
+              className={`absolute group select-none pointer-events-auto rounded-xl transition-all duration-150 cursor-move ${
                 isSelected
                   ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl'
                   : 'border border-transparent'
@@ -1504,7 +1504,7 @@ export default function WhiteboardView() {
           );
         })}
 
-        {/* RENDER Ô TEXT & STICKY: XÓA BỎ CHỮ "KÉO RÊ" GÂY NHẦM LẪN BÀI HỌC - KHI THẢ RA NÓ MẤT VIỀN, NHẤP LẠI KHUNG TEXT THÌ NÓ HIỆN */}
+        {/* RENDER Ô TEXT & STICKY */}
         {(currentPage.textElements || []).map((box) => {
           const isSelected = selectedTextId === box.id;
           const isSticky = box.type === 'sticky';
@@ -1532,9 +1532,7 @@ export default function WhiteboardView() {
                 borderColor: isSticky ? (box.borderColor || '#fde047') : 'transparent',
                 zIndex: 45,
               }}
-              className={`absolute group p-2 transition-all duration-150 rounded-2xl relative pointer-events-auto ${
-                tool === 'pointer' ? 'cursor-move' : ''
-              } ${
+              className={`absolute group p-2 transition-all duration-150 rounded-2xl relative pointer-events-auto cursor-move ${
                 isSticky ? 'shadow-xl border-2 rotate-1 hover:rotate-0' : ''
               } ${
                 isSelected
