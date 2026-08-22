@@ -41,7 +41,7 @@ export default function WhiteboardView() {
 
   // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'eraser' | shapes...
   const [tool, setTool] = useState('pointer');
-  const [color, setColor] = useState('#dc2626');
+  const [color, setColor] = useState('#ffffff');
   const [fontSize, setFontSize] = useState(36);
   const [fontFamily, setFontFamily] = useState('Noto Sans');
 
@@ -138,7 +138,7 @@ export default function WhiteboardView() {
         if (obj.type === 'textbox') {
           setFloatingMenuPos({
             left: Math.max(20, bound.left),
-            top: Math.max(65, bound.top - 60),
+            top: Math.max(65, bound.top - 58),
           });
         } else {
           setFloatingMenuPos({
@@ -204,7 +204,7 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // CHỌN TEXT (T) ➔ THẦY NHẤP CHUỘT VÀO ĐÂU TẠO KHUNG TEXT NỔI CHUẨN TẠI ĐÓ (KHÔNG KHỐI XANH VUÔNG MỚ)
+  // CHỌN TEXT (T) ➔ THẦY NHẤP CHUỘT TRỎ ĐÂU TẠO Ô TEXT NÉT CĂNG ĐẸP MẮT TẠI ĐÓ
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -216,11 +216,11 @@ export default function WhiteboardView() {
         const textbox = new fabric.Textbox('Nhấp để gõ bài giảng...', {
           left: pointer.x,
           top: pointer.y,
-          width: 420,
-          fontSize: fontSize,
-          fontFamily: fontFamily,
-          fill: color === '#000000' ? '#ffffff' : color,
-          selectionColor: 'rgba(56, 189, 248, 0.25)', // Khung chọn màu xanh nhẹ mượt mà
+          width: 450,
+          fontSize: fontSize || 36,
+          fontFamily: fontFamily || 'Noto Sans',
+          fill: bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000',
+          selectionColor: 'transparent',
           editingBorderColor: '#f59e0b',
         });
         fabricCanvas.add(textbox);
@@ -232,7 +232,7 @@ export default function WhiteboardView() {
       fabricCanvas.on('mouse:down', handleCreateTextAtPointer);
       return () => fabricCanvas.off('mouse:down', handleCreateTextAtPointer);
     }
-  }, [fabricCanvas, tool, fontSize, fontFamily, color]);
+  }, [fabricCanvas, tool, fontSize, fontFamily, color, bgType]);
 
   // XỬ LÝ CHUYỂN ĐỔI CÔNG CỤ KHÁC
   useEffect(() => {
@@ -679,7 +679,7 @@ export default function WhiteboardView() {
                 </select>
 
                 <select
-                  value={activeObject.fontSize || 32}
+                  value={activeObject.fontSize || 36}
                   onChange={(e) => handleApplyTextProp('fontSize', Number(e.target.value))}
                   className="p-1 border border-slate-400 rounded-xl text-xs font-bold bg-white outline-none"
                 >
