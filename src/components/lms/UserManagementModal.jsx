@@ -478,6 +478,18 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
     alert(`✅ Đã chuyển vai trò tài khoản "${u.full_name || u.username}" sang: ${newIsTeacher ? '👨‍🏫 Giáo Viên (Admin)' : '🎓 Học Sinh'}`);
   };
 
+  const handleAssignClass = async (u, newClass) => {
+    try {
+      await supabase.from('profiles').update({ class_name: newClass }).eq('id', u.id);
+    } catch (e) {}
+
+    const savedCsvStudents = JSON.parse(localStorage.getItem('lms_csv_uploaded_students_v2') || '[]');
+    const updated = savedCsvStudents.map((st) => (st.id === u.id || st.username === u.username ? { ...st, class_name: newClass } : st));
+    localStorage.setItem('lms_csv_uploaded_students_v2', JSON.stringify(updated));
+
+    setUsersList((prev) => prev.map((item) => (item.id === u.id ? { ...item, class_name: newClass } : item)));
+  };
+
   const filteredUsers = usersList.filter((u) => {
     const q = searchQuery.toLowerCase();
     return (
@@ -568,7 +580,7 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Tìm theo Tên hoặc Username..."
-                    className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium"
+                    className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs bg-white font-medium shadow-2xs"
                   />
                 </div>
 
@@ -599,11 +611,11 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-100 text-slate-800 font-extrabold uppercase border-b border-slate-200">
                     <tr>
-                      <th className="p-3">Họ và tên (First / Last name)</th>
+                      <th className="p-3">Họ và tên</th>
                       <th className="p-3">Username / Email</th>
-                      <th className="p-3">Vai Trò (Role)</th>
+                      <th className="p-3">🏫 Lớp Học</th>
+                      <th className="p-3">Vai Trò</th>
                       <th className="p-3">Duyệt TK</th>
-                      <th className="p-3">Mật khẩu cấp</th>
                       <th className="p-3">Trạng thái khóa (Suspend)</th>
                       <th className="p-3 text-right">Thao tác Admin</th>
                     </tr>
@@ -634,6 +646,21 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                               <span className="font-bold text-indigo-700 block">@{u.username || u.email?.split('@')[0]}</span>
                               <span className="text-[11px] text-slate-500 block">{u.email}</span>
                             </div>
+                          </td>
+
+                          {/* CỘT CÀI ĐẶT LỚP HỌC KHIẾN HỆ THỐNG GHI DANH TỰ ĐỘNG THEO LỚP */}
+                          <td className="p-3">
+                            <select
+                              value={u.class_name || u.class || '7A3'}
+                              onChange={(e) => handleAssignClass(u, e.target.value)}
+                              className="bg-emerald-50 text-emerald-900 border border-emerald-300 text-[11px] font-black rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-emerald-100 transition shadow-2xs"
+                            >
+                              {['7A3', '7A4', '7A5', '7A6', '9A2', '9A5'].map((cName) => (
+                                <option key={cName} value={cName}>
+                                  🏫 Lớp {cName}
+                                </option>
+                              ))}
+                            </select>
                           </td>
 
                           {/* CỘT VAI TRÒ (ROLE) CHUẨN 100% THEO YÊU CẦU THẦY HẢI */}
