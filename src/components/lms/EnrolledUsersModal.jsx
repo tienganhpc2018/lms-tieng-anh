@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabase';
 import { Users, UserPlus, Upload, Search, X, CheckCircle, Shield, GraduationCap, Lock, Trash2, CheckSquare, Filter } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
+const AVAILABLE_CLASSES = ['Tất cả lớp', '7A3', '7A4', '7A5', '7A6', '9A2', '9A5'];
+
 export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeacher }) {
   const [users, setUsers] = useState([]);
   const [allStudentsList, setAllStudentsList] = useState([]);
@@ -11,6 +13,7 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
   const [isEnrolPopupOpen, setIsEnrolPopupOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [letterFilter, setLetterFilter] = useState('All');
+  const [selectedClassFilter, setSelectedClassFilter] = useState('Tất cả lớp');
   const [enrolling, setEnrolling] = useState(false);
 
   const defaultUsers = [
@@ -187,9 +190,6 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
 
   const alphabet = ['All', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
-  const AVAILABLE_CLASSES = ['Tất cả lớp', '7A3', '7A4', '7A5', '7A6', '9A2', '9A5'];
-  const [selectedClassFilter, setSelectedClassFilter] = useState('Tất cả lớp');
-
   const handleEnrolByClass = async () => {
     let targetStudents = allStudentsList;
     if (selectedClassFilter !== 'Tất cả lớp') {
@@ -225,8 +225,9 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     }
   };
 
-  const filteredEnrolledUsers = users.filter((u) => {
-    const p = u.profile || {};
+  const filteredEnrolledUsers = (users || []).filter((u) => {
+    if (!u) return false;
+    const p = u.profile || u;
     const name = (p.full_name || p.username || '').toLowerCase();
     const cls = (p.class_name || p.class || p.user_class || '').toUpperCase();
 
@@ -237,8 +238,8 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     return matchesSearch && matchesLetter && matchesClass;
   });
 
-  const enrolledUserIdsSet = new Set(users.map((u) => u.user_id));
-  const availableStudentsToEnrol = allStudentsList.filter((s) => !enrolledUserIdsSet.has(s.id));
+  const enrolledUserIdsSet = new Set((users || []).map((u) => u?.user_id).filter(Boolean));
+  const availableStudentsToEnrol = (allStudentsList || []).filter((s) => s && !enrolledUserIdsSet.has(s.id));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in font-sans select-none">
