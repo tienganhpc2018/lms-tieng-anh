@@ -40,15 +40,12 @@ export default function WhiteboardView() {
   const [pages, setPages] = useState([createEmptyPage()]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
-  // VỊ TRÍ THANH CÔNG CỤ DỊCH CHUYỂN
-  const [toolbarPos, setToolbarPos] = useState(() => {
-    return localStorage.getItem('wb_toolbar_pos_v2') || 'bottom'; // Mặc định ở BOTTOM sát mép dưới (YÊU CẦU 1)
-  });
+  // VẤN ĐỀ 1: CHỈ CÓ DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (BOTTOM-3) - KHÔNG BAO GIỜ BỊ 2 THANH CHỒNG LÊN NHAU
+  const [toolbarPos, setToolbarPos] = useState('bottom');
 
-  // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'eraser' ...
+  // Công cụ active
   const [tool, setTool] = useState('pointer');
   const [color, setColor] = useState('#dc2626');
-  const [highlightColor, setHighlightColor] = useState('#fef08a');
   const [fontSize, setFontSize] = useState(32);
   const [fontFamily, setFontFamily] = useState('Noto Sans');
   const [isBold, setIsBold] = useState(false);
@@ -58,17 +55,17 @@ export default function WhiteboardView() {
   // Quản lý Text / Sticky Objects & Selected State
   const [selectedTextId, setSelectedTextId] = useState(null);
 
-  // Quản lý Ảnh chụp từ Snipping Tool & Thu Phóng Kích Thước
+  // Quản lý Ảnh chụp từ Snipping Tool & Shapes & Thu Phóng Kích Thước
   const [selectedObjId, setSelectedObjId] = useState(null);
   const [draggingObjId, setDraggingObjId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  // YÊU CẦU 3: PAN CANVAS VÔ HẠN BẰNG BÀN TAY (INFINITE PAN)
+  // PAN CANVAS VÔ HẠN BẰNG BÀN TAY
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-  // YÊU CẦU 4: TÍNH NĂNG GROUP ALL TẤT CẢ VẬT THỂ
+  // GROUP ALL TẤT CẢ VẬT THỂ
   const [isGroupedAll, setIsGroupedAll] = useState(false);
 
   // VẼ REALTIME LIVE PREVIEW
@@ -130,6 +127,33 @@ export default function WhiteboardView() {
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
   const FONT_SIZES = [14, 18, 24, 32, 40, 48, 64, 80, 96];
 
+  // VẤN ĐỀ 2: XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
+  const handleDeleteSelectedElement = () => {
+    if (selectedTextId) {
+      setPages((prev) => {
+        const copy = [...prev];
+        const cur = copy[currentPageIndex] || createEmptyPage();
+        const filtered = (cur.textElements || []).filter((b) => b.id !== selectedTextId);
+        copy[currentPageIndex] = { ...cur, textElements: filtered };
+        return copy;
+      });
+      setSelectedTextId(null);
+      saveSnapshotState();
+    } else if (selectedObjId) {
+      setPages((prev) => {
+        const copy = [...prev];
+        const cur = copy[currentPageIndex] || createEmptyPage();
+        const filtered = (cur.objectElements || []).filter((o) => o.id !== selectedObjId);
+        copy[currentPageIndex] = { ...cur, objectElements: filtered };
+        return copy;
+      });
+      setSelectedObjId(null);
+      saveSnapshotState();
+    } else {
+      alert('Thầy Hải hãy nhấp chọn ô Text, Sticky, Shapes hoặc Ảnh dán cần xóa trước nhé!');
+    }
+  };
+
   // PHÍM DELETE HOẶC BACKSPACE XÓA VẬT THỂ 1-CLICK
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -138,28 +162,9 @@ export default function WhiteboardView() {
       }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedTextId) {
+        if (selectedTextId || selectedObjId) {
           e.preventDefault();
-          setPages((prev) => {
-            const copy = [...prev];
-            const cur = copy[currentPageIndex] || createEmptyPage();
-            const filtered = (cur.textElements || []).filter((b) => b.id !== selectedTextId);
-            copy[currentPageIndex] = { ...cur, textElements: filtered };
-            return copy;
-          });
-          setSelectedTextId(null);
-          saveSnapshotState();
-        } else if (selectedObjId) {
-          e.preventDefault();
-          setPages((prev) => {
-            const copy = [...prev];
-            const cur = copy[currentPageIndex] || createEmptyPage();
-            const filtered = (cur.objectElements || []).filter((o) => o.id !== selectedObjId);
-            copy[currentPageIndex] = { ...cur, objectElements: filtered };
-            return copy;
-          });
-          setSelectedObjId(null);
-          saveSnapshotState();
+          handleDeleteSelectedElement();
         }
       }
     };
@@ -410,7 +415,6 @@ export default function WhiteboardView() {
     const nextIdx = (posList.indexOf(toolbarPos) + 1) % posList.length;
     const nextPos = posList[nextIdx];
     setToolbarPos(nextPos);
-    localStorage.setItem('wb_toolbar_pos_v2', nextPos);
   };
 
   // TẠO STICKY NOTE MỚI
@@ -575,7 +579,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // YÊU CẦU 3: CÔNG CỤ BÀN TAY PAN CANVAS TRƯỢT NỘI DUNG SANG TRÁI / PHẢI HOẶC TRÊN / DƯỚI DỄ DÀNG (INFINITE PAN)
+  // CÔNG CỤ BÀN TAY PAN CANVAS TRƯỢT NỘI DUNG SANG TRÁI / PHẢI HOẶC TRÊN / DƯỚI
   const handleStartPan = (e) => {
     if (tool === 'hand') {
       setIsPanning(true);
@@ -897,7 +901,7 @@ export default function WhiteboardView() {
 
   const currentPage = pages[currentPageIndex] || createEmptyPage();
 
-  // YÊU CẦU 1: CHUYỂN THANH TOOLBAR XUỐNG SÁT MEP KHUNG DƯỚI (BOTTOM-2)
+  // CHỈ RENDER DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (BOTTOM-3)
   const getToolbarStyle = () => {
     switch (toolbarPos) {
       case 'top':
@@ -908,7 +912,7 @@ export default function WhiteboardView() {
         return 'fixed top-1/2 -translate-y-1/2 left-3 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-1.5 animate-scale-up font-sans';
       case 'bottom':
       default:
-        return 'fixed bottom-2 left-1/2 -translate-x-1/2 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5 animate-scale-up font-sans';
+        return 'fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5 animate-scale-up font-sans';
     }
   };
 
@@ -947,7 +951,6 @@ export default function WhiteboardView() {
         </div>
 
         <div className="flex items-center space-x-2">
-          {/* YÊU CẦU 4: NÚT GROUP ALL NHÓM TẤT CẢ VẬT THỂ DỄ DÀNG KÉO ĐI */}
           <button
             onClick={() => {
               setIsGroupedAll(!isGroupedAll);
@@ -959,7 +962,7 @@ export default function WhiteboardView() {
             title="Nhóm tất cả các ô chữ & ảnh dán thành 1 khối để kéo đi"
           >
             <Boxes className="w-4 h-4 text-amber-400" />
-            <span>{isGroupedAll ? '📦 Đã Nhóm (Grouped)' : '📦 Nhóm Tất Cả'}</span>
+            <span>{isGroupedAll ? '📦 Đã Nhóm' : '📦 Nhóm Tất Cả'}</span>
           </button>
 
           <button
@@ -998,7 +1001,7 @@ export default function WhiteboardView() {
         </div>
       </div>
 
-      {/* WORKSPACE CANVAS AREA (YÊU CẦU 2 & 3: ĐỔI MŨI TÊN CHỌN VẬT THỂ & NÚT BÀN TAY KÉO PAN TRANG SANG TRÁI / PHẢI) */}
+      {/* WORKSPACE CANVAS AREA */}
       <div
         ref={containerRef}
         onMouseDown={handleStartPan}
@@ -1053,7 +1056,7 @@ export default function WhiteboardView() {
           </svg>
         )}
 
-        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG (CHUYỂN ĐỘNG THEO PANOFFSET ĐỒNG BỘ NÓI CHUNG) */}
+        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG (VẤN ĐỀ 2: CÓ NÚT XÓA 🗑️ MÀU ĐỎ RÕ RÀNG) */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
           return (
@@ -1088,9 +1091,9 @@ export default function WhiteboardView() {
                 className="w-full h-full object-contain pointer-events-none rounded-xl"
               />
 
-              {/* THANH ĐIỀU CHỈNH ẢNH DÁN */}
+              {/* THANH ĐIỀU CHỈNH ẢNH DÁN (CÓ NÚT XÓA 🗑️ ĐỎ TƯƠI CỰC KỲ RÕ NẾT) */}
               {isSelected && (
-                <div className="absolute -top-11 left-0 bg-slate-900 text-white rounded-2xl shadow-2xl px-3 py-1 flex items-center space-x-2 text-xs border border-slate-700 z-50 animate-scale-up">
+                <div className="absolute -top-11 left-0 bg-slate-900 text-white rounded-2xl shadow-2xl px-3 py-1 flex items-center space-x-2 text-xs border border-slate-700 z-50 animate-scale-up font-sans">
                   <span className="font-extrabold text-amber-400">🖼️ Ảnh dán bài tập</span>
 
                   <button
@@ -1108,7 +1111,7 @@ export default function WhiteboardView() {
                     title="Đưa ảnh xuống dưới cùng để vẽ chú thích đè lên"
                   >
                     <ArrowDownToLine className="w-3.5 h-3.5" />
-                    <span>Xuống Dưới (Vẽ Chú Thích)</span>
+                    <span>Xuống Dưới</span>
                   </button>
 
                   <span className="w-px h-4 bg-slate-700" />
@@ -1127,23 +1130,18 @@ export default function WhiteboardView() {
                   >
                     ➖
                   </button>
+
+                  {/* VẤN ĐỀ 2: NÚT XÓA 🗑️ MÀU ĐỎ NỔI BẬT NẾT RÕ RÀNG */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPages((prev) => {
-                        const copy = [...prev];
-                        const cur = copy[currentPageIndex] || createEmptyPage();
-                        const filtered = (cur.objectElements || []).filter((o) => o.id !== obj.id);
-                        copy[currentPageIndex] = { ...cur, objectElements: filtered };
-                        return copy;
-                      });
-                      setSelectedObjId(null);
-                      saveSnapshotState();
+                      handleDeleteSelectedElement();
                     }}
-                    className="p-1 hover:bg-rose-900 text-rose-400 rounded transition"
-                    title="Xóa ảnh (hoặc dùng phím Delete)"
+                    className="p-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                    title="Xóa ảnh này (hoặc nhấn phím Delete)"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
+                    <span>Xóa</span>
                   </button>
                 </div>
               )}
@@ -1151,7 +1149,7 @@ export default function WhiteboardView() {
           );
         })}
 
-        {/* RENDER Ô TEXT & STICKY */}
+        {/* RENDER Ô TEXT & STICKY (VẤN ĐỀ 2: CÓ NÚT XÓA 🗑️ MÀU ĐỎ RÕ RÀNG) */}
         {(currentPage.textElements || []).map((box) => {
           const isSelected = selectedTextId === box.id;
           const isSticky = box.type === 'sticky';
@@ -1194,9 +1192,9 @@ export default function WhiteboardView() {
                 <span>Kéo rê</span>
               </div>
 
-              {/* THANH TOOLBAR DÍNH LIỀN NGAY SÁT TRÊN ĐỈNH Ô VĂN BẢN */}
+              {/* THANH TOOLBAR DÍNH LIỀN NGAY SÁT TRÊN ĐỈNH Ô VĂN BẢN (CÓ NÚT XÓA 🗑️ MÀU ĐỎ NỔI BẬT) */}
               {isSelected && (
-                <div className="absolute bottom-full mb-2 left-0 z-[90] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/60 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up">
+                <div className="absolute bottom-full mb-2 left-0 z-[90] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/60 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up font-sans">
                   <select
                     value={box.fontFamily || 'Noto Sans'}
                     onChange={(e) => {
@@ -1337,21 +1335,17 @@ export default function WhiteboardView() {
                     className="w-7 h-7 rounded-lg cursor-pointer border border-slate-300 p-0"
                   />
 
+                  {/* VẤN ĐỀ 2: NÚT XÓA 🗑️ MÀU ĐỎ TƯƠI HIỂN THỊ CỰC KỲ RÕ RÀNG */}
                   <button
-                    onClick={() => {
-                      setPages((prev) => {
-                        const copy = [...prev];
-                        const cur = copy[currentPageIndex] || createEmptyPage();
-                        const filtered = (cur.textElements || []).filter((b) => b.id !== box.id);
-                        copy[currentPageIndex] = { ...cur, textElements: filtered };
-                        return copy;
-                      });
-                      setSelectedTextId(null);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSelectedElement();
                     }}
-                    className="p-1.5 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 ml-2 cursor-pointer"
-                    title="Xóa ô văn bản (hoặc nhấn phím Delete)"
+                    className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition ml-2 flex items-center space-x-1 cursor-pointer"
+                    title="Xóa ô văn bản này (hoặc nhấn phím Delete)"
                   >
                     <Trash2 className="w-4 h-4" />
+                    <span>Xóa</span>
                   </button>
                 </div>
               )}
@@ -1973,17 +1967,16 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* THANH TOOLBAR DỊCH CHUYỂN (YÊU CẦU 1: BOTTOM-2 SÁT MEP KHUNG DƯỚI) */}
+      {/* DUY NHẤT 1 THANH TOOLBAR NẰM DƯỚI CÙNG SÁT MEP (VẤN ĐỀ 1: BOTTOM-3) */}
       <div className={getToolbarStyle()}>
         <button
           onClick={toggleToolbarPosition}
           className="p-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl transition shadow-md font-bold cursor-pointer"
-          title={`Vị trí Toolbar hiện tại: [${toolbarPos.toUpperCase()}]. Nhấp để xoay chuyển vị trí (Dưới -> Trái -> Trên -> Phải)`}
+          title="Xoay chuyển vị trí thanh công cụ (Dưới -> Trái -> Trên -> Phải)"
         >
           <Move className="w-4 h-4 animate-pulse" />
         </button>
 
-        {/* YÊU CẦU 2: NÚT CON TRỎ MŨI TÊN CHỌN VẬT THỂ & DỪNG TẤT CẢ THAO TÁC */}
         <button
           onClick={() => {
             setTool('pointer');
@@ -2000,7 +1993,6 @@ export default function WhiteboardView() {
           <MousePointer className="w-4 h-4" />
         </button>
 
-        {/* YÊU CẦU 3: NÚT BÀN TAY KÉO PAN TRANG SANG TRÁI / PHẢI ĐỂ MỞ RỘNG KHÔNG GIAN BẢNG */}
         <button
           onClick={() => setTool('hand')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -2106,13 +2098,18 @@ export default function WhiteboardView() {
           <Redo className="w-4 h-4" />
         </button>
 
-        <button onClick={clearCurrentPage} className="p-2 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition text-slate-600 cursor-pointer" title="Xóa sạch trang hiện tại">
-          <Trash2 className="w-4 h-4" />
+        {/* VẤN ĐỀ 2: NÚT XÓA 🗑️ MÀU ĐỎ DÙNG ĐỂ XÓA BẤT KỲ DỤNG CỤ SHAPES, TEXT HOẶC ẢNH ĐƯỢC CHỌN */}
+        <button
+          onClick={handleDeleteSelectedElement}
+          className="p-2 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition text-rose-600 cursor-pointer font-bold"
+          title="Xóa vật thể đang được chọn (Shapes, Text, Sticky, Ảnh dán) hoặc phím Delete"
+        >
+          <Trash2 className="w-4 h-4 text-rose-600" />
         </button>
       </div>
 
       {/* THANH ĐIỀU HƯỚNG TRANG SLIDE */}
-      <div className="fixed bottom-2 left-3 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-xl border border-[#b8af91] flex items-center space-x-1 font-sans">
+      <div className="fixed bottom-3 left-3 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-xl border border-[#b8af91] flex items-center space-x-1 font-sans">
         <button
           type="button"
           onClick={() => {
