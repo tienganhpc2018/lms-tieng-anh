@@ -21,6 +21,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
   const [resetUser, setResetUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+  const [showPasswordUserId, setShowPasswordUserId] = useState(null);
 
   // Form State CSV Upload
   const [csvFile, setCsvFile] = useState(null);
@@ -698,9 +699,19 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
                           </td>
 
                           <td className="p-3">
-                            <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300 font-mono font-extrabold rounded-lg text-[11px]">
-                              {u.raw_password_hint || '123456'}
-                            </span>
+                            <div className="flex items-center space-x-1">
+                              <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300 font-mono font-extrabold rounded-lg text-[11px]">
+                                {showPasswordUserId === u.id ? (u.raw_password_hint || '123456') : '••••••'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setShowPasswordUserId(showPasswordUserId === u.id ? null : u.id)}
+                                className="p-1 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                                title={showPasswordUserId === u.id ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                              >
+                                {showPasswordUserId === u.id ? '🙈' : '👁️'}
+                              </button>
+                            </div>
                           </td>
                         <td className="p-3">
                           <button
