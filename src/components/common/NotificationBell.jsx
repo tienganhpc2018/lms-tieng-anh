@@ -15,6 +15,8 @@ export default function NotificationBell() {
   const fetchNotifications = async () => {
     if (!user) return;
     try {
+      const readMap = JSON.parse(localStorage.getItem('lms_read_notif_ids_v2') || '{}');
+
       // 1. Fetch thông báo từ DB Supabase
       const { data } = await supabase
         .from('notifications')
@@ -25,7 +27,7 @@ export default function NotificationBell() {
 
       let list = data || [];
 
-      // 2. DÀNH RIÊNG CHO GIÁO VIÊN NGUYỄN VẢN HẢI: TRA CỨU SỐ LƯỢNG HỌC SINH MỚI CHƯA ĐƯỢC DUYỆT
+      // 2. DÀNH RIÊNG CHO GIÁO VIÊN NGUYỄN VĂN HẢI: TRA CỨU SỐ LƯỢNG HỌC SINH MỚI CHƯA ĐƯỢC DUYỆT
       if (isTeacher) {
         try {
           const { data: allProfiles } = await supabase
@@ -41,12 +43,13 @@ export default function NotificationBell() {
 
             if (unapprovedUsers.length > 0) {
               const namesList = unapprovedUsers.slice(0, 3).map((u) => u.full_name || u.username).join(', ');
+              const notifId = 'unapproved_summary_' + unapprovedUsers.length;
               const unapprovedNotif = {
-                id: 'unapproved_summary_' + unapprovedUsers.length,
+                id: notifId,
                 title: `🎓 Có ${unapprovedUsers.length} Học Sinh Mới Đang Chờ Duyệt!`,
                 message: `Học sinh: ${namesList}${unapprovedUsers.length > 3 ? '...' : ''} vừa tạo tài khoản và đang chờ Thầy Hải phê duyệt để vào học.`,
                 type: 'user_registration',
-                read: false,
+                read: !!readMap[notifId],
                 created_at: new Date().toISOString(),
               };
               list = [unapprovedNotif, ...list];
@@ -55,9 +58,10 @@ export default function NotificationBell() {
         } catch (unapprovedErr) {}
       }
 
-      // Lọc trùng ID
+      // Lọc trùng ID và áp dụng trạng thái read đã lưu
       const uniqueMap = {};
       list.forEach((item) => {
+        if (readMap[item.id]) item.read = true;
         uniqueMap[item.id] = item;
       });
       const finalList = Object.values(uniqueMap);
@@ -72,7 +76,6 @@ export default function NotificationBell() {
   useEffect(() => {
     fetchNotifications();
 
-    // LẮNG NGHE THỜI GIAN THỰC CẢ BẢNG NOTIFICATIONS VÀ BẢNG PROFILES (KHI CÓ HỌC SINH ĐĂNG KÝ MỚI)
     const notifSub = supabase
       .channel('notifications_realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
@@ -91,7 +94,6 @@ export default function NotificationBell() {
     };
   }, [user, isTeacher]);
 
-  // Đóng khi click ngoài
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (bellRef.current && !bellRef.current.contains(e.target)) {
@@ -102,17 +104,27 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // KHI NHẤP VÀO QUẢ CHUÔNG -> XÓA CHẤM ĐỎ NGAY LẬP TỨC (ẢNH 2)
+  const markAllReadState = () => {
+    const readMap = JSON.parse(localStorage.getItem('lms_read_notif_ids_v2') || '{}');
+    notifications.forEach((n) => {
+      readMap[n.id] = true;
+    });
+    localStorage.setItem('lms_read_notif_ids_v2', JSON.stringify(readMap));
+
+    setUnreadCount(0);
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+    if (user) {
+      supabase.from('notifications').update({ read: true }).eq('user_id', user.id).then(() => {});
+    }
+  };
+
+  // KHI NHẤP VÀO QUẢ CHUÔNG -> XÓA CHẤM ĐỎ NGAY LẬP TỨC
   const handleToggleBell = () => {
     const nextState = !isOpen;
     setIsOpen(nextState);
     if (nextState) {
-      setUnreadCount(0);
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      // Cập nhật DB
-      if (user) {
-        supabase.from('notifications').update({ read: true }).eq('user_id', user.id).then(() => {});
-      }
+      markAllReadState();
     }
   };
 
@@ -141,11 +153,8 @@ export default function NotificationBell() {
               <span>{isTeacher ? '🔔 THÔNG BÁO QUẢN TRỊ VIÊN / GIÁO VIÊN' : '📢 THÔNG BÁO DẶN DÒ TỪ THẦY HẢI'}</span>
             </h4>
             <button
-              onClick={() => {
-                setUnreadCount(0);
-                setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-              }}
-              className="text-[10px] font-bold text-indigo-600 hover:underline"
+              onClick={markAllReadState}
+              className="text-[10px] font-bold text-indigo-600 hover:underline cursor-pointer"
             >
               Đã đọc tất cả
             </button>
