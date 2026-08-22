@@ -42,7 +42,7 @@ export default function WhiteboardView() {
   // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'eraser' | shapes...
   const [tool, setTool] = useState('pointer');
   const [color, setColor] = useState('#dc2626');
-  const [fontSize, setFontSize] = useState(32);
+  const [fontSize, setFontSize] = useState(36);
   const [fontFamily, setFontFamily] = useState('Noto Sans');
 
   // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD (ẢNH 2)
@@ -135,11 +135,10 @@ export default function WhiteboardView() {
         syncShapePropsToUI(obj);
         const bound = obj.getBoundingRect();
 
-        // NẰM SÁT NGAY PHÍA TRÊN ĐỈNH CỦA CHÍNH KHUNG VĂN BẢN NÀY (ẢNH 2 CHUẨN MYVIEWBOARD)
         if (obj.type === 'textbox') {
           setFloatingMenuPos({
             left: Math.max(20, bound.left),
-            top: Math.max(65, bound.top - 60), // DÍNH CHẶT NGAY TRÊN ĐỈNH KHUNG TEXT!
+            top: Math.max(65, bound.top - 60),
           });
         } else {
           setFloatingMenuPos({
@@ -205,26 +204,27 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // CHỌN TEXT (T) ➔ CHUỘT TRỎ ĐÂU THÌ Ô NHẬP XUẤT HIỆN NGAY TẠI ĐÓ (TẠO TEXT THEO VỊ TRÍ CHUỘT TRỎ)
+  // CHỌN TEXT (T) ➔ THẦY NHẤP CHUỘT VÀO ĐÂU TẠO KHUNG TEXT NỔI CHUẨN TẠI ĐÓ (KHÔNG KHỐI XANH VUÔNG MỚ)
   useEffect(() => {
     if (!fabricCanvas) return;
 
     if (tool === 'text') {
       fabricCanvas.defaultCursor = 'text';
       const handleCreateTextAtPointer = (opt) => {
-        if (opt.target) return; // Nếu nhấp vào object khác thì không tạo đè
+        if (opt.target) return;
         const pointer = fabricCanvas.getPointer(opt.e);
         const textbox = new fabric.Textbox('Nhấp để gõ bài giảng...', {
           left: pointer.x,
           top: pointer.y,
-          width: 450,
+          width: 420,
           fontSize: fontSize,
           fontFamily: fontFamily,
           fill: color === '#000000' ? '#ffffff' : color,
+          selectionColor: 'rgba(56, 189, 248, 0.25)', // Khung chọn màu xanh nhẹ mượt mà
+          editingBorderColor: '#f59e0b',
         });
         fabricCanvas.add(textbox);
         fabricCanvas.setActiveObject(textbox);
-        textbox.enterEditing();
         fabricCanvas.renderAll();
         setTool('pointer');
       };
@@ -509,7 +509,6 @@ export default function WhiteboardView() {
         canvasJson = JSON.stringify(fabricCanvas.toJSON());
       }
 
-      // 1. CẬP NHẬT HOẶC TẠO MỚI BÀI DẠY MƯỢT MÀ
       if (activityId) {
         const { error: updateError } = await supabase
           .from('activities')
@@ -553,7 +552,6 @@ export default function WhiteboardView() {
         alert(`💾 ĐÃ LƯU BÀI DẠY CHUẨN XÁC VÀO HỆ THỐNG TẠI: "${selectedUnit}"!`);
         setActiveWindow(null);
       } else {
-        // TỰ ĐỘNG BẢO VỆ BÀI DẠY VÀO LOCALSTORAGE BỘ NHỚ TRÌNH DUYỆT ĐẢM BẢO KHÔNG MẤT BÀI!
         localStorage.setItem(`wb_backup_${Date.now()}`, JSON.stringify({ title: fullTitle, content: canvasJson }));
         alert(`💾 ĐÃ LƯU DỰ PHÒNG BÀI GIẢNG THÀNH CÔNG VÀO BỘ NHỚ BẢNG!`);
         setActiveWindow(null);
