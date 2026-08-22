@@ -130,9 +130,32 @@ export function AuthProvider({ children }) {
         if (createdProfile && createdProfile.length > 0) finalProfile = createdProfile[0];
       }
 
-      // MẶC ĐỊNH CHO TẤT CẢ HỌC SINH VÀO THẲNG WEB HỌC NGAY MƯỢT MÀ 100%
-      if (finalProfile) {
-        finalProfile.approved = true;
+      // KIỂM TRA TRẠNG THÁI DUYỆT TÀI KHOẢN HỌC SINH (APPROVED)
+      if (!isMasterAdmin) {
+        const approvedMap = JSON.parse(localStorage.getItem('lms_approved_students_v2') || '{}');
+        const isApprovedInDb = finalProfile && (finalProfile.approved === true || finalProfile.approved === 1);
+        const isApprovedInLocal = approvedMap[userId] || approvedMap[cleanEmail] || approvedMap[usernameFromEmail];
+        
+        // Mặc định luôn tự động phê duyệt học sinh Nguyễn Minh Hoàng (hoangnm) và tài khoản demo
+        const isDefaultApprovedUser = cleanEmail.includes('hoangnm') || cleanEmail.includes('hocsinh@lms.edu.vn') || usernameFromEmail.includes('hoangnm');
+
+        const isStudentApproved = isApprovedInDb || isApprovedInLocal || isDefaultApprovedUser;
+
+        if (!isStudentApproved) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setProfile(null);
+          localStorage.removeItem('lms_active_user_session');
+          setLoading(false);
+          alert(`⏳ TÀI KHOẢN HỌC SINH ĐANG Ở TRẠNG THÁI CHỜ DUYỆT!\n\nTài khoản của em (${finalProfile?.full_name || finalProfile?.username || cleanEmail}) chưa được Thầy Nguyễn Văn Hải bấm phê duyệt.\n\nVui lòng nhắn Thầy Hải mở mục [QUẢN LÝ TÀI KHOẢN HỌC SINH] và nhấp nút "⏳ Chờ Duyệt" để kích hoạt tài khoản vào học nhé!`);
+          return;
+        } else if (finalProfile && !finalProfile.approved) {
+          // Tự động đồng bộ approved: true lên DB nếu đã được duyệt
+          finalProfile.approved = true;
+          try {
+            await supabase.from('profiles').update({ approved: true }).eq('id', userId);
+          } catch (e) {}
+        }
       }
 
       const activeUser = { id: userId, email: cleanEmail };
