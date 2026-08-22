@@ -11,7 +11,7 @@ import {
   Highlighter, Bold, Italic, Underline, Search, ZoomIn, ZoomOut, Check, ChevronLeft, ChevronRight,
   Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand, Minus, MousePointer, Pause, RefreshCw, Users,
   StickyNote, AlignLeft, AlignCenter, AlignRight, CornerUpRight, ArrowUpRight, Star, Diamond, Layers3, ArrowDownToLine, ArrowUpToLine,
-  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor
+  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ShapesModulePanel from '../components/whiteboard/ShapesModulePanel';
@@ -80,6 +80,16 @@ export default function WhiteboardView() {
     { name: 'White', bg: '#ffffff', text: '#0f172a', border: '#e2e8f0' },
   ];
 
+  const HIGHLIGHT_PALETTE = [
+    { name: 'Yellow', color: '#fef08a' },
+    { name: 'Orange', color: '#fed7aa' },
+    { name: 'Pink', color: '#fbcfe8' },
+    { name: 'Green', color: '#bbf7d0' },
+    { name: 'Blue', color: '#bae6fd' },
+    { name: 'Purple', color: '#e9d5ff' },
+    { name: 'White', color: '#ffffff' },
+  ];
+
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
   const FONT_SIZES = [14, 18, 24, 32, 40, 48, 64, 80, 96];
 
@@ -91,19 +101,19 @@ export default function WhiteboardView() {
       width: window.innerWidth,
       height: window.innerHeight - 100,
       backgroundColor: 'transparent',
-      selection: true, // Rubberband Lasso Select Tool
+      selection: true,
       preserveObjectStacking: true,
     });
 
-    // Cấu hình Bounding box handles mặc định đẹp mắt
+    // 1. CUSTOM BOUNDING BOX CHUẨN MYVIEWBOARD (HÌNH TRÒN TRẮNG, NÉT ĐỨT VÀNG/CAM)
     fabric.FabricObject.prototype.transparentCorners = false;
-    fabric.FabricObject.prototype.cornerColor = '#0ea5e9';
     fabric.FabricObject.prototype.cornerStyle = 'circle';
-    fabric.FabricObject.prototype.cornerSize = 12;
-    fabric.FabricObject.prototype.borderColor = '#38bdf8';
+    fabric.FabricObject.prototype.cornerColor = '#ffffff';
+    fabric.FabricObject.prototype.cornerStrokeColor = '#334155';
+    fabric.FabricObject.prototype.cornerSize = 14;
+    fabric.FabricObject.prototype.borderColor = '#f59e0b';
     fabric.FabricObject.prototype.borderDashArray = [4, 4];
 
-    // CẬP NHẬT REALTIME THÔNG SỐ KHI NHẤP CHỌN MỘT HÌNH ĐÃ VẼ (TRẠNG THÁI 2)
     const syncShapePropsToUI = (obj) => {
       if (!obj) return;
       if (obj.stroke) setStrokeColor(obj.stroke);
@@ -117,17 +127,26 @@ export default function WhiteboardView() {
       if (obj.opacity !== undefined) setOpacity(obj.opacity);
     };
 
-    // Cập nhật vị trí Floating Menu Nổi theo Bounding Box của Active Object
+    // CẬP NHẬT VỊ TRÍ FLOATING TEXT TOOLBAR NẰM SÁT PHÍA TRÊN ĐỈNH KHUNG TEXT (ẢNH 2)
     const updateFloatingMenu = () => {
       const obj = fc.getActiveObject();
       if (obj) {
         setActiveObject(obj);
         syncShapePropsToUI(obj);
         const bound = obj.getBoundingRect();
-        setFloatingMenuPos({
-          left: bound.left + bound.width + 15,
-          top: Math.max(70, bound.top),
-        });
+
+        // NẰM SÁT NGAY PHÍA TRÊN ĐỈNH CỦA KHUNG VĂN BẢN ĐANG SOẠN THẢO (ẢNH 2 CHUẨN MYVIEWBOARD)
+        if (obj.type === 'textbox') {
+          setFloatingMenuPos({
+            left: Math.max(20, bound.left),
+            top: Math.max(65, bound.top - 62),
+          });
+        } else {
+          setFloatingMenuPos({
+            left: bound.left + bound.width + 15,
+            top: Math.max(70, bound.top),
+          });
+        }
       } else {
         setActiveObject(null);
         setFloatingMenuPos(null);
@@ -144,6 +163,7 @@ export default function WhiteboardView() {
     fc.on('object:scaling', updateFloatingMenu);
     fc.on('object:rotating', updateFloatingMenu);
     fc.on('object:modified', updateFloatingMenu);
+    fc.on('text:changed', updateFloatingMenu);
 
     setFabricCanvas(fc);
 
@@ -331,11 +351,18 @@ export default function WhiteboardView() {
     fabricCanvas.renderAll();
   };
 
-  // PHỤC HỒI THUỘC TÍNH ĐỊNH DẠNG FONT SIZE / FAMILY / BOLD / ITALIC CHO KHUNG SOẠN TEXT
+  // PHỤC HỒI THUỘC TÍNH ĐỊNH DẠNG FONT SIZE / FAMILY / BOLD / ITALIC / HIGHLIGHT CHO TỪNG ĐOẠN TEXT BÔI ĐEN (CHARACTER-LEVEL STYLING UX)
   const handleApplyTextProp = (propKey, propVal) => {
     if (!fabricCanvas || !activeObject) return;
     if (activeObject.type === 'textbox') {
-      activeObject.set(propKey, propVal);
+      const isSelection = activeObject.selectionStart !== activeObject.selectionEnd;
+      if (isSelection) {
+        // Áp dụng cho từng từ/đoạn text được bôi đen (Character-level styling)
+        activeObject.setSelectionStyles({ [propKey]: propVal });
+      } else {
+        // Áp dụng cho toàn bộ ô Text
+        activeObject.set(propKey, propVal);
+      }
       fabricCanvas.renderAll();
     }
   };
@@ -345,7 +372,7 @@ export default function WhiteboardView() {
     if (!fabricCanvas) return;
     const textbox = new fabric.Textbox('Nhấp để gõ bài giảng...', {
       left: 200,
-      top: 150,
+      top: 180,
       width: 450,
       fontSize: fontSize,
       fontFamily: fontFamily,
@@ -353,6 +380,7 @@ export default function WhiteboardView() {
     });
     fabricCanvas.add(textbox);
     fabricCanvas.setActiveObject(textbox);
+    textbox.enterEditing(); // Tự động bật chế độ gõ chữ ngay lập tức
     fabricCanvas.renderAll();
     setTool('pointer');
   };
@@ -553,7 +581,7 @@ export default function WhiteboardView() {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center space-x-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition border border-slate-700"
+            className="flex items-center space-x-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition border border-slate-700 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4 text-emerald-400" />
             <span>Thoát Bảng</span>
@@ -609,22 +637,22 @@ export default function WhiteboardView() {
       <div ref={containerRef} className="relative w-full h-[calc(100vh-50px)] overflow-hidden">
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
 
-        {/* MENU NỔI (FLOATING TOOLBAR KẾ BÊN ĐỐI TƯỢNG ĐANG SELECT) */}
+        {/* MENU NỔI FLOATING TEXT TOOLBAR CHUẨN NẰM SÁT NGAY PHÍA TRÊN ĐỈNH KHUNG TEXT (ẢNH 2 CHUẨN MYVIEWBOARD) */}
         {activeObject && floatingMenuPos && (
           <div
             style={{
               left: `${floatingMenuPos.left}px`,
               top: `${floatingMenuPos.top}px`,
             }}
-            className="fixed z-[100] bg-white/95 backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-sky-400/80 flex items-center space-x-2 animate-scale-up font-sans"
+            className="fixed z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
           >
-            {/* Nếu đang select Textbox ➔ Hiện thanh định dạng Format Font */}
-            {activeObject.type === 'textbox' && (
+            {/* Nếu đang select Textbox ➔ Hiện thanh RICH TEXT EDITOR NẰM SÁT TRÊN ĐỈNH KHUNG TEXT (ẢNH 2 MYVIEWBOARD) */}
+            {activeObject.type === 'textbox' ? (
               <>
                 <select
                   value={activeObject.fontFamily || 'Noto Sans'}
                   onChange={(e) => handleApplyTextProp('fontFamily', e.target.value)}
-                  className="p-1 border border-slate-300 rounded-xl text-xs font-bold bg-slate-50 outline-none"
+                  className="p-1 border border-slate-400 rounded-xl text-xs font-bold bg-white outline-none"
                 >
                   {FONT_FAMILIES.map((f) => (
                     <option key={f} value={f}>{f}</option>
@@ -634,93 +662,180 @@ export default function WhiteboardView() {
                 <select
                   value={activeObject.fontSize || 32}
                   onChange={(e) => handleApplyTextProp('fontSize', Number(e.target.value))}
-                  className="p-1 border border-slate-300 rounded-xl text-xs font-bold bg-slate-50 outline-none"
+                  className="p-1 border border-slate-400 rounded-xl text-xs font-bold bg-white outline-none"
                 >
                   {FONT_SIZES.map((sz) => (
                     <option key={sz} value={sz}>{sz}px</option>
                   ))}
                 </select>
 
+                <span className="w-px h-5 bg-slate-400" />
+
                 <button
                   onClick={() => handleApplyTextProp('fontWeight', activeObject.fontWeight === 'bold' ? 'normal' : 'bold')}
-                  className={`p-1.5 rounded-lg border ${activeObject.fontWeight === 'bold' ? 'bg-indigo-600 text-white font-black' : 'hover:bg-slate-100'}`}
+                  className={`p-1.5 rounded-lg border text-xs font-black cursor-pointer ${
+                    activeObject.fontWeight === 'bold' ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
+                  }`}
+                  title="In Đậm (B)"
                 >
                   <Bold className="w-4 h-4" />
                 </button>
 
                 <button
                   onClick={() => handleApplyTextProp('fontStyle', activeObject.fontStyle === 'italic' ? 'normal' : 'italic')}
-                  className={`p-1.5 rounded-lg border ${activeObject.fontStyle === 'italic' ? 'bg-indigo-600 text-white italic' : 'hover:bg-slate-100'}`}
+                  className={`p-1.5 rounded-lg border text-xs italic cursor-pointer ${
+                    activeObject.fontStyle === 'italic' ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
+                  }`}
+                  title="In Nghiêng (I)"
                 >
                   <Italic className="w-4 h-4" />
                 </button>
 
+                <button
+                  onClick={() => handleApplyTextProp('underline', !activeObject.underline)}
+                  className={`p-1.5 rounded-lg border text-xs underline cursor-pointer ${
+                    activeObject.underline ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
+                  }`}
+                  title="Gạch Chân (U)"
+                >
+                  <Underline className="w-4 h-4" />
+                </button>
+
+                <span className="w-px h-5 bg-slate-400" />
+
+                {/* Màu chữ (Text Color) */}
                 <input
                   type="color"
                   value={activeObject.fill || color}
                   onChange={(e) => handleApplyTextProp('fill', e.target.value)}
-                  className="w-7 h-7 rounded-lg cursor-pointer border border-slate-300 p-0"
+                  className="w-7 h-7 rounded-lg cursor-pointer border border-slate-400 p-0"
+                  title="Đổi màu chữ"
                 />
 
+                {/* Tô màu nền Highlight cho chữ bôi đen */}
+                <div className="flex items-center space-x-1 bg-[#d2caa9] p-1 rounded-xl border border-[#c8c0a3]">
+                  <span className="text-[10px] font-black text-slate-800">Highlight:</span>
+                  {HIGHLIGHT_PALETTE.map((item) => (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => handleApplyTextProp('textBackgroundColor', item.color)}
+                      style={{ backgroundColor: item.color }}
+                      className="w-5 h-5 rounded-full border border-slate-500 hover:scale-110 transition shadow-2xs cursor-pointer"
+                      title={`Tô màu Highlight ${item.name} cho chữ bôi đen`}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTextProp('textBackgroundColor', '')}
+                    className="px-1.5 py-0.5 text-[9px] font-black bg-white rounded border border-slate-400 cursor-pointer"
+                    title="Xóa Highlight"
+                  >
+                    Bỏ
+                  </button>
+                </div>
+
+                <span className="w-px h-5 bg-slate-400" />
+
+                {/* Căn lề Trái / Giữa / Phải */}
+                <button
+                  onClick={() => handleApplyTextProp('textAlign', 'left')}
+                  className={`p-1.5 rounded-lg border cursor-pointer ${
+                    activeObject.textAlign === 'left' ? 'bg-sky-600 text-white' : 'bg-white hover:bg-slate-100'
+                  }`}
+                  title="Căn Trái"
+                >
+                  <AlignLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleApplyTextProp('textAlign', 'center')}
+                  className={`p-1.5 rounded-lg border cursor-pointer ${
+                    activeObject.textAlign === 'center' ? 'bg-sky-600 text-white' : 'bg-white hover:bg-slate-100'
+                  }`}
+                  title="Căn Giữa"
+                >
+                  <AlignCenter className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleApplyTextProp('textAlign', 'right')}
+                  className={`p-1.5 rounded-lg border cursor-pointer ${
+                    activeObject.textAlign === 'right' ? 'bg-sky-600 text-white' : 'bg-white hover:bg-slate-100'
+                  }`}
+                  title="Căn Phải"
+                >
+                  <AlignRight className="w-4 h-4" />
+                </button>
+
+                <span className="w-px h-5 bg-slate-400" />
+
+                <button
+                  onClick={handleDeleteActiveObject}
+                  className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition flex items-center space-x-1 cursor-pointer"
+                  title="Xóa ô văn bản (Delete)"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              /* MENU NỔI CHO CÁC VẬT THỂ KHÁC (ẢNH DÁN, SHAPES, STICKY) */
+              <>
+                <button
+                  onClick={handleDeleteActiveObject}
+                  className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl flex items-center justify-center transition border border-rose-300 shadow-2xs cursor-pointer"
+                  title="🗑️ Xóa đối tượng này (Delete)"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-700" />
+                </button>
+
                 <span className="w-px h-5 bg-slate-300" />
+
+                <button
+                  onClick={handleBringToFront}
+                  className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300 shadow-2xs cursor-pointer"
+                  title="🥞 Đưa lớp vật thể Lên Trên Cùng (Bring to Front)"
+                >
+                  <Layers className="w-4 h-4 text-sky-700" />
+                </button>
+
+                <button
+                  onClick={handleSendToBack}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl flex items-center justify-center transition border border-slate-300 shadow-2xs cursor-pointer"
+                  title="🥞 Đưa lớp vật thể Về Sau Cùng (Send to Back)"
+                >
+                  <Layers3 className="w-4 h-4 text-slate-700" />
+                </button>
+
+                <span className="w-px h-5 bg-slate-300" />
+
+                <button
+                  onClick={handleToggleLock}
+                  className={`p-2 rounded-xl flex items-center justify-center transition border shadow-2xs cursor-pointer ${
+                    activeObject.lockMovementX ? 'bg-rose-600 text-white border-rose-700' : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300'
+                  }`}
+                  title={activeObject.lockMovementX ? '🔒 Đang Khóa Vị Trí (Mở khóa)' : '🔒 Khóa vị trí vật thể'}
+                >
+                  {activeObject.lockMovementX ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-amber-800" />}
+                </button>
+
+                <span className="w-px h-5 bg-slate-300" />
+
+                <button
+                  onClick={handleFlipHorizontal}
+                  className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-900 rounded-xl flex items-center justify-center transition border border-purple-300 shadow-2xs cursor-pointer"
+                  title="↔️ Lật ngang (Flip Horizontal)"
+                >
+                  <FlipHorizontal className="w-4 h-4 text-purple-700" />
+                </button>
+
+                <button
+                  onClick={handleRotate90}
+                  className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300 shadow-2xs cursor-pointer"
+                  title="🎯 Xoay 90° (Rotate)"
+                >
+                  <RotateIcon className="w-4 h-4 text-amber-700" />
+                </button>
               </>
             )}
-
-            <button
-              onClick={handleDeleteActiveObject}
-              className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl flex items-center justify-center transition border border-rose-300 shadow-2xs cursor-pointer"
-              title="🗑️ Xóa đối tượng này (Delete)"
-            >
-              <Trash2 className="w-4 h-4 text-rose-700" />
-            </button>
-
-            <span className="w-px h-5 bg-slate-300" />
-
-            <button
-              onClick={handleBringToFront}
-              className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300 shadow-2xs cursor-pointer"
-              title="🥞 Đưa lớp vật thể Lên Trên Cùng (Bring to Front)"
-            >
-              <Layers className="w-4 h-4 text-sky-700" />
-            </button>
-
-            <button
-              onClick={handleSendToBack}
-              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl flex items-center justify-center transition border border-slate-300 shadow-2xs cursor-pointer"
-              title="🥞 Đưa lớp vật thể Về Sau Cùng (Send to Back)"
-            >
-              <Layers3 className="w-4 h-4 text-slate-700" />
-            </button>
-
-            <span className="w-px h-5 bg-slate-300" />
-
-            <button
-              onClick={handleToggleLock}
-              className={`p-2 rounded-xl flex items-center justify-center transition border shadow-2xs cursor-pointer ${
-                activeObject.lockMovementX ? 'bg-rose-600 text-white border-rose-700' : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300'
-              }`}
-              title={activeObject.lockMovementX ? '🔒 Đang Khóa Vị Trí (Mở khóa)' : '🔒 Khóa vị trí vật thể'}
-            >
-              {activeObject.lockMovementX ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-amber-800" />}
-            </button>
-
-            <span className="w-px h-5 bg-slate-300" />
-
-            <button
-              onClick={handleFlipHorizontal}
-              className="p-2 bg-purple-100 hover:bg-purple-200 text-purple-900 rounded-xl flex items-center justify-center transition border border-purple-300 shadow-2xs cursor-pointer"
-              title="↔️ Lật ngang (Flip Horizontal)"
-            >
-              <FlipHorizontal className="w-4 h-4 text-purple-700" />
-            </button>
-
-            <button
-              onClick={handleRotate90}
-              className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300 shadow-2xs cursor-pointer"
-              title="🎯 Xoay 90° (Rotate)"
-            >
-              <RotateIcon className="w-4 h-4 text-amber-700" />
-            </button>
           </div>
         )}
       </div>
