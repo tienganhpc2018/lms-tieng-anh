@@ -67,8 +67,17 @@ export default function WhiteboardView() {
   // Background Nền Bảng
   const [bgType, setBgType] = useState('greenboard');
 
-  // Popups & Tools
+  // Popups & Teaching Tools (BẤM GIỜ, XÚC XẮC, GỌI TÊN HỌC SINH)
   const [activeWindow, setActiveWindow] = useState(null);
+
+  // MINI-GAMES GIẢNG DẠY
+  const [timerSeconds, setTimerSeconds] = useState(60);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [diceValue, setDiceValue] = useState(1);
+  const [isSpinningDice, setIsSpinningDice] = useState(false);
+  const [studentNames, setStudentNames] = useState('Minh Anh, Hải Nam, Bảo Ngọc, Đức Anh, Tuấn Kiệt, Phương Thảo, Gia Huy, Thanh Hà');
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [isPickingStudent, setIsPickingStudent] = useState(false);
 
   // NẠP & LƯU BÀI DẠY
   const [savedLessons, setSavedLessons] = useState([]);
@@ -100,6 +109,50 @@ export default function WhiteboardView() {
 
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
   const FONT_SIZES = [14, 18, 24, 32, 40, 48, 64, 80, 96];
+
+  // LOGIC ĐỒNG HỒ BẤM GIỜ
+  useEffect(() => {
+    let interval = null;
+    if (timerRunning && timerSeconds > 0) {
+      interval = setInterval(() => setTimerSeconds((prev) => prev - 1), 1000);
+    } else if (timerSeconds === 0 && timerRunning) {
+      setTimerRunning(false);
+      alert('⏰ HẾT GIỜ LÀM BÀI DẠY HỌC!');
+    }
+    return () => clearInterval(interval);
+  }, [timerRunning, timerSeconds]);
+
+  // LOGIC ĐẮC XÚC XẮC NGẪU NHIÊN
+  const handleRollDice = () => {
+    setIsSpinningDice(true);
+    let count = 0;
+    const interval = setInterval(() => {
+      setDiceValue(Math.floor(Math.random() * 6) + 1);
+      count++;
+      if (count > 10) {
+        clearInterval(interval);
+        setIsSpinningDice(false);
+      }
+    }, 100);
+  };
+
+  // LOGIC GỌI TÊN HỌC SINH NGẪU NHIÊN
+  const handlePickRandomStudent = () => {
+    const names = studentNames.split(',').map((n) => n.trim()).filter(Boolean);
+    if (names.length === 0) return;
+
+    setIsPickingStudent(true);
+    let count = 0;
+    const interval = setInterval(() => {
+      const idx = Math.floor(Math.random() * names.length);
+      setSelectedStudent(names[idx]);
+      count++;
+      if (count > 12) {
+        clearInterval(interval);
+        setIsPickingStudent(false);
+      }
+    }, 100);
+  };
 
   // KHỞI TẠO FABRIC CANVAS VÀ THEO DÕI SELECTION REAL-TIME UPDATE
   useEffect(() => {
@@ -720,7 +773,7 @@ export default function WhiteboardView() {
       >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
 
-        {/* Ô GÕ TEXT TRỰC QUAN HỖ TRỢ KÉO RÊ DI CHUYỂN (DRAGGABLE) THOẢI MÁI THEO THẦY HẢI CHỈ ĐẠO (ẢNH media_1787414900314.png) */}
+        {/* Ô GÕ TEXT TRỰC QUAN HỖ TRỢ KÉO RÊ DI CHUYỂN (DRAGGABLE) THOẢI MÁI THEO THẦY HẢI CHỈ ĐẠO */}
         {textElements.map((box) => {
           const isSelected = selectedTextId === box.id;
 
@@ -1007,6 +1060,119 @@ export default function WhiteboardView() {
         </div>
       )}
 
+      {/* POPUP ĐỒNG HỒ BẤM GIỜ (TIMER) */}
+      {activeWindow === 'timer' && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-80 space-y-4 border-2 border-sky-500 animate-scale-up font-sans">
+          <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+            <h3 className="font-extrabold text-sm flex items-center space-x-2 text-sky-400">
+              <Clock className="w-5 h-5" />
+              <span>⏱️ ĐỒNG HỒ BẤM GIỜ GIẢNG DẠY</span>
+            </h3>
+            <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+          </div>
+
+          <div className="text-center py-3">
+            <span className="font-mono text-5xl font-black text-amber-400 tracking-wider">
+              {Math.floor(timerSeconds / 60).toString().padStart(2, '0')}:{(timerSeconds % 60).toString().padStart(2, '0')}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={() => setTimerSeconds(30)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-lg border border-slate-700">30 Giây</button>
+            <button onClick={() => setTimerSeconds(60)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-lg border border-slate-700">1 Phút</button>
+            <button onClick={() => setTimerSeconds(300)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-lg border border-slate-700">5 Phút</button>
+          </div>
+
+          <div className="flex space-x-2 pt-2">
+            <button
+              onClick={() => setTimerRunning(!timerRunning)}
+              className={`flex-1 py-2.5 rounded-xl font-black text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer ${
+                timerRunning ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
+            >
+              {timerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              <span>{timerRunning ? 'Tạm Dừng' : 'Bắt Đầu Bấm Giờ'}</span>
+            </button>
+            <button
+              onClick={() => { setTimerSeconds(60); setTimerRunning(false); }}
+              className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 font-bold text-xs border border-slate-700 cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP XÚC XẮC THÔNG MINH (DICE) */}
+      {activeWindow === 'dice' && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-80 space-y-4 border-2 border-purple-500 animate-scale-up font-sans">
+          <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+            <h3 className="font-extrabold text-sm flex items-center space-x-2 text-purple-400">
+              <Dices className="w-5 h-5" />
+              <span>🎲 XÚC XẮC NGẪU NHIÊN BÀI TẬP</span>
+            </h3>
+            <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+          </div>
+
+          <div className="flex justify-center py-4">
+            <div className={`w-24 h-24 bg-gradient-to-br from-purple-500 to-indigo-700 rounded-3xl border-4 border-purple-300 shadow-2xl flex items-center justify-center text-6xl font-black text-white transition transform ${
+              isSpinningDice ? 'animate-bounce scale-110' : ''
+            }`}>
+              {diceValue}
+            </div>
+          </div>
+
+          <button
+            onClick={handleRollDice}
+            disabled={isSpinningDice}
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-xs shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>{isSpinningDice ? 'Đang Đổ Xúc Xắc...' : '🎲 LẮC XÚC XẮC NGẪU NHIÊN'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* POPUP GỌI TÊN HỌC SINH NGẪU NHIÊN (RANDOM NAME PICKER) */}
+      {activeWindow === 'picker' && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-amber-500 animate-scale-up font-sans">
+          <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+            <h3 className="font-extrabold text-sm flex items-center space-x-2 text-amber-400">
+              <Users className="w-5 h-5" />
+              <span>🎯 GỌI TÊN HỌC SINH NGẪU NHIÊN</span>
+            </h3>
+            <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+          </div>
+
+          <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 text-center">
+            <span className="text-xs text-slate-400 font-bold block mb-1">Học sinh được chọn:</span>
+            <span className={`text-2xl font-black text-amber-300 block truncate transition transform ${
+              isPickingStudent ? 'scale-110 text-amber-400' : ''
+            }`}>
+              {selectedStudent || '👉 Bấm Nút Gọi Tên!'}
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-extrabold text-slate-400 mb-1">Danh sách học sinh (phân cách bằng dấu phẩy):</label>
+            <textarea
+              value={studentNames}
+              onChange={(e) => setStudentNames(e.target.value)}
+              className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 h-20 outline-none"
+            />
+          </div>
+
+          <button
+            onClick={handlePickRandomStudent}
+            disabled={isPickingStudent}
+            className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-black text-xs shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>{isPickingStudent ? 'Đang Xoay Tên...' : '🎯 GỌI TÊN NGẪU NHIÊN'}</span>
+          </button>
+        </div>
+      )}
+
       {/* POPUP LƯU BÀI DẠY */}
       {activeWindow === 'save' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
@@ -1127,7 +1293,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* THANH TOOLBAR DƯỚI CÙNG SÁT MEP (BOTTOM-3) */}
+      {/* THANH TOOLBAR DƯỚI CÙNG SÁT MEP (BOTTOM-3) ĐẦY ĐỦ BỘ CÔNG CỤ THẦY YÊU CẦU */}
       <div className={getToolbarStyle()}>
         <button
           onClick={toggleToolbarPosition}
@@ -1232,6 +1398,47 @@ export default function WhiteboardView() {
           title="Bảng chọn công cụ Shapes hình học"
         >
           <Square className="w-4 h-4" />
+        </button>
+
+        {/* ========================================================================= */}
+        {/* TRẢ LẠI CÁC NÚT CÔNG CỤ MINI-GAMES GIẢNG DẠY THEO YÊU CẦU CỦA THẦY NGUYỄN VĂN HẢI */}
+        {/* ========================================================================= */}
+        <span className="w-px h-6 bg-slate-400/60 my-auto" />
+
+        <button
+          onClick={() => setActiveWindow(activeWindow === 'timer' ? null : 'timer')}
+          className={`p-2 rounded-xl transition cursor-pointer ${
+            activeWindow === 'timer'
+              ? 'bg-sky-600 text-white shadow-md ring-2 ring-sky-300 scale-105'
+              : 'hover:bg-[#c4bb9c] text-slate-800'
+          }`}
+          title="⏱️ Đồng hồ bấm giờ làm bài tập"
+        >
+          <Clock className="w-4 h-4 text-sky-700" />
+        </button>
+
+        <button
+          onClick={() => setActiveWindow(activeWindow === 'dice' ? null : 'dice')}
+          className={`p-2 rounded-xl transition cursor-pointer ${
+            activeWindow === 'dice'
+              ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300 scale-105'
+              : 'hover:bg-[#c4bb9c] text-slate-800'
+          }`}
+          title="🎲 Lắc xúc xắc ngẫu nhiên bài tập"
+        >
+          <Dices className="w-4 h-4 text-purple-700" />
+        </button>
+
+        <button
+          onClick={() => setActiveWindow(activeWindow === 'picker' ? null : 'picker')}
+          className={`p-2 rounded-xl transition cursor-pointer ${
+            activeWindow === 'picker'
+              ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-300 scale-105'
+              : 'hover:bg-[#c4bb9c] text-slate-800'
+          }`}
+          title="🎯 Gọi tên học sinh ngẫu nhiên"
+        >
+          <Users className="w-4 h-4 text-amber-800" />
         </button>
 
         <button
