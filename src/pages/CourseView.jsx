@@ -1389,7 +1389,7 @@ export default function CourseView() {
         isOpen={isEnrolledModalOpen}
         onClose={() => setIsEnrolledModalOpen(false)}
         courseId={courseId}
-        courseTitle={course?.title}
+        courseTitle={course?.title || course?.name || 'ENGLISH 7 (GLOBAL SUCCESS)'}
         isTeacher={userIsTeacher}
       />
 
