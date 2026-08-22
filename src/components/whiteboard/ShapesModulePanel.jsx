@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Square, Circle, Triangle, Minus, ArrowRight, PaintBucket } from 'lucide-react';
+import { X, Square, Circle, Triangle, Minus, ArrowRight, PaintBucket, CircleDot, Sun } from 'lucide-react';
 
 export default function ShapesModulePanel({
   isOpen,
@@ -72,7 +72,7 @@ export default function ShapesModulePanel({
     <div className="fixed top-16 left-16 z-[100] bg-[#ded8be] border-4 border-[#b8af91] rounded-3xl shadow-2xl p-4 w-96 font-sans text-slate-900 animate-scale-up">
       {/* HEADER POPUP SHAPES */}
       <div className="flex justify-between items-center border-b border-[#c8c0a3] pb-2 mb-3">
-        <h3 className="font-extrabold text-base text-slate-800 tracking-wide">Shapes</h3>
+        <h3 className="font-extrabold text-base text-slate-800 tracking-wide">Shapes (Bảng Hình Học)</h3>
         <button
           onClick={onClose}
           className="w-7 h-7 rounded-full bg-[#c8c0a3] hover:bg-[#b8af91] flex items-center justify-center text-slate-800 transition cursor-pointer"
@@ -101,43 +101,61 @@ export default function ShapesModulePanel({
         </div>
       </div>
 
-      {/* 2 THANH TRƯỢT CONTROL: STROKE WIDTH & OPACITY */}
+      {/* 2 THANH TRƯỢT CONTROL: ĐỘ DÀY VIỀN & ĐỘ TRONG SUỐT (CHUẨN ẢNH MYVIEWBOARD) */}
       <div className="bg-[#d2caa9] p-3 rounded-2xl border border-[#c8c0a3] space-y-3 mb-3">
-        {/* Thanh trượt 1: Độ dày viền (Stroke Width) */}
-        <div className="flex items-center space-x-3">
-          <div className="w-7 h-7 bg-[#ded8be] rounded-full border border-slate-600 flex items-center justify-center">
-            <div
-              style={{ width: `${Math.min(18, Math.max(4, strokeWidth))}px`, height: `${Math.min(18, Math.max(4, strokeWidth))}px` }}
-              className="bg-slate-900 rounded-full"
+        {/* Thanh trượt 1: Độ dày viền khung bo (Stroke Width) */}
+        <div>
+          <div className="flex justify-between items-center text-[11px] font-extrabold text-slate-800 mb-1">
+            <span className="flex items-center space-x-1">
+              <CircleDot className="w-3.5 h-3.5 text-slate-700" />
+              <span>Độ dày viền khung (Stroke):</span>
+            </span>
+            <span className="font-mono text-sky-800">{strokeWidth}px</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="w-7 h-7 bg-[#ded8be] rounded-full border border-slate-600 flex items-center justify-center">
+              <div
+                style={{ width: `${Math.min(18, Math.max(4, strokeWidth))}px`, height: `${Math.min(18, Math.max(4, strokeWidth))}px` }}
+                className="bg-slate-900 rounded-full"
+              />
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="30"
+              value={strokeWidth}
+              onChange={(e) => handleStrokeWidthChange(e.target.value)}
+              className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-sky-600"
             />
           </div>
-          <input
-            type="range"
-            min="1"
-            max="30"
-            value={strokeWidth}
-            onChange={(e) => handleStrokeWidthChange(e.target.value)}
-            className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-sky-600"
-          />
         </div>
 
         {/* Thanh trượt 2: Độ trong suốt (Opacity) */}
-        <div className="flex items-center space-x-3">
-          <div className="w-7 h-7 bg-[#ded8be] rounded-full border border-slate-600 flex items-center justify-center">
-            <div
-              style={{ opacity: opacity }}
-              className="w-4 h-4 bg-slate-900 rounded-full"
+        <div>
+          <div className="flex justify-between items-center text-[11px] font-extrabold text-slate-800 mb-1">
+            <span className="flex items-center space-x-1">
+              <Sun className="w-3.5 h-3.5 text-slate-700" />
+              <span>Độ trong suốt (Opacity):</span>
+            </span>
+            <span className="font-mono text-sky-800">{Math.round(opacity * 100)}%</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="w-7 h-7 bg-[#ded8be] rounded-full border border-slate-600 flex items-center justify-center">
+              <div
+                style={{ opacity: opacity }}
+                className="w-4 h-4 bg-slate-900 rounded-full"
+              />
+            </div>
+            <input
+              type="range"
+              min="0.1"
+              max="1.0"
+              step="0.05"
+              value={opacity}
+              onChange={(e) => handleOpacityChange(e.target.value)}
+              className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-sky-600"
             />
           </div>
-          <input
-            type="range"
-            min="0.1"
-            max="1.0"
-            step="0.05"
-            value={opacity}
-            onChange={(e) => handleOpacityChange(e.target.value)}
-            className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-sky-600"
-          />
         </div>
       </div>
 
