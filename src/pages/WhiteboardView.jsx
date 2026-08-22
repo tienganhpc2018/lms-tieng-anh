@@ -147,6 +147,9 @@ export default function WhiteboardView() {
     return 'crosshair';
   };
 
+  // KIỂM TRA XEM CÓ ĐANG CHỌN CÔNG CỤ VẼ / VẼ SHAPES HAY KHÔNG
+  const isDrawingToolActive = tool !== 'pointer' && tool !== 'hand' && tool !== 'text' && tool !== 'sticky';
+
   // XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
   const handleDeleteSelectedElement = () => {
     if (selectedTextId) {
@@ -339,7 +342,7 @@ export default function WhiteboardView() {
               y: 150 - panOffset.y,
               width: 700,
               height: 480,
-              zIndex: 30, // NẠP LỚP Z-INDEX CAO ĐỂ LUÔN BÁM NỔI BẬT LẤY ẢNH
+              zIndex: 5, // ĐỂ LỚP CANVAS VẼ NỔI TRÊN ẢNH ĐỂ CHÚ THÍCH SHAPES TỰ DO
             };
             setPages((prev) => {
               const copy = [...prev];
@@ -1069,15 +1072,19 @@ export default function WhiteboardView() {
           }
         }}
       >
+        {/* LỚP CANVAS VẼ BÚT & SHAPES: KHI CÓ CÔNG CỤ VẼ ĐANG HOẠT ĐỘNG (isDrawingToolActive), CANVAS TỰ ĐỘNG ĐẨY Z-INDEX NỔI LÊN CAO (z-40) NẰM ĐÈ TRỰC TIẾP LÊN MẶT BỨC ẢNH (z-10/z-30) ĐỂ VẼ CHÚ THÍCH SHAPES NỔI TỰ DO */}
         <canvas
           ref={canvasRef}
-          style={{ cursor: activeCursor }}
-          className="absolute top-0 left-0 z-10 touch-none"
+          style={{
+            cursor: activeCursor,
+            zIndex: isDrawingToolActive ? 40 : 10,
+          }}
+          className="absolute top-0 left-0 touch-none"
         />
 
-        {/* SVG LAYER REALTIME LIVE PREVIEW */}
+        {/* SVG LAYER REALTIME LIVE PREVIEW VẼ SHAPES NỔI TRÊN ĐỈNH (z-50) */}
         {isDrawing && (tool.startsWith('shape_') || tool === 'line' || tool.endsWith('_arrow')) && (
-          <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-20">
+          <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-50">
             {tool === 'line' && (
               <line x1={startPos.x} y1={startPos.y} x2={currentMousePos.x} y2={currentMousePos.y} stroke={color} strokeWidth="3" strokeDasharray="4" />
             )}
@@ -1108,7 +1115,7 @@ export default function WhiteboardView() {
           </svg>
         )}
 
-        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG (TÍNH NĂNG BÁM LẤY ẢNH: ĐỒNG BỘ Z-INDEX CAO VÀ NÚT DRAG MOVER HÀNG ĐẦU TỰ ĐỘNG BÁM CHUẨN ẢNH) */}
+        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
           const isNearTopImg = obj.y < 80;
@@ -1131,7 +1138,7 @@ export default function WhiteboardView() {
                 top: `${obj.y + panOffset.y}px`,
                 width: `${obj.width || 700}px`,
                 height: `${obj.height || 480}px`,
-                zIndex: isSelected ? 50 : (obj.zIndex ?? 30), // NỔI BẬT LỚP Z-INDEX CAO KHI CHỌN
+                zIndex: isDrawingToolActive ? 5 : (isSelected ? 35 : (obj.zIndex ?? 10)),
               }}
               className={`absolute group select-none pointer-events-auto rounded-xl ${
                 tool === 'pointer' ? 'cursor-move' : ''
@@ -1171,7 +1178,7 @@ export default function WhiteboardView() {
                 </>
               )}
 
-              {/* THANH ĐIỀU CHỈNH NỔI BÁM LẤY ẢNH (TỰ ĐỘNG TRÁNH CHE HEADER KHI NẰM Ở ĐỈNH (top-full mt-2)) */}
+              {/* THANH ĐIỀU CHỈNH NỔI BÁM LẤY ẢNH */}
               {isSelected && (
                 <div
                   className={`absolute left-0 bg-slate-900 text-white rounded-2xl shadow-2xl px-3 py-1 flex items-center space-x-2 text-xs border border-amber-400/60 z-[90] animate-scale-up font-sans ${
@@ -1258,7 +1265,7 @@ export default function WhiteboardView() {
                 height: isSticky ? `${box.height || 240}px` : 'auto',
                 backgroundColor: isSticky ? (box.bgColor || '#fef08a') : 'transparent',
                 borderColor: isSticky ? (box.borderColor || '#fde047') : 'transparent',
-                zIndex: 40,
+                zIndex: 45,
               }}
               className={`absolute group p-3 transition duration-150 rounded-2xl relative pointer-events-auto ${
                 tool === 'pointer' ? 'cursor-pointer' : ''
