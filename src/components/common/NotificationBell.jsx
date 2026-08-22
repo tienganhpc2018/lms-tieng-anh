@@ -4,6 +4,51 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+// HÀM PHÁT ÂM THANH CHUÔNG "TING TING" NHẸ NHÀNG KHI CÓ HỌC SINH ĐĂNG KÝ MỚI THỜI GIAN THỰC
+const playTingTingSound = () => {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    // Nốt 1: C5 (523.25 Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(523.25, ctx.currentTime);
+    gain1.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.6);
+
+    // Nốt 2: E5 (659.25 Hz) sau 0.12s
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12);
+    gain2.gain.setValueAtTime(0.2, ctx.currentTime + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.12);
+    osc2.stop(ctx.currentTime + 0.8);
+
+    // Nốt 3: G5 (783.99 Hz) sau 0.25s
+    const osc3 = ctx.createOscillator();
+    const gain3 = ctx.createGain();
+    osc3.type = 'sine';
+    osc3.frequency.setValueAtTime(783.99, ctx.currentTime + 0.25);
+    gain3.gain.setValueAtTime(0.25, ctx.currentTime + 0.25);
+    gain3.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
+    osc3.connect(gain3);
+    gain3.connect(ctx.destination);
+    osc3.start(ctx.currentTime + 0.25);
+    osc3.stop(ctx.currentTime + 1.0);
+  } catch (e) {}
+};
+
 export default function NotificationBell() {
   const { user, isTeacher } = useAuth();
   const navigate = useNavigate();
@@ -12,7 +57,7 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const bellRef = useRef(null);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (isRealtimeEvent = false) => {
     if (!user) return;
     try {
       const readMap = JSON.parse(localStorage.getItem('lms_read_notif_ids_v2') || '{}');
@@ -66,26 +111,35 @@ export default function NotificationBell() {
       });
       const finalList = Object.values(uniqueMap);
 
+      const currentUnread = finalList.filter((n) => !n.read).length;
+
+      // PHÁT ÂM THANH CHUÔNG TING TING KHI CÓ THÔNG BÁO MỚI THỜI GIAN THỰC
+      if (isRealtimeEvent && currentUnread > unreadCount && isTeacher) {
+        playTingTingSound();
+      }
+
       setNotifications(finalList);
-      setUnreadCount(finalList.filter((n) => !n.read).length);
+      setUnreadCount(currentUnread);
     } catch (err) {
       console.error('Fetch notif error:', err);
     }
   };
 
   useEffect(() => {
-    fetchNotifications();
+    fetchNotifications(false);
 
+    // LẮNG NGHE THỜI GIAN THỰC (REALTIME) KHI CÓ HỌC SINH ĐĂNG KÝ MỚI THÌ PHÁT CHUÔNG TING TING
     const notifSub = supabase
       .channel('notifications_realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
-        fetchNotifications();
+        fetchNotifications(true);
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
-        fetchNotifications();
+        playTingTingSound();
+        fetchNotifications(true);
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
-        fetchNotifications();
+        fetchNotifications(false);
       })
       .subscribe();
 
