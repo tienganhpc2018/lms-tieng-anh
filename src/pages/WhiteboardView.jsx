@@ -30,7 +30,7 @@ export default function WhiteboardView() {
 
   // BẢO VỆ PHÂN QUYỀN HỌC SINH
   useEffect(() => {
-    if (user && !isTeacher) {
+    if (!isTeacher && user) {
       alert('⚠️ Tính năng Bảng Tương Tác Giảng Dạy chỉ dành riêng cho Giáo viên!');
       navigate('/dashboard');
     }
@@ -134,6 +134,7 @@ export default function WhiteboardView() {
       const obj = fc.getActiveObject();
       if (obj) {
         setActiveObject(obj);
+        setSelectedTextId(null); // Khi chọn object canvas ➔ nhả ô text!
         syncShapePropsToUI(obj);
         const bound = obj.getBoundingRect();
         setFloatingMenuPos({
@@ -197,33 +198,36 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // CHUẨN XÁC 100%: NHẤP TRỎ ĐÂU TẠO Ô TEXT NÉT CĂNG TẠI ĐÓ (KHÔNG KHỐI VUÔNG MỜ, KHÔNG VIỀN ĐEN)
-  const handleCanvasClickCreateText = (e) => {
-    if (tool !== 'text') return;
+  // XỬ LÝ CLICK RA NGOÀI VÙNG TRỐNG (CLICK OUTSIDE BẢNG) ➔ NHẢ CHUỘT TỰ ĐỘNG ẨN KHUNG VIỀN VÀ THÀNH TOOLBAR CHỈ ĐỂ LẠI CHỮ CHUẨN ĐẸP 100%
+  const handleCanvasContainerClick = (e) => {
+    if (tool === 'text') {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
 
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+      const newId = 'text_' + Date.now();
+      const newBox = {
+        id: newId,
+        x: Math.max(10, clickX),
+        y: Math.max(10, clickY),
+        width: 450,
+        htmlContent: 'Nhấp để gõ bài giảng...',
+        color: bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000',
+        fontSize: fontSize || 36,
+        fontFamily: fontFamily || 'Noto Sans',
+        isBold: false,
+        isItalic: false,
+        isUnderline: false,
+      };
 
-    const newId = 'text_' + Date.now();
-    const newBox = {
-      id: newId,
-      x: Math.max(10, clickX),
-      y: Math.max(10, clickY),
-      width: 480,
-      htmlContent: 'Nhấp để gõ bài giảng...',
-      color: bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000',
-      fontSize: fontSize || 36,
-      fontFamily: fontFamily || 'Noto Sans',
-      isBold: false,
-      isItalic: false,
-      isUnderline: false,
-    };
-
-    setTextElements((prev) => [...prev, newBox]);
-    setSelectedTextId(newId);
-    setTool('pointer');
+      setTextElements((prev) => [...prev, newBox]);
+      setSelectedTextId(newId);
+      setTool('pointer');
+    } else {
+      // Nhấp ra ngoài vùng trống Bảng khi ở tool pointer ➔ NHẢ CHUỘT TỰ ĐỘNG ẨN VIỀN TEXT & KHUNG TOOLBAR
+      setSelectedTextId(null);
+    }
   };
 
   // HIGHLIGHT TÔ MÀU 7 SẮC CẦU VỒNG CHO CHỮ BÔI ĐEN
@@ -251,7 +255,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // XÓA Ô TEXT DỰA VÀO PHÍM DELETE HOẶC NÚT XÓA
+  // XÓA Ô TEXT DỰ A VÀO PHÍM DELETE HOẶC NÚT XÓA
   const handleDeleteSelectedText = (id) => {
     setTextElements((prev) => prev.filter((t) => t.id !== id));
     if (selectedTextId === id) setSelectedTextId(null);
@@ -670,12 +674,12 @@ export default function WhiteboardView() {
       {/* WORKSPACE FABRIC CANVAS CONTAINER */}
       <div 
         ref={containerRef} 
-        onClick={handleCanvasClickCreateText}
+        onClick={handleCanvasContainerClick}
         className={`relative w-full h-[calc(100vh-50px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : ''}`}
       >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
 
-        {/* CƠ CHẾ GÕ TEXT CHUẨN MƯỢT MÀ 100%: TỎ CHUỘT NHẤP ĐÂU Ô GÕ XUẤT HIỆN CHÍNH XÁC 100% TẠI ĐÓ (KHÔNG KHỐI VUÔNG MỜ, KHÔNG VIỀN ĐEN) */}
+        {/* Ô GÕ TEXT TRỰC QUAN HỖ TRỢ NHẢ CHUỘT UNFOCUS CLICK OUTSIDE TỰ ĐỘNG ẨN KHUNG VIỀN VÀ TOOLBAR CHỈ HIỂN THỊ NGUYÊN VẸN NẾT CHỮ NẾT CĂNG RÕ RÀNG TRÊN BẢNG */}
         {textElements.map((box) => {
           const isSelected = selectedTextId === box.id;
 
@@ -690,16 +694,16 @@ export default function WhiteboardView() {
               style={{
                 left: `${box.x}px`,
                 top: `${box.y}px`,
-                width: `${box.width || 480}px`,
+                width: `${box.width || 450}px`,
                 zIndex: 80,
               }}
-              className={`absolute p-1.5 rounded-xl transition-all duration-150 pointer-events-auto cursor-move ${
+              className={`absolute p-1 rounded-xl transition-all duration-150 pointer-events-auto cursor-move ${
                 isSelected
-                  ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl bg-slate-900/30'
-                  : 'border border-transparent'
+                  ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl bg-slate-900/20'
+                  : 'border border-transparent bg-transparent'
               }`}
             >
-              {/* THANH RICH TEXT EDITOR CHUẨN CẢM GIÁC DÍNH LIỀN 1 NƠI CỰC KỲ TIỆN TAY CHỈNH SỬA (ẢNH 2 MYVIEWBOARD) */}
+              {/* THANH RICH TEXT EDITOR CHUẨN CẢM GIÁC DÍNH LIỀN 1 NƠI CỰC KỲ TIỆN TAY CHỈNH SỬA (CHỈ HIỂN THỊ KHI ĐANG ĐƯỢC CHỌN) */}
               {isSelected && (
                 <div
                   className="absolute bottom-full mb-1 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
@@ -813,7 +817,7 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG 100% KHÔNG CÓ VIỀN ĐEN HAY VUÔNG MỜ */}
+              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG 100% - KHI NHẢ CHUỘT CHỈ HIỂN THỊ MỖI CHỮ TRÊN BẢNG */}
               <div
                 contentEditable
                 suppressContentEditableWarning
@@ -830,7 +834,7 @@ export default function WhiteboardView() {
                   fontStyle: box.isItalic ? 'italic' : 'normal',
                   textDecoration: box.isUnderline ? 'underline' : 'none',
                 }}
-                className="bg-transparent border-none outline-none font-sans p-0 m-0 shadow-none leading-normal w-full min-h-[45px] cursor-text select-text"
+                className="bg-transparent border-none outline-none font-sans p-0 m-0 shadow-none leading-normal w-full min-h-[40px] cursor-text select-text"
               />
             </div>
           );
