@@ -238,12 +238,45 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     return matchesSearch && matchesLetter && matchesClass;
   });
 
+  const [selectedEnrolledUserIds, setSelectedEnrolledUserIds] = useState([]);
+
+  const toggleSelectEnrolledUser = (uid) => {
+    setSelectedEnrolledUserIds((prev) =>
+      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid]
+    );
+  };
+
+  const handleSelectAllEnrolled = () => {
+    if (selectedEnrolledUserIds.length === filteredEnrolledUsers.length) {
+      setSelectedEnrolledUserIds([]);
+    } else {
+      setSelectedEnrolledUserIds(filteredEnrolledUsers.map((u) => u.id));
+    }
+  };
+
+  const handleBulkUnenrol = async () => {
+    if (selectedEnrolledUserIds.length === 0) {
+      alert('Vui lòng tích chọn ít nhất 1 học sinh để thực hiện rút khỏi khóa học!');
+      return;
+    }
+    if (!confirm(`Thầy Hải có chắc chắn muốn rút ${selectedEnrolledUserIds.length} học sinh đã chọn khỏi khóa học này?`)) return;
+
+    try {
+      await supabase.from('course_enrollments').delete().in('id', selectedEnrolledUserIds);
+      alert(`Đã rút ${selectedEnrolledUserIds.length} học sinh khỏi khóa học!`);
+      setSelectedEnrolledUserIds([]);
+      await fetchEnrolledUsers();
+    } catch (err) {
+      alert('Lỗi rút học sinh: ' + err.message);
+    }
+  };
+
   const enrolledUserIdsSet = new Set((users || []).map((u) => u?.user_id).filter(Boolean));
   const availableStudentsToEnrol = (allStudentsList || []).filter((s) => s && !enrolledUserIdsSet.has(s.id));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in font-sans select-none">
-      <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden">
+      <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[90vh] flex flex-col border border-slate-200 shadow-2xl overflow-hidden">
         {/* HEADER QUẢN LÝ HỌC VIÊN NGUYÊN BẢN MOODLE GNOMIO */}
         <div className="p-6 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
           <div>
@@ -307,7 +340,7 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
           </div>
         </div>
 
-        {/* BỘ LỌC TÌM KIẾM & CHỮ CÁI A-Z NGUYÊN BẢN CHUẨN MOODLE */}
+        {/* BỘ LỌC TÌM KIẾM & CHỮ CÁI A-Z NGUYÊN BẢN CHUẨN MOODLE (ẢNH 3) */}
         <div className="p-5 border-b border-slate-200 bg-slate-50 space-y-3">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
             <div className="relative w-full sm:w-80">
@@ -321,12 +354,22 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
               />
             </div>
 
-            <div className="text-xs font-bold text-slate-600">
-              Hiển thị: <strong className="text-emerald-700">{filteredEnrolledUsers.length}</strong> / {users.length} học sinh
+            <div className="flex items-center space-x-3 text-xs font-bold text-slate-600">
+              {selectedEnrolledUserIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleBulkUnenrol}
+                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold rounded-xl shadow-2xs transition flex items-center space-x-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Rút {selectedEnrolledUserIds.length} học sinh khỏi khóa</span>
+                </button>
+              )}
+              <span>Hiển thị: <strong className="text-emerald-700">{filteredEnrolledUsers.length}</strong> / {users.length} học sinh</span>
             </div>
           </div>
 
-          {/* LỌC THEO TÊN A-Z NGUYÊN BẢN MOODLE */}
+          {/* LỌC THEO TÊN A-Z NGUYÊN BẢN MOODLE (ẢNH 3) */}
           <div className="flex items-center space-x-1 text-[11px] font-bold overflow-x-auto pb-1 pt-1">
             <span className="text-slate-400 mr-1">First name:</span>
             {alphabet.map((letter) => (
@@ -344,7 +387,7 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
           </div>
         </div>
 
-        {/* CONTENT BODY BẢNG DANH SÁCH PARTICIPANTS CHUẨN MOODLE (ẢNH 4) */}
+        {/* CONTENT BODY BẢNG DANH SÁCH PARTICIPANTS CHUẨN NGUYÊN BẢN MOODLE (ẢNH 3) */}
         <div className="p-6 overflow-y-auto flex-1">
           {loading ? (
             <LoadingSpinner text="Đang tải danh sách học viên trong khóa..." />
@@ -359,9 +402,20 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-100 text-slate-800 font-extrabold uppercase border-b border-slate-200">
                   <tr>
+                    <th className="p-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedEnrolledUserIds.length > 0 && selectedEnrolledUserIds.length === filteredEnrolledUsers.length}
+                        onChange={handleSelectAllEnrolled}
+                        className="w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer"
+                        title="Tích chọn tất cả"
+                      />
+                    </th>
                     <th className="p-3">First name / Last name</th>
                     <th className="p-3">Email address</th>
                     <th className="p-3">Roles</th>
+                    <th className="p-3">Groups</th>
+                    <th className="p-3">Last access to course</th>
                     <th className="p-3">Status</th>
                     {isTeacher && <th className="p-3 text-right">Thao tác</th>}
                   </tr>
@@ -372,32 +426,72 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
                     const name = p.full_name || p.username || 'Học viên';
                     const email = p.email || `${p.username}@lms.edu.vn`;
                     const roleName = u.role === 'teacher' ? 'Teacher' : 'Student';
+                    const groupName = p.class_name || p.class ? `Lớp ${p.class_name || p.class}` : 'No groups';
+                    const isSelected = selectedEnrolledUserIds.includes(u.id);
 
                     return (
-                      <tr key={u.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3 font-extrabold text-slate-900 flex items-center space-x-2.5">
-                          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-extrabold flex items-center justify-center text-xs">
+                      <tr
+                        key={u.id}
+                        onClick={() => toggleSelectEnrolledUser(u.id)}
+                        className={`cursor-pointer transition select-none ${
+                          isSelected ? 'bg-blue-50/90 border-l-4 border-blue-600 shadow-2xs' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectEnrolledUser(u.id)}
+                            className="w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer"
+                          />
+                        </td>
+                        <td className="p-3 font-extrabold text-blue-800 flex items-center space-x-2.5">
+                          <div className={`w-8 h-8 rounded-full font-extrabold flex items-center justify-center text-xs ${
+                            isSelected ? 'bg-blue-600 text-white' : 'bg-emerald-100 text-emerald-800'
+                          }`}>
                             {name[0].toUpperCase()}
                           </div>
-                          <span>{name}</span>
+                          <span className={`font-extrabold ${isSelected ? 'text-blue-900 underline' : 'text-blue-700 hover:underline'}`}>
+                            {name}
+                          </span>
                         </td>
                         <td className="p-3 text-slate-600 font-medium">{email}</td>
-                        <td className="p-3 font-bold text-slate-800">{roleName}</td>
+                        <td className="p-3 font-bold text-slate-800 flex items-center space-x-1">
+                          <span>{roleName}</span>
+                          <span className="text-[10px] text-slate-400">✏️</span>
+                        </td>
+                        <td className="p-3 text-slate-600 font-medium">
+                          <span>{groupName}</span>
+                        </td>
+                        <td className="p-3 text-slate-500 text-[11px]">
+                          <span>Never</span>
+                        </td>
                         <td className="p-3">
-                          <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold rounded-md text-[10px] uppercase">
-                            Active
+                          <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold rounded-md text-[10px] uppercase flex items-center space-x-1 w-max">
+                            <span>Active</span>
+                            <span className="text-[10px] text-emerald-600 cursor-pointer" title="Thông tin trạng thái">ℹ️</span>
                           </span>
                         </td>
                         {isTeacher && (
-                          <td className="p-3 text-right">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveUser(u.id, name)}
-                              className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition"
-                              title="Xóa khỏi khóa học"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                          <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end space-x-1.5">
+                              <button
+                                type="button"
+                                onClick={() => alert(`Chi tiết tài khoản học viên: ${name}\nEmail: ${email}\nLớp: ${groupName}`)}
+                                className="p-1 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded transition text-[11px]"
+                                title="Xem thông tin chi tiết"
+                              >
+                                ℹ️
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveUser(u.id, name)}
+                                className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition"
+                                title="Rút học sinh khỏi khóa học"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -425,55 +519,63 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
             </div>
 
             <p className="text-xs text-slate-500">
-              Đánh dấu tích chọn các học sinh dưới đây và bấm nút <strong className="text-blue-700">"Enrol selected users"</strong> để nạp các em vào khóa học này:
+              Nhấp chọn tên học sinh dưới đây (hàng sẽ <strong className="text-blue-700">sáng xanh</strong>) và bấm nút <strong className="text-blue-700">"Enrol selected users"</strong> để nạp vào khóa học:
             </p>
 
             <div className="border border-slate-200 rounded-2xl max-h-64 overflow-y-auto divide-y divide-slate-100 bg-slate-50/50">
-              {availableStudentsToEnrol.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-500 font-bold">
-                  Tất cả học sinh trong trường đã được thêm vào khóa học này!
-                </div>
-              ) : (
-                availableStudentsToEnrol.map((st) => {
-                  const isChecked = selectedUserIds.includes(st.id);
-                  return (
-                    <div
-                      key={st.id}
-                      onClick={() => toggleSelectUser(st.id)}
-                      className={`p-3 flex items-center justify-between cursor-pointer transition ${
-                        isChecked ? 'bg-blue-50 border-l-4 border-blue-600' : 'hover:bg-slate-100'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {}}
-                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
-                        />
-                        <div>
-                          <span className="font-extrabold text-slate-900 text-xs block">{st.full_name || st.username}</span>
-                          <span className="text-[11px] text-slate-500 font-mono">@{st.username} • {st.email}</span>
-                        </div>
-                      </div>
+              {(allStudentsList || []).map((st) => {
+                const isChecked = selectedUserIds.includes(st.id);
+                const isAlreadyEnrolled = enrolledUserIdsSet.has(st.id);
 
-                      {isChecked && <CheckCircle className="w-4 h-4 text-blue-600" />}
+                return (
+                  <div
+                    key={st.id}
+                    onClick={() => toggleSelectUser(st.id)}
+                    className={`p-3 flex items-center justify-between cursor-pointer transition select-none ${
+                      isChecked
+                        ? 'bg-blue-100/90 border-l-4 border-blue-600 shadow-2xs font-extrabold text-blue-900'
+                        : 'hover:bg-slate-100 text-slate-800 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleSelectUser(st.id)}
+                        className="w-4 h-4 rounded text-blue-600 accent-blue-600 cursor-pointer"
+                      />
+                      <div>
+                        <span className="font-extrabold text-xs block">{st.full_name || st.username}</span>
+                        <span className="text-[10px] opacity-75 block">{st.email || `${st.username}@lms.edu.vn`}</span>
+                      </div>
                     </div>
-                  );
-                })
-              )}
+
+                    <div>
+                      {isAlreadyEnrolled ? (
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-md">
+                          ✓ Đã trong khóa
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-slate-200 text-slate-700 text-[10px] font-bold rounded-md">
+                          + Chưa ghi danh
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex justify-between items-center pt-2">
-              <span className="text-xs font-bold text-slate-600">
-                Đã chọn: <strong className="text-blue-700">{selectedUserIds.length}</strong> học sinh
+              <span className="text-xs font-extrabold text-slate-700">
+                Đã chọn: <strong className="text-blue-600">{selectedUserIds.length}</strong> học sinh
               </span>
 
-              <div className="space-x-2">
+              <div className="flex space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsEnrolPopupOpen(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
                 >
                   Hủy
                 </button>
@@ -482,9 +584,10 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
                   type="button"
                   onClick={handleEnrolSelectedUsers}
                   disabled={enrolling || selectedUserIds.length === 0}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md transition"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-md transition disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
                 >
-                  {enrolling ? 'Đang Ghi Danh...' : `🚀 Enrol selected users (${selectedUserIds.length})`}
+                  <UserPlus className="w-4 h-4" />
+                  <span>Enrol selected users ({selectedUserIds.length})</span>
                 </button>
               </div>
             </div>
