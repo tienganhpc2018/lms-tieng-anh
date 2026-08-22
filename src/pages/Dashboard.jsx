@@ -53,11 +53,78 @@ export default function Dashboard() {
   const [isSitePagesOpen, setIsSitePagesOpen] = useState(true);
   const [isMyCoursesOpen, setIsMyCoursesOpen] = useState(true);
 
-  // Code Hướng Dẫn & Toast
+  // Code Hướng Dẫn & Toast & Hidden Courses
   const [showCodeCourseIds, setShowCodeCourseIds] = useState([]);
   const [visibleCodeIds, setVisibleCodeIds] = useState([]);
   const [copiedCode, setCopiedCode] = useState('');
   const [toast, setToast] = useState({ isOpen: false, type: 'info', title: '', message: '' });
+
+  // State Ẩn Khóa Học & Menu 3 dấu chấm (Hidden from students & Delete Course)
+  const [hiddenCourseIds, setHiddenCourseIds] = useState(() => {
+    return JSON.parse(localStorage.getItem('lms_hidden_courses_v2') || '[]');
+  });
+  const [activeDropdownCourseId, setActiveDropdownCourseId] = useState(null);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [editCourseTitle, setEditCourseTitle] = useState('');
+
+  const toggleHideCourse = async (courseId, e) => {
+    e.stopPropagation();
+    setActiveDropdownCourseId(null);
+
+    const isCurrentlyHidden = hiddenCourseIds.includes(courseId);
+    const updatedHidden = isCurrentlyHidden
+      ? hiddenCourseIds.filter((id) => id !== courseId)
+      : [...hiddenCourseIds, courseId];
+
+    setHiddenCourseIds(updatedHidden);
+    localStorage.setItem('lms_hidden_courses_v2', JSON.stringify(updatedHidden));
+
+    showToast(
+      'success',
+      isCurrentlyHidden ? 'Đã Hiện Khóa Học' : 'Đã Ẩn Khóa Học với Học Sinh',
+      isCurrentlyHidden
+        ? 'Học sinh bây giờ có thể nhìn thấy và tham gia khóa học này.'
+        : 'Khóa học đã chuyển sang trạng thái [Hidden from students]. Học sinh sẽ không nhìn thấy khóa này nữa!'
+    );
+  };
+
+  const handleDeleteCourse = async (courseObj, e) => {
+    e.stopPropagation();
+    setActiveDropdownCourseId(null);
+
+    if (!confirm(`Thầy Hải có chắc chắn muốn XÓA VĨNH VIỄN khóa học "${courseObj.title}"?`)) return;
+
+    try {
+      try {
+        await supabase.from('courses').delete().eq('id', courseObj.id);
+      } catch (err) {}
+
+      setCourses((prev) => prev.filter((c) => c.id !== courseObj.id));
+      showToast('success', 'Đã Xóa Khóa Học', `Đã xóa thành công khóa học "${courseObj.title}" khỏi hệ thống!`);
+    } catch (err) {
+      showToast('error', 'Lỗi Xóa Khóa Học', err.message);
+    }
+  };
+
+  const handleUpdateCourseTitle = async (e) => {
+    e.preventDefault();
+    if (!editingCourse || !editCourseTitle.trim()) return;
+
+    try {
+      try {
+        await supabase.from('courses').update({ title: editCourseTitle.trim() }).eq('id', editingCourse.id);
+      } catch (err) {}
+
+      setCourses((prev) =>
+        prev.map((c) => (c.id === editingCourse.id ? { ...c, title: editCourseTitle.trim() } : c))
+      );
+      showToast('success', 'Thành Công', 'Đã cập nhật tên khóa học!');
+      setEditingCourse(null);
+      setEditCourseTitle('');
+    } catch (err) {
+      showToast('error', 'Lỗi', err.message);
+    }
+  };
 
   const toggleShowCode = (courseId, e) => {
     e.stopPropagation();
@@ -275,7 +342,7 @@ export default function Dashboard() {
 
   const displayableCourses = userIsTeacher
     ? courses
-    : courses.filter((c) => userEnrollments.includes(c.id));
+    : courses.filter((c) => userEnrollments.includes(c.id) && !hiddenCourseIds.includes(c.id));
 
   const filteredCourses = displayableCourses.filter(
     (c) =>
@@ -618,11 +685,70 @@ export default function Dashboard() {
                               )}
                             </div>
 
-                            <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                             <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
                               <div>
-                                <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition leading-snug">
-                                  {courseItem.title}
-                                </h3>
+                                <div className="flex justify-between items-start gap-2">
+                                  <div className="space-y-1 flex-1">
+                                    <h3 className="font-extrabold text-slate-900 text-base group-hover:text-emerald-700 transition leading-snug">
+                                      {courseItem.title}
+                                    </h3>
+
+                                    {/* NHÃN HIDDEN FROM STUDENTS CHUẨN MOODLE (ẢNH 2) */}
+                                    {hiddenCourseIds.includes(courseItem.id) && (
+                                      <span className="px-2 py-0.5 bg-teal-700 text-white font-black rounded-md text-[10px] uppercase tracking-wide flex items-center space-x-1 w-max shadow-2xs">
+                                        <span>Hidden from students</span>
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* NÚT 3 DẤU CHẤM DỌC TÙY CHỌN ẨN / SỬA / XÓA KHÓA HỌC CHUẨN MOODLE (ẢNH 3) */}
+                                  {userIsTeacher && (
+                                    <div className="relative" onClick={(e) => e.stopPropagation()}>
+                                      <button
+                                        type="button"
+                                        onClick={() => setActiveDropdownCourseId(activeDropdownCourseId === courseItem.id ? null : courseItem.id)}
+                                        className="p-1.5 hover:bg-slate-200 rounded-xl text-slate-700 transition cursor-pointer"
+                                        title="Khóa học tùy chọn (Ẩn / Sửa / Xóa)"
+                                      >
+                                        <span className="font-black text-lg leading-none">⋮</span>
+                                      </button>
+
+                                      {activeDropdownCourseId === courseItem.id && (
+                                        <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-slate-200 rounded-2xl shadow-2xl py-1.5 z-30 text-xs font-bold text-slate-700 space-y-1 animate-scale-up">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => toggleHideCourse(courseItem.id, e)}
+                                            className="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center space-x-2 text-slate-800"
+                                          >
+                                            <span>{hiddenCourseIds.includes(courseItem.id) ? '👁️ Show to students (Hiện HS)' : '🙈 Hidden from students (Ẩn HS)'}</span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveDropdownCourseId(null);
+                                              setEditingCourse(courseItem);
+                                              setEditCourseTitle(courseItem.title);
+                                            }}
+                                            className="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center space-x-2 text-blue-700"
+                                          >
+                                            <span>✏️ Edit course settings (Sửa tên)</span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={(e) => handleDeleteCourse(courseItem, e)}
+                                            className="w-full text-left px-3 py-1.5 hover:bg-rose-50 text-rose-600 flex items-center space-x-2 border-t border-slate-100 pt-1.5"
+                                          >
+                                            <span>🗑️ Remove / Delete course (Xóa)</span>
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
                                 <p className="text-xs text-slate-500 font-medium line-clamp-2 mt-1">
                                   {courseItem.description?.replace(/\[.*?\]/g, '').trim() || 'Khóa học tiếng Anh THCS chuẩn ma trận CV7991'}
                                 </p>
@@ -873,6 +999,51 @@ export default function Dashboard() {
                 <button type="button" onClick={() => setIsJoinModalOpen(false)} className="px-4 py-2 text-slate-600 text-xs font-bold">Hủy</button>
                 <button type="submit" disabled={joining} className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-md">
                   {joining ? 'Đang Gia Nhập...' : '🚀 XÁC NHẬN GIA NHẬP'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIT COURSE SETTINGS (SỬA TÊN KHÓA HỌC) */}
+      {editingCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 font-sans">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-scale-up space-y-4 p-6">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center space-x-2">
+                <span>✏️ Edit Course Settings - Sửa Tên Khóa Học</span>
+              </h3>
+              <button onClick={() => setEditingCourse(null)} className="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+
+            <form onSubmit={handleUpdateCourseTitle} className="space-y-4">
+              <div>
+                <label className="block text-xs font-extrabold text-slate-700 uppercase mb-1">
+                  Tên Khóa Học Mới: *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editCourseTitle}
+                  onChange={(e) => setEditCourseTitle(e.target.value)}
+                  className="w-full p-3 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingCourse(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-md transition"
+                >
+                  Save changes (Lưu thay đổi)
                 </button>
               </div>
             </form>
