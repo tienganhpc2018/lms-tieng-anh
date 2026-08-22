@@ -81,6 +81,32 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     }
   };
 
+  const handleEnrolAllSchoolStudents = async () => {
+    if (allStudentsList.length === 0) {
+      alert('Chưa có học sinh nào trong hệ thống!');
+      return;
+    }
+    if (!confirm(`Thầy Hải có chắc chắn muốn đưa TOÀN BỘ ${allStudentsList.length} em học sinh trong hệ thống vào khóa học này?`)) return;
+
+    setEnrolling(true);
+    try {
+      const newEntries = allStudentsList.map((st) => ({
+        course_id: courseId,
+        user_id: st.id,
+        role: 'student',
+        status: 'active',
+      }));
+
+      await supabase.from('course_enrollments').upsert(newEntries, { onConflict: 'course_id,user_id' });
+      alert(`🎉 ĐÃ GHI DANH THÀNH CÔNG TẤT CẢ ${allStudentsList.length} HỌC SINH VÀO KHÓA HỌC NÀY!`);
+      await fetchEnrolledUsers();
+    } catch (err) {
+      alert('Lỗi ghi danh: ' + err.message);
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   // Xóa Người Học Khỏi Khóa Học
   const handleRemoveUser = async (enrollmentId, userName) => {
     if (!confirm(`Bạn có chắc muốn xóa học sinh "${userName}" khỏi khóa học này?`)) return;
@@ -133,16 +159,29 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
             </h2>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {isTeacher && (
-              <button
-                type="button"
-                onClick={() => setIsEnrolPopupOpen(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-2 border border-blue-400/40"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Enrol users (Thêm Học Sinh Vào Khóa)</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleEnrolAllSchoolStudents}
+                  disabled={enrolling}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 border border-emerald-400/40 cursor-pointer animate-pulse"
+                  title="Đưa toàn bộ 34 em học sinh vừa tạo vào khóa học này"
+                >
+                  <UserPlus className="w-4 h-4 text-amber-300" />
+                  <span>🚀 GHI DANH TẤT CẢ {allStudentsList.length} HỌC SINH VÀO KHÓA HỌC NÀY</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEnrolPopupOpen(true)}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-sm transition flex items-center space-x-1.5 border border-blue-400/40 cursor-pointer"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Enrol users (Chọn Lọc)</span>
+                </button>
+              </>
             )}
 
             <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition">
