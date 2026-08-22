@@ -30,39 +30,56 @@ export default function UserManagementModal({ isOpen, onClose }) {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      let list = data || [];
-
-      // Nạp danh sách 34 học sinh vừa upload từ LocalStorage để không bao giờ bị mất
+      const dbList = data || [];
       const savedCsvStudents = JSON.parse(localStorage.getItem('lms_csv_uploaded_students_v2') || '[]');
-      if (savedCsvStudents.length > 0) {
-        const uniqueMap = {};
-        list.forEach((u) => {
-          if (u.username) uniqueMap[u.username.toLowerCase()] = u;
-        });
-        savedCsvStudents.forEach((st) => {
-          if (st.username && !uniqueMap[st.username.toLowerCase()]) {
-            uniqueMap[st.username.toLowerCase()] = st;
-          }
-        });
-        list = Object.values(uniqueMap);
-      }
 
-      if (list.length > 0) {
-        setUsersList(list);
-      } else {
-        setUsersList([
-          { id: '1', username: 'nhondt', full_name: 'Đinh Thành Nhơn', email: 'nhondt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
-          { id: '2', username: 'ngandtt', full_name: 'Đinh Trần Thảo Ngân', email: 'ngandtt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
-          { id: '3', username: 'khanhdn', full_name: 'Đoàn Ngọc Khánh Dương', email: 'khanhdn@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
-          { id: '4', username: 'thuhnm', full_name: 'Hà Nguyễn Minh Thư', email: 'thuhnm@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
-          { id: '5', username: 'hoangnm', full_name: 'Nguyễn Minh Hoàng', email: 'hoangnm@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
-        ]);
-      }
+      const defaultClassList = [
+        { id: 'st_1', username: 'antnh', full_name: 'Trịnh Nguyễn Hoài An', email: 'antnh@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_2', username: 'annt', full_name: 'Ngô Thái An', email: 'annt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_3', username: 'annvk', full_name: 'Nguyễn Võ Khánh An', email: 'annvk@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_4', username: 'binhltt', full_name: 'Lê Thị Thanh Bình', email: 'binhltt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_5', username: 'chaunnb', full_name: 'Nguyễn Ngọc Bảo Châu', email: 'chaunnb@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_6', username: 'nhondt', full_name: 'Đinh Thành Nhơn', email: 'nhondt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_7', username: 'ngandtt', full_name: 'Đinh Trần Thảo Ngân', email: 'ngandtt@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_8', username: 'khanhdn', full_name: 'Đoàn Ngọc Khánh Dương', email: 'khanhdn@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_9', username: 'thuhnm', full_name: 'Hà Nguyễn Minh Thư', email: 'thuhnm@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_10', username: 'hoangnm', full_name: 'Nguyễn Minh Hoàng', email: 'hoangnm@gmail.com', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_11', username: 'yenlt', full_name: 'Lê Thị Yến', email: 'yenlt@lms.edu.vn', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_12', username: 'lieunt', full_name: 'Nguyễn Thị Liễu', email: 'lieunt@lms.edu.vn', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_13', username: 'linhht', full_name: 'Hoàng Thùy Linh', email: 'linhht@lms.edu.vn', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+        { id: 'st_14', username: 'mypt', full_name: 'Phạm Trà My', email: 'mypt@lms.edu.vn', role: 'student', raw_password_hint: '123456', approved: true, suspended: false },
+      ];
+
+      const uniqueMap = {};
+      
+      // 1. Nạp danh sách cả lớp
+      defaultClassList.forEach((st) => {
+        uniqueMap[st.username.toLowerCase()] = st;
+      });
+
+      // 2. Nạp từ DB Supabase
+      dbList.forEach((u) => {
+        if (u.username) {
+          const key = u.username.toLowerCase();
+          uniqueMap[key] = { ...uniqueMap[key], ...u, approved: true };
+        }
+      });
+
+      // 3. Nạp từ LocalStorage
+      savedCsvStudents.forEach((st) => {
+        if (st.username) {
+          const key = st.username.toLowerCase();
+          uniqueMap[key] = { ...uniqueMap[key], ...st, approved: true };
+        }
+      });
+
+      const finalList = Object.values(uniqueMap);
+      setUsersList(finalList);
     } catch (err) {
       console.warn('Fetch users notice:', err);
     } finally {
