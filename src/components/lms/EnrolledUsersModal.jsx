@@ -5,7 +5,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 
 const AVAILABLE_CLASSES = ['Tất cả lớp', '7A3', '7A4', '7A5', '7A6', '9A2', '9A5'];
 
-export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeacher }) {
+export default function EnrolledUsersModal({ isOpen, onClose, courseId, courseTitle = 'ENGLISH 7 (GLOBAL SUCCESS)', isTeacher }) {
   const [users, setUsers] = useState([]);
   const [allStudentsList, setAllStudentsList] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
@@ -315,10 +315,14 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [detailsModalUser, setDetailsModalUser] = useState(null);
 
-  const formatLastAccess = (dateStr) => {
-    if (!dateStr) return 'Never';
-    const diffMs = Date.now() - new Date(dateStr).getTime();
-    if (isNaN(diffMs) || diffMs < 0) return 'Never';
+  const formatLastAccess = (uObj) => {
+    if (!uObj) return 'Never';
+    const p = uObj.profile || {};
+    const rawTime = uObj.last_login || p.last_login || uObj.last_access || p.last_access;
+    if (!rawTime) return 'Never';
+
+    const diffMs = Date.now() - new Date(rawTime).getTime();
+    if (isNaN(diffMs) || diffMs <= 0) return 'Never';
 
     const diffSecs = Math.floor(diffMs / 1000);
     if (diffSecs < 60) return `${diffSecs} secs`;
@@ -499,7 +503,8 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
                     const roleName = u.role === 'teacher' ? 'Teacher' : 'Student';
                     const groupName = p.class_name || p.class ? `Lớp ${p.class_name || p.class}` : 'No groups';
                     const isSelected = selectedEnrolledUserIds.includes(u.id);
-                    const lastAccessText = formatLastAccess(u.last_access || u.enrolled_at || p.created_at);
+                    const lastAccessText = formatLastAccess(u);
+                    const avatarImgUrl = p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(p.username || name)}`;
 
                     return (
                       <tr
@@ -518,11 +523,15 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
                           />
                         </td>
                         <td className="p-3 font-extrabold text-blue-800 flex items-center space-x-2.5">
-                          <div className={`w-8 h-8 rounded-full font-extrabold flex items-center justify-center text-xs ${
-                            isSelected ? 'bg-blue-600 text-white' : 'bg-emerald-100 text-emerald-800'
-                          }`}>
-                            {name[0].toUpperCase()}
-                          </div>
+                          <img
+                            src={avatarImgUrl}
+                            alt={name}
+                            className="w-8 h-8 rounded-full border border-slate-300 object-cover bg-slate-100 shadow-2xs"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`;
+                            }}
+                          />
                           <span className={`font-extrabold ${isSelected ? 'text-blue-900 underline' : 'text-blue-700 hover:underline'}`}>
                             {name}
                           </span>
