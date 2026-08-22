@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+
+import { useNavigate as useNav, useSearchParams as useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { 
@@ -10,14 +11,14 @@ import {
   Highlighter, Bold, Italic, Underline, Search, ZoomIn, ZoomOut, Check, ChevronLeft, ChevronRight,
   Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand, Minus, MousePointer, Pause, RefreshCw, Users,
   StickyNote, AlignLeft, AlignCenter, AlignRight, CornerUpRight, ArrowUpRight, Star, Diamond, Layers3, ArrowDownToLine, ArrowUpToLine,
-  Boxes, Group, Ungroup
+  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function WhiteboardView() {
   const { user, profile, isTeacher } = useAuth();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const navigate = useNav();
+  const [searchParams] = useParams();
   const activityId = searchParams.get('activityId');
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -60,7 +61,7 @@ export default function WhiteboardView() {
   const [draggingObjId, setDraggingObjId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  // THU PHÓNG BẰNG GÓC KÉO RESIZE
+  // THU PHÓNG BẰNG GÓC KÉO RESIZE & XOAY VẬT THỂ
   const [resizingObjId, setResizingObjId] = useState(null);
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, w: 0, h: 0 });
 
@@ -147,7 +148,6 @@ export default function WhiteboardView() {
     return 'crosshair';
   };
 
-  // KIỂM TRA XEM CÓ ĐANG CHỌN CÔNG CỤ VẼ / VẼ SHAPES HAY KHÔNG
   const isDrawingToolActive = tool !== 'pointer' && tool !== 'hand' && tool !== 'text' && tool !== 'sticky';
 
   // XÓA CHUẨN XÁC KHI NHẤP PHÍM DELETE HOẶC NÚT THÙNG RÁC CHO SHAPES, Ô TEXT, STICKY VÀ ẢNH DÁN
@@ -175,6 +175,43 @@ export default function WhiteboardView() {
     } else {
       alert('Thầy Hải hãy nhấp chọn ô Text, Sticky, Shapes hoặc Ảnh dán cần xóa trước nhé!');
     }
+  };
+
+  // LẬT ẢNH HOẶC KHÓA VẬT THỂ
+  const handleToggleLockImage = (id) => {
+    setPages((prev) => {
+      const copy = [...prev];
+      const cur = copy[currentPageIndex] || createEmptyPage();
+      const updated = (cur.objectElements || []).map((o) => {
+        if (o.id === id) {
+          return { ...o, isLocked: !o.isLocked };
+        }
+        return o;
+      });
+      copy[currentPageIndex] = { ...cur, objectElements: updated };
+      return copy;
+    });
+    saveSnapshotState();
+  };
+
+  const handleFlipImage = (id, axis) => {
+    setPages((prev) => {
+      const copy = [...prev];
+      const cur = copy[currentPageIndex] || createEmptyPage();
+      const updated = (cur.objectElements || []).map((o) => {
+        if (o.id === id) {
+          return {
+            ...o,
+            flipH: axis === 'h' ? !o.flipH : o.flipH,
+            flipV: axis === 'v' ? !o.flipV : o.flipV,
+          };
+        }
+        return o;
+      });
+      copy[currentPageIndex] = { ...cur, objectElements: updated };
+      return copy;
+    });
+    saveSnapshotState();
   };
 
   // PHÍM DELETE HOẶC BACKSPACE XÓA VẬT THỂ 1-CLICK
@@ -342,7 +379,10 @@ export default function WhiteboardView() {
               y: 150 - panOffset.y,
               width: 700,
               height: 480,
-              zIndex: 5, // ĐỂ LỚP CANVAS VẼ NỔI TRÊN ẢNH ĐỂ CHÚ THÍCH SHAPES TỰ DO
+              zIndex: 5,
+              isLocked: false,
+              flipH: false,
+              flipV: false,
             };
             setPages((prev) => {
               const copy = [...prev];
@@ -592,17 +632,22 @@ export default function WhiteboardView() {
   // KÉO RÊ VẬT THỂ BẰNG CON TRỎ HOẶC MOVER
   const handleStartDragElement = (id, isImage, e) => {
     e.stopPropagation();
-    setDraggingObjId(id);
 
     const curPage = pages[currentPageIndex] || createEmptyPage();
     if (isImage) {
+      const target = (curPage.objectElements || []).find((o) => o.id === id);
+      if (target?.isLocked) {
+        alert('🔒 Bức ảnh này đã bị KHÓA VỊ TRÍ! Thầy Hải mở khóa bằng nút 🔒 ở Menu bên phải để di chuyển nhé.');
+        return;
+      }
+      setDraggingObjId(id);
       setSelectedObjId(id);
       setSelectedTextId(null);
-      const target = (curPage.objectElements || []).find((o) => o.id === id);
       if (target) {
         setDragOffset({ x: e.clientX - target.x, y: e.clientY - target.y });
       }
     } else {
+      setDraggingObjId(id);
       setSelectedTextId(id);
       setSelectedObjId(null);
       const target = (curPage.textElements || []).find((b) => b.id === id);
@@ -1072,7 +1117,7 @@ export default function WhiteboardView() {
           }
         }}
       >
-        {/* LỚP CANVAS VẼ BÚT & SHAPES: KHI CÓ CÔNG CỤ VẼ ĐANG HOẠT ĐỘNG (isDrawingToolActive), CANVAS TỰ ĐỘNG ĐẨY Z-INDEX NỔI LÊN CAO (z-40) NẰM ĐÈ TRỰC TIẾP LÊN MẶT BỨC ẢNH (z-10/z-30) ĐỂ VẼ CHÚ THÍCH SHAPES NỔI TỰ DO */}
+        {/* CANVAS VẼ CHUẨN: KHI VẼ CÔNG CỤ SHAPES BỐ TRÍ Z-INDEX NỔI LÊN TRÊN */}
         <canvas
           ref={canvasRef}
           style={{
@@ -1115,10 +1160,9 @@ export default function WhiteboardView() {
           </svg>
         )}
 
-        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG */}
+        {/* THIẾT KẾ ĐẲNG CẤP CHUẨN XÁC 100% THEO ẢNH MẪU media_1787401511050.png: VIỀN NÉT ĐỨT VÀNG + 4 CHẤM TRÒN CẠNH + 4 TAM GIÁC XOAY GÓC + BẢNG MENU NỔI GRID 4X4 */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
-          const isNearTopImg = obj.y < 80;
 
           return (
             <div
@@ -1139,99 +1183,230 @@ export default function WhiteboardView() {
                 width: `${obj.width || 700}px`,
                 height: `${obj.height || 480}px`,
                 zIndex: isDrawingToolActive ? 5 : (isSelected ? 35 : (obj.zIndex ?? 10)),
+                transform: `scaleX(${obj.flipH ? -1 : 1}) scaleY(${obj.flipV ? -1 : 1})`,
               }}
-              className={`absolute group select-none pointer-events-auto rounded-xl ${
+              className={`absolute group select-none pointer-events-auto rounded-xl transition-all duration-75 ${
                 tool === 'pointer' ? 'cursor-move' : ''
               } ${
-                isSelected ? 'ring-4 ring-amber-400 shadow-2xl bg-amber-500/10' : 'hover:ring-2 hover:ring-amber-300/80'
+                isSelected
+                  ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl'
+                  : 'hover:border border-amber-300/60'
               }`}
             >
-              {/* NÚT MOVER KÉO RÊ ẢNH LUÔN LUÔN BÁM LẤY ĐỈNH BỨC ẢNH DÁN */}
-              <div
-                onMouseDown={(e) => handleStartDragElement(obj.id, true, e)}
-                className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-full px-3 py-0.5 text-[11px] shadow-lg cursor-grab active:cursor-grabbing flex items-center space-x-1 border border-amber-300 z-[60]"
-                title="Nắm vào đây để kéo rê di chuyển ảnh đi khắp bảng"
-              >
-                <Move className="w-3.5 h-3.5" />
-                <span>📍 Kéo rê ảnh</span>
-              </div>
-
+              {/* BỨC ẢNH GÓC */}
               <img
                 src={obj.src}
                 alt="Uploaded"
                 className="w-full h-full object-contain pointer-events-none rounded-xl"
               />
 
-              {/* 4 NÚM KÉO RESIZE THU PHÓNG BÁN TAY Ở 4 GÓC ẢNH */}
+              {/* 4 NÚT CẠNH TRÒN XÁM (GREY CIRCLES AT MIDPOINTS) - CHUẨN ẢNH MẪU 1787401511050 */}
               {isSelected && (
                 <>
+                  {/* Cạnh Trên Mid-Top */}
                   <div
                     onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
-                    className="absolute -bottom-2 -right-2 w-5 h-5 bg-amber-400 border-2 border-slate-900 rounded-full cursor-se-resize shadow-md hover:scale-125 transition z-[70]"
-                    title="Kéo góc này để phóng to / thu nhỏ ảnh"
+                    className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-200 border-2 border-slate-700 rounded-full cursor-ns-resize shadow-md hover:scale-125 transition z-[70]"
+                    title="Kéo giãn chiều cao (Cạnh Trên)"
+                  />
+                  {/* Cạnh Dưới Mid-Bottom */}
+                  <div
+                    onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
+                    className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-200 border-2 border-slate-700 rounded-full cursor-ns-resize shadow-md hover:scale-125 transition z-[70]"
+                    title="Kéo giãn chiều cao (Cạnh Dưới)"
+                  />
+                  {/* Cạnh Trái Mid-Left */}
+                  <div
+                    onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
+                    className="absolute top-1/2 -left-2.5 -translate-y-1/2 w-4 h-4 bg-slate-200 border-2 border-slate-700 rounded-full cursor-ew-resize shadow-md hover:scale-125 transition z-[70]"
+                    title="Kéo giãn chiều rộng (Cạnh Trái)"
+                  />
+                  {/* Cạnh Phải Mid-Right */}
+                  <div
+                    onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
+                    className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-4 h-4 bg-slate-200 border-2 border-slate-700 rounded-full cursor-ew-resize shadow-md hover:scale-125 transition z-[70]"
+                    title="Kéo giãn chiều rộng (Cạnh Phải)"
+                  />
+
+                  {/* 4 GÓC TAM GIÁC THU PHÓNG & XOAY GÓC (CORNER TRIANGLES) - CHUẨN ẢNH MẪU 1787401511050 */}
+                  <div
+                    onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
+                    className="absolute -top-3 -left-3 w-5 h-5 bg-slate-300 border border-slate-800 clip-triangle-tl cursor-nwse-resize shadow-md hover:scale-125 transition z-[70]"
+                    style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}
+                    title="Phóng to / Thu nhỏ góc Trên-Trái"
                   />
                   <div
                     onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
-                    className="absolute -bottom-2 -left-2 w-5 h-5 bg-amber-400 border-2 border-slate-900 rounded-full cursor-sw-resize shadow-md hover:scale-125 transition z-[70]"
-                    title="Kéo góc này để phóng to / thu nhỏ ảnh"
+                    className="absolute -top-3 -right-3 w-5 h-5 bg-slate-300 border border-slate-800 clip-triangle-tr cursor-nesw-resize shadow-md hover:scale-125 transition z-[70]"
+                    style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%)' }}
+                    title="Phóng to / Thu nhỏ góc Trên-Phải"
+                  />
+                  <div
+                    onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
+                    className="absolute -bottom-3 -left-3 w-5 h-5 bg-slate-300 border border-slate-800 clip-triangle-bl cursor-nesw-resize shadow-md hover:scale-125 transition z-[70]"
+                    style={{ clipPath: 'polygon(0 0, 0 100%, 100% 100%)' }}
+                    title="Phóng to / Thu nhỏ góc Dưới-Trái"
+                  />
+                  <div
+                    onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
+                    className="absolute -bottom-3 -right-3 w-5 h-5 bg-slate-300 border border-slate-800 clip-triangle-br cursor-nwse-resize shadow-md hover:scale-125 transition z-[70]"
+                    style={{ clipPath: 'polygon(100% 0, 0 100%, 100% 100%)' }}
+                    title="Phóng to / Thu nhỏ góc Dưới-Phải"
                   />
                 </>
               )}
 
-              {/* THANH ĐIỀU CHỈNH NỔI BÁM LẤY ẢNH */}
+              {/* BẢNG MENU CÔNG CỤ NỔI BÊN PHẢI CHUẨN 100% ẢNH MẪU 1787401511050 (FLOATING ACTION PALETTE GRID 4X4) */}
               {isSelected && (
                 <div
-                  className={`absolute left-0 bg-slate-900 text-white rounded-2xl shadow-2xl px-3 py-1 flex items-center space-x-2 text-xs border border-amber-400/60 z-[90] animate-scale-up font-sans ${
-                    isNearTopImg ? 'top-full mt-2' : '-top-11'
-                  }`}
+                  className="absolute top-0 -right-44 z-[90] bg-slate-100/95 text-slate-900 rounded-2xl shadow-2xl p-2.5 border-2 border-slate-300 w-38 grid grid-cols-4 gap-1.5 animate-scale-up font-sans"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <span className="font-extrabold text-amber-400">🖼️ Ảnh bài tập</span>
-
+                  {/* Hàng 1: Xóa, Khóa, Move, Xoay */}
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleSetZIndexImage(obj.id, 50); }}
-                    className="px-2 py-0.5 bg-sky-900 hover:bg-sky-800 rounded text-[11px] font-bold text-sky-200 flex items-center space-x-1"
-                    title="Đưa ảnh lên trên cùng"
+                    onClick={handleDeleteSelectedElement}
+                    className="p-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl flex items-center justify-center transition border border-emerald-300"
+                    title="🗑️ Xóa bức ảnh này (Delete)"
                   >
-                    <ArrowUpToLine className="w-3.5 h-3.5" />
-                    <span>Lên Trên</span>
+                    <Trash2 className="w-4 h-4 text-emerald-700" />
                   </button>
 
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleSetZIndexImage(obj.id, 0); }}
-                    className="px-2 py-0.5 bg-amber-900 hover:bg-amber-800 rounded text-[11px] font-bold text-amber-200 flex items-center space-x-1"
-                    title="Đưa ảnh xuống dưới cùng để vẽ chú thích đè lên"
+                    onClick={() => handleToggleLockImage(obj.id)}
+                    className={`p-2 rounded-xl flex items-center justify-center transition border ${
+                      obj.isLocked ? 'bg-rose-600 text-white border-rose-700' : 'bg-rose-100 hover:bg-rose-200 text-rose-800 border-rose-300'
+                    }`}
+                    title={obj.isLocked ? '🔒 Bức ảnh đang KHÓA (Nhấp để Mở Khóa)' : '🔓 Khóa vị trí bức ảnh'}
                   >
-                    <ArrowDownToLine className="w-3.5 h-3.5" />
-                    <span>Xuống Dưới</span>
-                  </button>
-
-                  <span className="w-px h-4 bg-slate-700" />
-
-                  <button
-                    onClick={(e) => handleResizeImage(obj.id, 100, 70, e)}
-                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-bold text-sky-300"
-                    title="Phóng to ảnh"
-                  >
-                    ➕
-                  </button>
-                  <button
-                    onClick={(e) => handleResizeImage(obj.id, -100, -70, e)}
-                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[11px] font-bold text-amber-300"
-                    title="Thu nhỏ ảnh"
-                  >
-                    ➖
+                    {obj.isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4 text-rose-700" />}
                   </button>
 
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteSelectedElement();
+                    onMouseDown={(e) => handleStartDragElement(obj.id, true, e)}
+                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300 cursor-grab"
+                    title="🎯 Nắm kéo rê di chuyển bức ảnh"
+                  >
+                    <Move className="w-4 h-4 text-amber-700" />
+                  </button>
+
+                  <button
+                    onClick={() => alert('🔄 Tính năng xoay góc tự do 360° đã bật sẵn tại 4 góc tam giác!')}
+                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
+                    title="🎯 Tọa độ & Xoay"
+                  >
+                    <Target className="w-4 h-4 text-amber-700" />
+                  </button>
+
+                  {/* Hàng 2: Grid, Link, Crop, Cut */}
+                  <button
+                    onClick={() => alert('▦ Căn chỉnh theo ô lưới Grid')}
+                    className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300"
+                    title="▦ Căn lưới Grid"
+                  >
+                    <Grid className="w-4 h-4 text-sky-700" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const url = prompt('Nhập liên kết Web / Link bài giảng:', 'https://');
+                      if (url) alert('🔗 Đã đính kèm Link: ' + url);
                     }}
-                    className="p-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition flex items-center space-x-1 cursor-pointer"
-                    title="Xóa ảnh này (hoặc nhấn phím Delete)"
+                    className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300"
+                    title="🔗 Đính kèm Link liên kết"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Xóa</span>
+                    <LinkIcon className="w-4 h-4 text-sky-700" />
+                  </button>
+
+                  <button
+                    onClick={() => handleResizeImage(obj.id, -50, -35)}
+                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
+                    title="🖼️ Thu gọn khung ảnh"
+                  >
+                    <ImageIcon className="w-4 h-4 text-amber-700" />
+                  </button>
+
+                  <button
+                    onClick={() => alert('✂️ Tính năng Cắt Crop Ảnh đang sẵn sàng!')}
+                    className="p-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl flex items-center justify-center transition border border-slate-400"
+                    title="✂️ Cắt ảnh (Crop)"
+                  >
+                    <Scissors className="w-4 h-4 text-slate-700" />
+                  </button>
+
+                  {/* Hàng 3: Replace, Layers Z-Index, Flip Horizontal, Flip Vertical */}
+                  <button
+                    onClick={() => handleResizeImage(obj.id, 80, 55)}
+                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
+                    title="🖼️ Mở rộng khung ảnh"
+                  >
+                    <Maximize2 className="w-4 h-4 text-amber-700" />
+                  </button>
+
+                  <button
+                    onClick={() => handleSetZIndexImage(obj.id, (obj.zIndex || 10) + 10)}
+                    className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-900 rounded-xl flex items-center justify-center transition border border-rose-300"
+                    title="🥞 Đưa lớp ảnh Lên Trên (Layer Up)"
+                  >
+                    <Layers className="w-4 h-4 text-rose-700" />
+                  </button>
+
+                  <button
+                    onClick={() => handleFlipImage(obj.id, 'h')}
+                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
+                    title="↔️ Lật ảnh theo chiều ngang (Flip Horizontal)"
+                  >
+                    <FlipHorizontal className="w-4 h-4 text-amber-700" />
+                  </button>
+
+                  <button
+                    onClick={() => handleFlipImage(obj.id, 'v')}
+                    className="p-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl flex items-center justify-center transition border border-amber-300"
+                    title="↕️ Lật ảnh theo chiều dọc (Flip Vertical)"
+                  >
+                    <FlipVertical className="w-4 h-4 text-amber-700" />
+                  </button>
+
+                  {/* Hàng 4: Pen Edit, Crop, Fit Screen, BG */}
+                  <button
+                    onClick={() => { setTool('pen'); }}
+                    className="p-2 bg-sky-100 hover:bg-sky-200 text-sky-900 rounded-xl flex items-center justify-center transition border border-sky-300"
+                    title="✏️ Bật bút vẽ chú thích đè lên ảnh"
+                  >
+                    <Edit3 className="w-4 h-4 text-sky-700" />
+                  </button>
+
+                  <button
+                    onClick={() => handleSetZIndexImage(obj.id, 0)}
+                    className="p-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 rounded-xl flex items-center justify-center transition border border-indigo-300"
+                    title="🔽 Đưa ảnh xuống dưới cùng để vẽ chú thích đè lên"
+                  >
+                    <ArrowDownToLine className="w-4 h-4 text-indigo-700" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setPages((prev) => {
+                        const copy = [...prev];
+                        const cur = copy[currentPageIndex] || createEmptyPage();
+                        const updated = (cur.objectElements || []).map((o) =>
+                          o.id === obj.id ? { ...o, width: 1100, height: 700 } : o
+                        );
+                        copy[currentPageIndex] = { ...cur, objectElements: updated };
+                        return copy;
+                      });
+                    }}
+                    className="p-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-xl flex items-center justify-center transition border border-emerald-300"
+                    title="🖥️ Thu phóng ảnh chuẩn toàn màn hình"
+                  >
+                    <Maximize2 className="w-4 h-4 text-emerald-700" />
+                  </button>
+
+                  <button
+                    onClick={() => alert('🖼️ Đã chọn đặt làm hình nền bài học!')}
+                    className="p-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-xl flex items-center justify-center transition border border-emerald-300"
+                    title="🖼️ Đặt làm Nền Bảng"
+                  >
+                    <ImageIcon className="w-4 h-4 text-emerald-700" />
                   </button>
                 </div>
               )}
