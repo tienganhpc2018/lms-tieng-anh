@@ -64,7 +64,7 @@ export default function WhiteboardView() {
   // Pan Canvas
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
-  // Trạng thái vẽ Canvas & PREVIEW NÉT VẼ
+  // VẼ REALTIME LIVE PREVIEW (ẢNH 3 - ĐÃ FIX HIỆN HÌNH TRƯỚC KHI KÉO CHUỘT)
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [currentMousePos, setCurrentMousePos] = useState({ x: 0, y: 0 });
@@ -98,7 +98,7 @@ export default function WhiteboardView() {
   const [timerRemaining, setTimerRemaining] = useState(300);
   const [timerRunning, setTimerRunning] = useState(false);
 
-  // MÀU SẮC STICKY NOTE (ẢNH 4)
+  // MÀU SẮC STICKY NOTE
   const STICKY_COLORS = [
     { name: 'Yellow', bg: '#fef08a', text: '#854d0e', border: '#fde047' },
     { name: 'Warm Yellow', bg: '#fde68a', text: '#78350f', border: '#fcd34d' },
@@ -351,7 +351,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // XOAY CHUYỂN VỊ TRÍ THANH CÔNG CỤ (TRÁI -> TRÊN -> PHẢI -> DƯỚI)
+  // XOAY CHUYỂN VỊ TRÍ THANH CÔNG CỤ (VẤN ĐỀ 1: CĂN GIỮA HOÀN HẢO ĐỦ 4 HƯỚNG)
   const toggleToolbarPosition = () => {
     const posList = ['left', 'top', 'right', 'bottom'];
     const nextIdx = (posList.indexOf(toolbarPos) + 1) % posList.length;
@@ -360,7 +360,7 @@ export default function WhiteboardView() {
     localStorage.setItem('wb_toolbar_pos_v2', nextPos);
   };
 
-  // TẠO STICKY NOTE MỚI (ẢNH 4)
+  // TẠO STICKY NOTE MỚI
   const handleAddStickyNote = (colorObj) => {
     const newId = 'sticky_' + Date.now();
     const newBox = {
@@ -368,13 +368,13 @@ export default function WhiteboardView() {
       type: 'sticky',
       x: 300 - panOffset.x,
       y: 180 - panOffset.y,
-      width: 240,
-      height: 220,
-      text: '📌 Nhập ghi chú tại đây...',
+      width: 280,
+      height: 240,
+      htmlContent: '📌 Nhập ghi chú tại đây...',
       color: colorObj.text,
       bgColor: colorObj.bg,
       borderColor: colorObj.border,
-      fontSize: 20,
+      fontSize: 24,
       fontFamily: 'Noto Sans',
       isBold: false,
       isItalic: false,
@@ -399,7 +399,7 @@ export default function WhiteboardView() {
     saveSnapshotState();
   };
 
-  // TẠO Ô VĂN BẢN MỚI TẠI ĐÚNG VỊ TRÍ TRỎ CHUỘT NHẤP TRÊN BẢNG
+  // TẠO Ô VĂN BẢN MỚI TẠI ĐÚNG VỊ TRÍ TRỎ CHUỘT NHẤP TRÊN BẢNG (VẤN ĐỀ 3: KÉO DÀI THẢO MÁY CẢM GIÁC THỦY TRUYỀN)
   const handleCanvasClickToCreateText = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - panOffset.x;
@@ -411,8 +411,9 @@ export default function WhiteboardView() {
       type: 'text',
       x,
       y,
-      text: '',
-      color: color,
+      width: 650,
+      htmlContent: 'Nhấp để gõ bài giảng...',
+      color: color === '#000000' ? '#ffffff' : color,
       fontSize: fontSize,
       fontFamily: fontFamily,
       isBold: isBold,
@@ -437,6 +438,32 @@ export default function WhiteboardView() {
     saveSnapshotState();
   };
 
+  // VẤN ĐỀ 4: TÍNH NĂNG HIGHLIGHT TÔ NỀN VÀNG CHỈ 1 TỪ BÔI ĐEN (ẢNH 1)
+  const applySelectionHighlight = (highlightColor = '#fef08a') => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount || selection.isCollapsed) {
+      alert('Thầy Hải hãy bôi đen từ/câu cần Highlight trước nhé!');
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.backgroundColor = highlightColor;
+    span.style.color = '#0f172a';
+    span.style.borderRadius = '4px';
+    span.style.padding = '1px 4px';
+    span.style.fontWeight = 'bold';
+
+    try {
+      range.surroundContents(span);
+    } catch (e) {
+      // Trường hợp chọn chéo node
+      const fragment = range.extractContents();
+      span.appendChild(fragment);
+      range.insertNode(span);
+    }
+  };
+
   // THU PHÓNG VÀ ĐỔI THỨ TỰ LỚP ẢNH
   const handleResizeImage = (id, deltaWidth, deltaHeight, e) => {
     if (e) e.stopPropagation();
@@ -457,7 +484,7 @@ export default function WhiteboardView() {
     saveSnapshotState();
   };
 
-  // KÉO RÊ VẬT THỂ BẰNG BÀN TAY HOẶC CON TRỎ CHUỘT (FIX ẢNH DÁN KHÔNG KÉO ĐƯỢC)
+  // KÉO RÊ VẬT THỂ BẰNG BÀN TAY HOẶC CON TRỎ CHUỘT
   const handleStartDragElement = (id, isImage, e) => {
     e.stopPropagation();
     setDraggingObjId(id);
@@ -518,7 +545,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // CANVAS DRAWING LOGIC VẼ ĐẦY ĐỦ SHAPES (ẢNH 2)
+  // CANVAS DRAWING LOGIC VẼ ĐẦY ĐỦ SHAPES CÓ PREVIEW REALTIME (ẢNH 3 - FIX ĐÃ HIỆN HÌNH TRƯỚC KHI THẢ CHUỘT)
   const startDrawing = (e) => {
     if (tool === 'pointer' || tool === 'hand') return;
     const canvas = canvasRef.current;
@@ -605,13 +632,17 @@ export default function WhiteboardView() {
         drawDiamond(ctx, startPos.x, startPos.y, x, y, color);
       } else if (tool === 'shape_star') {
         drawStar(ctx, startPos.x, startPos.y, x, y, color);
+      } else if (tool === 'stamp_check') {
+        drawCheckmark(ctx, x, y);
+      } else if (tool === 'stamp_cross') {
+        drawCrossmark(ctx, x, y);
       }
     }
 
     saveSnapshotState();
   };
 
-  // HELPER FUNCTIONS FOR SHAPES (ẢNH 2)
+  // HELPER FUNCTIONS FOR SHAPES (ẢNH 2 & VẤN ĐỀ 5: TICK ĐÚNG ✔️ VÀ DẤU X SAI ❌)
   function drawArrow(ctx, fromx, fromy, tox, toy, strokeColor) {
     const headlen = 16;
     const dx = tox - fromx;
@@ -699,6 +730,30 @@ export default function WhiteboardView() {
     ctx.stroke();
   }
 
+  // VẤN ĐỀ 5: HÀM VẼ ICON TICK ĐÚNG ✔️ (XANH) VÀ DẤU X SAI ❌ (ĐỎ)
+  function drawCheckmark(ctx, x, y) {
+    ctx.strokeStyle = '#10b981'; // Emerald Green
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - 15, y);
+    ctx.lineTo(x - 5, y + 12);
+    ctx.lineTo(x + 18, y - 14);
+    ctx.stroke();
+  }
+
+  function drawCrossmark(ctx, x, y) {
+    ctx.strokeStyle = '#ef4444'; // Red
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x - 14, y - 14);
+    ctx.lineTo(x + 14, y + 14);
+    ctx.moveTo(x + 14, y - 14);
+    ctx.lineTo(x - 14, y + 14);
+    ctx.stroke();
+  }
+
   // XÓA SẠCH TRANG BẢNG
   const clearCurrentPage = () => {
     if (confirm('Thầy Hải có chắc muốn xóa sạch toàn bộ nội dung vẽ trên trang này?')) {
@@ -763,18 +818,18 @@ export default function WhiteboardView() {
   const currentPage = pages[currentPageIndex] || createEmptyPage();
   const selectedTextObj = (currentPage.textElements || []).find((b) => b.id === selectedTextId);
 
-  // STYLE DỊCH CHUYỂN THANH TOOLBAR 4 HƯỚNG
+  // VẤN ĐỀ 1: STYLE DỊCH CHUYỂN THANH TOOLBAR CĂN GIỮA TUYỆT ĐỐI KHÔNG BỊ LỆCH
   const getToolbarStyle = () => {
     switch (toolbarPos) {
       case 'top':
-        return 'fixed top-14 left-1/2 -translate-x-1/2 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5';
+        return 'fixed top-14 left-1/2 -translate-x-1/2 z-[60] bg-[#d8d2b8] p-2 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up';
       case 'right':
-        return 'fixed top-16 right-3 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-1.5';
+        return 'fixed top-1/2 -translate-y-1/2 right-3 z-[60] bg-[#d8d2b8] p-2 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-2 animate-scale-up';
       case 'bottom':
-        return 'fixed bottom-14 left-1/2 -translate-x-1/2 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5';
+        return 'fixed bottom-14 left-1/2 -translate-x-1/2 z-[60] bg-[#d8d2b8] p-2 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up';
       case 'left':
       default:
-        return 'fixed top-16 left-3 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-1.5';
+        return 'fixed top-1/2 -translate-y-1/2 left-3 z-[60] bg-[#d8d2b8] p-2 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-2 animate-scale-up';
     }
   };
 
@@ -870,7 +925,40 @@ export default function WhiteboardView() {
           className="absolute top-0 left-0 z-10 touch-none"
         />
 
-        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG (KÉO RÊ DI CHUYỂN BẰNG BÀN TAY / SELECT TOOL) */}
+        {/* VẤN ĐỀ 6: SVG LAYER REALTIME LIVE PREVIEW (HIỆN HÌNH TRƯỚC KHI KÉO CHUỘT) */}
+        {isDrawing && (tool.startsWith('shape_') || tool === 'line' || tool.endsWith('_arrow')) && (
+          <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-20">
+            {tool === 'line' && (
+              <line x1={startPos.x} y1={startPos.y} x2={currentMousePos.x} y2={currentMousePos.y} stroke={color} strokeWidth="3" strokeDasharray="4" />
+            )}
+            {tool === 'shape_rect' && (
+              <rect
+                x={Math.min(startPos.x, currentMousePos.x)}
+                y={Math.min(startPos.y, currentMousePos.y)}
+                width={Math.abs(currentMousePos.x - startPos.x)}
+                height={Math.abs(currentMousePos.y - startPos.y)}
+                fill="none"
+                stroke={color}
+                strokeWidth="3"
+                strokeDasharray="4"
+              />
+            )}
+            {tool === 'shape_circle' && (
+              <ellipse
+                cx={startPos.x + (currentMousePos.x - startPos.x) / 2}
+                cy={startPos.y + (currentMousePos.y - startPos.y) / 2}
+                rx={Math.abs(currentMousePos.x - startPos.x) / 2}
+                ry={Math.abs(currentMousePos.y - startPos.y) / 2}
+                fill="none"
+                stroke={color}
+                strokeWidth="3"
+                strokeDasharray="4"
+              />
+            )}
+          </svg>
+        )}
+
+        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
           return (
@@ -945,7 +1033,7 @@ export default function WhiteboardView() {
           );
         })}
 
-        {/* RENDER CÁC Ô VĂN BẢN VÀ STICKY NOTES 3D (ẢNH 4) */}
+        {/* RENDER CÁC Ô VĂN BẢN (CONTENTEDITABLE DÍNH LIỀN THANH CÔNG CỤ SAT NÚT - ẢNH 2) */}
         {(currentPage.textElements || []).map((box) => {
           const isSelected = selectedTextId === box.id;
           const isSticky = box.type === 'sticky';
@@ -966,25 +1054,158 @@ export default function WhiteboardView() {
               style={{
                 left: `${box.x + panOffset.x}px`,
                 top: `${box.y + panOffset.y}px`,
-                width: isSticky ? `${box.width || 240}px` : 'auto',
-                height: isSticky ? `${box.height || 220}px` : 'auto',
+                width: isSticky ? `${box.width || 280}px` : `${box.width || 650}px`,
+                height: isSticky ? `${box.height || 240}px` : 'auto',
                 backgroundColor: isSticky ? (box.bgColor || '#fef08a') : 'transparent',
                 borderColor: isSticky ? (box.borderColor || '#fde047') : 'transparent',
               }}
-              className={`absolute z-30 group p-3 transition duration-200 cursor-move rounded-2xl ${
+              className={`absolute z-30 group p-3 transition duration-150 cursor-move rounded-2xl relative ${
                 isSticky ? 'shadow-xl border-2 rotate-1 hover:rotate-0' : ''
-              } ${isSelected ? 'ring-4 ring-indigo-500 shadow-2xl' : 'hover:ring-2 hover:ring-indigo-300'}`}
+              } ${isSelected ? 'ring-4 ring-indigo-500 shadow-2xl bg-slate-900/40 backdrop-blur-xs' : 'hover:ring-2 hover:ring-indigo-300'}`}
             >
-              {/* STICKY NOTE HEADER ICON */}
-              {isSticky && (
-                <div className="flex justify-between items-center pb-2 mb-2 border-b border-black/10">
-                  <span className="text-xs font-black opacity-60 uppercase flex items-center space-x-1">
-                    <StickyNote className="w-3.5 h-3.5" />
-                    <span>Sticky Note</span>
-                  </span>
+              {/* VẤN ĐỀ 2 & ẢNH 2: THANH TOOLBAR DÍNH LIỀN NGAY SÁT TRÊN ĐỈNH Ô VĂN BẢN (SÁT 1 TI NHƯ ẢNH 2) */}
+              {isSelected && (
+                <div className="absolute bottom-full mb-1.5 left-0 z-[90] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/60 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up">
+                  {/* FONT FAMILY */}
+                  <select
+                    value={box.fontFamily || 'Noto Sans'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setPages((prev) => {
+                        const copy = [...prev];
+                        const cur = copy[currentPageIndex] || createEmptyPage();
+                        const updated = (cur.textElements || []).map((b) =>
+                          b.id === box.id ? { ...b, fontFamily: val } : b
+                        );
+                        copy[currentPageIndex] = { ...cur, textElements: updated };
+                        return copy;
+                      });
+                    }}
+                    className="p-1 border border-slate-300 rounded-xl bg-slate-50 font-bold outline-none"
+                  >
+                    {FONT_FAMILIES.map((font) => (
+                      <option key={font} value={font}>{font}</option>
+                    ))}
+                  </select>
+
+                  {/* FONT SIZE */}
+                  <select
+                    value={box.fontSize || 32}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setPages((prev) => {
+                        const copy = [...prev];
+                        const cur = copy[currentPageIndex] || createEmptyPage();
+                        const updated = (cur.textElements || []).map((b) =>
+                          b.id === box.id ? { ...b, fontSize: val } : b
+                        );
+                        copy[currentPageIndex] = { ...cur, textElements: updated };
+                        return copy;
+                      });
+                    }}
+                    className="p-1 border border-slate-300 rounded-xl bg-slate-50 font-bold outline-none"
+                  >
+                    {FONT_SIZES.map((sz) => (
+                      <option key={sz} value={sz}>{sz}px</option>
+                    ))}
+                  </select>
+
+                  <span className="w-px h-5 bg-slate-300" />
+
+                  {/* VẤN ĐỀ 4 & ẢNH 1: NÚT HIGHLIGHT CHỈ 1 TỪ ĐÃ BÔI ĐEN */}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    type="button"
+                    onClick={() => applySelectionHighlight('#fef08a')}
+                    className="p-1.5 rounded-lg border bg-amber-100 hover:bg-amber-200 text-amber-900 flex items-center space-x-1 font-extrabold"
+                    title="Highlight 1 từ bôi đen (ẢNH 1)"
+                  >
+                    <Highlighter className="w-4 h-4 text-amber-600" />
+                    <span>Highlight</span>
+                  </button>
+
+                  <span className="w-px h-5 bg-slate-300" />
+
+                  {/* BOLD, ITALIC, UNDERLINE */}
+                  <button
+                    onClick={() => {
+                      setPages((prev) => {
+                        const copy = [...prev];
+                        const cur = copy[currentPageIndex] || createEmptyPage();
+                        const updated = (cur.textElements || []).map((b) =>
+                          b.id === box.id ? { ...b, isBold: !b.isBold } : b
+                        );
+                        copy[currentPageIndex] = { ...cur, textElements: updated };
+                        return copy;
+                      });
+                    }}
+                    className={`p-1.5 rounded-lg border ${
+                      box.isBold ? 'bg-indigo-600 text-white font-black' : 'hover:bg-slate-100'
+                    }`}
+                  >
+                    <Bold className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setPages((prev) => {
+                        const copy = [...prev];
+                        const cur = copy[currentPageIndex] || createEmptyPage();
+                        const updated = (cur.textElements || []).map((b) =>
+                          b.id === box.id ? { ...b, isItalic: !b.isItalic } : b
+                        );
+                        copy[currentPageIndex] = { ...cur, textElements: updated };
+                        return copy;
+                      });
+                    }}
+                    className={`p-1.5 rounded-lg border ${
+                      box.isItalic ? 'bg-indigo-600 text-white italic' : 'hover:bg-slate-100'
+                    }`}
+                  >
+                    <Italic className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setPages((prev) => {
+                        const copy = [...prev];
+                        const cur = copy[currentPageIndex] || createEmptyPage();
+                        const updated = (cur.textElements || []).map((b) =>
+                          b.id === box.id ? { ...b, isUnderline: !b.isUnderline } : b
+                        );
+                        copy[currentPageIndex] = { ...cur, textElements: updated };
+                        return copy;
+                      });
+                    }}
+                    className={`p-1.5 rounded-lg border ${
+                      box.isUnderline ? 'bg-indigo-600 text-white underline' : 'hover:bg-slate-100'
+                    }`}
+                  >
+                    <Underline className="w-4 h-4" />
+                  </button>
+
+                  <span className="w-px h-5 bg-slate-300" />
+
+                  {/* MÀU CHỮ */}
+                  <input
+                    type="color"
+                    value={box.color || color}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setPages((prev) => {
+                        const copy = [...prev];
+                        const cur = copy[currentPageIndex] || createEmptyPage();
+                        const updated = (cur.textElements || []).map((b) =>
+                          b.id === box.id ? { ...b, color: val } : b
+                        );
+                        copy[currentPageIndex] = { ...cur, textElements: updated };
+                        return copy;
+                      });
+                    }}
+                    className="w-7 h-7 rounded-lg cursor-pointer border border-slate-300 p-0"
+                  />
+
+                  <button
+                    onClick={() => {
                       setPages((prev) => {
                         const copy = [...prev];
                         const cur = copy[currentPageIndex] || createEmptyPage();
@@ -993,34 +1214,33 @@ export default function WhiteboardView() {
                         return copy;
                       });
                       setSelectedTextId(null);
-                      saveSnapshotState();
                     }}
-                    className="p-1 hover:bg-black/10 rounded text-slate-700 font-bold"
+                    className="p-1.5 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 ml-2 cursor-pointer"
                   >
-                    ✕
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               )}
 
-              {/* INPUT TEXTAREA MULTILINE */}
-              <textarea
-                rows={isSticky ? 6 : 2}
-                placeholder="Nhấp để gõ bài giảng..."
-                value={box.text}
-                onChange={(e) => {
-                  const val = e.target.value;
+              {/* VẤN ĐỀ 4: CONTENTEDITABLE CHO PHÉP HIGHLIGHT TỪNG TỪ RIÊNG LẺ CHUẨN ẢNH 1 */}
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => {
+                  const html = e.target.innerHTML;
                   setPages((prev) => {
                     const copy = [...prev];
                     const cur = copy[currentPageIndex] || createEmptyPage();
                     const updated = (cur.textElements || []).map((b) =>
-                      b.id === box.id ? { ...b, text: val } : b
+                      b.id === box.id ? { ...b, htmlContent: html } : b
                     );
                     copy[currentPageIndex] = { ...cur, textElements: updated };
                     return copy;
                   });
                 }}
+                dangerouslySetInnerHTML={{ __html: box.htmlContent || box.text || 'Nhấp để gõ bài giảng...' }}
                 style={{
-                  color: box.color || color,
+                  color: box.color || (bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000'),
                   fontSize: `${box.fontSize || fontSize}px`,
                   fontFamily: box.fontFamily || fontFamily,
                   fontWeight: box.isBold ? 'bold' : 'normal',
@@ -1028,262 +1248,41 @@ export default function WhiteboardView() {
                   textDecoration: box.isUnderline ? 'underline' : 'none',
                   textAlign: box.textAlign || 'left',
                 }}
-                className={`bg-transparent border-none outline-none resize-none font-sans p-0 m-0 shadow-none leading-normal w-full h-full ${
-                  isSticky ? 'text-slate-900' : 'min-w-[500px]'
-                }`}
+                className="bg-transparent border-none outline-none font-sans p-0 m-0 shadow-none leading-normal w-full min-h-[50px] cursor-text"
               />
             </div>
           );
         })}
       </div>
 
-      {/* THANH CÔNG CỤ SOẠN THẢO VĂN BẢN ĐẦY ĐỦ RICH TEXT FORMATTING TOOLBAR (ẢNH 5) */}
-      {selectedTextObj && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[80] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/50 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up">
-          {/* FONT FAMILY */}
-          <select
-            value={selectedTextObj.fontFamily || 'Noto Sans'}
-            onChange={(e) => {
-              const val = e.target.value;
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const updated = (cur.textElements || []).map((b) =>
-                  b.id === selectedTextObj.id ? { ...b, fontFamily: val } : b
-                );
-                copy[currentPageIndex] = { ...cur, textElements: updated };
-                return copy;
-              });
-            }}
-            className="p-1.5 border border-slate-300 rounded-xl bg-slate-50 font-bold outline-none"
-          >
-            {FONT_FAMILIES.map((font) => (
-              <option key={font} value={font}>{font}</option>
-            ))}
-          </select>
-
-          {/* FONT SIZE */}
-          <select
-            value={selectedTextObj.fontSize || 32}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const updated = (cur.textElements || []).map((b) =>
-                  b.id === selectedTextObj.id ? { ...b, fontSize: val } : b
-                );
-                copy[currentPageIndex] = { ...cur, textElements: updated };
-                return copy;
-              });
-            }}
-            className="p-1.5 border border-slate-300 rounded-xl bg-slate-50 font-bold outline-none"
-          >
-            {FONT_SIZES.map((sz) => (
-              <option key={sz} value={sz}>{sz}px</option>
-            ))}
-          </select>
-
-          <span className="w-px h-5 bg-slate-300" />
-
-          {/* BOLD, ITALIC, UNDERLINE */}
-          <button
-            onClick={() => {
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const updated = (cur.textElements || []).map((b) =>
-                  b.id === selectedTextObj.id ? { ...b, isBold: !b.isBold } : b
-                );
-                copy[currentPageIndex] = { ...cur, textElements: updated };
-                return copy;
-              });
-            }}
-            className={`p-1.5 rounded-lg border ${
-              selectedTextObj.isBold ? 'bg-indigo-600 text-white font-black' : 'hover:bg-slate-100'
-            }`}
-            title="In đậm (Bold)"
-          >
-            <Bold className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => {
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const updated = (cur.textElements || []).map((b) =>
-                  b.id === selectedTextObj.id ? { ...b, isItalic: !b.isItalic } : b
-                );
-                copy[currentPageIndex] = { ...cur, textElements: updated };
-                return copy;
-              });
-            }}
-            className={`p-1.5 rounded-lg border ${
-              selectedTextObj.isItalic ? 'bg-indigo-600 text-white italic' : 'hover:bg-slate-100'
-            }`}
-            title="In nghiêng (Italic)"
-          >
-            <Italic className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => {
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const updated = (cur.textElements || []).map((b) =>
-                  b.id === selectedTextObj.id ? { ...b, isUnderline: !b.isUnderline } : b
-                );
-                copy[currentPageIndex] = { ...cur, textElements: updated };
-                return copy;
-              });
-            }}
-            className={`p-1.5 rounded-lg border ${
-              selectedTextObj.isUnderline ? 'bg-indigo-600 text-white underline' : 'hover:bg-slate-100'
-            }`}
-            title="Gạch chân (Underline)"
-          >
-            <Underline className="w-4 h-4" />
-          </button>
-
-          <span className="w-px h-5 bg-slate-300" />
-
-          {/* ALIGNMENT */}
-          <button
-            onClick={() => {
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const updated = (cur.textElements || []).map((b) =>
-                  b.id === selectedTextObj.id ? { ...b, textAlign: 'left' } : b
-                );
-                copy[currentPageIndex] = { ...cur, textElements: updated };
-                return copy;
-              });
-            }}
-            className={`p-1.5 rounded-lg border ${
-              (selectedTextObj.textAlign || 'left') === 'left' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100'
-            }`}
-            title="Căn trái"
-          >
-            <AlignLeft className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => {
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const updated = (cur.textElements || []).map((b) =>
-                  b.id === selectedTextObj.id ? { ...b, textAlign: 'center' } : b
-                );
-                copy[currentPageIndex] = { ...cur, textElements: updated };
-                return copy;
-              });
-            }}
-            className={`p-1.5 rounded-lg border ${
-              selectedTextObj.textAlign === 'center' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100'
-            }`}
-            title="Căn giữa"
-          >
-            <AlignCenter className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => {
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const updated = (cur.textElements || []).map((b) =>
-                  b.id === selectedTextObj.id ? { ...b, textAlign: 'right' } : b
-                );
-                copy[currentPageIndex] = { ...cur, textElements: updated };
-                return copy;
-              });
-            }}
-            className={`p-1.5 rounded-lg border ${
-              selectedTextObj.textAlign === 'right' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100'
-            }`}
-            title="Căn phải"
-          >
-            <AlignRight className="w-4 h-4" />
-          </button>
-
-          <span className="w-px h-5 bg-slate-300" />
-
-          {/* MÀU CHỮ */}
-          <input
-            type="color"
-            value={selectedTextObj.color || '#000000'}
-            onChange={(e) => {
-              const val = e.target.value;
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const updated = (cur.textElements || []).map((b) =>
-                  b.id === selectedTextObj.id ? { ...b, color: val } : b
-                );
-                copy[currentPageIndex] = { ...cur, textElements: updated };
-                return copy;
-              });
-            }}
-            className="w-7 h-7 rounded-lg cursor-pointer border border-slate-300 p-0"
-            title="Màu chữ"
-          />
-
-          <button
-            onClick={() => {
-              setPages((prev) => {
-                const copy = [...prev];
-                const cur = copy[currentPageIndex] || createEmptyPage();
-                const filtered = (cur.textElements || []).filter((b) => b.id !== selectedTextObj.id);
-                copy[currentPageIndex] = { ...cur, textElements: filtered };
-                return copy;
-              });
-              setSelectedTextId(null);
-            }}
-            className="p-1.5 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 ml-2 cursor-pointer"
-            title="Xóa ô văn bản"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* POPUP BẢNG CHỌN STICKY NOTE (ẢNH 4) */}
-      {activeWindow === 'stickies' && (
-        <div className="fixed top-16 left-16 z-[100] bg-white border-2 border-slate-300 rounded-2xl shadow-2xl p-4 w-72 space-y-3 animate-scale-up font-sans text-slate-900">
-          <div className="flex justify-between items-center border-b pb-2 font-extrabold text-xs text-slate-800">
-            <span className="flex items-center space-x-1.5 text-amber-700">
-              <StickyNote className="w-4 h-4 text-amber-500" />
-              <span>Ghi Chú Sticky Notes (ẢNH 4)</span>
-            </span>
-            <button onClick={() => setActiveWindow(null)} className="hover:text-rose-600"><X className="w-4 h-4" /></button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            {STICKY_COLORS.map((stk) => (
-              <button
-                key={stk.name}
-                onClick={() => handleAddStickyNote(stk)}
-                style={{ backgroundColor: stk.bg, borderColor: stk.border, color: stk.text }}
-                className="p-3 rounded-xl border-2 font-extrabold text-xs shadow-xs hover:shadow-md transition transform hover:scale-105 text-center flex flex-col items-center justify-center space-y-1 cursor-pointer"
-              >
-                <div className="w-5 h-5 rounded-md border shadow-xs" style={{ backgroundColor: stk.bg, borderColor: stk.border }} />
-                <span>{stk.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* POPUP BẢNG MÀU & ĐẦY ĐỦ SHAPES HÌNH HỌC (ẢNH 2) */}
+      {/* POPUP BẢNG MÀU & ĐẦY ĐỦ SHAPES HÌNH HỌC (ẢNH 2 & VẤN ĐỀ 5: THÊM 2 ICON TICK ✔️ VÀ X SAI ❌) */}
       {activeWindow === 'shapes' && (
-        <div className="fixed top-16 left-16 z-[100] bg-[#e4dec3] border-2 border-[#b8af91] rounded-2xl shadow-2xl p-4 w-80 space-y-4 animate-scale-up font-sans">
+        <div className="fixed top-16 left-16 z-[100] bg-[#e4dec3] border-2 border-[#b8af91] rounded-2xl shadow-2xl p-4 w-88 space-y-4 animate-scale-up font-sans text-slate-900">
           <div className="flex justify-between items-center border-b border-[#c4bb9c] pb-2 font-extrabold text-xs text-slate-800">
             <span>Bảng Màu & Shapes Hình Học (ẢNH 2)</span>
             <button onClick={() => setActiveWindow(null)} className="hover:text-rose-600"><X className="w-4 h-4" /></button>
+          </div>
+
+          {/* VẤN ĐỀ 5: THÊM 2 ICON TICK ✔️ VÀ X SAI ❌ ĐẤNG CHẤM BÀI DẠY */}
+          <div className="p-2.5 bg-white/80 rounded-xl border border-[#c4bb9c] space-y-1.5">
+            <span className="text-[11px] font-black text-slate-700 block uppercase">✔️ ICON CHẤM BÀI ĐÚNG / SAI ❌:</span>
+            <div className="grid grid-cols-2 gap-2 text-xs font-black">
+              <button
+                onClick={() => { setTool('stamp_check'); setActiveWindow(null); }}
+                className="p-2 bg-emerald-100 hover:bg-emerald-200 border border-emerald-400 rounded-xl text-emerald-900 flex items-center space-x-1.5 justify-center shadow-2xs cursor-pointer"
+              >
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <span>✔️ Tick Đúng (Xanh)</span>
+              </button>
+
+              <button
+                onClick={() => { setTool('stamp_cross'); setActiveWindow(null); }}
+                className="p-2 bg-rose-100 hover:bg-rose-200 border border-rose-400 rounded-xl text-rose-900 flex items-center space-x-1.5 justify-center shadow-2xs cursor-pointer"
+              >
+                <XCircle className="w-5 h-5 text-rose-600" />
+                <span>❌ Dấu X Sai (Đỏ)</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -1369,6 +1368,33 @@ export default function WhiteboardView() {
                 <span>Star (Ngôi sao)</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP BẢNG CHỌN STICKY NOTE */}
+      {activeWindow === 'stickies' && (
+        <div className="fixed top-16 left-16 z-[100] bg-white border-2 border-slate-300 rounded-2xl shadow-2xl p-4 w-72 space-y-3 animate-scale-up font-sans text-slate-900">
+          <div className="flex justify-between items-center border-b pb-2 font-extrabold text-xs text-slate-800">
+            <span className="flex items-center space-x-1.5 text-amber-700">
+              <StickyNote className="w-4 h-4 text-amber-500" />
+              <span>Ghi Chú Sticky Notes</span>
+            </span>
+            <button onClick={() => setActiveWindow(null)} className="hover:text-rose-600"><X className="w-4 h-4" /></button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            {STICKY_COLORS.map((stk) => (
+              <button
+                key={stk.name}
+                onClick={() => handleAddStickyNote(stk)}
+                style={{ backgroundColor: stk.bg, borderColor: stk.border, color: stk.text }}
+                className="p-3 rounded-xl border-2 font-extrabold text-xs shadow-xs hover:shadow-md transition transform hover:scale-105 text-center flex flex-col items-center justify-center space-y-1 cursor-pointer"
+              >
+                <div className="w-5 h-5 rounded-md border shadow-xs" style={{ backgroundColor: stk.bg, borderColor: stk.border }} />
+                <span>{stk.name}</span>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -1816,7 +1842,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* THANH TOOLBAR DỊCH CHUYỂN 4 VỊ TRÍ (ẢNH 1 - DỊCH CHUYỂN SANG PHẢI, TRÊN, DƯỚI) */}
+      {/* THANH TOOLBAR DỊCH CHUYỂN 4 VỊ TRÍ CĂN GIỮA TUYỆT ĐỐI KHÔNG LỆCH (VẤN ĐỀ 1) */}
       <div className={getToolbarStyle()}>
         {/* NÚT DISPATCH DỊCH CHUYỂN VỊ TRÍ TOOLBAR (TRÁI -> TRÊN -> PHẢI -> DƯỚI) */}
         <button
@@ -1870,7 +1896,7 @@ export default function WhiteboardView() {
           <Type className="w-4 h-4" />
         </button>
 
-        {/* GHI CHÚ STICKY NOTES 3D (ẢNH 4) */}
+        {/* GHI CHÚ STICKY NOTES 3D */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'stickies' ? null : 'stickies')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1878,7 +1904,7 @@ export default function WhiteboardView() {
               ? 'bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300'
               : 'hover:bg-[#c4bb9c] text-slate-800'
           }`}
-          title="Sticky Note ghi chú nổi bật 3D (ẢNH 4)"
+          title="Sticky Note ghi chú nổi bật 3D"
         >
           <StickyNote className="w-4 h-4 text-amber-600" />
         </button>
@@ -1922,7 +1948,7 @@ export default function WhiteboardView() {
           <Eraser className="w-4 h-4" />
         </button>
 
-        {/* Bảng Màu & Shapes Đầy Đủ (ẢNH 2) */}
+        {/* Bảng Màu & Shapes Đầy Đủ (ẢNH 2 & VẤN ĐỀ 5: TICK ĐÚNG ✔️ VÀ DẤU X SAI ❌) */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
           className="p-2 hover:bg-[#c4bb9c] rounded-xl transition text-slate-800 cursor-pointer"
