@@ -11,7 +11,7 @@ import {
   Highlighter, Bold, Italic, Underline, Search, ZoomIn, ZoomOut, Check, ChevronLeft, ChevronRight,
   Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand, Minus, MousePointer, Pause, RefreshCw, Users,
   StickyNote, AlignLeft, AlignCenter, AlignRight, CornerUpRight, ArrowUpRight, Star, Diamond, Layers3, ArrowDownToLine, ArrowUpToLine,
-  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket, GripHorizontal
+  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket, GripHorizontal, CheckCircle
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ShapesModulePanel from '../components/whiteboard/ShapesModulePanel';
@@ -51,6 +51,7 @@ export default function WhiteboardView() {
   const [hasFill, setHasFill] = useState(false);
   const [strokeWidth, setStrokeWidth] = useState(4);
   const [opacity, setOpacity] = useState(1.0);
+  const [isDashed, setIsDashed] = useState(false);
 
   // QUẢN LÝ Ô GÕ TEXT TRỰC QUAN KHÔNG BAO GIỜ BỊ LỖI
   const [textElements, setTextElements] = useState([]);
@@ -185,6 +186,11 @@ export default function WhiteboardView() {
       }
       if (obj.strokeWidth !== undefined) setStrokeWidth(obj.strokeWidth);
       if (obj.opacity !== undefined) setOpacity(obj.opacity);
+      if (obj.strokeDashArray && obj.strokeDashArray.length > 0) {
+        setIsDashed(true);
+      } else {
+        setIsDashed(false);
+      }
     };
 
     const updateFloatingMenu = () => {
@@ -544,7 +550,7 @@ export default function WhiteboardView() {
     setActiveWindow(null);
   };
 
-  // THÊM SHAPES HÌNH HỌC MỚI THEO TRẠNG THÁI 1 (CREATION WITH PROPS)
+  // THÊM SHAPES HÌNH HỌC MỚI KHUNG NẾT LIỀN / NẾT ĐỨT VÀ 2 ICON CHẤM BÀI DẤU TICK XANH & DẤU X ĐỎ THEO CHỈ ĐẠO CỦA THẦY HẢI
   const handleSelectShape = (shapeType) => {
     if (!fabricCanvas) return;
 
@@ -552,18 +558,19 @@ export default function WhiteboardView() {
     const curStroke = strokeColor;
     const curWidth = Number(strokeWidth);
     const curOpacity = Number(opacity);
+    const curDash = isDashed ? [8, 8] : null;
 
     let shape = null;
     if (shapeType === 'rect') {
-      shape = new fabric.Rect({ left: 220, top: 160, width: 200, height: 120, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity });
+      shape = new fabric.Rect({ left: 220, top: 160, width: 200, height: 120, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
     } else if (shapeType === 'circle') {
-      shape = new fabric.Circle({ left: 220, top: 160, radius: 80, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity });
+      shape = new fabric.Circle({ left: 220, top: 160, radius: 80, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
     } else if (shapeType === 'oval') {
-      shape = new fabric.Ellipse({ left: 220, top: 160, rx: 110, ry: 65, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity });
+      shape = new fabric.Ellipse({ left: 220, top: 160, rx: 110, ry: 65, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
     } else if (shapeType === 'triangle') {
-      shape = new fabric.Triangle({ left: 220, top: 160, width: 180, height: 150, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity });
+      shape = new fabric.Triangle({ left: 220, top: 160, width: 180, height: 150, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
     } else if (shapeType === 'line') {
-      shape = new fabric.Line([50, 50, 250, 50], { left: 220, top: 160, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity });
+      shape = new fabric.Line([50, 50, 250, 50], { left: 220, top: 160, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
     } else if (shapeType === 'arrow') {
       shape = new fabric.Path('M 0 0 L 140 0 M 140 0 L 120 -12 M 140 0 L 120 12', {
         left: 220,
@@ -572,15 +579,37 @@ export default function WhiteboardView() {
         strokeWidth: curWidth,
         fill: 'transparent',
         opacity: curOpacity,
+        strokeDashArray: curDash,
       });
     } else if (shapeType === 'polygon5') {
       shape = new fabric.Polygon([
         { x: 100, y: 0 }, { x: 200, y: 70 }, { x: 160, y: 180 }, { x: 40, y: 180 }, { x: 0, y: 70 }
-      ], { left: 220, top: 160, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity });
+      ], { left: 220, top: 160, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
     } else if (shapeType === 'polygon6') {
       shape = new fabric.Polygon([
         { x: 60, y: 0 }, { x: 140, y: 0 }, { x: 200, y: 80 }, { x: 140, y: 160 }, { x: 60, y: 160 }, { x: 0, y: 80 }
-      ], { left: 220, top: 160, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity });
+      ], { left: 220, top: 160, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
+    } else if (shapeType === 'check') {
+      // DẤU TICK XANH (CHECK MARK) CHẤM BÀI ĐÚNG
+      shape = new fabric.Path('M 10 35 L 30 55 L 75 10', {
+        left: 250,
+        top: 180,
+        stroke: '#22c55e',
+        strokeWidth: 10,
+        fill: 'transparent',
+        strokeLineCap: 'round',
+        strokeLineJoin: 'round',
+      });
+    } else if (shapeType === 'cross') {
+      // DẤU X ĐỎ (CROSS MARK) CHẤM BÀI SAI
+      shape = new fabric.Path('M 15 15 L 65 65 M 65 15 L 15 65', {
+        left: 250,
+        top: 180,
+        stroke: '#ef4444',
+        strokeWidth: 10,
+        fill: 'transparent',
+        strokeLineCap: 'round',
+      });
     }
 
     if (shape) {
@@ -792,7 +821,7 @@ export default function WhiteboardView() {
                   : 'border border-transparent bg-transparent'
               }`}
             >
-              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) TRỰC QUAN Ở VIỀN TRÊN DÙNG ĐỂ RÊ CHUỘT THOẢI MÁI */}
+              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) TRỰC QUAN Ó VIỀN TRÊN DÙNG ĐỂ RÊ CHUỘT THOẢI MÁI */}
               {isSelected && (
                 <div
                   onMouseDown={(e) => handleStartDragText(e, box.id)}
@@ -1028,6 +1057,8 @@ export default function WhiteboardView() {
         setStrokeWidth={setStrokeWidth}
         opacity={opacity}
         setOpacity={setOpacity}
+        isDashed={isDashed}
+        setIsDashed={setIsDashed}
         onSelectShape={handleSelectShape}
         activeObject={activeObject}
         fabricCanvas={fabricCanvas}
@@ -1400,9 +1431,6 @@ export default function WhiteboardView() {
           <Square className="w-4 h-4" />
         </button>
 
-        {/* ========================================================================= */}
-        {/* TRẢ LẠI CÁC NÚT CÔNG CỤ MINI-GAMES GIẢNG DẠY THEO YÊU CẦU CỦA THẦY NGUYỄN VĂN HẢI */}
-        {/* ========================================================================= */}
         <span className="w-px h-6 bg-slate-400/60 my-auto" />
 
         <button
