@@ -641,13 +641,16 @@ export default function Dashboard() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       {filteredCourses.map((courseItem, idx) => {
-                        const sampleImages = [
+                        const COURSE_COVER_PRESETS = [
                           'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80',
-                          'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80',
                           'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
                           'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&auto=format&fit=crop&q=80',
+                          'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&auto=format&fit=crop&q=80',
+                          'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80',
+                          'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&auto=format&fit=crop&q=80',
                         ];
-                        const bgImg = courseItem.cover_url || courseItem.cover_image || sampleImages[idx % sampleImages.length];
+                        const bgImg = courseItem.cover_url || courseItem.cover_image || COURSE_COVER_PRESETS[idx % COURSE_COVER_PRESETS.length];
+                        const createdDateFormatted = new Date(courseItem.created_at || Date.now()).toLocaleDateString('vi-VN');
 
                         return (
                           <div
@@ -655,37 +658,17 @@ export default function Dashboard() {
                             onClick={() => navigate(`/course/${courseItem.id}`)}
                             className="bg-white border border-slate-200 hover:border-emerald-400 rounded-3xl overflow-hidden transition duration-300 cursor-pointer group space-y-0 shadow-2xs hover:shadow-xl flex flex-col justify-between"
                           >
-                            {/* KHỐI ẢNH BÌA COVER ĐÍNH KÈM CHUẨN TRANG CHỦ CỦA THẦY HẢI */}
-                            <div className="relative h-36 w-full overflow-hidden bg-slate-900">
+                            {/* KHỐI ẢNH BÌA COVER THẨM MỸ SẮC NÉT (ĐÃ BỎ CHỮ THCS VÀ BỎ NÚT ĐÈ BANNERS TRẦN) */}
+                            <div className="relative h-40 w-full overflow-hidden bg-slate-900">
                               <img
                                 src={bgImg}
                                 alt={courseItem.title}
-                                className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition duration-500"
+                                className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition duration-500"
                               />
-                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-                              <span className="absolute top-3 left-3 text-[10px] font-extrabold text-emerald-300 bg-slate-950/80 backdrop-blur-xs border border-emerald-500/30 px-2.5 py-0.5 rounded-lg uppercase">
-                                TIẾNG ANH THCS
-                              </span>
-
-                              {/* NÚT THAY ẢNH BÌA TRỰC TIẾP TỪ MÁY TÍNH DÀNH CHO GIÁO VIÊN */}
-                              {userIsTeacher && (
-                                <label
-                                  onClick={(e) => e.stopPropagation()}
-                                  title="Thay ảnh bìa từ máy tính Thầy"
-                                  className="absolute top-3 right-3 px-2.5 py-1 bg-slate-950/80 hover:bg-slate-900 border border-purple-400/40 text-purple-200 rounded-xl text-[10px] font-extrabold transition shadow-md flex items-center space-x-1 cursor-pointer"
-                                >
-                                  <span>🖼️ Tải Ảnh Bìa Từ Máy</span>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => handleUploadCoverImage(courseItem.id, e)}
-                                  />
-                                </label>
-                              )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
                             </div>
 
-                             <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                            <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
                               <div>
                                 <div className="flex justify-between items-start gap-2">
                                   <div className="space-y-1 flex-1">
@@ -701,20 +684,20 @@ export default function Dashboard() {
                                     )}
                                   </div>
 
-                                  {/* NÚT 3 DẤU CHẤM DỌC TÙY CHỌN ẨN / SỬA / XÓA KHÓA HỌC CHUẨN MOODLE (ẢNH 3) */}
+                                  {/* NÚT 3 DẤU CHẤM DỌC TÙY CHỌN ẨN / SỬA TÊN / THAY ẢNH BÌA / XÓA KHÓA HỌC CHUẨN MOODLE (ẢNH 3) */}
                                   {userIsTeacher && (
                                     <div className="relative" onClick={(e) => e.stopPropagation()}>
                                       <button
                                         type="button"
                                         onClick={() => setActiveDropdownCourseId(activeDropdownCourseId === courseItem.id ? null : courseItem.id)}
                                         className="p-1.5 hover:bg-slate-200 rounded-xl text-slate-700 transition cursor-pointer"
-                                        title="Khóa học tùy chọn (Ẩn / Sửa / Xóa)"
+                                        title="Khóa học tùy chọn (Ẩn / Sửa / Thay ảnh / Xóa)"
                                       >
                                         <span className="font-black text-lg leading-none">⋮</span>
                                       </button>
 
                                       {activeDropdownCourseId === courseItem.id && (
-                                        <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-slate-200 rounded-2xl shadow-2xl py-1.5 z-30 text-xs font-bold text-slate-700 space-y-1 animate-scale-up">
+                                        <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl py-1.5 z-30 text-xs font-bold text-slate-700 space-y-1 animate-scale-up">
                                           <button
                                             type="button"
                                             onClick={(e) => toggleHideCourse(courseItem.id, e)}
@@ -735,6 +718,23 @@ export default function Dashboard() {
                                           >
                                             <span>✏️ Edit course settings (Sửa tên)</span>
                                           </button>
+
+                                          {/* NÚT THAY ẢNH BÌA TINH TẾ ĐẶT TRONG MENU 3 CHẤM */}
+                                          <label
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="w-full text-left px-3 py-1.5 hover:bg-slate-100 flex items-center space-x-2 text-purple-700 cursor-pointer"
+                                          >
+                                            <span>🖼️ Change cover image (Tải ảnh mới)</span>
+                                            <input
+                                              type="file"
+                                              accept="image/*"
+                                              className="hidden"
+                                              onChange={(e) => {
+                                                setActiveDropdownCourseId(null);
+                                                handleUploadCoverImage(courseItem.id, e);
+                                              }}
+                                            />
+                                          </label>
 
                                           <button
                                             type="button"
@@ -795,15 +795,25 @@ export default function Dashboard() {
                                 </div>
                               )}
 
-                              <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 border-t border-slate-100 pt-3">
-                                <span className="flex items-center space-x-1">
-                                  <Users className="w-3.5 h-3.5 text-slate-400" />
-                                  <span>GV: {getDisplayName(courseItem.teacher, null)}</span>
-                                </span>
-                                <span className="text-emerald-600 font-extrabold group-hover:underline flex items-center space-x-1">
-                                  <span>Vào Học</span>
-                                  <ArrowRight className="w-3.5 h-3.5" />
-                                </span>
+                              {/* CHÂN THẺ KHÓA HỌC: HIỂN THỊ THỜI GIAN NĂM/NGÀY TẠO VÀ TÁC GIẢ CHUẨN 100% NHƯ ẢNH 1 CỦA THẦY HẢI */}
+                              <div className="space-y-2 border-t border-slate-100 pt-2.5">
+                                <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold">
+                                  <span>📅 {createdDateFormatted}</span>
+                                  <span className="font-extrabold text-slate-600 truncate max-w-[160px]">
+                                    Tác giả: {getDisplayName(courseItem.teacher, null)}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-[11px] font-extrabold pt-1">
+                                  <span className="text-slate-500 flex items-center space-x-1">
+                                    <Users className="w-3.5 h-3.5 text-slate-400" />
+                                    <span>Khóa E-learning</span>
+                                  </span>
+                                  <span className="text-emerald-600 font-black group-hover:underline flex items-center space-x-1">
+                                    <span>Vào Học</span>
+                                    <ArrowRight className="w-3.5 h-3.5" />
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
