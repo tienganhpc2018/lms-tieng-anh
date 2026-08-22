@@ -22,9 +22,36 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
         .eq('course_id', courseId)
         .order('enrolled_at', { ascending: false });
 
-      if (!error && data) {
-        setUsers(data || []);
+      let list = data || [];
+
+      // Đồng bộ từ LocalStorage nếu có dữ liệu nạp CSV
+      const savedCsvStudents = JSON.parse(localStorage.getItem('lms_csv_uploaded_students_v2') || '[]');
+      const isEnrolledAll = localStorage.getItem('lms_csv_enrolled_all_v2') === 'true';
+
+      if (savedCsvStudents.length > 0 && isEnrolledAll) {
+        const enrolledMap = {};
+        list.forEach((u) => {
+          const pName = (u.profile?.username || u.profile?.full_name || '').toLowerCase();
+          if (pName) enrolledMap[pName] = u;
+        });
+
+        savedCsvStudents.forEach((st, idx) => {
+          const stName = (st.username || st.full_name || '').toLowerCase();
+          if (stName && !enrolledMap[stName]) {
+            list.push({
+              id: 'enrol_csv_' + idx,
+              course_id: courseId,
+              user_id: st.id,
+              role: 'student',
+              status: 'active',
+              enrolled_at: new Date().toISOString(),
+              profile: st,
+            });
+          }
+        });
       }
+
+      setUsers(list);
     } catch (err) {
       console.warn('Fetch enrolled error:', err);
     } finally {
@@ -40,7 +67,22 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
         .eq('role', 'student')
         .order('full_name', { ascending: true });
 
-      if (data) setAllStudentsList(data);
+      let list = data || [];
+      const savedCsvStudents = JSON.parse(localStorage.getItem('lms_csv_uploaded_students_v2') || '[]');
+      if (savedCsvStudents.length > 0) {
+        const map = {};
+        list.forEach((s) => {
+          if (s.username) map[s.username.toLowerCase()] = s;
+        });
+        savedCsvStudents.forEach((st) => {
+          if (st.username && !map[st.username.toLowerCase()]) {
+            map[st.username.toLowerCase()] = st;
+          }
+        });
+        list = Object.values(map);
+      }
+
+      setAllStudentsList(list);
     } catch (err) {}
   };
 
