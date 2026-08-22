@@ -60,6 +60,10 @@ export default function WhiteboardView() {
   const [draggingObjId, setDraggingObjId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
+  // THU PHÓNG BẰNG GÓC KÉO RESIZE
+  const [resizingObjId, setResizingObjId] = useState(null);
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, w: 0, h: 0 });
+
   // PAN CANVAS VÔ HẠN BẰNG BÀN TAY
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
@@ -127,7 +131,6 @@ export default function WhiteboardView() {
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
   const FONT_SIZES = [14, 18, 24, 32, 40, 48, 64, 80, 96];
 
-  // TRẢ LẠI CON TRỎ CHUỘT HỆ THỐNG RÕ RÀNG 100% RÕ NẾT KHÔNG BAO GIỜ BỊ CHE HOẶC ẨN
   const getCursorStyle = () => {
     if (tool === 'hand') {
       return isPanning ? 'grabbing' : 'grab';
@@ -336,7 +339,7 @@ export default function WhiteboardView() {
               y: 150 - panOffset.y,
               width: 700,
               height: 480,
-              zIndex: 1,
+              zIndex: 30, // NẠP LỚP Z-INDEX CAO ĐỂ LUÔN BÁM NỔI BẬT LẤY ẢNH
             };
             setPages((prev) => {
               const copy = [...prev];
@@ -552,7 +555,7 @@ export default function WhiteboardView() {
     saveSnapshotState();
   };
 
-  // THU PHÓNG ẢNH DÁN
+  // THU PHÓNG ẢNH DÁN CẤP NÚT
   const handleResizeImage = (id, deltaWidth, deltaHeight, e) => {
     if (e) e.stopPropagation();
     setPages((prev) => {
@@ -572,9 +575,19 @@ export default function WhiteboardView() {
     saveSnapshotState();
   };
 
+  // KÉO RESIZE ẢNH BẰNG GÓC CHUỘT
+  const handleStartResizeCorner = (id, e) => {
+    e.stopPropagation();
+    setResizingObjId(id);
+    const curPage = pages[currentPageIndex] || createEmptyPage();
+    const target = (curPage.objectElements || []).find((o) => o.id === id);
+    if (target) {
+      setResizeStart({ x: e.clientX, y: e.clientY, w: target.width || 700, h: target.height || 480 });
+    }
+  };
+
   // KÉO RÊ VẬT THỂ BẰNG CON TRỎ HOẶC MOVER
   const handleStartDragElement = (id, isImage, e) => {
-    if (tool !== 'pointer') return;
     e.stopPropagation();
     setDraggingObjId(id);
 
@@ -611,6 +624,23 @@ export default function WhiteboardView() {
       const newOffsetX = e.clientX - panStart.x;
       const newOffsetY = e.clientY - panStart.y;
       setPanOffset({ x: newOffsetX, y: newOffsetY });
+    } else if (resizingObjId) {
+      const dx = e.clientX - resizeStart.x;
+      const dy = e.clientY - resizeStart.y;
+      setPages((prev) => {
+        const copy = [...prev];
+        const cur = copy[currentPageIndex] || createEmptyPage();
+        const updated = (cur.objectElements || []).map((o) => {
+          if (o.id === resizingObjId) {
+            const newW = Math.min(2400, Math.max(150, resizeStart.w + dx));
+            const newH = Math.min(2000, Math.max(100, resizeStart.h + dy));
+            return { ...o, width: newW, height: newH };
+          }
+          return o;
+        });
+        copy[currentPageIndex] = { ...cur, objectElements: updated };
+        return copy;
+      });
     } else if (draggingObjId) {
       const newX = e.clientX - dragOffset.x;
       const newY = e.clientY - dragOffset.y;
@@ -642,6 +672,9 @@ export default function WhiteboardView() {
   const handleMouseUpGlobal = (e) => {
     if (isPanning) {
       setIsPanning(false);
+    } else if (resizingObjId) {
+      setResizingObjId(null);
+      saveSnapshotState();
     } else if (draggingObjId) {
       setDraggingObjId(null);
       saveSnapshotState();
@@ -1075,9 +1108,11 @@ export default function WhiteboardView() {
           </svg>
         )}
 
-        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG */}
+        {/* RENDER CÁC ẢNH CHỤP ĐÃ DÁN VÀO BẢNG (TÍNH NĂNG BÁM LẤY ẢNH: ĐỒNG BỘ Z-INDEX CAO VÀ NÚT DRAG MOVER HÀNG ĐẦU TỰ ĐỘNG BÁM CHUẨN ẢNH) */}
         {(currentPage.objectElements || []).map((obj) => {
           const isSelected = selectedObjId === obj.id;
+          const isNearTopImg = obj.y < 80;
+
           return (
             <div
               key={obj.id}
@@ -1096,24 +1131,54 @@ export default function WhiteboardView() {
                 top: `${obj.y + panOffset.y}px`,
                 width: `${obj.width || 700}px`,
                 height: `${obj.height || 480}px`,
-                zIndex: obj.zIndex ?? 1,
+                zIndex: isSelected ? 50 : (obj.zIndex ?? 30), // NỔI BẬT LỚP Z-INDEX CAO KHI CHỌN
               }}
-              className={`absolute group select-none ${
+              className={`absolute group select-none pointer-events-auto rounded-xl ${
                 tool === 'pointer' ? 'cursor-move' : ''
               } ${
-                isSelected ? 'ring-4 ring-sky-500 shadow-2xl' : 'hover:ring-2 hover:ring-sky-300/60'
+                isSelected ? 'ring-4 ring-amber-400 shadow-2xl bg-amber-500/10' : 'hover:ring-2 hover:ring-amber-300/80'
               }`}
             >
+              {/* NÚT MOVER KÉO RÊ ẢNH LUÔN LUÔN BÁM LẤY ĐỈNH BỨC ẢNH DÁN */}
+              <div
+                onMouseDown={(e) => handleStartDragElement(obj.id, true, e)}
+                className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-full px-3 py-0.5 text-[11px] shadow-lg cursor-grab active:cursor-grabbing flex items-center space-x-1 border border-amber-300 z-[60]"
+                title="Nắm vào đây để kéo rê di chuyển ảnh đi khắp bảng"
+              >
+                <Move className="w-3.5 h-3.5" />
+                <span>📍 Kéo rê ảnh</span>
+              </div>
+
               <img
                 src={obj.src}
                 alt="Uploaded"
                 className="w-full h-full object-contain pointer-events-none rounded-xl"
               />
 
-              {/* THANH ĐIỀU CHỈNH ẢNH DÁN */}
+              {/* 4 NÚM KÉO RESIZE THU PHÓNG BÁN TAY Ở 4 GÓC ẢNH */}
               {isSelected && (
-                <div className="absolute -top-11 left-0 bg-slate-900 text-white rounded-2xl shadow-2xl px-3 py-1 flex items-center space-x-2 text-xs border border-slate-700 z-50 animate-scale-up font-sans">
-                  <span className="font-extrabold text-amber-400">🖼️ Ảnh dán bài tập</span>
+                <>
+                  <div
+                    onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
+                    className="absolute -bottom-2 -right-2 w-5 h-5 bg-amber-400 border-2 border-slate-900 rounded-full cursor-se-resize shadow-md hover:scale-125 transition z-[70]"
+                    title="Kéo góc này để phóng to / thu nhỏ ảnh"
+                  />
+                  <div
+                    onMouseDown={(e) => handleStartResizeCorner(obj.id, e)}
+                    className="absolute -bottom-2 -left-2 w-5 h-5 bg-amber-400 border-2 border-slate-900 rounded-full cursor-sw-resize shadow-md hover:scale-125 transition z-[70]"
+                    title="Kéo góc này để phóng to / thu nhỏ ảnh"
+                  />
+                </>
+              )}
+
+              {/* THANH ĐIỀU CHỈNH NỔI BÁM LẤY ẢNH (TỰ ĐỘNG TRÁNH CHE HEADER KHI NẰM Ở ĐỈNH (top-full mt-2)) */}
+              {isSelected && (
+                <div
+                  className={`absolute left-0 bg-slate-900 text-white rounded-2xl shadow-2xl px-3 py-1 flex items-center space-x-2 text-xs border border-amber-400/60 z-[90] animate-scale-up font-sans ${
+                    isNearTopImg ? 'top-full mt-2' : '-top-11'
+                  }`}
+                >
+                  <span className="font-extrabold text-amber-400">🖼️ Ảnh bài tập</span>
 
                   <button
                     onClick={(e) => { e.stopPropagation(); handleSetZIndexImage(obj.id, 50); }}
@@ -1167,11 +1232,11 @@ export default function WhiteboardView() {
           );
         })}
 
-        {/* RENDER Ô TEXT & STICKY (SỬA LỖI CHE THANH ĐIỀU KHIỂN ĐỈNH BẢNG: TỰ ĐỘNG ĐẨY ĐỊNH DẠNG XUỐNG DƯỚI KHI Ô TEXT NẰM Ở ĐỈNH (box.y < 90px)) */}
+        {/* RENDER Ô TEXT & STICKY */}
         {(currentPage.textElements || []).map((box) => {
           const isSelected = selectedTextId === box.id;
           const isSticky = box.type === 'sticky';
-          const isNearTop = box.y < 90; // Ô text sát đỉnh trên cùng
+          const isNearTop = box.y < 90;
 
           return (
             <div
@@ -1195,7 +1260,7 @@ export default function WhiteboardView() {
                 borderColor: isSticky ? (box.borderColor || '#fde047') : 'transparent',
                 zIndex: 40,
               }}
-              className={`absolute group p-3 transition duration-150 rounded-2xl relative ${
+              className={`absolute group p-3 transition duration-150 rounded-2xl relative pointer-events-auto ${
                 tool === 'pointer' ? 'cursor-pointer' : ''
               } ${
                 isSticky ? 'shadow-xl border-2 rotate-1 hover:rotate-0' : ''
@@ -1204,14 +1269,14 @@ export default function WhiteboardView() {
               {/* NÚT MOVER DRAG HANDLE */}
               <div
                 onMouseDown={(e) => handleStartDragElement(box.id, false, e)}
-                className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-3 py-0.5 text-[10px] font-black shadow-md cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition flex items-center space-x-1"
+                className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-3 py-0.5 text-[10px] font-black shadow-md cursor-grab active:cursor-grabbing flex items-center space-x-1 z-[60]"
                 title="Nắm vào đây để kéo di chuyển ô chữ"
               >
                 <Move className="w-3 h-3" />
                 <span>Kéo rê</span>
               </div>
 
-              {/* THANH TOOLBAR DÍNH LIỀN Ô VĂN BẢN (KHÔNG BAO GIỜ CHE CON TRỎ / HEADER: TỰ ĐỘNG XUỐNG DƯỚI KHI Ở ĐỈNH (top-full mt-2)) */}
+              {/* THANH TOOLBAR DÍNH LIỀN Ô VĂN BẢN */}
               {isSelected && (
                 <div
                   className={`absolute left-0 z-[90] bg-white text-slate-900 rounded-2xl shadow-2xl border-2 border-indigo-500/60 p-2 flex items-center space-x-2 text-xs font-bold animate-scale-up font-sans ${
