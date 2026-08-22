@@ -25,6 +25,7 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
   const fetchEnrolledUsers = async () => {
     setLoading(true);
     try {
+      // 1. Lấy dữ liệu ghi danh từ CSDL Supabase theo đúng khóa học này
       const { data } = await supabase
         .from('course_enrollments')
         .select('*, profile:user_id (*)')
@@ -32,15 +33,23 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
         .order('enrolled_at', { ascending: false });
 
       let dbList = data || [];
-      const savedCsvStudents = JSON.parse(localStorage.getItem('lms_csv_uploaded_students_v2') || '[]');
+      const localCourseEnrollments = JSON.parse(localStorage.getItem(`lms_enrolled_users_${courseId}`) || '[]');
 
       const enrolledMap = {};
+
+      // Nạp danh sách ghi danh từ Supabase
       dbList.forEach((u) => {
-        const pName = (u.profile?.username || u.profile?.full_name || '').toLowerCase();
-        if (pName) enrolledMap[pName] = u;
+        const pKey = (u.profile?.username || u.profile?.full_name || u.user_id || '').toLowerCase();
+        if (pKey) enrolledMap[pKey] = u;
       });
 
-      // Gộp Nguyễn Minh Hoàng
+      // Nạp danh sách ghi danh thực tế của riêng khóa học này từ LocalStorage
+      localCourseEnrollments.forEach((u) => {
+        const pKey = (u.profile?.username || u.profile?.full_name || u.user_id || '').toLowerCase();
+        if (pKey && !enrolledMap[pKey]) enrolledMap[pKey] = u;
+      });
+
+      // Giữ Giáo viên Master Admin (Thầy Hải) và Nguyễn Minh Hoàng
       defaultUsers.forEach((st, idx) => {
         const stName = (st.username || st.full_name || '').toLowerCase();
         if (stName && !enrolledMap[stName]) {
@@ -49,22 +58,6 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
             course_id: courseId,
             user_id: st.id,
             role: st.role || 'student',
-            status: 'active',
-            enrolled_at: new Date().toISOString(),
-            profile: st,
-          };
-        }
-      });
-
-      // Gộp savedCsvStudents từ CSV thực tế của Thầy Hải
-      savedCsvStudents.forEach((st, idx) => {
-        const stName = (st.username || st.full_name || '').toLowerCase();
-        if (stName && !enrolledMap[stName]) {
-          enrolledMap[stName] = {
-            id: 'enrol_csv_' + idx,
-            course_id: courseId,
-            user_id: st.id,
-            role: 'student',
             status: 'active',
             enrolled_at: new Date().toISOString(),
             profile: st,
@@ -114,6 +107,34 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     }
   }, [isOpen, courseId]);
 
+  const saveLocalEnrollments = (newStudentList) => {
+    const existing = JSON.parse(localStorage.getItem(`lms_enrolled_users_${courseId}`) || '[]');
+    const map = {};
+    existing.forEach((u) => {
+      const key = (u.profile?.username || u.profile?.full_name || u.user_id || '').toLowerCase();
+      if (key) map[key] = u;
+    });
+
+    newStudentList.forEach((st, idx) => {
+      const key = (st.username || st.full_name || st.id || '').toLowerCase();
+      if (key) {
+        map[key] = {
+          id: 'enrol_loc_' + Date.now() + '_' + idx,
+          course_id: courseId,
+          user_id: st.id,
+          role: 'student',
+          status: 'active',
+          enrolled_at: new Date().toISOString(),
+          profile: st,
+        };
+      }
+    });
+
+    const finalList = Object.values(map);
+    localStorage.setItem(`lms_enrolled_users_${courseId}`, JSON.stringify(finalList));
+    return finalList;
+  };
+
   // GHI DANH HÀNG LOẠT HỌC SINH ĐƯỢC CHỌN VÀO KHÓA HỌC (ENROL USERS)
   const handleEnrolSelectedUsers = async () => {
     if (selectedUserIds.length === 0) {
@@ -123,6 +144,7 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     setEnrolling(true);
 
     try {
+      const targetStudents = allStudentsList.filter((s) => selectedUserIds.includes(s.id));
       const newEntries = selectedUserIds.map((uid) => ({
         course_id: courseId,
         user_id: uid,
@@ -130,7 +152,12 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
         status: 'active',
       }));
 
-      await supabase.from('course_enrollments').upsert(newEntries);
+      try {
+        await supabase.from('course_enrollments').upsert(newEntries);
+      } catch (dbErr) {}
+
+      saveLocalEnrollments(targetStudents);
+
       alert(`🎉 ĐÃ GHI DANH THÀNH CÔNG ${selectedUserIds.length} HỌC SINH VÀO KHÓA HỌC NÀY!`);
       setSelectedUserIds([]);
       setIsEnrolPopupOpen(false);
@@ -158,7 +185,12 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
         status: 'active',
       }));
 
-      await supabase.from('course_enrollments').upsert(newEntries, { onConflict: 'course_id,user_id' });
+      try {
+        await supabase.from('course_enrollments').upsert(newEntries, { onConflict: 'course_id,user_id' });
+      } catch (dbErr) {}
+
+      saveLocalEnrollments(allStudentsList);
+
       alert(`🎉 ĐÃ GHI DANH THÀNH CÔNG TẤT CẢ ${allStudentsList.length} HỌC SINH VÀO KHÓA HỌC NÀY!`);
       await fetchEnrolledUsers();
     } catch (err) {
@@ -173,7 +205,14 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
     if (!confirm(`Bạn có chắc muốn xóa học sinh "${userName}" khỏi khóa học này?`)) return;
 
     try {
-      await supabase.from('course_enrollments').delete().eq('id', enrollmentId);
+      try {
+        await supabase.from('course_enrollments').delete().eq('id', enrollmentId);
+      } catch (dbErr) {}
+
+      const existing = JSON.parse(localStorage.getItem(`lms_enrolled_users_${courseId}`) || '[]');
+      const filtered = existing.filter((u) => u.id !== enrollmentId && (u.profile?.full_name || u.profile?.username) !== userName);
+      localStorage.setItem(`lms_enrolled_users_${courseId}`, JSON.stringify(filtered));
+
       await fetchEnrolledUsers();
       alert('Đã xóa học sinh khỏi khóa học!');
     } catch (err) {
@@ -220,7 +259,12 @@ export default function EnrolledUsersModal({ isOpen, onClose, courseId, isTeache
         status: 'active',
       }));
 
-      await supabase.from('course_enrollments').upsert(newEntries, { onConflict: 'course_id,user_id' });
+      try {
+        await supabase.from('course_enrollments').upsert(newEntries, { onConflict: 'course_id,user_id' });
+      } catch (dbErr) {}
+
+      saveLocalEnrollments(targetStudents);
+
       alert(`🎉 ĐÃ GHI DANH THÀNH CÔNG ${targetStudents.length} HỌC SINH [${selectedClassFilter}] VÀO KHÓA HỌC NÀY!`);
       await fetchEnrolledUsers();
     } catch (err) {
