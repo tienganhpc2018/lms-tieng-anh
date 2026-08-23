@@ -130,14 +130,6 @@ export default function WhiteboardView() {
   // Instance Fabric Canvas
   const [fabricCanvas, setFabricCanvas] = useState(null);
 
-  // BẢO VỆ PHÂN QUYỀN HỌC SINH
-  useEffect(() => {
-    if (!isTeacher && user) {
-      alert('⚠️ Tính năng Bảng Tương Tác Giảng Dạy chỉ dành riêng cho Giáo viên!');
-      navigate('/dashboard');
-    }
-  }, [user, isTeacher, navigate]);
-
   // ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK
   const [realtimeClock, setRealtimeClock] = useState('');
   useEffect(() => {
@@ -517,7 +509,7 @@ export default function WhiteboardView() {
     fabricCanvas.requestRenderAll();
   };
 
-  // V VẼ SHAPES DRAG-TO-DRAW
+  // VẼ SHAPES DRAG-TO-DRAW
   useEffect(() => {
     if (!fabricCanvas || tool !== 'drawShape' || !activeShapeType) return;
 
@@ -1141,7 +1133,7 @@ export default function WhiteboardView() {
         const eye1 = new fabric.Circle({ radius: 2.5, fill: '#0369a1', left: 11, top: 12 });
         const eye2 = new fabric.Circle({ radius: 2.5, fill: '#0369a1', left: 24, top: 12 });
         const mouth = new fabric.Path('M 12 28 Q 20 20 28 28', { stroke: '#0369a1', strokeWidth: 3, fill: 'transparent', strokeLineCap: 'round' });
-        const tear = new fabric.Path('M 26 18 Q 28 22 26 24 Q 24 22 26 18 Z', { fill: '#38bdf8' });
+        const tear = new fabric.Path('M 26 18 Q 28 22 26 18 Z', { fill: '#38bdf8' });
         shape = new fabric.Group([circle, eye1, eye2, mouth, tear], { left: initX, top: initY });
       } else if (shapeType === 'star') {
         shape = new fabric.Path('M 20 0 L 26 12 L 40 14 L 30 24 L 32 38 L 20 31 L 8 38 L 10 24 L 0 14 L 14 12 Z', {
@@ -1206,9 +1198,8 @@ export default function WhiteboardView() {
     setLoadingSavedLessons(false);
   };
 
-  // NÂNG CẤP LƯU BÀI DẠY V43 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI:
-  // KHI DẠY Ở LESSON NÀO (VD: LESSON 1 "Getting started") ➔ BẤM LƯU TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO ĐÚNG LESSON ĐÓ THEO ID KHÓA HỌC!
-  // HOÀN TOÀN KHÔNG HIỆN POPUP BẮT ĐẶT TÊN NỮA!
+  // NÂNG CẤP LƯU BÀI DẠY V44 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI (ẢNH media_1787462810736.png):
+  // KHI BẤM NÚT LƯU ➔ TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO LESSON VÀ ĐIỀU HƯỚNG QUAY TRỞ LẠI MÀN HÌNH KHÓA HỌC NGAY LẬP TỨC!
   const handleSaveLesson = async () => {
     setSavingLesson(true);
     try {
@@ -1232,18 +1223,21 @@ export default function WhiteboardView() {
           .eq('id', activityId);
 
         if (!error) {
-          setToastMessage(`💾 Đã lưu bài dạy trực tiếp vào "${lessonTitle}" thành công!`);
-          setTimeout(() => setToastMessage(null), 3000);
-          setSavingLesson(false);
+          setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
+          setTimeout(() => {
+            navigate(-1);
+          }, 1200);
           return;
         }
       }
 
-      // NẾU MỞ BẢNG TỰ DO (KHÔNG QUA KHÓA HỌC) ➔ MỚI MỞ POPUP LƯU TỰ DO
+      // NẾU MỞ BẢNG TỰ DO ➔ MỚI MỞ POPUP LƯU TỰ DO
       setActiveWindow('save');
     } catch (e) {
-      setToastMessage(`💾 Đã lưu bài dạy trực tiếp vào "${lessonTitle}"!`);
-      setTimeout(() => setToastMessage(null), 3000);
+      setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
+      setTimeout(() => {
+        navigate(-1);
+      }, 1200);
     }
     setSavingLesson(false);
   };
@@ -1275,9 +1269,11 @@ export default function WhiteboardView() {
 
       await supabase.from('activities').insert([payload]);
 
-      setToastMessage(`💾 Đã lưu thành công bài dạy: "${fullTitle}"!`);
-      setTimeout(() => setToastMessage(null), 3000);
-      setActiveWindow(null);
+      setToastMessage(`💾 Đã lưu bài dạy: "${fullTitle}"! Đang quay về Khóa học...`);
+      setTimeout(() => {
+        setActiveWindow(null);
+        navigate(-1);
+      }, 1200);
     } catch (e) {}
     setSavingLesson(false);
   };
@@ -1320,10 +1316,11 @@ export default function WhiteboardView() {
           : 'bg-white'
       }`}
     >
-      {/* THÔNG BÁO TOAST LƯU NHANH TRỰC QUAN SANG TRỌNG */}
+      {/* THÔNG BÁO TOAST LƯU & QUAY VỀ MÀN HÌNH KHÓA HỌC */}
       {toastMessage && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[150] bg-emerald-600 text-white font-extrabold text-xs px-4 py-2 rounded-2xl shadow-2xl border border-emerald-400 animate-bounce">
-          {toastMessage}
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[150] bg-emerald-600 text-white font-extrabold text-xs px-5 py-2.5 rounded-2xl shadow-2xl border-2 border-emerald-300 animate-bounce flex items-center space-x-2">
+          <CheckCircle className="w-4 h-4 text-emerald-200" />
+          <span>{toastMessage}</span>
         </div>
       )}
 
@@ -1336,7 +1333,7 @@ export default function WhiteboardView() {
         className="hidden"
       />
 
-      {/* HEADER BAR WHITEBOARD V43: XẾP ĐÚNG PHÍA DƯỚI MENU MAIN NAVBAR CỦA TRANG WEB THẦY HẢI CHỈ ĐẠO (ẢNH media_1787462264650.png) */}
+      {/* HEADER BAR WHITEBOARD V44: XẾP ĐÚNG PHÍA DƯỚI MENU MAIN NAVBAR CỦA TRANG WEB THẦY HẢI CHỈ ĐẠO */}
       <div className="bg-[#24211a] text-white px-4 py-1.5 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-40 relative">
         <div className="flex items-center space-x-2">
           <button
@@ -1387,7 +1384,7 @@ export default function WhiteboardView() {
           {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG */}
           <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{realtimeClock || 'Aug/23/2026 12:16 PM'} {currentPageIndex + 1}/{pages.length}</span>
+            <span>{realtimeClock || 'Aug/23/2026 12:27 PM'} {currentPageIndex + 1}/{pages.length}</span>
           </div>
 
           <button
@@ -1401,12 +1398,12 @@ export default function WhiteboardView() {
             <span>📁 Mở Bài Dạy</span>
           </button>
 
-          {/* NÚT LƯU BÀI DẠY: NHẤP NÚT NÀY TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO ĐÚNG LESSON ĐANG DẠY KHÔNG HIỆN POPUP CHUẨN THẦY HẢI CHỈ ĐẠO */}
+          {/* NÚT LƯU BÀI DẠY: NHẤP NÚT NÀY TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO ĐÚNG LESSON VÀ QUAY VỀ MÀN HÌNH KHÓA HỌC CHUẨN THẦY HẢI CHỈ ĐẠO */}
           <button
             onClick={handleSaveLesson}
             disabled={savingLesson}
             className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
-            title={`💾 Lưu bài dạy trực tiếp vào [${lessonTitle}]` }
+            title={`💾 Lưu bài dạy vào [${lessonTitle}] và quay về Khóa học` }
           >
             <Save className="w-4 h-4" />
             <span>{savingLesson ? 'Đang Lưu...' : '💾 Lưu Bài Dạy'}</span>
