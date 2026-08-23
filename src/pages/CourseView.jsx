@@ -934,8 +934,7 @@ export default function CourseView() {
               ) : (
                 <div className="space-y-4">
                   {displayableActivities.map((act, index) => {
-                    const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
-                    const now = new Date();
+                                        const now = new Date();
                     const isNotOpenYet = act.start_time && now < new Date(act.start_time);
                     const isExpired = act.end_time && now > new Date(act.end_time);
                     const isTimeLocked = isNotOpenYet || isExpired;
@@ -955,8 +954,9 @@ export default function CourseView() {
                             ? 'bg-slate-200/60 border-slate-300 opacity-75'
                             : isTimeLocked
                             ? 'bg-rose-50/70 border-rose-200'
-                            : isWhiteboard
-                            ? 'bg-amber-50 hover:bg-amber-100 border-amber-300'
+                            : isWhiteboardAct(act)
+                            ? 'bg-amber-50 hover:bg-amber-100 border-amber-300' : isAudioRecordAct(act)
+                            ? 'bg-purple-50 hover:bg-purple-100 border-purple-300'
                             : 'bg-slate-50 hover:bg-emerald-50 border-slate-200 hover:border-emerald-300'
                         } ${!userIsTeacher && isTimeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                       >
@@ -989,7 +989,7 @@ export default function CourseView() {
 
                             <div className="flex items-center space-x-3 text-[11px] text-slate-500 font-medium flex-wrap gap-y-1">
                               <span className="font-extrabold text-slate-600 uppercase">
-                                {isWb ? '🎨 Whiteboard Bảng Tương Tác' : isAr ? '🎙️ Audio Recorder Bảng Luyện Nói' : act.type}
+                                {isWhiteboardAct(act) ? '🎨 Whiteboard Bảng Tương Tác' : isAudioRecordAct(act) ? '🎙️ Audio Recorder Bảng Luyện Nói' : act.type}
                               </span>
                               {(act.start_time || act.end_time) && (
                                 <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
@@ -1080,7 +1080,7 @@ export default function CourseView() {
                               ? 'bg-rose-100 text-rose-800 border-rose-300'
                               : 'bg-white text-slate-700'
                           }`}>
-                            {isWb ? 'Vào Giảng Dạy' : isAr ? '🎙️ Thu Âm Bài Nói' : !userIsTeacher && isTimeLocked ? '🔒 Bài Đang Khóa' : 'Mở Bài Học'}
+                            {isWhiteboardAct(act) ? 'Vào Giảng Dạy' : isAudioRecordAct(act) ? '🎙️ Thu Âm Bài Nói' : !userIsTeacher && isTimeLocked ? '🔒 Bài Đang Khóa' : 'Mở Bài Học'}
                           </span>
                           <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
                         </div>
