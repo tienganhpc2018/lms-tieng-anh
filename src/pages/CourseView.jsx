@@ -16,6 +16,12 @@ const isWhiteboardAct = (act) => {
   return act.type === 'whiteboard' || (act.title && String(act.title).includes('[WHITEBOARD]'));
 };
 
+
+const isInteractiveVideoAct = (act) => {
+  if (!act) return false;
+  return act.type === 'video' || act.type === 'interactive_video' || (act.title && String(act.title).includes('[INTERACTIVE_VIDEO]'));
+};
+
 const isAudioRecordAct = (act) => {
   if (!act) return false;
   return act.type === 'audio_record' || act.type === 'audio' || (act.title && String(act.title).includes('[AUDIO_RECORD]'));
@@ -604,6 +610,7 @@ export default function CourseView() {
       const isAudioRecordAct = newActType === 'audio_record';
 
       // Supabase Constraint chỉ cho phép: 'quiz', 'assignment', 'whiteboard', 'iframe', 'page', 'video'
+      const isInteractiveVideoActType = newActType === 'video';
       const dbType = isAudioRecordAct ? 'assignment' : newActType;
 
       let formattedTitle = newActTitle.trim();
@@ -989,7 +996,7 @@ export default function CourseView() {
 
                             <div className="flex items-center space-x-3 text-[11px] text-slate-500 font-medium flex-wrap gap-y-1">
                               <span className="font-extrabold text-slate-600 uppercase">
-                                {isWhiteboardAct(act) ? '🎨 Whiteboard Bảng Tương Tác' : isAudioRecordAct(act) ? '🎙️ Audio Recorder Bảng Luyện Nói' : act.type}
+                                {isWhiteboardAct(act) ? '🎨 Whiteboard Bảng Tương Tác' : isAudioRecordAct(act) ? '🎙️ Audio Recorder Bảng Luyện Nói' : isInteractiveVideoAct(act) ? '🎥 Interactive Video (Video Tương Tác H5P)' : act.type}
                               </span>
                               {(act.start_time || act.end_time) && (
                                 <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
@@ -1080,7 +1087,7 @@ export default function CourseView() {
                               ? 'bg-rose-100 text-rose-800 border-rose-300'
                               : 'bg-white text-slate-700'
                           }`}>
-                            {isWhiteboardAct(act) ? 'Vào Giảng Dạy' : isAudioRecordAct(act) ? '🎙️ Thu Âm Bài Nói' : !userIsTeacher && isTimeLocked ? '🔒 Bài Đang Khóa' : 'Mở Bài Học'}
+                            {isWhiteboardAct(act) ? 'Vào Giảng Dạy' : isAudioRecordAct(act) ? '🎙️ Thu Âm Bài Nói' : isInteractiveVideoAct(act) ? '🎥 Xem Video Tương Tác' : !userIsTeacher && isTimeLocked ? '🔒 Bài Đang Khóa' : 'Mở Bài Học'}
                           </span>
                           <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
                         </div>
@@ -1129,7 +1136,7 @@ export default function CourseView() {
                   <option value="whiteboard">🎨 Whiteboard (Bảng Tương Tác Giảng Dạy - Lưu Trực Tiếp)</option>
                   <option value="quiz">Quiz (Bài Kiểm Tra Trắc Nghiệm / Reading / Listening)</option>
                   <option value="page">Page (Trang Bài Giảng / Tài Liệu)</option>
-                  <option value="video">Interactive Video H5P (Video Tương Tác)</option>
+                  <option value="video">🎥 Interactive Video H5P (Video Tương Tác Tự Động Dừng Câu Hỏi)</option>
                 </select>
               </div>
 
