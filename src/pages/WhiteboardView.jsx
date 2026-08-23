@@ -16,6 +16,42 @@ import {
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ShapesModulePanel from '../components/whiteboard/ShapesModulePanel';
 
+// BỘ TẠO ÂM THANH SINH ĐỘNG WEB AUDIO API DÀNH CHO BẢNG WHITEBOARD
+const playTickSound = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.05);
+  } catch (e) {}
+};
+
+const playFinishChime = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.1);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.1 + 0.4);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.1);
+      osc.stop(ctx.currentTime + idx * 0.1 + 0.4);
+    });
+  } catch (e) {}
+};
+
 export default function WhiteboardView() {
   const { user, profile, isTeacher } = useAuth();
   const navigate = useNavigate();
@@ -78,8 +114,13 @@ export default function WhiteboardView() {
   // MINI-GAMES GIẢNG DẠY
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [timerRunning, setTimerRunning] = useState(false);
-  const [diceValue, setDiceValue] = useState(1);
+
+  // XÚC XẮC ĐỒNG BỘ NÚT + - (1 HỘT MẶC ĐỊNH -> 2 HỘT -> 3 HỘT)
+  const [diceCount, setDiceCount] = useState(1);
+  const [diceValues, setDiceValues] = useState([1]);
   const [isSpinningDice, setIsSpinningDice] = useState(false);
+
+  // VÒNG QUAY GỌI TÊN HỌC SINH NGẪU NHIÊN VỚI ÂM THANH TẠCH TẠCH
   const [studentNames, setStudentNames] = useState('Minh Anh, Hải Nam, Bảo Ngọc, Đức Anh, Tuấn Kiệt, Phương Thảo, Gia Huy, Thanh Hà');
   const [selectedStudent, setSelectedStudent] = useState('');
   const [isPickingStudent, setIsPickingStudent] = useState(false);
@@ -120,33 +161,58 @@ export default function WhiteboardView() {
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
   const FONT_SIZES = [14, 18, 24, 32, 40, 48, 64, 80, 96];
 
-  // LOGIC ĐỒNG HỒ BẤM GIỜ
+  // LOGIC ĐỒNG HỒ BẤM GIỜ CÓ ÂM THANH TICK TOCK VÀ CHUÔNG NGÂN KHI HẾT GIỜ
   useEffect(() => {
     let interval = null;
     if (timerRunning && timerSeconds > 0) {
-      interval = setInterval(() => setTimerSeconds((prev) => prev - 1), 1000);
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => {
+          playTickSound(); // Âm thanh tick tock nhịp nhàng mỗi giây!
+          return prev - 1;
+        });
+      }, 1000);
     } else if (timerSeconds === 0 && timerRunning) {
       setTimerRunning(false);
+      playFinishChime(); // Âm thanh chuông báo ngân vang khi hết giờ!
       alert('⏰ HẾT GIỜ LÀM BÀI DẠY HỌC!');
     }
     return () => clearInterval(interval);
   }, [timerRunning, timerSeconds]);
 
-  // LOGIC ĐẮC XÚC XẮC NGẪU NHIÊN
+  // THAY ĐỔI SỐ HỘT XÚC XẮC NÚT + VÀ -
+  const handleIncreaseDice = () => {
+    if (diceCount < 3) {
+      const nextCount = diceCount + 1;
+      setDiceCount(nextCount);
+      setDiceValues(Array(nextCount).fill(1));
+    }
+  };
+
+  const handleDecreaseDice = () => {
+    if (diceCount > 1) {
+      const nextCount = diceCount - 1;
+      setDiceCount(nextCount);
+      setDiceValues(Array(nextCount).fill(1));
+    }
+  };
+
+  // LOGIC LẮC XÚC XẮC NGẪU NHIÊN ĐỒNG BỘ 100% SỐ HỘT VÀ KẾT QUẢ
   const handleRollDice = () => {
     setIsSpinningDice(true);
     let count = 0;
     const interval = setInterval(() => {
-      setDiceValue(Math.floor(Math.random() * 6) + 1);
+      playTickSound();
+      setDiceValues(Array.from({ length: diceCount }, () => Math.floor(Math.random() * 6) + 1));
       count++;
       if (count > 10) {
         clearInterval(interval);
         setIsSpinningDice(false);
+        playFinishChime();
       }
     }, 100);
   };
 
-  // LOGIC GỌI TÊN HỌC SINH NGẪU NHIÊN
+  // LOGIC GỌI TÊN HỌC SINH NGẪU NHIÊN CÓ ÂM THANH TẠCH TẠCH VÀ HỢP ÂM RỰC RỠ
   const handlePickRandomStudent = () => {
     const names = studentNames.split(',').map((n) => n.trim()).filter(Boolean);
     if (names.length === 0) return;
@@ -154,12 +220,14 @@ export default function WhiteboardView() {
     setIsPickingStudent(true);
     let count = 0;
     const interval = setInterval(() => {
+      playTickSound(); // Âm thanh tiếng tạch tạch vui tai!
       const idx = Math.floor(Math.random() * names.length);
       setSelectedStudent(names[idx]);
       count++;
       if (count > 12) {
         clearInterval(interval);
         setIsPickingStudent(false);
+        playFinishChime(); // Âm thanh hợp âm rực rỡ vang lên khi chọn xong học sinh!
       }
     }, 100);
   };
@@ -1198,7 +1266,7 @@ export default function WhiteboardView() {
 
       {/* POPUP PALETTE CHỌN MÀU BÚT VẼ SCHEME CHUẨN GỐC */}
       {activeWindow === 'penColor' && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-white border-2 border-slate-300 rounded-2xl shadow-2xl p-3 flex items-center space-x-2 animate-scale-up">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-white border-2 border-slate-300 rounded-2xl shadow-2xl p-3 flex items-center space-x-2 animate-scale-up font-sans">
           <span className="text-xs font-extrabold text-slate-700">Màu Bút:</span>
           {PEN_COLORS.map((c) => (
             <button
@@ -1259,7 +1327,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP ĐỒNG HỒ BẤM GIỜ (TIMER) */}
+      {/* POPUP ĐỒNG HỒ BẤM GIỜ (TIMER) CÓ ÂM THANH TICK TOCK VÀ CHUÔNG BÁO NHỊP NHÀNG */}
       {activeWindow === 'timer' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-80 space-y-4 border-2 border-sky-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
@@ -1302,9 +1370,9 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP XÚC XẮC THÔNG MINH (DICE) */}
+      {/* POPUP XÚC XẮC THÔNG MINH ĐỒNG BỘ 100% SỐ HỘT VỚI NÚT + VÀ - (ĐÚNG CHÍNH XÁC YÊU CẦU THẦY HẢI) */}
       {activeWindow === 'dice' && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-80 space-y-4 border-2 border-purple-500 animate-scale-up font-sans">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-purple-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
             <h3 className="font-extrabold text-sm flex items-center space-x-2 text-purple-400">
               <Dices className="w-5 h-5" />
@@ -1313,12 +1381,40 @@ export default function WhiteboardView() {
             <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
           </div>
 
-          <div className="flex justify-center py-4">
-            <div className={`w-24 h-24 bg-gradient-to-br from-purple-500 to-indigo-700 rounded-3xl border-4 border-purple-300 shadow-2xl flex items-center justify-center text-6xl font-black text-white transition transform ${
-              isSpinningDice ? 'animate-bounce scale-110' : ''
-            }`}>
-              {diceValue}
+          {/* NÚT TĂNG GIẢM SỐ HỘT XÚC XẮC (+ VÀ -) */}
+          <div className="flex items-center justify-between bg-slate-800 p-2.5 rounded-2xl border border-slate-700">
+            <span className="text-xs font-extrabold text-slate-200">Số lượng Hột Xúc Xắc:</span>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleDecreaseDice}
+                disabled={diceCount <= 1}
+                className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-40 font-black text-lg flex items-center justify-center text-white transition cursor-pointer border border-slate-600"
+              >
+                -
+              </button>
+              <span className="font-mono text-base font-black text-amber-400 px-2">{diceCount} Hột</span>
+              <button
+                onClick={handleIncreaseDice}
+                disabled={diceCount >= 3}
+                className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-40 font-black text-lg flex items-center justify-center text-white transition cursor-pointer border border-slate-600"
+              >
+                +
+              </button>
             </div>
+          </div>
+
+          {/* HIỂN THỊ ĐÚNG CÁC KHỐI HỘT XÚC XẮC THEO SỐ LƯỢNG */}
+          <div className="flex justify-center items-center gap-3 py-4">
+            {diceValues.map((val, idx) => (
+              <div
+                key={idx}
+                className={`w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-700 rounded-3xl border-4 border-purple-300 shadow-2xl flex items-center justify-center text-5xl font-black text-white transition transform ${
+                  isSpinningDice ? 'animate-bounce scale-105' : ''
+                }`}
+              >
+                {val}
+              </div>
+            ))}
           </div>
 
           <button
@@ -1327,12 +1423,12 @@ export default function WhiteboardView() {
             className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-xs shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer"
           >
             <Sparkles className="w-4 h-4" />
-            <span>{isSpinningDice ? 'Đang Đổ Xúc Xắc...' : '🎲 LẮC XÚC XẮC NGẪU NHIÊN'}</span>
+            <span>{isSpinningDice ? 'Đang Đổ Xúc Xắc...' : `🎲 LẮC ${diceCount} HỘT XÚC XẮC NGẪU NHIÊN` }</span>
           </button>
         </div>
       )}
 
-      {/* POPUP GỌI TÊN HỌC SINH NGẪU NHIÊN (RANDOM NAME PICKER) */}
+      {/* POPUP GỌI TÊN HỌC SINH NGẪU NHIÊN VỚI ÂM THANH TẠCH TẠCH VÀ HỢP ÂM RỰC RỠ */}
       {activeWindow === 'picker' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-amber-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
@@ -1495,7 +1591,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* THANH TOOLBAR DƯỚI CÙNG HOÀN LẠI 100% NGUYÊN BẢN GỐC CAM KẾT ĐẦY ĐỦ NHƯ ẢNH media_1787448644889.png */}
+      {/* THANH TOOLBAR DƯỚI CÙNG HOÀN LẠI 100% NGUYÊN BẢN GỐC CAM KẾT ĐẦY ĐỦ CÓ 18 CÔNG CỤ THẦY YÊU CẦU */}
       <div className={getToolbarStyle()}>
         {/* 1. XOAY CHUYỂN VỊ TRÍ TOOLBAR */}
         <button
@@ -1654,7 +1750,7 @@ export default function WhiteboardView() {
 
         <span className="w-px h-6 bg-slate-400/60 my-auto" />
 
-        {/* 14. TIMER MINI-GAME */}
+        {/* 14. TIMER MINI-GAME CÓ ÂM THANH */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'timer' ? null : 'timer')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1667,7 +1763,7 @@ export default function WhiteboardView() {
           <Clock className="w-4 h-4 text-sky-700" />
         </button>
 
-        {/* 15. DICE MINI-GAME */}
+        {/* 15. DICE MINI-GAME ĐỒNG BỘ 100% SỐ HỘT NÚT + VÀ - */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'dice' ? null : 'dice')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1680,7 +1776,7 @@ export default function WhiteboardView() {
           <Dices className="w-4 h-4 text-purple-700" />
         </button>
 
-        {/* 16. RANDOM NAME PICKER MINI-GAME */}
+        {/* 16. RANDOM NAME PICKER MINI-GAME CÓ ÂM THANH */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'picker' ? null : 'picker')}
           className={`p-2 rounded-xl transition cursor-pointer ${
