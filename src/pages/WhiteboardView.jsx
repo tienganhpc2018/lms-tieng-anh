@@ -24,7 +24,7 @@ const playTickSound = () => {
     const gain = ctx.createGain();
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(800, ctx.currentTime);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -163,7 +163,7 @@ export default function WhiteboardView() {
   const [pages, setPages] = useState([{ id: 1, name: 'Trang 1', data: null, textElements: [] }]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
-  // QUẢN LÝ Ô GÕ TEXT TRỰC QUAN KHÔNG BAO GIỜ BỊ LỖI
+  // QUẢN LÝ Ô GÕ TEXT TRỰC QUAN NGUYÊN BẢN SANG TRỌNG V40 (ẢNH media_1787459246892.png)
   const [textElements, setTextElements] = useState([]);
   const [selectedTextId, setSelectedTextId] = useState(null);
 
@@ -228,7 +228,7 @@ export default function WhiteboardView() {
     { name: 'White', bg: '#ffffff', text: '#0f172a', border: '#e2e8f0' },
   ];
 
-  // BẢNG MÀU HIGHLIGHT DẠ QUANG RỰC RỠ SÁNG NẾT THEO CHỈ ĐẠO THẦY HẢI (ẢNH media_1787458874642.png)
+  // BẢNG MÀU HIGHLIGHT DẠ QUANG RỰC RỠ SÁNG NẾT THEO CHỈ ĐẠO THẦY HẢI
   const HIGHLIGHT_PALETTE = [
     { name: 'Vàng Dạ Quang', color: '#fef08a', text: '#854d0e' },
     { name: 'Cam Rực Rỡ', color: '#fed7aa', text: '#9a3412' },
@@ -783,7 +783,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // ĐỊNH DẠNG RICH TEXT SELECTION CHUẨN XÁC 100% CÓ ONMOUSEDOWN PREVENTDEFAULT CHỐNG MẤT FOCUS KHI BÔI ĐEN (ẢNH media_1787458874642.png)
+  // ĐỊNH DẠNG RICH TEXT SELECTION CHUẨN XÁC 100% CÓ ONMOUSEDOWN PREVENTDEFAULT CHỐNG MẤT FOCUS KHI BÔI ĐEN
   const applyExecCommand = (command, value = null) => {
     document.execCommand(command, false, value);
   };
@@ -1123,7 +1123,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // NẠP LẠI DANH SÁCH BÀI GIẢNG ĐÃ LƯU TỪ CẢ LOCALSTORAGE VÀ SUPABASE (ẢNH media_1787458637901.png)
+  // NẠP LẠI DANH SÁCH BÀI GIẢNG ĐÃ LƯU TỪ CẢ LOCALSTORAGE VÀ SUPABASE
   const fetchSavedLessons = async () => {
     setLoadingSavedLessons(true);
     let list = [];
@@ -1373,7 +1373,7 @@ export default function WhiteboardView() {
           </div>
         )}
 
-        {/* Ô GÕ TEXT TRỰC QUAN KHÔNG BAO GIỜ BỊ LỖI - TỰ ĐỘNG ÔM CO GIÃN THEO NỘI DUNG VĂN BẢN VÀ HỖ TRỢ BÔI ĐEN TỪ NÀO ĐỊNH DẠNG TỪ ĐÓ V39 (ẢNH media_1787458874642.png) */}
+        {/* Ô GÕ TEXT TRỰC QUAN NGUYÊN BẢN SANG TRỌNG TRỞ LẠI V40 THEO ĐÚNG Ý THẦY NGUYỄN VĂN HẢI (ẢNH media_1787459246892.png) */}
         {textElements.map((box) => {
           const isSelected = selectedTextId === box.id;
 
@@ -1388,17 +1388,17 @@ export default function WhiteboardView() {
                 minWidth: '150px',
                 zIndex: 80,
               }}
-              className={`absolute p-1.5 rounded-xl transition-all duration-75 pointer-events-auto resize-x overflow-auto ${
+              className={`absolute p-2 rounded-2xl transition-all duration-75 pointer-events-auto resize-x overflow-visible ${
                 isSelected
-                  ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl bg-slate-900/20'
+                  ? 'border-2 border-dashed border-amber-400 ring-4 ring-amber-400/30 shadow-2xl bg-slate-900/30'
                   : 'border border-transparent bg-transparent'
               }`}
             >
-              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) TRỰC QUAN Ở VIỀN TRÊN DÙNG ĐỂ RÊ CHUỘT THOẢI MÁI */}
+              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) VỪA VẶN TRÊN ĐỈNH KHUNG VĂN BẢN (ẢNH media_1787459246892.png) */}
               {isSelected && (
                 <div
                   onMouseDown={(e) => handleStartDragText(e, box.id)}
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 z-[110] bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black shadow-md cursor-grab active:cursor-grabbing flex items-center space-x-1 border border-amber-300"
+                  className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-[110] bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-lg cursor-grab active:cursor-grabbing flex items-center space-x-1 border border-amber-300"
                   title="Nhấn giữ chuột tại đây để Kéo Rê di chuyển ô Text"
                 >
                   <GripHorizontal className="w-3.5 h-3.5" />
@@ -1406,10 +1406,10 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* THANH RICH TEXT EDITOR THU GỌN - CÓ ONMOUSEDOWN PREVENTDEFAULT CHỐNG MẤT SELECTION KHI CHỌN ĐỊNH DẠNG V39 */}
+              {/* THANH TOOLBAR ĐỊNH DẠNG NẰM NỔI PHÍA TRÊN NGUYÊN BẢN SANG TRỌNG V40 (ẢNH media_1787459246892.png) */}
               {isSelected && (
                 <div
-                  className="absolute bottom-full mb-3 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
+                  className="absolute bottom-full mb-5 left-1/2 -translate-x-1/2 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans whitespace-nowrap"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <select
@@ -1441,7 +1441,7 @@ export default function WhiteboardView() {
 
                   <span className="w-px h-5 bg-slate-400" />
 
-                  {/* NÚT IN ĐẬM (B) - CÓ PREVENTDEFAULT GIỮ NGUYÊN VÙNG SELECTION BÔI ĐEN */}
+                  {/* NÚT IN ĐẬM (B) */}
                   <button
                     type="button"
                     onMouseDown={(e) => {
@@ -1454,7 +1454,7 @@ export default function WhiteboardView() {
                     <Bold className="w-4 h-4" />
                   </button>
 
-                  {/* NÚT IN NGHIÊNG (I) - CÓ PREVENTDEFAULT GIỮ NGUYÊN VÙNG SELECTION BÔI ĐEN */}
+                  {/* NÚT IN NGHIÊNG (I) */}
                   <button
                     type="button"
                     onMouseDown={(e) => {
@@ -1467,7 +1467,7 @@ export default function WhiteboardView() {
                     <Italic className="w-4 h-4" />
                   </button>
 
-                  {/* NÚT GẠCH CHÂN (U) - CÓ PREVENTDEFAULT GẠCH CHÂN CHÍNH XÁC 1-2 TỪ BÔI ĐEN CHUẨN ĐÚNG THẦY HẢI CHỈ ĐẠO! */}
+                  {/* NÚT GẠCH CHÂN (U) */}
                   <button
                     type="button"
                     onMouseDown={(e) => {
@@ -1482,7 +1482,7 @@ export default function WhiteboardView() {
 
                   <span className="w-px h-5 bg-slate-400" />
 
-                  {/* ĐỔI MÀU CHỮ CHÍNH CỤM TỪ BÔI ĐEN */}
+                  {/* ĐỔI MÀU CHỮ */}
                   <input
                     type="color"
                     value={box.color || color}
@@ -1494,7 +1494,7 @@ export default function WhiteboardView() {
                     title="Đổi màu chữ cho cụm từ bôi đen"
                   />
 
-                  {/* MENU HIGHLIGHT DROPDOWN CÓ MÀU DẠ QUANG RỰC RỠ SÁNG NẾT CHUẨN XÁC YÊU CẦU THẦY HẢI (ẢNH media_1787458874642.png) */}
+                  {/* HIGHLIGHT DROPDOWN MÀU DẠ QUANG SÁNG RỰC RỠ */}
                   <div className="relative">
                     <button
                       type="button"
@@ -1541,7 +1541,7 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG 100% - TẮT NẾT GẠCH ĐỎ KIỂM TRA CHÍNH TẢ VÀ TỰ ĐỘNG ÔM CHỮ CO GIÃN */}
+              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG NGUYÊN BẢN GỐC SANG TRỌNG 100% (ẢNH media_1787459246892.png) */}
               <div
                 contentEditable
                 suppressContentEditableWarning
@@ -2019,7 +2019,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP MỞ BÀI DẠY ĐÃ LƯU (HIỂN THỊ DANH SÁCH BÀI ĐÃ LƯU 100% CẢ LOCALSTORAGE VÀ SUPABASE ACCORDING TO THẦY HẢI - ẢNH media_1787458637901.png) */}
+      {/* POPUP MỞ BÀI DẠY ĐÃ LƯU */}
       {activeWindow === 'load' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-[520px] space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
           <div className="flex justify-between items-center border-b pb-2">
@@ -2187,7 +2187,7 @@ export default function WhiteboardView() {
           onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
           className={`p-2 rounded-xl transition cursor-pointer ${
             activeWindow === 'shapes' || tool === 'drawShape'
-              ? 'bg-purple-600 text-[#ded8be] shadow-md ring-2 ring-purple-300 scale-105'
+              ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300 scale-105'
               : 'hover:bg-[#c4bb9c] text-slate-800'
           }`}
           title="Bảng chọn công cụ Shapes hình học (Chờ kéo chuột đến đâu vẽ đến đó)"
