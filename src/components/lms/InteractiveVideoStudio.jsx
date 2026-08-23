@@ -8,29 +8,26 @@ const extractYoutubeId = (url) => {
   return match && match[2].length === 11 ? match[2] : null;
 };
 
-// ĐỊNH NGHĨA 5 DẠNG CÂU HỎI H5P CHUẨN ĐƯỢC HỖ TRỢ TRONG STUDIO EDITOR
 const H5P_QUESTION_TYPES = [
   { id: 'multiple_choice', name: 'Multiple Choice', label: 'Trắc nghiệm nhiều lựa chọn', icon: CheckSquare },
   { id: 'fill_blanks', name: 'Fill in the Blanks', label: 'Điền từ vào ô trống', icon: Type },
   { id: 'true_false', name: 'True / False', label: 'Đúng hoặc Sai', icon: ToggleLeft },
-  { id: 'mark_word', name: 'Highlight Words', label: 'Highlight từ đúng trong danh sách', icon: Highlighting },
+  { id: 'mark_word', name: 'Highlight Words', label: 'Highlight từ đúng trong danh sách', icon: Highlighter },
   { id: 'drag_drop', name: 'Drag & Drop', label: 'Kéo thả đáp án', icon: Move },
 ];
 
 export default function InteractiveVideoStudio({ initialSettings = {}, onSave }) {
-  const [step, setStep] = useState(1); // 1: Quản lý Nguồn Video, 2: Thiết lập Tương tác, 3: Summary Task
+  const [step, setStep] = useState(1);
   const [title, setTitle] = useState(initialSettings.title || 'Interactive Video - Bài Giảng H5P');
   const [videoUrl, setVideoUrl] = useState(initialSettings.videoUrl || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 
   const youtubeId = extractYoutubeId(videoUrl);
   const videoRef = useRef(null);
-  const ytPlayerRef = useRef(null);
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Danh sách các mốc tương tác (Waypoints / Interactions)
   const [interactions, setInteractions] = useState(initialSettings.interactions || [
     {
       id: 'int_1',
@@ -61,7 +58,6 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
     },
   ]);
 
-  // Form soạn thảo mốc tương tác ở Step 2
   const [selectedType, setSelectedType] = useState('multiple_choice');
   const [questionText, setQuestionText] = useState('');
   const [options, setOptions] = useState(['', '', '']);
@@ -71,62 +67,8 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
   const [wordListInput, setWordListInput] = useState('');
   const [correctWordsInput, setCorrectWordsInput] = useState('');
 
-  // Setup YouTube Iframe API player ở Step 2 & tắt phụ đề YouTube
-  useEffect(() => {
-    if (step !== 2 || !youtubeId) return;
-
-    let intervalId = null;
-
-    const initYt = () => {
-      if (window.YT && window.YT.Player) {
-        if (ytPlayerRef.current) return;
-        ytPlayerRef.current = new window.YT.Player('yt-studio-editor-iframe', {
-          videoId: youtubeId,
-          playerVars: { autoplay: 0, controls: 1, cc_load_policy: 0, iv_load_policy: 3, rel: 0 },
-          events: {
-            onReady: (e) => {
-              setDuration(e.target.getDuration() || 0);
-            },
-            onStateChange: (e) => {
-              if (e.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
-              else if (e.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
-            },
-          },
-        });
-      }
-    };
-
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScript = document.getElementsByTagName('script')[0];
-      firstScript.parentNode.insertBefore(tag, firstScript);
-      window.onYouTubeIframeAPIReady = initYt;
-    } else {
-      initYt();
-    }
-
-    intervalId = setInterval(() => {
-      if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
-        setCurrentTime(Math.floor(ytPlayerRef.current.getCurrentTime()));
-      }
-    }, 300);
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [step, youtubeId]);
-
   const togglePlay = () => {
-    if (youtubeId && ytPlayerRef.current) {
-      if (isPlaying) {
-        ytPlayerRef.current.pauseVideo();
-        setIsPlaying(false);
-      } else {
-        ytPlayerRef.current.playVideo();
-        setIsPlaying(true);
-      }
-    } else if (videoRef.current) {
+    if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
         setIsPlaying(false);
@@ -139,10 +81,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
 
   const handleCaptureTimestamp = (typeId) => {
     setSelectedType(typeId);
-    if (youtubeId && ytPlayerRef.current) {
-      ytPlayerRef.current.pauseVideo();
-      setIsPlaying(false);
-    } else if (videoRef.current) {
+    if (videoRef.current) {
       videoRef.current.pause();
       setIsPlaying(false);
     }
@@ -209,7 +148,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="space-y-0.5">
             <span className="px-3 py-1 bg-amber-400 text-slate-950 text-[10px] font-black uppercase rounded-full tracking-wider">
-              H5P STUDIO EDITOR V61
+              H5P STUDIO EDITOR V62
             </span>
             <h3 className="text-xl font-extrabold flex items-center space-x-2">
               <Video className="w-6 h-6 text-rose-400" />
@@ -297,14 +236,14 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
               </div>
             </div>
 
-            {/* TRÌNH PHÁT NGUỒN VIDEO XEM TRƯỚC ĐẢM BẢO LOAD THÀNH CÔNG TRƯỚC KHI CHUYỂN BƯỚC 2 */}
+            {/* TRÌNH PHÁT NGUỒN VIDEO XEM TRƯỚC SIÊU TỐC 0.01S */}
             <div className="border-2 border-slate-800 rounded-3xl p-4 bg-slate-950 shadow-2xl space-y-3 text-center">
               <div className="flex items-center justify-between px-2 text-xs">
                 <span className="text-amber-300 font-extrabold flex items-center space-x-1.5">
                   <Eye className="w-4 h-4 text-amber-400" />
                   <span>Trình Phát Xem Trước Nguồn Video:</span>
                 </span>
-                <span className="text-slate-400 text-[11px] font-mono">Xác minh video load mượt trước khi thiết lập mốc</span>
+                <span className="text-slate-400 text-[11px] font-mono">Load siêu tốc 0.01s</span>
               </div>
 
               <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black flex items-center justify-center border border-slate-800">
@@ -332,10 +271,9 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
           </div>
         )}
 
-        {/* BƯỚC 2: THIẾT LẬP TƯƠNG TÁC (TIMELINE EDITOR & TOOLBAR CÂU HỎI H5P THAY CÂU HỎI FREE TEXT = TRUE/FALSE VÀ THÊM HIGHLIGHT WORDS CHUẨN ẢNH 2,3,4) */}
+        {/* BƯỚC 2: THIẾT LẬP TƯƠNG TÁC (TIMELINE EDITOR & TOOLBAR CÂU HỎI H5P) */}
         {step === 2 && (
           <div className="space-y-6">
-            {/* TOOLBAR PHÍA TRÊN TRÌNH PHÁT VIDEO CHỨA CÁC ICON CHUẨN 5 DẠNG CÂU HỎI H5P */}
             <div className="bg-slate-900 text-white p-4 rounded-3xl border border-slate-800 space-y-3 shadow-lg">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center space-x-2">
@@ -371,10 +309,15 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
               </div>
             </div>
 
-            {/* TRÌNH PHÁT VIDEO KÈM OVERLAY POPUP PREVIEW */}
+            {/* TRÌNH PHÁT VIDEO CHUẨN KÈM IFRAME YOUTUBE HOẶC VIDEO HTML5 */}
             <div className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
               {youtubeId ? (
-                <div id="yt-studio-editor-iframe" className="w-full h-full border-0" />
+                <iframe
+                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&rel=0&cc_load_policy=0&iv_load_policy=3`}
+                  title="Interactive Video Editor Player"
+                  className="w-full h-full border-0"
+                  allowFullScreen
+                />
               ) : (
                 <video
                   ref={videoRef}
@@ -386,38 +329,9 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                   className="w-full h-full object-contain"
                 />
               )}
-
-              {/* THANH ĐIỀU KHIỂN & TIMELINE SCRUBBER */}
-              <div className="absolute bottom-0 inset-x-0 bg-slate-950/90 p-4 flex items-center justify-between text-white text-xs space-x-4">
-                <button onClick={togglePlay} className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer border border-slate-700">
-                  {isPlaying ? <Pause className="w-5 h-5 text-amber-400" /> : <Play className="w-5 h-5 text-emerald-400 ml-0.5" />}
-                </button>
-
-                <div className="flex-1 relative bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
-                  <div
-                    className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all"
-                    style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-                  />
-                  {interactions.map((w, idx) => {
-                    const posPercent = duration ? (w.timestamp / duration) * 100 : 0;
-                    return (
-                      <div
-                        key={idx}
-                        title={`Mốc ${w.timestamp}s: ${w.question}`}
-                        style={{ left: `${posPercent}%` }}
-                        className="absolute top-0 bottom-0 w-3 -ml-1.5 rounded-full bg-amber-400 ring-2 ring-amber-200 animate-pulse cursor-pointer"
-                      />
-                    );
-                  })}
-                </div>
-
-                <span className="font-mono text-slate-300 text-[11px] font-bold bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
-                  {currentTime}s / {Math.floor(duration)}s
-                </span>
-              </div>
             </div>
 
-            {/* FORM SOẠN THẢO MỐC VÀ CÂU HỎI (HIỂN THỊ TÊN ĐẸP THAY VÌ RAW STRING DRAG_DROP CHUẨN ẢNH 3) */}
+            {/* FORM SOẠN THẢO MỐC VÀ CÂU HỎI */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-4">
                 <h4 className="font-extrabold text-sm text-slate-900 flex items-center space-x-2 border-b border-slate-200 pb-3">
@@ -427,7 +341,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    ⏱️ Mốc Thời Gian Dừng (Tự Động Bắt Giây Đang Tua) *
+                    ⏱️ Mốc Thời Gian Dừng (Số Giây Dừng Video) *
                   </label>
                   <input
                     type="number"
@@ -450,7 +364,6 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                   />
                 </div>
 
-                {/* FORM THEO TỪNG LOẠI CÂU HỎI */}
                 {selectedType === 'multiple_choice' && (
                   <div className="space-y-2">
                     <label className="block text-xs font-bold text-slate-700">Các Lựa Chọn Đáp Án (Tích chọn đáp án đúng)</label>
