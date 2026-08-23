@@ -121,10 +121,10 @@ const DiceFace = ({ value, isSpinning }) => {
 export default function WhiteboardView() {
   const { user, profile, isTeacher } = useAuth();
   const navigate = useNavigate();
-  const { id: pathId } = useParams(); // 👈 PHÁT HIỆN CHÍNH XÁC PATH PARAM /whiteboard/:id
+  const { id: pathId } = useParams();
   const [searchParams] = useSearchParams();
   const queryId = searchParams.get('activityId');
-  const activityId = pathId || queryId; // 👈 CHẤP NHẬN CẢ PARAMS /whiteboard/:id VÀ QUERY /whiteboard?activityId=:id!
+  const activityId = pathId || queryId;
 
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -438,7 +438,7 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // NẠP VÀ HIỂN THỊ CHÍNH XÁC NỘI DUNG VẼ VÀ TÊN LESSON CỦA BÀI HỌC V46 (ẢNH media_1787463764057.png & media_1787463818635.png)
+  // NẠP VÀ HIỂN THỊ CHÍNH XÁC NỘI DUNG VẼ VÀ TÊN LESSON CỦA BÀI HỌC V47
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -1202,8 +1202,8 @@ export default function WhiteboardView() {
     setLoadingSavedLessons(false);
   };
 
-  // NÂNG CẤP LƯU BÀI DẠY V46 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI (ẢNH media_1787463764057.png & media_1787463818635.png):
-  // CẬP NHẬT TRỰC TIẾP VÀO CSDL SUPABASE BẢNG ACTIVITIES CHO NỘI DUNG WHITEBOARD THUỘC LESSON ID ĐÓ!
+  // NÂNG CẤP LƯU BÀI DẠY V47 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI (ẢNH media_1787464016635.png):
+  // BỎ HOÀN TOÀN TRƯỜNG 'updated_at' KHI UPDATE SUPABASE ĐỂ FIX TRIỆT ĐỂ LỖI SCHEMA CACHE!
   const handleSaveLesson = async () => {
     setSavingLesson(true);
     try {
@@ -1217,11 +1217,11 @@ export default function WhiteboardView() {
       }
 
       if (activityId) {
+        // CẬP NHẬT CHÍNH XÁC CHỈ CỘT CONTENT TRÁNH LỖI SCHEMA CACHE UPDATED_AT SUPABASE
         const { error } = await supabase
           .from('activities')
           .update({
             content: canvasJson,
-            updated_at: new Date().toISOString(),
           })
           .eq('id', activityId);
 
@@ -1320,7 +1320,7 @@ export default function WhiteboardView() {
         className="hidden"
       />
 
-      {/* HEADER BAR WHITEBOARD V46: NẠP VÀ HIỂN THỊ CHÍNH XÁC NỘI DUNG VÀ TÊN LESSON CỦA BÀI HỌC V46 (ẢNH media_1787463764057.png & media_1787463818635.png) */}
+      {/* HEADER BAR WHITEBOARD V47 */}
       <div className="bg-[#24211a] text-white px-4 py-1.5 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-40 relative">
         <div className="flex items-center space-x-2">
           <button
@@ -1371,7 +1371,7 @@ export default function WhiteboardView() {
           {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG */}
           <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{realtimeClock || 'Aug/23/2026 12:43 PM'} {currentPageIndex + 1}/{pages.length}</span>
+            <span>{realtimeClock || 'Aug/23/2026 12:46 PM'} {currentPageIndex + 1}/{pages.length}</span>
           </div>
 
           <button
@@ -1385,7 +1385,7 @@ export default function WhiteboardView() {
             <span>📁 Mở Bài Dạy</span>
           </button>
 
-          {/* NÚT LƯU BÀI DẠY V46: LƯU TRỰC TIẾP CSDL SUPABASE THEO LESSON ID */}
+          {/* NÚT LƯU BÀI DẠY V47 */}
           <button
             onClick={handleSaveLesson}
             disabled={savingLesson}
