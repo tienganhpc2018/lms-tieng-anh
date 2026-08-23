@@ -9,6 +9,18 @@ import { BookOpen, Plus, Users, ArrowLeft, Key, Eye, EyeOff, Copy, Check, Lock, 
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 
+
+// TOP-LEVEL HELPER FUNCTIONS TRÁNH MỌI LỖI REFERENCE ERROR AN TOÀN TUYỆT ĐỐI V54
+const isWhiteboardAct = (act) => {
+  if (!act) return false;
+  return act.type === 'whiteboard' || (act.title && String(act.title).includes('[WHITEBOARD]'));
+};
+
+const isAudioRecordAct = (act) => {
+  if (!act) return false;
+  return act.type === 'audio_record' || act.type === 'audio' || (act.title && String(act.title).includes('[AUDIO_RECORD]'));
+};
+
 // HÀM TẠO ICON VÀ MÀU SẮC ĐỘNG SINH ĐỘNG THEO TÊN BÀI HỌC V50 THEO CHỈ ĐẠO THẦY HẢI
 const getDynamicLessonIcon = (act, index) => {
   if (act.is_hidden) {
@@ -639,9 +651,7 @@ export default function CourseView() {
   };
 
   const handleActivityClick = (act) => {
-    const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
-    const isAudioRecord = act.type === 'audio_record' || act.type === 'audio' || (act.title && act.title.includes('[AUDIO_RECORD]'));
-    if (isWhiteboard) {
+    if (isWhiteboardAct(act)) {
       navigate(`/whiteboard/${act.id}`);
     } else {
       navigate(`/assignment/${act.id}`);
@@ -979,7 +989,7 @@ export default function CourseView() {
 
                             <div className="flex items-center space-x-3 text-[11px] text-slate-500 font-medium flex-wrap gap-y-1">
                               <span className="font-extrabold text-slate-600 uppercase">
-                                {isWhiteboard ? '🎨 Whiteboard Bảng Tương Tác' : isAudioRecord ? '🎙️ Audio Recorder Bảng Luyện Nói' : act.type}
+                                {isWb ? '🎨 Whiteboard Bảng Tương Tác' : isAr ? '🎙️ Audio Recorder Bảng Luyện Nói' : act.type}
                               </span>
                               {(act.start_time || act.end_time) && (
                                 <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
@@ -1070,7 +1080,7 @@ export default function CourseView() {
                               ? 'bg-rose-100 text-rose-800 border-rose-300'
                               : 'bg-white text-slate-700'
                           }`}>
-                            {isWhiteboard ? 'Vào Giảng Dạy' : !userIsTeacher && isTimeLocked ? '🔒 Bài Đang Khóa' : 'Mở Bài Học'}
+                            {isWb ? 'Vào Giảng Dạy' : isAr ? '🎙️ Thu Âm Bài Nói' : !userIsTeacher && isTimeLocked ? '🔒 Bài Đang Khóa' : 'Mở Bài Học'}
                           </span>
                           <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
                         </div>
