@@ -1023,34 +1023,108 @@ export default function WhiteboardView() {
   };
 
   // KHI CHỌN SHAPE HÌNH HỌC ➔ CHUYỂN CHẾ ĐỘ VẼ KÉO CHUỘT (DRAG-TO-DRAW) KHÔNG VẼ SẴN HÌNH THEO CHỈ ĐẠO THẦY HẢI
+  // KHI CHỌN SHAPE HOẶC BỘ STICKERS CHẤM BÀI DỄ THƯƠNG THEO CHỈ ĐẠO THẦY HẢI (ẢNH media_1787457229898.png & media_1787457323523.png)
   const handleSelectShape = (shapeType) => {
-    if (shapeType === 'check' || shapeType === 'cross') {
-      if (!fabricCanvas) return;
+    if (!fabricCanvas) return;
+
+    // THU NHỎ KÍCH THƯỚC ICONS CHẤM BÀI VỪA DÒNG CHỮ (VD: 36PX - 40PX) VỚI NẾT VẼ DÀY VỪA PHẢI MỊN MÀNG
+    const isSticker = ['check', 'cross', 'heart', 'smile', 'frown', 'star', 'crown', 'thumbsUp'].includes(shapeType);
+
+    if (isSticker) {
       let shape = null;
+      const initX = 300;
+      const initY = 200;
+
       if (shapeType === 'check') {
-        shape = new fabric.Path('M 10 35 L 30 55 L 75 10', {
-          left: 250,
-          top: 180,
+        // Tick Xanh ✔️ nhỏ xinh vừa với hàng chữ
+        shape = new fabric.Path('M 10 30 L 25 45 L 60 10', {
+          left: initX,
+          top: initY,
           stroke: '#22c55e',
-          strokeWidth: 10,
+          strokeWidth: 6,
           fill: 'transparent',
           strokeLineCap: 'round',
           strokeLineJoin: 'round',
+          scaleX: 0.55,
+          scaleY: 0.55,
         });
       } else if (shapeType === 'cross') {
-        shape = new fabric.Path('M 15 15 L 65 65 M 65 15 L 15 65', {
-          left: 250,
-          top: 180,
+        // X Đỏ ❌ nhỏ xinh vừa với hàng chữ
+        shape = new fabric.Path('M 15 15 L 50 50 M 50 15 L 15 50', {
+          left: initX,
+          top: initY,
           stroke: '#ef4444',
-          strokeWidth: 10,
+          strokeWidth: 6,
           fill: 'transparent',
           strokeLineCap: 'round',
+          scaleX: 0.55,
+          scaleY: 0.55,
+        });
+      } else if (shapeType === 'heart') {
+        // Trái Tim ❤️ Dễ thương
+        shape = new fabric.Path('M 24 42 S 4 28 4 16 A 10 10 0 0 1 24 10 A 10 10 0 0 1 44 16 C 44 28 24 42 24 42 Z', {
+          left: initX,
+          top: initY,
+          fill: '#ec4899',
+          stroke: '#db2777',
+          strokeWidth: 2,
+          scaleX: 0.8,
+          scaleY: 0.8,
+        });
+      } else if (shapeType === 'smile') {
+        // Mặt Cười 😊
+        const circle = new fabric.Circle({ radius: 20, fill: '#fef08a', stroke: '#eab308', strokeWidth: 3 });
+        const eye1 = new fabric.Circle({ radius: 2.5, fill: '#854d0e', left: 11, top: 12 });
+        const eye2 = new fabric.Circle({ radius: 2.5, fill: '#854d0e', left: 24, top: 12 });
+        const mouth = new fabric.Path('M 12 24 Q 20 34 28 24', { stroke: '#854d0e', strokeWidth: 3, fill: 'transparent', strokeLineCap: 'round' });
+        shape = new fabric.Group([circle, eye1, eye2, mouth], { left: initX, top: initY });
+      } else if (shapeType === 'frown') {
+        // Mặt Khóc 😢
+        const circle = new fabric.Circle({ radius: 20, fill: '#e0f2fe', stroke: '#0284c7', strokeWidth: 3 });
+        const eye1 = new fabric.Circle({ radius: 2.5, fill: '#0369a1', left: 11, top: 12 });
+        const eye2 = new fabric.Circle({ radius: 2.5, fill: '#0369a1', left: 24, top: 12 });
+        const mouth = new fabric.Path('M 12 28 Q 20 20 28 28', { stroke: '#0369a1', strokeWidth: 3, fill: 'transparent', strokeLineCap: 'round' });
+        const tear = new fabric.Path('M 26 18 Q 28 22 26 24 Q 24 22 26 18 Z', { fill: '#38bdf8' });
+        shape = new fabric.Group([circle, eye1, eye2, mouth, tear], { left: initX, top: initY });
+      } else if (shapeType === 'star') {
+        // Ngôi Sao ⭐ Khen Thưởng
+        shape = new fabric.Path('M 20 0 L 26 12 L 40 14 L 30 24 L 32 38 L 20 31 L 8 38 L 10 24 L 0 14 L 14 12 Z', {
+          left: initX,
+          top: initY,
+          fill: '#fde047',
+          stroke: '#ca8a04',
+          strokeWidth: 2,
+          scaleX: 0.8,
+          scaleY: 0.8,
+        });
+      } else if (shapeType === 'crown') {
+        // Vương Miện 👑
+        shape = new fabric.Path('M 5 32 L 0 12 L 12 20 L 20 4 L 28 20 L 40 12 L 35 32 Z', {
+          left: initX,
+          top: initY,
+          fill: '#a855f7',
+          stroke: '#7e22ce',
+          strokeWidth: 2,
+          scaleX: 0.85,
+          scaleY: 0.85,
+        });
+      } else if (shapeType === 'thumbsUp') {
+        // Ngón Tay Like 👍
+        shape = new fabric.Path('M 8 18 L 8 36 L 14 36 L 22 42 Q 26 42 26 38 L 26 28 L 38 28 Q 42 28 42 24 Q 42 20 38 20 L 28 20 L 30 10 Q 30 4 26 4 L 24 4 L 14 18 Z', {
+          left: initX,
+          top: initY,
+          fill: '#60a5fa',
+          stroke: '#1d4ed8',
+          strokeWidth: 2,
+          scaleX: 0.75,
+          scaleY: 0.75,
         });
       }
+
       if (shape) {
         fabricCanvas.add(shape);
         fabricCanvas.setActiveObject(shape);
-        fabricCanvas.renderAll();
+        fabricCanvas.requestRenderAll();
         setTool('pointer');
       }
     } else {
