@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import * as fabric from 'fabric';
@@ -121,8 +121,11 @@ const DiceFace = ({ value, isSpinning }) => {
 export default function WhiteboardView() {
   const { user, profile, isTeacher } = useAuth();
   const navigate = useNavigate();
+  const { id: pathId } = useParams(); // 👈 PHÁT HIỆN CHÍNH XÁC PATH PARAM /whiteboard/:id
   const [searchParams] = useSearchParams();
-  const activityId = searchParams.get('activityId');
+  const queryId = searchParams.get('activityId');
+  const activityId = pathId || queryId; // 👈 CHẤP NHẬN CẢ PARAMS /whiteboard/:id VÀ QUERY /whiteboard?activityId=:id!
+
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -435,7 +438,7 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // HIỂN THỊ ĐÚNG 100% TÊN LESSON TỪ KHÓA HỌC TRÊN HEADER BAR V45 (ẢNH media_1787463372450.png & media_1787463486516.png)
+  // NẠP VÀ HIỂN THỊ CHÍNH XÁC NỘI DUNG VẼ VÀ TÊN LESSON CỦA BÀI HỌC V46 (ẢNH media_1787463764057.png & media_1787463818635.png)
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -449,7 +452,6 @@ export default function WhiteboardView() {
             .single();
 
           if (!error && data) {
-            // LÀM SẠCH CHÍNH XÁC TAG [WHITEBOARD] ĐỂ LẤY ĐÚNG TÊN LESSON (VD: Getting started hay Unit 2)
             let cleanTitle = data.title ? data.title.replace(/[WHITEBOARD.*?]/gi, '').trim() : '';
             if (!cleanTitle) cleanTitle = data.title || 'Getting started';
             setLessonTitle(cleanTitle);
@@ -1200,9 +1202,8 @@ export default function WhiteboardView() {
     setLoadingSavedLessons(false);
   };
 
-  // NÂNG CẤP LƯU BÀI DẠY V45 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI (ẢNH media_1787463372450.png & media_1787463486516.png):
-  // NHẤP LƯU LA TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO ĐÚNG LESSON (VD: Getting started HOẶC Unit 2) THEO ID KHÓA HỌC!
-  // TUYỆT ĐỐI KHÔNG MỞ BẤT KỲ POPUP HỘP THOẠI HỎI LƯU VÀO ĐÂU NỮA VÀ TỰ ĐỘNG QUAY TRỞ LẠI MÀN HÌNH KHÓA HỌC!
+  // NÂNG CẤP LƯU BÀI DẠY V46 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI (ẢNH media_1787463764057.png & media_1787463818635.png):
+  // CẬP NHẬT TRỰC TIẾP VÀO CSDL SUPABASE BẢNG ACTIVITIES CHO NỘI DUNG WHITEBOARD THUỘC LESSON ID ĐÓ!
   const handleSaveLesson = async () => {
     setSavingLesson(true);
     try {
@@ -1224,16 +1225,20 @@ export default function WhiteboardView() {
           })
           .eq('id', activityId);
 
-        setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
-        setTimeout(() => {
-          navigate(-1);
-        }, 1200);
-        return;
+        if (error) {
+          alert('❌ Lỗi CSDL Supabase khi lưu: ' + error.message);
+        } else {
+          setToastMessage(`💾 Đã lưu thành công bài dạy vào CSDL Lesson [${lessonTitle}]! Đang quay lại Khóa học...`);
+          setTimeout(() => {
+            navigate(-1);
+          }, 1200);
+          return;
+        }
       }
 
-      // NẾU KHÔNG CÓ ACTIVITY_ID ➔ TỰ ĐỘNG LƯU THEO LESSONTITLE TỰ ĐỘNG KHÔNG MỞ POPUP!
+      // NẾU CHƯA CÓ LESSON ID KÈM THEO ➔ TỰ ĐỘNG KHỞI TẠO VÀ LƯU VÀO CSDL
       let targetSectionId = null;
-      const { data: secData } = await supabase.from('sections').select('id').limit(1);
+      const { data: secData } = await supabase.from('course_sections').select('id').limit(1);
       if (secData && secData.length > 0) targetSectionId = secData[0].id;
 
       const payload = {
@@ -1244,17 +1249,18 @@ export default function WhiteboardView() {
       };
       if (targetSectionId) payload.section_id = targetSectionId;
 
-      await supabase.from('activities').insert([payload]);
+      const { data: newAct, error: insErr } = await supabase.from('activities').insert([payload]).select().single();
 
-      setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
-      setTimeout(() => {
-        navigate(-1);
-      }, 1200);
+      if (insErr) {
+        alert('❌ Lỗi CSDL Supabase khi tạo bài mới: ' + insErr.message);
+      } else {
+        setToastMessage(`💾 Đã lưu thành công vào CSDL Lesson [${lessonTitle}]! Đang quay lại Khóa học...`);
+        setTimeout(() => {
+          navigate(-1);
+        }, 1200);
+      }
     } catch (e) {
-      setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
-      setTimeout(() => {
-        navigate(-1);
-      }, 1200);
+      alert('❌ Lỗi hệ thống: ' + e.message);
     }
     setSavingLesson(false);
   };
@@ -1314,7 +1320,7 @@ export default function WhiteboardView() {
         className="hidden"
       />
 
-      {/* HEADER BAR WHITEBOARD V45: HIỂN THỊ CHÍNH XÁC TÊN LESSON TỪ KHÓA HỌC (VD: Getting started HOẶC Unit 2) TRONG ẢNH media_1787463372450.png */}
+      {/* HEADER BAR WHITEBOARD V46: NẠP VÀ HIỂN THỊ CHÍNH XÁC NỘI DUNG VÀ TÊN LESSON CỦA BÀI HỌC V46 (ẢNH media_1787463764057.png & media_1787463818635.png) */}
       <div className="bg-[#24211a] text-white px-4 py-1.5 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-40 relative">
         <div className="flex items-center space-x-2">
           <button
@@ -1365,7 +1371,7 @@ export default function WhiteboardView() {
           {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG */}
           <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{realtimeClock || 'Aug/23/2026 12:37 PM'} {currentPageIndex + 1}/{pages.length}</span>
+            <span>{realtimeClock || 'Aug/23/2026 12:43 PM'} {currentPageIndex + 1}/{pages.length}</span>
           </div>
 
           <button
@@ -1379,7 +1385,7 @@ export default function WhiteboardView() {
             <span>📁 Mở Bài Dạy</span>
           </button>
 
-          {/* NÚT LƯU BÀI DẠY: LƯU TỰ ĐỘNG 1-CLICK TRỰC TIẾP VÀO ĐÚNG LESSON VÀ QUAY VỀ KHÓA HỌC (TUYỆT ĐỐI KHÔNG MỞ POPUP KHỎI BẮT ĐẶT TÊN NỮA) */}
+          {/* NÚT LƯU BÀI DẠY V46: LƯU TRỰC TIẾP CSDL SUPABASE THEO LESSON ID */}
           <button
             onClick={handleSaveLesson}
             disabled={savingLesson}
