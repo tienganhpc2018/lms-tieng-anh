@@ -39,7 +39,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const ytPlayerRef = useRef(null);
 
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(146);
   const [isPlaying, setIsPlaying] = useState(false);
 
   // Mốc tương tác từ activity settings
@@ -54,35 +54,34 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     },
     {
       id: 'wp2',
-      timeSec: 31,
+      timeSec: 47,
       type: 'fill_blanks',
-      question: 'Fill in the correct ingredients:',
-      textWithBlanks: 'Strawberries and *blueberries* are mixed with *milk* and oatmeal.',
+      question: 'Fill in the correct word.',
+      textWithBlanks: 'Fill in the correct *word*.',
     },
     {
       id: 'wp3',
-      timeSec: 50,
-      type: 'mark_word',
-      question: 'Highlight the ingredients that have been added so far.',
-      wordList: ['Strawberries', 'Cookies', 'Blueberries', 'Milk'],
-      correctWords: ['Strawberries', 'Blueberries', 'Milk'],
+      timeSec: 85,
+      type: 'multiple_choice',
+      question: 'Who protects people and keeps the community safe?',
+      options: ['Police officer', 'Doctor', 'Vet'],
+      answer: 'Police officer',
     },
   ];
 
   const [activeQuiz, setActiveQuiz] = useState(null);
   const [selectedOpt, setSelectedOpt] = useState('');
   const [blankInputs, setBlankInputs] = useState({});
-  const [trueFalseChoice, setTrueFalseChoice] = useState(null); // boolean true / false
+  const [trueFalseChoice, setTrueFalseChoice] = useState(null);
   const [selectedMarkWords, setSelectedMarkWords] = useState([]);
 
   const [quizPassed, setQuizPassed] = useState({});
-  const [quizFeedback, setQuizFeedback] = useState(null); // { success: boolean, msg: string, details: string }
+  const [quizFeedback, setQuizFeedback] = useState(null);
   const [passedCount, setPassedCount] = useState(0);
 
   const rawVideoUrl = activity?.settings?.videoUrl || activity?.content_url || activity?.content || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
   const youtubeId = extractYoutubeId(rawVideoUrl);
 
-  // GỬI LỆNH DỪNG/PHÁT VIDEO QUA POSTMESSAGE CHO YOUTUBE IFRAME (100% TIN CẬY KHÔNG CẦN CHỜ SDK NẠP)
   const sendYtCommand = (command) => {
     try {
       const iframe = document.getElementById('yt-interactive-player-iframe');
@@ -126,7 +125,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             events: {
               onReady: (event) => {
                 if (isSubscribed) {
-                  setDuration(event.target.getDuration() || 0);
+                  setDuration(event.target.getDuration() || 146);
                 }
               },
               onStateChange: (event) => {
@@ -237,7 +236,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     }
   };
 
-  // NÚT CHECK CHẤM ĐIỂM CHUẨN XÁC VÀ CHO PHÉP ĐI TIẾP VỚI CÁC DẠNG CÂU HỎI
   const handleCheckAnswer = () => {
     if (!activeQuiz) return;
 
@@ -247,7 +245,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
         return;
       }
 
-      // CHUẨN HÓA KIỂM TRA ĐÁP ÁN TRUE / FALSE KHÔNG BỊ LỖI CHUỖI VS BOOLEAN
       let targetBool = false;
       if (typeof activeQuiz.isTrue === 'boolean') {
         targetBool = activeQuiz.isTrue;
@@ -304,7 +301,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     }
   };
 
-  // NÚT ĐÓNG (X) HOẶC CONTINUE ĐỂ ĐÓNG OVERLAY & CHẠY TIẾP VIDEO 100%
   const handleCloseAndContinue = () => {
     if (activeQuiz) {
       const qKey = activeQuiz.id || activeQuiz.timeSec;
@@ -348,7 +344,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
         </div>
       </div>
 
-      {/* VÙNG PHÁT VIDEO CHÍNH KÈM OVERLAY POPUP */}
+      {/* VÙNG PHÁT VIDEO CHÍNH KÈM OVERLAY POPUP KÈM THANH TIMELINE SCRUBBER DÍNH NẰM TRONG KHUNG VIDEO (ẢNH 3 & ẢNH 4) */}
       <div ref={containerRef} className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
         {youtubeId ? (
           <iframe
@@ -364,7 +360,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             ref={html5VideoRef}
             src={rawVideoUrl}
             onTimeUpdate={handleHtml5TimeUpdate}
-            onLoadedMetadata={() => setDuration(html5VideoRef.current?.duration || 0)}
+            onLoadedMetadata={() => setDuration(html5VideoRef.current?.duration || 146)}
             className="w-full h-full object-contain"
           />
         )}
@@ -373,7 +369,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
         {activeQuiz && (
           <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up">
             <div className="bg-white p-6 rounded-3xl border-2 border-sky-400 max-w-xl w-full shadow-2xl space-y-4 text-left relative">
-              {/* NÚT X ĐÓNG CÂU HỎI & XEM TIẾP NẰM NỔI BẬT GÓC PHẢI CHUẨN ẢNH 1 */}
               <button
                 type="button"
                 onClick={handleCloseAndContinue}
@@ -453,7 +448,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 3: TRUE / FALSE (ĐÚNG HOẶC SAI - CHỌN 1-CLICK RÕ RÀNG VIỀN XANH/ĐỎ CHUẨN ẢNH media_1787497404863.png) */}
+              {/* DẠNG 3: TRUE / FALSE */}
               {activeQuiz.type === 'true_false' && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
@@ -572,38 +567,38 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             </div>
           </div>
         )}
-      </div>
 
-      {/* THANH TIMELINE & BẢNG ĐIỀU KHIỂN CÂU HỎI KHI XEM VIDEO */}
-      <div className="bg-slate-900 p-4 rounded-2xl flex items-center justify-between text-white text-xs space-x-4">
-        <button onClick={togglePlay} className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer border border-slate-700">
-          {isPlaying ? <Pause className="w-5 h-5 text-amber-400" /> : <Play className="w-5 h-5 text-emerald-400 ml-0.5" />}
-        </button>
+        {/* THANH TIMELINE SCRUBBER DÍNH TRỰC TIẾP VÀO BOTTOM CỦA KHUNG VIDEO CHUẨN H5P (ẢNH 3 & ẢNH 4) */}
+        <div className="absolute bottom-0 inset-x-0 bg-slate-950/95 backdrop-blur-md p-3.5 flex items-center justify-between text-white text-xs space-x-4 border-t border-slate-800 z-30">
+          <button onClick={togglePlay} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer border border-slate-700">
+            {isPlaying ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-emerald-400 ml-0.5" />}
+          </button>
 
-        <div className="flex-1 relative bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
-          <div
-            className="bg-gradient-to-r from-brand-500 to-sky-400 h-full transition-all"
-            style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-          />
-          {waypoints.map((w, idx) => {
-            const posPercent = duration ? (w.timeSec / duration) * 100 : 0;
-            const isP = quizPassed[w.id || w.timeSec];
-            return (
-              <div
-                key={idx}
-                title={`Mốc ${w.timeSec}s: ${w.question}`}
-                style={{ left: `${posPercent}%` }}
-                className={`absolute top-0 bottom-0 w-3 -ml-1.5 rounded-full transition transform hover:scale-125 cursor-pointer ${
-                  isP ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse ring-2 ring-amber-200'
-                }`}
-              />
-            );
-          })}
+          <div className="flex-1 relative bg-slate-800/90 h-3 rounded-full overflow-hidden border border-slate-700">
+            <div
+              className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all"
+              style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+            />
+            {waypoints.map((w, idx) => {
+              const posPercent = duration ? (w.timeSec / duration) * 100 : 0;
+              const isP = quizPassed[w.id || w.timeSec];
+              return (
+                <div
+                  key={idx}
+                  title={`Mốc ${w.timeSec}s: ${w.question}`}
+                  style={{ left: `${posPercent}%` }}
+                  className={`absolute top-0 bottom-0 w-3.5 -ml-1.5 rounded-full transition transform hover:scale-125 cursor-pointer z-40 ${
+                    isP ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse ring-2 ring-amber-200'
+                  }`}
+                />
+              );
+            })}
+          </div>
+
+          <span className="font-mono text-slate-300 text-[11px] font-bold bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
+            {currentTime}s / {Math.floor(duration)}s
+          </span>
         </div>
-
-        <span className="font-mono text-slate-300 text-[11px] font-bold bg-slate-950 px-3 py-1 rounded-xl border border-slate-800">
-          {currentTime}s / {Math.floor(duration)}s
-        </span>
       </div>
     </div>
   );
