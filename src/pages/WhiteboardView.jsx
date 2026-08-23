@@ -149,10 +149,10 @@ export default function WhiteboardView() {
   const [fontFamily, setFontFamily] = useState('Noto Sans');
 
   // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD (BỎ NỀN MẶC ĐỊNH -> HASFILL = FALSE)
-  const [strokeColor, setStrokeColor] = useState('#09090b');
+  const [strokeColor, setStrokeColor] = useState('#ef4444'); // Mặc định màu đỏ rực rỡ chuẩn ảnh media_1787455462392.png của Thầy Hải!
   const [fillColor, setFillColor] = useState('#ef4444');
   const [hasFill, setHasFill] = useState(false); // Nền trong suốt mặc định!
-  const [strokeWidth, setStrokeWidth] = useState(4);
+  const [strokeWidth, setStrokeWidth] = useState(5); // Dày 5px nét căng rõ ràng!
   const [opacity, setOpacity] = useState(1.0);
   const [isDashed, setIsDashed] = useState(false);
 
@@ -414,11 +414,12 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // KHÔNG MẶC ĐỊNH VẼ NỮA: CHỜ THẦY HẢI ĐÈ GIỮ CHUỘT RÊ KÉO ĐẾN ĐÂU MỚI TẠO KHUNG ĐẾN ĐÓ (REAL-TIME DRAG-TO-DRAW SHAPES)
+  // KHẮC PHỤC LỖI TRIỆT ĐỂ: KHI CHỌN VẼ SHAPE ➔ TẮT KHUNG VÙNG CHỌN (fabricCanvas.selection = false) ĐỂ KHÔNG BỊ DÍNH KHUNG XANH ĐỤC VÙNG CHỌN
   useEffect(() => {
     if (!fabricCanvas || tool !== 'drawShape' || !activeShapeType) return;
 
     fabricCanvas.isDrawingMode = false;
+    fabricCanvas.selection = false; // TẮT VÙNG CHỌN FABRIC MẶC ĐỊNH
     fabricCanvas.defaultCursor = 'crosshair';
 
     let isMouseDown = false;
@@ -541,6 +542,7 @@ export default function WhiteboardView() {
     const onMouseUp = () => {
       if (isMouseDown && shapeObj) {
         isMouseDown = false;
+        fabricCanvas.selection = true; // KHÔI PHỤC VÙNG CHỌN
         fabricCanvas.setActiveObject(shapeObj);
         fabricCanvas.renderAll();
         // Hoàn tất vẽ ➔ Chuyển ngay về con trỏ pointer và khôi phục cursor mặc định!
@@ -558,6 +560,7 @@ export default function WhiteboardView() {
       fabricCanvas.off('mouse:down', onMouseDown);
       fabricCanvas.off('mouse:move', onMouseMove);
       fabricCanvas.off('mouse:up', onMouseUp);
+      fabricCanvas.selection = true;
     };
   }, [fabricCanvas, tool, activeShapeType, hasFill, fillColor, strokeColor, color, strokeWidth, opacity, isDashed]);
 
@@ -933,7 +936,6 @@ export default function WhiteboardView() {
   // KHI CHỌN SHAPE HÌNH HỌC ➔ CHUYỂN CHẾ ĐỘ VẼ KÉO CHUỘT (DRAG-TO-DRAW) KHÔNG VẼ SẴN HÌNH THEO CHỈ ĐẠO THẦY HẢI
   const handleSelectShape = (shapeType) => {
     if (shapeType === 'check' || shapeType === 'cross') {
-      // Riêng Icon Tick Xanh & X Đỏ chấm bài: tạo ngay tại vị trí trung tâm
       if (!fabricCanvas) return;
       let shape = null;
       if (shapeType === 'check') {
@@ -963,7 +965,6 @@ export default function WhiteboardView() {
         setTool('pointer');
       }
     } else {
-      // Các hình vẽ đường thẳng, vuông, tròn, bầu dục, tam giác... ➔ Chờ Thầy kéo chuột đến đâu vẽ đến đó!
       setActiveShapeType(shapeType);
       setTool('drawShape');
     }
@@ -1538,6 +1539,7 @@ export default function WhiteboardView() {
                   key={c.hex}
                   onClick={() => {
                     setColor(c.hex);
+                    setStrokeColor(c.hex);
                     if (fabricCanvas && fabricCanvas.freeDrawingBrush) {
                       fabricCanvas.freeDrawingBrush.color = c.hex;
                     }
@@ -1555,6 +1557,7 @@ export default function WhiteboardView() {
                 onChange={(e) => {
                   const val = e.target.value;
                   setColor(val);
+                  setStrokeColor(val);
                   if (fabricCanvas && fabricCanvas.freeDrawingBrush) {
                     fabricCanvas.freeDrawingBrush.color = val;
                   }
