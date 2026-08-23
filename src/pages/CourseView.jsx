@@ -5,8 +5,91 @@ import { useAuth } from '../context/AuthContext';
 import CourseSidebar from '../components/lms/CourseSidebar';
 import EnrolledUsersModal from '../components/lms/EnrolledUsersModal';
 import CenterToastModal from '../components/common/CenterToastModal';
-import { BookOpen, Plus, Users, ArrowLeft, Key, Eye, EyeOff, Copy, Check, Lock, ChevronRight, PlayCircle, FileText, CheckSquare, Palette } from 'lucide-react';
+import { BookOpen, Plus, Users, ArrowLeft, Key, Eye, EyeOff, Copy, Check, Lock, ChevronRight, PlayCircle, FileText, CheckSquare, Palette, Rocket, Zap, MessageSquare, Headphones, Edit3, Trophy, Star, Sparkles, Target, Compass } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+
+
+// HÀM TẠO ICON VÀ MÀU SẮC ĐỘNG SINH ĐỘNG THEO TÊN BÀI HỌC V50 THEO CHỈ ĐẠO THẦY HẢI
+const getDynamicLessonIcon = (act, index) => {
+  if (act.is_hidden) {
+    return {
+      icon: <Lock className="w-5 h-5" />,
+      bgClass: 'bg-slate-700 text-white',
+    };
+  }
+
+  const titleLower = (act.title || '').toLowerCase();
+
+  if (titleLower.includes('getting started') || titleLower.includes('start') || titleLower.includes('mở đầu')) {
+    return {
+      icon: <Rocket className="w-5 h-5" />,
+      bgClass: 'bg-gradient-to-br from-orange-500 to-rose-600 text-white shadow-md',
+    };
+  }
+
+  if (titleLower.includes('closer look 1') || titleLower.includes('vocabulary') || titleLower.includes('từ vựng')) {
+    return {
+      icon: <BookOpen className="w-5 h-5" />,
+      bgClass: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md',
+    };
+  }
+
+  if (titleLower.includes('closer look 2') || titleLower.includes('grammar') || titleLower.includes('ngữ pháp')) {
+    return {
+      icon: <Zap className="w-5 h-5" />,
+      bgClass: 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md',
+    };
+  }
+
+  if (titleLower.includes('communication') || titleLower.includes('speaking') || titleLower.includes('giao tiếp')) {
+    return {
+      icon: <MessageSquare className="w-5 h-5" />,
+      bgClass: 'bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-md',
+    };
+  }
+
+  if (titleLower.includes('skills 1') || titleLower.includes('reading') || titleLower.includes('listening')) {
+    return {
+      icon: <Headphones className="w-5 h-5" />,
+      bgClass: 'bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-md',
+    };
+  }
+
+  if (titleLower.includes('skills 2') || titleLower.includes('writing') || titleLower.includes('viết')) {
+    return {
+      icon: <Edit3 className="w-5 h-5" />,
+      bgClass: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md',
+    };
+  }
+
+  if (titleLower.includes('looking back') || titleLower.includes('review') || titleLower.includes('ôn tập')) {
+    return {
+      icon: <Trophy className="w-5 h-5" />,
+      bgClass: 'bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 shadow-md',
+    };
+  }
+
+  if (titleLower.includes('project') || titleLower.includes('dự án')) {
+    return {
+      icon: <Palette className="w-5 h-5" />,
+      bgClass: 'bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white shadow-md',
+    };
+  }
+
+  // TỰ ĐỘNG BỐ TRÍ ICON SẮC MÀU KHÁC NHAU THEO THỨ TỰ INDEX
+  const fallbackPresets = [
+    { icon: <Rocket className="w-5 h-5" />, bgClass: 'bg-gradient-to-br from-orange-500 to-rose-600 text-white shadow-md' },
+    { icon: <BookOpen className="w-5 h-5" />, bgClass: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md' },
+    { icon: <Zap className="w-5 h-5" />, bgClass: 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md' },
+    { icon: <MessageSquare className="w-5 h-5" />, bgClass: 'bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-md' },
+    { icon: <Headphones className="w-5 h-5" />, bgClass: 'bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-md' },
+    { icon: <Edit3 className="w-5 h-5" />, bgClass: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md' },
+    { icon: <Trophy className="w-5 h-5" />, bgClass: 'bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 shadow-md' },
+    { icon: <Star className="w-5 h-5" />, bgClass: 'bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-md' },
+  ];
+
+  return fallbackPresets[index % fallbackPresets.length];
+};
 
 export default function CourseView() {
   const { id: courseId } = useParams();
@@ -832,7 +915,7 @@ export default function CourseView() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {displayableActivities.map((act) => {
+                  {displayableActivities.map((act, index) => {
                     const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
                     const now = new Date();
                     const isNotOpenYet = act.start_time && now < new Date(act.start_time);
@@ -860,17 +943,14 @@ export default function CourseView() {
                         } ${!userIsTeacher && isTimeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <div className="flex items-center space-x-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-extrabold shadow-2xs flex-shrink-0 ${
-                            act.is_hidden
-                              ? 'bg-slate-500 text-white'
-                              : isTimeLocked
-                              ? 'bg-rose-600 text-white'
-                              : isWhiteboard
-                              ? 'bg-amber-500 text-slate-950'
-                              : 'bg-emerald-600 text-white'
-                          }`}>
-                            {act.is_hidden ? <Lock className="w-5 h-5" /> : isWhiteboard ? <Palette className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
-                          </div>
+                          {(() => {
+                            const dyn = getDynamicLessonIcon(act, index);
+                            return (
+                              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-extrabold flex-shrink-0 transition transform group-hover:scale-110 ${dyn.bgClass}`}>
+                                {dyn.icon}
+                              </div>
+                            );
+                          })()}
 
                           <div className="space-y-0.5">
                             <div className="flex items-center space-x-2 flex-wrap gap-1">
