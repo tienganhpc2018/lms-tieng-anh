@@ -74,6 +74,7 @@ export default function AssignmentView() {
   const [activity, setActivity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
+  const [isStudentPreviewMode, setIsStudentPreviewMode] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -196,6 +197,15 @@ export default function AssignmentView() {
 
           {userIsTeacher && (
             <div className="flex items-center space-x-2 self-end sm:self-center">
+              {isInteractiveVideoType && (
+                <button
+                  type="button"
+                  onClick={() => setIsStudentPreviewMode(!isStudentPreviewMode)}
+                  className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-sm transition cursor-pointer border border-amber-600 flex items-center space-x-1.5"
+                >
+                  <span>{isStudentPreviewMode ? '✏️ Mở Khung Soạn Thảo H5P Studio' : '👁️ Xem Thử Trải Nghiệm Học Sinh'}</span>
+                </button>
+              )}
               {isAudioRecordType && (
                 <button
                   type="button"
@@ -215,7 +225,7 @@ export default function AssignmentView() {
         ) : isAudioRecordType ? (
           <AudioRecordEngine activity={activeAct} />
         ) : isInteractiveVideoType ? (
-          userIsTeacher && showBuilderMode ? (
+          userIsTeacher && !isReviewMode && !isExplicitStudentView && !isStudentPreviewMode ? (
             <InteractiveVideoStudio
               initialSettings={{
                 title: (activeAct?.title || '').replace('[INTERACTIVE_VIDEO]', '').replace('[WHITEBOARD]', '').trim(),
