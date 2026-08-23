@@ -33,7 +33,7 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
-// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN FIX DỨT ĐIỂM LỖI GÕ PHÍM VÀ MẤT FOCUS INPUT
+// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN 100% ẢNH 1 (media_1787500996817.png) & ẢNH 2 (media_1787501117346.png)
 const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback, isSolutionVisible }) => {
   const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
   const isChecked = quizFeedback !== null;
@@ -168,7 +168,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     } catch (e) {}
   };
 
-  // 1. DỰ PHÒNG CHẶN EVENT PROPAGATION HOTKEY TOÀN CỤC KHI ĐANG GÕ THẺ INPUT / TEXTAREA
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
@@ -452,7 +451,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           />
         )}
 
-        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CHỦN H5P 100% ẢNH 1 & ẢNH 2 media_1787500996817.png / media_1787501117346.png) */}
+        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC */}
         {activeQuiz && (
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up pointer-events-auto">
             <div className="bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-200 max-w-xl w-full shadow-2xl space-y-4 text-left relative z-50 pointer-events-auto select-text">
@@ -568,27 +567,30 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
                     {activeQuiz.question}
                   </h4>
-                  <div className="space-y-2">
-                    {activeQuiz.options?.map((opt, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => {
-                          if (quizFeedback?.success) return;
-                          setSelectedOpt(opt);
-                        }}
-                        className={`w-full p-3.5 rounded-2xl text-left text-xs font-bold border transition flex items-center justify-between cursor-pointer ${
-                          selectedOpt === opt
-                            ? 'border-brand-600 bg-brand-50 text-brand-900 ring-2 ring-brand-500/20'
-                            : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        <span>{opt}</span>
-                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedOpt === opt ? 'border-brand-600 bg-brand-600' : 'border-slate-300'}`}>
-                          {selectedOpt === opt && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                        </div>
-                      </button>
-                    ))}
+                  <div className="space-y-2.5">
+                    {activeQuiz.options?.map((opt, i) => {
+                      const isSelected = selectedOpt === opt;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            if (quizFeedback?.success) return;
+                            setSelectedOpt(opt);
+                          }}
+                          className={`w-full p-4 rounded-2xl text-left text-sm font-extrabold border-2 transition cursor-pointer flex items-center justify-between shadow-xs ${
+                            isSelected
+                              ? 'border-blue-600 bg-blue-50 text-blue-900 ring-4 ring-blue-500/20 scale-[1.01]'
+                              : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          <span>{opt}</span>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300'}`}>
+                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {quizFeedback && (
@@ -624,7 +626,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 3: TRUE / FALSE */}
+              {/* DẠNG 3: TRUE / FALSE (HIỂN THỊ NỔI BẬT LỰA CHỌN CỦA HỌC SINH THEO ẢNH 1 media_1787501789005.png) */}
               {activeQuiz.type === 'true_false' && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
@@ -636,8 +638,8 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       onClick={() => setTrueFalseChoice(true)}
                       className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === true
-                          ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-4 ring-emerald-500/20 shadow-md scale-[1.02]'
-                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                          ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
+                          : 'border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800'
                       }`}
                     >
                       <span>✓ True (Đúng)</span>
@@ -648,8 +650,8 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       onClick={() => setTrueFalseChoice(false)}
                       className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === false
-                          ? 'border-rose-600 bg-rose-50 text-rose-900 ring-4 ring-rose-500/20 shadow-md scale-[1.02]'
-                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                          ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
+                          : 'border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800'
                       }`}
                     >
                       <span>✕ False (Sai)</span>
