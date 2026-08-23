@@ -8,6 +8,7 @@ import QuizEngine from '../components/lms/QuizEngine';
 import QuizBuilder from '../components/lms/QuizBuilder';
 import AudioRecordEngine from '../components/lms/AudioRecordEngine';
 import InteractiveVideo from '../components/lms/InteractiveVideo';
+import InteractiveVideoBuilder from '../components/lms/InteractiveVideoBuilder';
 import TeacherAudioGradingModal from '../components/lms/TeacherAudioGradingModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -110,6 +111,41 @@ export default function AssignmentView() {
     return <LoadingSpinner text="Đang nạp bài học..." />;
   }
 
+  
+  const handleSaveInteractiveVideo = async (videoData) => {
+    try {
+      const updatedSettings = {
+        ...(activity?.settings || {}),
+        videoUrl: videoData.videoUrl,
+        waypoints: videoData.interactions?.map((item) => ({
+          timeSec: Number(item.timestamp),
+          question: item.question,
+          options: item.options,
+          answer: item.options[item.correctIndex] || item.options[0],
+        })),
+      };
+
+      const { data, error } = await supabase
+        .from('activities')
+        .update({
+          title: videoData.title ? `[INTERACTIVE_VIDEO] ${videoData.title.replace('[INTERACTIVE_VIDEO]', '').trim()}` : activity.title,
+          content_url: videoData.videoUrl,
+          settings: updatedSettings,
+        })
+        .eq('id', targetActivityId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setActivity(data);
+        alert('✓ Đã lưu bài giảng Video Tương Tác thành công!');
+      }
+    } catch (err) {
+      alert('❌ Lỗi lưu cài đặt Video Tương Tác: ' + err.message);
+    }
+  };
+
   const activeAct = activity || { id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử Online', type: 'quiz' };
   const userIsTeacher = isTeacher || profile?.is_teacher || false;
 
@@ -177,7 +213,23 @@ export default function AssignmentView() {
         ) : isAudioRecordType ? (
           <AudioRecordEngine activity={activeAct} />
         ) : isInteractiveVideoType ? (
-          <InteractiveVideo activity={activeAct} isTeacher={userIsTeacher} />
+          userIsTeacher && showBuilderMode ? (
+            <InteractiveVideoBuilder
+              initialSettings={{
+                title: (activeAct?.title || '').replace('[INTERACTIVE_VIDEO]', '').replace('[WHITEBOARD]', '').trim(),
+                videoUrl: activeAct?.settings?.videoUrl || activeAct?.content_url || activeAct?.content || '',
+                interactions: (activeAct?.settings?.waypoints || []).map((w) => ({
+                  timestamp: w.timeSec,
+                  question: w.question,
+                  options: w.options || [],
+                  correctIndex: (w.options || []).indexOf(w.answer) >= 0 ? (w.options || []).indexOf(w.answer) : 0,
+                })),
+              }}
+              onSave={handleSaveInteractiveVideo}
+            />
+          ) : (
+            <InteractiveVideo activity={activeAct} isTeacher={userIsTeacher} />
+          )
         ) : showBuilderMode ? (
           <QuizBuilder activity={activeAct} activityId={targetActivityId} />
         ) : (
