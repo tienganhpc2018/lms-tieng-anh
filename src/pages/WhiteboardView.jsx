@@ -141,8 +141,9 @@ export default function WhiteboardView() {
   // VỊ TRÍ THANH TOOLBAR DƯỚI CÙNG SÁT MEP (BOTTOM-3)
   const [toolbarPos, setToolbarPos] = useState('bottom');
 
-  // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'highlightBox' | 'eraser' | shapes...
+  // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'eraser' | 'drawShape'...
   const [tool, setTool] = useState('pointer');
+  const [activeShapeType, setActiveShapeType] = useState(null); // 'rect' | 'circle' | 'oval' | 'triangle' | 'line' | 'arrow' | 'highlightBox'
   const [color, setColor] = useState('#ef4444');
   const [fontSize, setFontSize] = useState(36);
   const [fontFamily, setFontFamily] = useState('Noto Sans');
@@ -413,26 +414,157 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC (HIGHLIGHT BOX TOOL) - TẠO KHUNG CHỮ NHẬT NỔI BẬT THEO CẢM GIÁC VẼ ĐƯỢC CHỈ ĐẠO BỞI THẦY HẢI
+  // KHÔNG MẶC ĐỊNH VẼ NỮA: CHỜ THẦY HẢI ĐÈ GIỮ CHUỘT RÊ KÉO ĐẾN ĐÂU MỚI TẠO KHUNG ĐẾN ĐÓ (REAL-TIME DRAG-TO-DRAW SHAPES)
+  useEffect(() => {
+    if (!fabricCanvas || tool !== 'drawShape' || !activeShapeType) return;
+
+    fabricCanvas.isDrawingMode = false;
+    fabricCanvas.defaultCursor = 'crosshair';
+
+    let isMouseDown = false;
+    let startX = 0;
+    let startY = 0;
+    let shapeObj = null;
+
+    const curFill = hasFill ? fillColor : 'transparent';
+    const curStroke = activeShapeType === 'highlightBox' ? color : strokeColor;
+    const curWidth = Number(strokeWidth);
+    const curOpacity = Number(opacity);
+    const curDash = isDashed ? [8, 8] : null;
+
+    const onMouseDown = (opt) => {
+      const pointer = fabricCanvas.getPointer(opt.e);
+      isMouseDown = true;
+      startX = pointer.x;
+      startY = pointer.y;
+
+      if (activeShapeType === 'rect' || activeShapeType === 'highlightBox') {
+        shapeObj = new fabric.Rect({
+          left: startX,
+          top: startY,
+          width: 1,
+          height: 1,
+          fill: curFill,
+          stroke: curStroke,
+          strokeWidth: curWidth,
+          opacity: curOpacity,
+          strokeDashArray: curDash,
+          rx: activeShapeType === 'highlightBox' ? 12 : 0,
+          ry: activeShapeType === 'highlightBox' ? 12 : 0,
+        });
+      } else if (activeShapeType === 'circle') {
+        shapeObj = new fabric.Circle({
+          left: startX,
+          top: startY,
+          radius: 1,
+          fill: curFill,
+          stroke: curStroke,
+          strokeWidth: curWidth,
+          opacity: curOpacity,
+          strokeDashArray: curDash,
+        });
+      } else if (activeShapeType === 'oval') {
+        shapeObj = new fabric.Ellipse({
+          left: startX,
+          top: startY,
+          rx: 1,
+          ry: 1,
+          fill: curFill,
+          stroke: curStroke,
+          strokeWidth: curWidth,
+          opacity: curOpacity,
+          strokeDashArray: curDash,
+        });
+      } else if (activeShapeType === 'triangle') {
+        shapeObj = new fabric.Triangle({
+          left: startX,
+          top: startY,
+          width: 1,
+          height: 1,
+          fill: curFill,
+          stroke: curStroke,
+          strokeWidth: curWidth,
+          opacity: curOpacity,
+          strokeDashArray: curDash,
+        });
+      } else if (activeShapeType === 'line') {
+        shapeObj = new fabric.Line([startX, startY, startX, startY], {
+          stroke: curStroke,
+          strokeWidth: curWidth,
+          opacity: curOpacity,
+          strokeDashArray: curDash,
+        });
+      }
+
+      if (shapeObj) {
+        fabricCanvas.add(shapeObj);
+      }
+    };
+
+    const onMouseMove = (opt) => {
+      if (!isMouseDown || !shapeObj) return;
+      const pointer = fabricCanvas.getPointer(opt.e);
+
+      if (activeShapeType === 'rect' || activeShapeType === 'highlightBox' || activeShapeType === 'triangle') {
+        const width = Math.abs(pointer.x - startX);
+        const height = Math.abs(pointer.y - startY);
+        shapeObj.set({
+          left: Math.min(startX, pointer.x),
+          top: Math.min(startY, pointer.y),
+          width: Math.max(5, width),
+          height: Math.max(5, height),
+        });
+      } else if (activeShapeType === 'circle') {
+        const radius = Math.sqrt(Math.pow(pointer.x - startX, 2) + Math.pow(pointer.y - startY, 2)) / 2;
+        shapeObj.set({
+          radius: Math.max(5, radius),
+        });
+      } else if (activeShapeType === 'oval') {
+        const rx = Math.abs(pointer.x - startX) / 2;
+        const ry = Math.abs(pointer.y - startY) / 2;
+        shapeObj.set({
+          left: Math.min(startX, pointer.x),
+          top: Math.min(startY, pointer.y),
+          rx: Math.max(5, rx),
+          ry: Math.max(5, ry),
+        });
+      } else if (activeShapeType === 'line') {
+        shapeObj.set({
+          x2: pointer.x,
+          y2: pointer.y,
+        });
+      }
+
+      fabricCanvas.renderAll();
+    };
+
+    const onMouseUp = () => {
+      if (isMouseDown && shapeObj) {
+        isMouseDown = false;
+        fabricCanvas.setActiveObject(shapeObj);
+        fabricCanvas.renderAll();
+        // Hoàn tất vẽ ➔ Chuyển ngay về con trỏ pointer và khôi phục cursor mặc định!
+        setTool('pointer');
+        setActiveShapeType(null);
+        fabricCanvas.defaultCursor = 'default';
+      }
+    };
+
+    fabricCanvas.on('mouse:down', onMouseDown);
+    fabricCanvas.on('mouse:move', onMouseMove);
+    fabricCanvas.on('mouse:up', onMouseUp);
+
+    return () => {
+      fabricCanvas.off('mouse:down', onMouseDown);
+      fabricCanvas.off('mouse:move', onMouseMove);
+      fabricCanvas.off('mouse:up', onMouseUp);
+    };
+  }, [fabricCanvas, tool, activeShapeType, hasFill, fillColor, strokeColor, color, strokeWidth, opacity, isDashed]);
+
+  // BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC (CHỜ THẦY HẢI KÉO CHUỘT RÊ ĐẾN ĐÂU TẠO KHUNG ĐẾN ĐÓ)
   const handleAddHighlightBox = () => {
-    if (!fabricCanvas) return;
-
-    const rect = new fabric.Rect({
-      left: 250,
-      top: 180,
-      width: 240,
-      height: 120,
-      fill: 'transparent', // Trong suốt theo yêu cầu bỏ nền của Thầy Hai!
-      stroke: color,        // Viền nổi bật rực rỡ
-      strokeWidth: 4,
-      rx: 12,
-      ry: 12,
-    });
-
-    fabricCanvas.add(rect);
-    fabricCanvas.setActiveObject(rect);
-    fabricCanvas.renderAll();
-    setTool('pointer');
+    setActiveShapeType('highlightBox');
+    setTool('drawShape');
     setActiveWindow(null);
   };
 
@@ -587,7 +719,7 @@ export default function WhiteboardView() {
     const range = selection.getRangeAt(0);
     const span = document.createElement('span');
     span.style.backgroundColor = selectedColor;
-    span.style.color = 'inherit'; // Chữ giữ nguyên nét căng màu gốc!
+    span.style.color = 'inherit';
     span.style.borderRadius = '4px';
     span.style.padding = '1px 3px';
     span.style.lineHeight = '1.3';
@@ -676,7 +808,7 @@ export default function WhiteboardView() {
         fabricCanvas.off('mouse:move', onMouseMove);
         fabricCanvas.off('mouse:up', onMouseUp);
       };
-    } else if (tool !== 'text') {
+    } else if (tool !== 'text' && tool !== 'drawShape') {
       fabricCanvas.isDrawingMode = false;
       fabricCanvas.defaultCursor = 'default';
       fabricCanvas.selection = true;
@@ -798,71 +930,42 @@ export default function WhiteboardView() {
     setActiveWindow(null);
   };
 
-  // THÊM SHAPES HÌNH HỌC MỚI KHUNG NẾT LIỀN / NẾT ĐỨT VÀ 2 ICON CHẤM BÀI DẤU TICK XANH & DẤU X ĐỎ THEO CHỈ ĐẠO CỦA THẦY HẢI
+  // KHI CHỌN SHAPE HÌNH HỌC ➔ CHUYỂN CHẾ ĐỘ VẼ KÉO CHUỘT (DRAG-TO-DRAW) KHÔNG VẼ SẴN HÌNH THEO CHỈ ĐẠO THẦY HẢI
   const handleSelectShape = (shapeType) => {
-    if (!fabricCanvas) return;
-
-    const curFill = hasFill ? fillColor : 'transparent'; // Mặc định trong suốt không nền!
-    const curStroke = strokeColor;
-    const curWidth = Number(strokeWidth);
-    const curOpacity = Number(opacity);
-    const curDash = isDashed ? [8, 8] : null;
-
-    let shape = null;
-    if (shapeType === 'rect') {
-      shape = new fabric.Rect({ left: 220, top: 160, width: 200, height: 120, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
-    } else if (shapeType === 'circle') {
-      shape = new fabric.Circle({ left: 220, top: 160, radius: 80, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
-    } else if (shapeType === 'oval') {
-      shape = new fabric.Ellipse({ left: 220, top: 160, rx: 110, ry: 65, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
-    } else if (shapeType === 'triangle') {
-      shape = new fabric.Triangle({ left: 220, top: 160, width: 180, height: 150, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
-    } else if (shapeType === 'line') {
-      shape = new fabric.Line([50, 50, 250, 50], { left: 220, top: 160, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
-    } else if (shapeType === 'arrow') {
-      shape = new fabric.Path('M 0 0 L 140 0 M 140 0 L 120 -12 M 140 0 L 120 12', {
-        left: 220,
-        top: 160,
-        stroke: curStroke,
-        strokeWidth: curWidth,
-        fill: 'transparent',
-        opacity: curOpacity,
-        strokeDashArray: curDash,
-      });
-    } else if (shapeType === 'polygon5') {
-      shape = new fabric.Polygon([
-        { x: 100, y: 0 }, { x: 200, y: 70 }, { x: 160, y: 180 }, { x: 40, y: 180 }, { x: 0, y: 70 }
-      ], { left: 220, top: 160, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
-    } else if (shapeType === 'polygon6') {
-      shape = new fabric.Polygon([
-        { x: 60, y: 0 }, { x: 140, y: 0 }, { x: 200, y: 80 }, { x: 140, y: 160 }, { x: 60, y: 160 }, { x: 0, y: 80 }
-      ], { left: 220, top: 160, fill: curFill, stroke: curStroke, strokeWidth: curWidth, opacity: curOpacity, strokeDashArray: curDash });
-    } else if (shapeType === 'check') {
-      shape = new fabric.Path('M 10 35 L 30 55 L 75 10', {
-        left: 250,
-        top: 180,
-        stroke: '#22c55e',
-        strokeWidth: 10,
-        fill: 'transparent',
-        strokeLineCap: 'round',
-        strokeLineJoin: 'round',
-      });
-    } else if (shapeType === 'cross') {
-      shape = new fabric.Path('M 15 15 L 65 65 M 65 15 L 15 65', {
-        left: 250,
-        top: 180,
-        stroke: '#ef4444',
-        strokeWidth: 10,
-        fill: 'transparent',
-        strokeLineCap: 'round',
-      });
-    }
-
-    if (shape) {
-      fabricCanvas.add(shape);
-      fabricCanvas.setActiveObject(shape);
-      fabricCanvas.renderAll();
-      setTool('pointer');
+    if (shapeType === 'check' || shapeType === 'cross') {
+      // Riêng Icon Tick Xanh & X Đỏ chấm bài: tạo ngay tại vị trí trung tâm
+      if (!fabricCanvas) return;
+      let shape = null;
+      if (shapeType === 'check') {
+        shape = new fabric.Path('M 10 35 L 30 55 L 75 10', {
+          left: 250,
+          top: 180,
+          stroke: '#22c55e',
+          strokeWidth: 10,
+          fill: 'transparent',
+          strokeLineCap: 'round',
+          strokeLineJoin: 'round',
+        });
+      } else if (shapeType === 'cross') {
+        shape = new fabric.Path('M 15 15 L 65 65 M 65 15 L 15 65', {
+          left: 250,
+          top: 180,
+          stroke: '#ef4444',
+          strokeWidth: 10,
+          fill: 'transparent',
+          strokeLineCap: 'round',
+        });
+      }
+      if (shape) {
+        fabricCanvas.add(shape);
+        fabricCanvas.setActiveObject(shape);
+        fabricCanvas.renderAll();
+        setTool('pointer');
+      }
+    } else {
+      // Các hình vẽ đường thẳng, vuông, tròn, bầu dục, tam giác... ➔ Chờ Thầy kéo chuột đến đâu vẽ đến đó!
+      setActiveShapeType(shapeType);
+      setTool('drawShape');
     }
   };
 
@@ -1080,7 +1183,7 @@ export default function WhiteboardView() {
       <div 
         ref={containerRef} 
         onClick={handleCanvasContainerClick}
-        className={`relative w-full h-[calc(100vh-50px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : ''}`}
+        className={`relative w-full h-[calc(100vh-50px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : tool === 'drawShape' ? 'cursor-crosshair' : ''}`}
       >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
 
@@ -1218,7 +1321,7 @@ export default function WhiteboardView() {
                     title="Đổi màu chữ"
                   />
 
-                  {/* THU GỌN HIGHLIGHT THÀNH 1 NÚT CHỮ "Highlight ✨" CÓ POPUP MENU DROPDOWN CHỌN MÀU BÊN TRONG THEO ĐÚNG CHỈ ĐẠO CỦA THẦY HẢI (ẢNH media_1787452765117.png) */}
+                  {/* THU GỌN HIGHLIGHT THÀNH 1 NÚT CHỮ "Highlight ✨" CÓ POPUP MENU DROPDOWN CHỌN MÀU BÊN TRONG THEO ĐÚNG CHỈ ĐẠO CỦA THẦY HẢI */}
                   <div className="relative">
                     <button
                       type="button"
@@ -1355,7 +1458,7 @@ export default function WhiteboardView() {
         )}
       </div>
 
-      {/* COMPONENT MODULE SHAPES VỊ TRÍ NẰM NGAY TRÊN TOOLBAR DƯỚI CÙNG VÀ TỰ ẨN KHI NGƯỜI DÙNG CHỌN SHAPE CHUẨN THẦY HẢI CHỈ ĐẠO */}
+      {/* COMPONENT MODULE SHAPES VỊ TRÍ NẰM NGAY TRÊN TOOLBAR DƯỚI CÙNG VÀ TỰ ĐỘNG ẨN KHI CHỌN SHAPE CHUẨN THẦY HẢI CHỈ ĐẠO */}
       <ShapesModulePanel
         isOpen={activeWindow === 'shapes'}
         onClose={() => setActiveWindow(null)}
@@ -1415,11 +1518,11 @@ export default function WhiteboardView() {
               <span className="text-[10px]">2. Bút Dạ Quang</span>
             </button>
 
-            {/* BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC */}
+            {/* BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC (CHỜ THẦY HẢI KÉO CHUỘT RÊ ĐẾN ĐÂU MỚI TẠO KHUNG ĐẾN ĐÓ) */}
             <button
               onClick={handleAddHighlightBox}
               className="p-2.5 bg-rose-950/80 hover:bg-rose-900 border-2 border-rose-500 rounded-xl text-xs font-black flex flex-col items-center justify-center space-y-1 transition cursor-pointer text-rose-300 shadow-md"
-              title="Khoanh Khung Chữ Nhật / Vuông Nổi Bật Công Thức"
+              title="Khoanh Khung Chữ Nhật / Vuông Nổi Bật Công Thức (Kéo chuột đến đâu khoanh đến đó)"
             >
               <BoxSelect className="w-5 h-5 text-rose-400" />
               <span className="text-[10px] text-rose-200 font-extrabold">3. Bút Khoanh Khung</span>
@@ -1792,7 +1895,10 @@ export default function WhiteboardView() {
 
         {/* 2. SELECT POINTER TOOL */}
         <button
-          onClick={() => setTool('pointer')}
+          onClick={() => {
+            setTool('pointer');
+            setActiveShapeType(null);
+          }}
           className={`p-2 rounded-xl transition cursor-pointer relative ${
             tool === 'pointer'
               ? 'bg-sky-600 text-white shadow-md font-bold ring-2 ring-sky-300 scale-105'
@@ -1805,7 +1911,10 @@ export default function WhiteboardView() {
 
         {/* 3. HAND PAN CANVAS */}
         <button
-          onClick={() => setTool('hand')}
+          onClick={() => {
+            setTool('hand');
+            setActiveShapeType(null);
+          }}
           className={`p-2 rounded-xl transition cursor-pointer ${
             tool === 'hand'
               ? 'bg-amber-500 text-slate-950 shadow-md font-bold ring-2 ring-amber-300 scale-105'
@@ -1858,7 +1967,10 @@ export default function WhiteboardView() {
 
         {/* 7. ERASER */}
         <button
-          onClick={() => setTool('eraser')}
+          onClick={() => {
+            setTool('eraser');
+            setActiveShapeType(null);
+          }}
           className={`p-2 rounded-xl transition cursor-pointer ${
             tool === 'eraser'
               ? 'bg-rose-600 text-white shadow-md scale-105'
@@ -1869,15 +1981,15 @@ export default function WhiteboardView() {
           <Eraser className="w-4 h-4" />
         </button>
 
-        {/* 8. SHAPES PANEL (NẰM NGAY TRÊN PHÍA TRÊN THANH TOOLBAR DƯỚI CÙNG VÀ TỰ ĐỘNG ẨN KHI CHỌN VẼ SHAPE) */}
+        {/* 8. SHAPES PANEL (KHI CHỌN SHAPE ➔ CHỜ THẦY HẢI ĐÈ GIỮ CHUỘT KÉO ĐẾN ĐÂU VẼ ĐẾN ĐÓ REAL-TIME) */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
           className={`p-2 rounded-xl transition cursor-pointer ${
-            activeWindow === 'shapes'
+            activeWindow === 'shapes' || tool === 'drawShape'
               ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300 scale-105'
               : 'hover:bg-[#c4bb9c] text-slate-800'
           }`}
-          title="Bảng chọn công cụ Shapes hình học"
+          title="Bảng chọn công cụ Shapes hình học (Chờ kéo chuột đến đâu vẽ đến đó)"
         >
           <Square className="w-4 h-4" />
         </button>
