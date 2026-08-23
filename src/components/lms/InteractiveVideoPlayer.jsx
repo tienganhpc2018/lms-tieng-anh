@@ -34,13 +34,13 @@ const parseFillBlanksText = (textWithBlanks = '') => {
 };
 
 export default function InteractiveVideoPlayer({ activity, isTeacher }) {
-  const containerRef = useRef(null);
-  const ytPlayerRef = useRef(null);
   const html5VideoRef = useRef(null);
+  const ytPlayerRef = useRef(null);
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [ytApiLoaded, setYtApiLoaded] = useState(false);
 
   // Mốc tương tác từ activity settings
   const waypoints = activity?.settings?.waypoints || [
@@ -71,73 +71,91 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
   const [activeQuiz, setActiveQuiz] = useState(null);
   const [selectedOpt, setSelectedOpt] = useState('');
-  const [blankInputs, setBlankInputs] = useState({}); // { 0: 'user_typed', 1: '...' }
-  const [trueFalseChoice, setTrueFalseChoice] = useState(null); // true / false
-  const [selectedMarkWords, setSelectedMarkWords] = useState([]); // ['Strawberries', ...]
+  const [blankInputs, setBlankInputs] = useState({});
+  const [trueFalseChoice, setTrueFalseChoice] = useState(null);
+  const [selectedMarkWords, setSelectedMarkWords] = useState([]);
 
   const [quizPassed, setQuizPassed] = useState({});
-  const [quizFeedback, setQuizFeedback] = useState(null); // { success: boolean, msg: string, details: string }
+  const [quizFeedback, setQuizFeedback] = useState(null);
   const [passedCount, setPassedCount] = useState(0);
 
   const rawVideoUrl = activity?.settings?.videoUrl || activity?.content_url || activity?.content || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
   const youtubeId = extractYoutubeId(rawVideoUrl);
 
-  // NẠP YOUTUBE IFRAME API VÀ ẨN TẮT PHỤ ĐỀ / YOUTUBE BAR KHÔNG MONG MUỐN
+  // LOAD YOUTUBE API AN TOÀN SIÊU TỐC KHÔNG NỔI LỖI HOẶC DELAY NẠP TRANG
   useEffect(() => {
     if (!youtubeId) return;
 
     let intervalId = null;
+    let isSubscribed = true;
 
     const initYtPlayer = () => {
+      if (!isSubscribed) return;
       if (window.YT && window.YT.Player) {
         if (ytPlayerRef.current) return;
-        ytPlayerRef.current = new window.YT.Player('yt-interactive-player-iframe', {
-          videoId: youtubeId,
-          playerVars: {
-            autoplay: 0,
-            controls: 0, // Ẩn hoàn toàn thanh công cụ Youtube theo yêu cầu Thầy Hải
-            disablekb: 1,
-            cc_load_policy: 0, // Tắt hiển thị phụ đề YouTube
-            iv_load_policy: 3, // Tắt chú thích YouTube
-            modestbranding: 1,
-            rel: 0,
-            fs: 0,
-          },
-          events: {
-            onReady: (event) => {
-              setDuration(event.target.getDuration() || 0);
+        try {
+          const targetEl = document.getElementById('yt-interactive-player-iframe');
+          if (!targetEl) return;
+          ytPlayerRef.current = new window.YT.Player('yt-interactive-player-iframe', {
+            videoId: youtubeId,
+            playerVars: {
+              autoplay: 0,
+              controls: 1,
+              disablekb: 0,
+              cc_load_policy: 0,
+              iv_load_policy: 3,
+              modestbranding: 1,
+              rel: 0,
             },
-            onStateChange: (event) => {
-              if (event.data === window.YT.PlayerState.PLAYING) {
-                setIsPlaying(true);
-              } else if (event.data === window.YT.PlayerState.PAUSED) {
-                setIsPlaying(false);
-              }
+            events: {
+              onReady: (event) => {
+                if (isSubscribed) {
+                  setYtApiLoaded(true);
+                  setDuration(event.target.getDuration() || 0);
+                }
+              },
+              onStateChange: (event) => {
+                if (!isSubscribed) return;
+                if (event.data === window.YT.PlayerState.PLAYING) {
+                  setIsPlaying(true);
+                } else if (event.data === window.YT.PlayerState.PAUSED) {
+                  setIsPlaying(false);
+                }
+              },
             },
-          },
-        });
+          });
+        } catch (e) {}
       }
     };
 
     if (!window.YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      window.onYouTubeIframeAPIReady = initYtPlayer;
+      tag.async = true;
+      const head = document.head || document.getElementsByTagName('head')[0];
+      if (head) head.appendChild(tag);
+
+      const prevReady = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (prevReady) prevReady();
+        initYtPlayer();
+      };
     } else {
       initYtPlayer();
     }
 
     intervalId = setInterval(() => {
       if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
-        const curSec = Math.floor(ytPlayerRef.current.getCurrentTime());
-        setCurrentTime(curSec);
-        checkWaypointTrigger(curSec);
+        try {
+          const curSec = Math.floor(ytPlayerRef.current.getCurrentTime());
+          setCurrentTime(curSec);
+          checkWaypointTrigger(curSec);
+        } catch (e) {}
       }
-    }, 300);
+    }, 400);
 
     return () => {
+      isSubscribed = false;
       if (intervalId) clearInterval(intervalId);
     };
   }, [youtubeId]);
@@ -164,8 +182,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
   const playVideo = () => {
     if (youtubeId && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
-      ytPlayerRef.current.playVideo();
-      setIsPlaying(true);
+      try {
+        ytPlayerRef.current.playVideo();
+        setIsPlaying(true);
+      } catch (e) {}
     } else if (html5VideoRef.current) {
       html5VideoRef.current.play();
       setIsPlaying(true);
@@ -174,8 +194,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
   const pauseVideo = () => {
     if (youtubeId && ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
-      ytPlayerRef.current.pauseVideo();
-      setIsPlaying(false);
+      try {
+        ytPlayerRef.current.pauseVideo();
+        setIsPlaying(false);
+      } catch (e) {}
     } else if (html5VideoRef.current) {
       html5VideoRef.current.pause();
       setIsPlaying(false);
@@ -283,7 +305,14 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       {/* VÙNG PHÁT VIDEO CHÍNH KÈM OVERLAY POPUP */}
       <div ref={containerRef} className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
         {youtubeId ? (
-          <div id="yt-interactive-player-iframe" className="w-full h-full border-0 pointer-events-none" />
+          <iframe
+            id="yt-interactive-player-iframe"
+            src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&autoplay=0&controls=1&cc_load_policy=0&iv_load_policy=3&modestbranding=1&rel=0`}
+            title="Interactive Video Player"
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
         ) : (
           <video
             ref={html5VideoRef}
