@@ -1,11 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Lock, CheckCircle2, RotateCcw, Check, ArrowRight, HelpCircle, FileText, Move, Award, Volume2, Maximize } from 'lucide-react';
+import { Play, Pause, Lock, CheckCircle2, RotateCcw, Check, ArrowRight, X, Award, HelpCircle, FileText, Type, CheckSquare, Sparkles } from 'lucide-react';
 
 const extractYoutubeId = (url) => {
   if (!url || typeof url !== 'string') return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
   return match && match[2].length === 11 ? match[2] : null;
+};
+
+// HELPER XỬ LÝ PHÂN TÁCH ĐOẠN VĂN ĐIỀN TỪ (FILL IN THE BLANKS)
+const parseFillBlanksText = (textWithBlanks = '') => {
+  if (!textWithBlanks) return { parts: ['No text provided'], answers: [] };
+  const parts = [];
+  const answers = [];
+  const regex = /\*(.*?)\*/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(textWithBlanks)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: 'text', content: textWithBlanks.substring(lastIndex, match.index) });
+    }
+    parts.push({ type: 'blank', index: answers.length, answer: match[1].trim() });
+    answers.push(match[1].trim());
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < textWithBlanks.length) {
+    parts.push({ type: 'text', content: textWithBlanks.substring(lastIndex) });
+  }
+
+  return { parts, answers };
 };
 
 export default function InteractiveVideoPlayer({ activity, isTeacher }) {
@@ -16,40 +41,48 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isYtReady, setIsYtReady] = useState(false);
 
-  // Lấy danh sách mốc tương tác từ activity settings
+  // Mốc tương tác từ activity settings
   const waypoints = activity?.settings?.waypoints || [
     {
       id: 'wp1',
       timeSec: 11,
       type: 'multiple_choice',
-      question: 'What kind of berry is this?',
-      options: ['Strawberry', 'Blueberry', 'Raspberry'],
-      answer: 'Strawberry',
-      pos: { x: 15, y: 15, w: 70, h: 65 },
+      question: 'Who is a bus driver?',
+      options: ['A person who takes us to school every day', 'A person who keeps the community safe', 'A person who helps sick people'],
+      answer: 'A person who takes us to school every day',
     },
     {
       id: 'wp2',
       timeSec: 31,
       type: 'fill_blanks',
       question: 'Fill in the correct ingredients:',
-      textWithBlanks: 'Strawberries and *blueberries* are mixed with *milk* and oatmeal *banana* to make this smoothie.',
-      pos: { x: 20, y: 20, w: 60, h: 55 },
+      textWithBlanks: 'Strawberries and *blueberries* are mixed with *milk* and oatmeal.',
+    },
+    {
+      id: 'wp3',
+      timeSec: 50,
+      type: 'mark_word',
+      question: 'Highlight the ingredients that have been added so far.',
+      wordList: ['Strawberries', 'Cookies', 'Blueberries', 'Milk'],
+      correctWords: ['Strawberries', 'Blueberries', 'Milk'],
     },
   ];
 
   const [activeQuiz, setActiveQuiz] = useState(null);
   const [selectedOpt, setSelectedOpt] = useState('');
-  const [fillInputs, setFillInputs] = useState({});
+  const [blankInputs, setBlankInputs] = useState({}); // { 0: 'user_typed', 1: '...' }
+  const [trueFalseChoice, setTrueFalseChoice] = useState(null); // true / false
+  const [selectedMarkWords, setSelectedMarkWords] = useState([]); // ['Strawberries', ...]
+
   const [quizPassed, setQuizPassed] = useState({});
-  const [quizFeedback, setQuizFeedback] = useState(null); // { success: boolean, msg: string }
+  const [quizFeedback, setQuizFeedback] = useState(null); // { success: boolean, msg: string, details: string }
   const [passedCount, setPassedCount] = useState(0);
 
   const rawVideoUrl = activity?.settings?.videoUrl || activity?.content_url || activity?.content || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
   const youtubeId = extractYoutubeId(rawVideoUrl);
 
-  // HOOK NẠP YOUTUBE IFRAME API NẾU LÀ LINK YOUTUBE
+  // NẠP YOUTUBE IFRAME API VÀ ẨN TẮT PHỤ ĐỀ / YOUTUBE BAR KHÔNG MONG MUỐN
   useEffect(() => {
     if (!youtubeId) return;
 
@@ -62,14 +95,16 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           videoId: youtubeId,
           playerVars: {
             autoplay: 0,
-            controls: 1,
-            disablekb: 0,
-            rel: 0,
+            controls: 0, // Ẩn hoàn toàn thanh công cụ Youtube theo yêu cầu Thầy Hải
+            disablekb: 1,
+            cc_load_policy: 0, // Tắt hiển thị phụ đề YouTube
+            iv_load_policy: 3, // Tắt chú thích YouTube
             modestbranding: 1,
+            rel: 0,
+            fs: 0,
           },
           events: {
             onReady: (event) => {
-              setIsYtReady(true);
               setDuration(event.target.getDuration() || 0);
             },
             onStateChange: (event) => {
@@ -94,7 +129,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       initYtPlayer();
     }
 
-    // VÒNG LẶP KIỂM TRA TIMESTAMP YOUTUBE CHÍNH XÁC THEO MỖI 300MS
     intervalId = setInterval(() => {
       if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
         const curSec = Math.floor(ytPlayerRef.current.getCurrentTime());
@@ -108,13 +142,16 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     };
   }, [youtubeId]);
 
-  // KIỂM TRA MỐC CÂU HỎI KHI VIDEO PHÁT ĐẾN NƠI
   const checkWaypointTrigger = (curSec) => {
     const wp = waypoints.find((w) => w.timeSec === curSec && !quizPassed[w.id || w.timeSec]);
     if (wp && !activeQuiz) {
       pauseVideo();
       setActiveQuiz(wp);
       setQuizFeedback(null);
+      setBlankInputs({});
+      setSelectedOpt('');
+      setTrueFalseChoice(null);
+      setSelectedMarkWords([]);
     }
   };
 
@@ -153,26 +190,54 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     }
   };
 
-  // XỬ LÝ BẤM "CHECK" TRẢ LỜI CÂU HỎI
+  // NÚT CHECK CHẤM ĐIỂM VÀ HIỂN THỊ ĐÁP ÁN ĐÚNG CỤ THỂ
   const handleCheckAnswer = () => {
     if (!activeQuiz) return;
 
     if (activeQuiz.type === 'multiple_choice' || !activeQuiz.type) {
-      if (selectedOpt === activeQuiz.answer) {
-        setQuizFeedback({ success: true, msg: '🎉 Chính xác! Bạn trả lời rất giỏi.' });
+      const isCorrect = selectedOpt === activeQuiz.answer;
+      if (isCorrect) {
+        setQuizFeedback({ success: true, msg: '🎉 Chính xác! Bạn trả lời rất giỏi.', details: `Đáp án đúng: ${activeQuiz.answer}` });
       } else {
-        setQuizFeedback({ success: false, msg: '❌ Chưa chính xác. Vui lòng thử lại!' });
+        setQuizFeedback({ success: false, msg: '❌ Chưa chính xác. Vui lòng thử lại!', details: `Đáp án đúng chuẩn: ${activeQuiz.answer}` });
       }
     } else if (activeQuiz.type === 'fill_blanks') {
-      // Tự động chấm các ô điền từ
-      setQuizFeedback({ success: true, msg: '🎉 Tuyệt vời! Bạn đã điền chính xác tất cả các từ.' });
+      const { answers } = parseFillBlanksText(activeQuiz.textWithBlanks);
+      let isAllCorrect = true;
+      answers.forEach((ans, idx) => {
+        const userTyped = (blankInputs[idx] || '').trim().toLowerCase();
+        if (userTyped !== ans.toLowerCase()) {
+          isAllCorrect = false;
+        }
+      });
+
+      if (isAllCorrect) {
+        setQuizFeedback({ success: true, msg: '🎉 Tuyệt vời! Bạn đã điền chính xác tất cả các từ.', details: `Đáp án: ${answers.join(', ')}` });
+      } else {
+        setQuizFeedback({ success: false, msg: '❌ Một số từ điền chưa đúng. Hãy kiểm tra lại!', details: `Các từ đúng cần điền là: ${answers.join(', ')}` });
+      }
+    } else if (activeQuiz.type === 'true_false') {
+      const isCorrect = trueFalseChoice === activeQuiz.isTrue;
+      if (isCorrect) {
+        setQuizFeedback({ success: true, msg: '🎉 Chính xác tuyệt đối!', details: `Đáp án đúng là: ${activeQuiz.isTrue ? 'True (Đúng)' : 'False (Sai)'}` });
+      } else {
+        setQuizFeedback({ success: false, msg: '❌ Chưa đúng rồi!', details: `Đáp án đúng là: ${activeQuiz.isTrue ? 'True (Đúng)' : 'False (Sai)'}` });
+      }
+    } else if (activeQuiz.type === 'mark_word') {
+      const correctWords = activeQuiz.correctWords || [];
+      const isMatch = selectedMarkWords.length === correctWords.length && selectedMarkWords.every((w) => correctWords.includes(w));
+      if (isMatch) {
+        setQuizFeedback({ success: true, msg: '🎉 Xuất sắc! Bạn đã Highlight đúng tất cả các từ.', details: `Các từ đúng: ${correctWords.join(', ')}` });
+      } else {
+        setQuizFeedback({ success: false, msg: '❌ Highlight chưa chính xác.', details: `Các từ đúng cần Highlight là: ${correctWords.join(', ')}` });
+      }
     } else {
-      setQuizFeedback({ success: true, msg: '🎉 Hoàn thành xuất sắc!' });
+      setQuizFeedback({ success: true, msg: '🎉 Hoàn thành xuất sắc!', details: '' });
     }
   };
 
-  // KHI HỌC SINH BẤM "CONTINUE" -> ĐÓNG OVERLAY & CHẠY TIẾP VIDEO
-  const handleContinue = () => {
+  // NÚT ĐÓNG (X) HOẶC CONTINUE ĐỂ ĐÓNG OVERLAY & CHẠY TIẾP VIDEO
+  const handleCloseAndContinue = () => {
     if (activeQuiz) {
       const qKey = activeQuiz.id || activeQuiz.timeSec;
       setQuizPassed((prev) => ({ ...prev, [qKey]: true }));
@@ -180,9 +245,20 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     }
     setActiveQuiz(null);
     setSelectedOpt('');
-    setFillInputs({});
+    setBlankInputs({});
+    setTrueFalseChoice(null);
+    setSelectedMarkWords([]);
     setQuizFeedback(null);
     playVideo();
+  };
+
+  const toggleMarkWordSelect = (word) => {
+    if (quizFeedback?.success) return;
+    if (selectedMarkWords.includes(word)) {
+      setSelectedMarkWords(selectedMarkWords.filter((w) => w !== word));
+    } else {
+      setSelectedMarkWords([...selectedMarkWords, word]);
+    }
   };
 
   return (
@@ -204,10 +280,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
         </div>
       </div>
 
-      {/* VÙNG PHÁT VIDEO CHÍNH KÈM LỚP ĐÈ OVERLAY POPUP */}
+      {/* VÙNG PHÁT VIDEO CHÍNH KÈM OVERLAY POPUP */}
       <div ref={containerRef} className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
         {youtubeId ? (
-          <div id="yt-interactive-player-iframe" className="w-full h-full border-0" />
+          <div id="yt-interactive-player-iframe" className="w-full h-full border-0 pointer-events-none" />
         ) : (
           <video
             ref={html5VideoRef}
@@ -218,19 +294,29 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           />
         )}
 
-        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (OVERLAY COMPONENT ĐÈ UYỂN CHUYỂN TRÊN VIDEO) */}
+        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CÓ NÚT ✕ ĐÓNG Ở GÓC PHẢI VÀ Ô NHẬP LIỆU GÕ TỰ DO) */}
         {activeQuiz && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs z-30 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up">
-            <div className="bg-white p-6 rounded-3xl border-2 border-sky-400 max-w-lg w-full shadow-2xl space-y-4 text-left relative">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up">
+            <div className="bg-white p-6 rounded-3xl border-2 border-sky-400 max-w-xl w-full shadow-2xl space-y-4 text-left relative">
+              {/* NÚT X ĐÓNG CÂU HỎI & XEM TIẾP NẰM NỔI BẬT GÓC PHẢI CHUẨN ẢNH 1 */}
+              <button
+                type="button"
+                onClick={handleCloseAndContinue}
+                title="Đóng câu hỏi và tiếp tục xem video"
+                className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer border border-slate-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center space-x-2 border-b border-slate-100 pb-3 pr-10">
                 <span className="text-sky-600 text-xs font-black uppercase tracking-wider flex items-center space-x-1.5">
                   <Lock className="w-4 h-4 text-amber-500 animate-pulse" />
-                  <span>⏸️ Video Dừng - Câu Hỏi H5P ({activeQuiz.timeSec}s)</span>
+                  <span>⏸️ VIDEO DỪNG - CÂU HỎI H5P ({activeQuiz.timeSec}S)</span>
                 </span>
               </div>
 
-              {/* Nội dung dạng câu hỏi Multiple Choice */}
-              {activeQuiz.type === 'multiple_choice' || !activeQuiz.type ? (
+              {/* DẠNG 1: MULTIPLE CHOICE */}
+              {(activeQuiz.type === 'multiple_choice' || !activeQuiz.type) && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
                     {activeQuiz.question}
@@ -239,6 +325,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     {activeQuiz.options?.map((opt, i) => (
                       <button
                         key={i}
+                        type="button"
                         onClick={() => {
                           if (quizFeedback?.success) return;
                           setSelectedOpt(opt);
@@ -257,44 +344,152 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     ))}
                   </div>
                 </div>
-              ) : (
-                /* Dạng câu hỏi Fill In The Blanks */
+              )}
+
+              {/* DẠNG 2: FILL IN THE BLANKS (CÓ Ô INPUT <input /> HỌC SINH GÕ TRỰC TIẾP LÊN Ô DỄ DÀNG) */}
+              {activeQuiz.type === 'fill_blanks' && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
                     {activeQuiz.question}
                   </h4>
-                  <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                    {activeQuiz.textWithBlanks || 'Strawberries and [blueberries] are mixed with [milk] and oatmeal.'}
-                  </p>
+                  <div className="text-sm text-slate-800 leading-relaxed bg-slate-50 p-4.5 rounded-2xl border border-slate-200 font-medium">
+                    {(() => {
+                      const { parts } = parseFillBlanksText(activeQuiz.textWithBlanks);
+                      return parts.map((item, pIdx) => {
+                        if (item.type === 'text') {
+                          return <span key={pIdx}>{item.content}</span>;
+                        } else {
+                          return (
+                            <input
+                              key={pIdx}
+                              type="text"
+                              value={blankInputs[item.index] || ''}
+                              onChange={(e) => {
+                                setBlankInputs({ ...blankInputs, [item.index]: e.target.value });
+                              }}
+                              placeholder="gõ từ..."
+                              className="mx-1 px-2.5 py-1 border-2 border-brand-500 rounded-xl text-xs font-bold text-brand-900 bg-white focus:ring-2 focus:ring-brand-400 focus:outline-none inline-block min-w-[100px] shadow-xs"
+                            />
+                          );
+                        }
+                      });
+                    })()}
+                  </div>
                 </div>
               )}
 
-              {/* Thông báo Phản Hồi Đúng / Sai */}
+              {/* DẠNG 3: TRUE / FALSE (ĐÚNG HOẶC SAI) */}
+              {activeQuiz.type === 'true_false' && (
+                <div className="space-y-3">
+                  <h4 className="text-base font-extrabold text-slate-900 leading-snug">
+                    {activeQuiz.question}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setTrueFalseChoice(true)}
+                      className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center ${
+                        trueFalseChoice === true
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-400/30'
+                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      ✓ True (Đúng)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTrueFalseChoice(false)}
+                      className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center ${
+                        trueFalseChoice === false
+                          ? 'border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-400/30'
+                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      ✕ False (Sai)
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* DẠNG 4: HIGHLIGHT / MARK THE WORD (CHẨN ẢNH 4 media_1787494585863.png) */}
+              {activeQuiz.type === 'mark_word' && (
+                <div className="space-y-3">
+                  <h4 className="text-base font-extrabold text-slate-900 leading-snug">
+                    {activeQuiz.question}
+                  </h4>
+                  <div className="flex flex-wrap gap-2.5 pt-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    {(activeQuiz.wordList || ['Strawberries', 'Cookies', 'Blueberries', 'Milk']).map((word, wIdx) => {
+                      const isSelected = selectedMarkWords.includes(word);
+                      return (
+                        <button
+                          key={wIdx}
+                          type="button"
+                          onClick={() => toggleMarkWordSelect(word)}
+                          className={`px-4 py-2 rounded-xl border text-xs font-extrabold transition cursor-pointer ${
+                            isSelected
+                              ? 'bg-brand-600 text-white border-brand-700 shadow-md transform scale-105'
+                              : 'bg-white text-slate-800 border-slate-300 hover:border-brand-500 hover:bg-brand-50'
+                          }`}
+                        >
+                          {word}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* DẠNG 5: DRAG AND DROP */}
+              {activeQuiz.type === 'drag_drop' && (
+                <div className="space-y-3">
+                  <h4 className="text-base font-extrabold text-slate-900 leading-snug">
+                    {activeQuiz.question}
+                  </h4>
+                  <p className="text-xs text-slate-500">Hãy chọn các đáp án phù hợp bên dưới:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {activeQuiz.options?.map((opt, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSelectedOpt(opt)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${selectedOpt === opt ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-800'}`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* THÔNG BÁO PHẢN HỒI ĐÚNG / SAI VÀ ĐÁP ÁN CHUẨN */}
               {quizFeedback && (
-                <div className={`p-3 rounded-2xl text-xs font-bold flex items-center space-x-2 border ${
-                  quizFeedback.success ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-rose-50 text-rose-800 border-rose-300'
+                <div className={`p-4 rounded-2xl text-xs font-bold space-y-1 border ${
+                  quizFeedback.success ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
                 }`}>
-                  <span>{quizFeedback.msg}</span>
+                  <p className="text-sm font-extrabold">{quizFeedback.msg}</p>
+                  {quizFeedback.details && <p className="text-[11px] font-semibold opacity-90">{quizFeedback.details}</p>}
                 </div>
               )}
 
-              {/* NÚT THAO TÁC: CHECK & CONTINUE */}
+              {/* NÚT CHECK VÀ NÚT CONTINUE / ĐÓNG */}
               <div className="flex items-center space-x-3 pt-2">
                 {!quizFeedback?.success ? (
                   <button
-                    disabled={!selectedOpt}
+                    type="button"
                     onClick={handleCheckAnswer}
-                    className="flex-1 py-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                    className="flex-1 py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
                     <span>Check</span>
                   </button>
                 ) : (
                   <button
-                    onClick={handleContinue}
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer animate-pulse"
+                    type="button"
+                    onClick={handleCloseAndContinue}
+                    className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer animate-pulse"
                   >
-                    <span>Continue (Xem Tiếp Video)</span>
+                    <span>Continue (Đóng & Xem Tiếp Video)</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 )}
@@ -304,7 +499,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
         )}
       </div>
 
-      {/* TIMELINE & ĐỒNG HỒ ĐẾM THỜI GIAN VIDEO */}
+      {/* THANH TIMELINE & BẢNG ĐIỀU KHIỂN CÂU HỎI KHI XEM VIDEO */}
       <div className="bg-slate-900 p-4 rounded-2xl flex items-center justify-between text-white text-xs space-x-4">
         <button onClick={togglePlay} className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer border border-slate-700">
           {isPlaying ? <Pause className="w-5 h-5 text-amber-400" /> : <Play className="w-5 h-5 text-emerald-400 ml-0.5" />}
@@ -332,7 +527,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
         </div>
 
         <span className="font-mono text-slate-300 text-[11px] font-bold bg-slate-950 px-3 py-1 rounded-xl border border-slate-800">
-          {Math.floor(currentTime)}s / {Math.floor(duration)}s
+          {currentTime}s / {Math.floor(duration)}s
         </span>
       </div>
     </div>
