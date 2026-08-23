@@ -338,7 +338,7 @@ export default function CourseView() {
       ]);
     } catch (err) {}
 
-    showToast('success', 'Đã Di Chuyển Bài Học', `Đã chuyển bài học "${act.title.replace('[WHITEBOARD]', '').trim()}" ${direction === 'up' ? 'lên trên' : 'xuống dưới'}!`);
+    showToast('success', 'Đã Di Chuyển Bài Học', `Đã chuyển bài học "${act.title.replace('[WHITEBOARD]', '').replace('[AUDIO_RECORD]', '').trim()}" ${direction === 'up' ? 'lên trên' : 'xuống dưới'}!`);
   };
 
   // Nâng cấp: Sửa Tên Chủ Đề
@@ -587,12 +587,19 @@ export default function CourseView() {
         setActiveSectionId(newSec.id);
       }
 
-      // Hỗ trợ lưu type = 'whiteboard' trực tiếp vào DB Supabase theo SQL Constraint mới
+      // Hỗ trợ tương thích 100% SQL Constraint activities_type_check CSDL Supabase
       const isWhiteboardAct = newActType === 'whiteboard';
-      const dbType = newActType;
-      const formattedTitle = isWhiteboardAct && !newActTitle.includes('[WHITEBOARD]')
-        ? `[WHITEBOARD] ${newActTitle.trim()}`
-        : newActTitle.trim();
+      const isAudioRecordAct = newActType === 'audio_record';
+
+      // Supabase Constraint chỉ cho phép: 'quiz', 'assignment', 'whiteboard', 'iframe', 'page', 'video'
+      const dbType = isAudioRecordAct ? 'assignment' : newActType;
+
+      let formattedTitle = newActTitle.trim();
+      if (isWhiteboardAct && !formattedTitle.includes('[WHITEBOARD]')) {
+        formattedTitle = `[WHITEBOARD] ${formattedTitle}`;
+      } else if (isAudioRecordAct && !formattedTitle.includes('[AUDIO_RECORD]')) {
+        formattedTitle = `[AUDIO_RECORD] ${formattedTitle}`;
+      }
 
       const { data: newAct, error: actErr } = await supabase
         .from('activities')
@@ -633,6 +640,7 @@ export default function CourseView() {
 
   const handleActivityClick = (act) => {
     const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
+                    const isAudioRecord = act.type === 'audio_record' || (act.title && act.title.includes('[AUDIO_RECORD]'));
     if (isWhiteboard) {
       navigate(`/whiteboard/${act.id}`);
     } else {
@@ -971,7 +979,7 @@ export default function CourseView() {
 
                             <div className="flex items-center space-x-3 text-[11px] text-slate-500 font-medium flex-wrap gap-y-1">
                               <span className="font-extrabold text-slate-600 uppercase">
-                                {isWhiteboard ? '🎨 Whiteboard Bảng Tương Tác' : act.type}
+                                {isWhiteboard ? '🎨 Whiteboard Bảng Tương Tác' : isAudioRecord ? '🎙️ Audio Recorder Bảng Luyện Nói' : act.type}
                               </span>
                               {(act.start_time || act.end_time) && (
                                 <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
@@ -1107,7 +1115,7 @@ export default function CourseView() {
                   className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-emerald-500 bg-amber-50 text-slate-900"
                 >
                   <option value="iframe">🎮 Interactive Game / Iframe (Nhúng Wordwall, Quizizz, Game HTML5)</option>
-                  <option value="audio_record">🎙️ Audio Record (Bài Luyện Nói / Ghi Âm Tiếng Anh)</option>
+                  <option value="audio_record">🎙️ Audio Recorder (Bài Luyện Nói / Ghi Âm Tiếng Anh)</option>
                   <option value="whiteboard">🎨 Whiteboard (Bảng Tương Tác Giảng Dạy - Lưu Trực Tiếp)</option>
                   <option value="quiz">Quiz (Bài Kiểm Tra Trắc Nghiệm / Reading / Listening)</option>
                   <option value="page">Page (Trang Bài Giảng / Tài Liệu)</option>
