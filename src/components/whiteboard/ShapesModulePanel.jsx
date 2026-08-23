@@ -36,14 +36,6 @@ export default function ShapesModulePanel({
     }
   };
 
-  const handleOpacityChange = (val) => {
-    setOpacity(val);
-    if (activeObject && fabricCanvas) {
-      activeObject.set('opacity', Number(val));
-      fabricCanvas.renderAll();
-    }
-  };
-
   const handleStrokeColorChange = (c) => {
     setStrokeColor(c);
     if (activeObject && fabricCanvas) {
@@ -78,8 +70,14 @@ export default function ShapesModulePanel({
     }
   };
 
+  // KHI NGƯỜI DÙNG CLICK CHỌN 1 SHAPE ➔ TỰ ĐỘNG ĐÓNG POPUP ĐỂ TRẢ LẠI MÀN HÌNH QUAN SÁT VẼ THEO YÊU CẦU THẦY HẢI
+  const handleShapeClick = (shapeType) => {
+    onSelectShape(shapeType);
+    onClose(); // Tự động ẩn popup!
+  };
+
   return (
-    <div className="fixed top-16 left-6 z-[100] bg-[#ded8be] border-2 border-[#b8af91] rounded-2xl shadow-xl p-2.5 w-[330px] font-sans text-slate-900 animate-scale-up">
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-[#ded8be] border-2 border-[#b8af91] rounded-2xl shadow-2xl p-2.5 w-[330px] font-sans text-slate-900 animate-scale-up">
       {/* HEADER POPUP SHAPES NHỎ GỌN */}
       <div className="flex justify-between items-center border-b border-[#c8c0a3] pb-1.5 mb-2">
         <h3 className="font-extrabold text-xs text-slate-800 tracking-wide flex items-center space-x-1">
@@ -101,7 +99,7 @@ export default function ShapesModulePanel({
           {/* GRID ICONS DẠNG KHỐI HÌNH HỌC & TICK XANH / X ĐỎ */}
           <div className="grid grid-cols-4 gap-1">
             <button
-              onClick={() => onSelectShape('rect')}
+              onClick={() => handleShapeClick('rect')}
               className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
               title="Vuông"
             >
@@ -110,7 +108,7 @@ export default function ShapesModulePanel({
             </button>
 
             <button
-              onClick={() => onSelectShape('circle')}
+              onClick={() => handleShapeClick('circle')}
               className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
               title="Tròn"
             >
@@ -119,7 +117,7 @@ export default function ShapesModulePanel({
             </button>
 
             <button
-              onClick={() => onSelectShape('oval')}
+              onClick={() => handleShapeClick('oval')}
               className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
               title="Bầu Dục"
             >
@@ -128,7 +126,7 @@ export default function ShapesModulePanel({
             </button>
 
             <button
-              onClick={() => onSelectShape('triangle')}
+              onClick={() => handleShapeClick('triangle')}
               className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
               title="Tam Giác"
             >
@@ -137,7 +135,7 @@ export default function ShapesModulePanel({
             </button>
 
             <button
-              onClick={() => onSelectShape('line')}
+              onClick={() => handleShapeClick('line')}
               className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
               title="Đường Thẳng"
             >
@@ -146,7 +144,7 @@ export default function ShapesModulePanel({
             </button>
 
             <button
-              onClick={() => onSelectShape('arrow')}
+              onClick={() => handleShapeClick('arrow')}
               className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
               title="Mũi Tên"
             >
@@ -155,7 +153,7 @@ export default function ShapesModulePanel({
             </button>
 
             <button
-              onClick={() => onSelectShape('check')}
+              onClick={() => handleShapeClick('check')}
               className="p-1.5 bg-emerald-100 hover:bg-emerald-200 border border-emerald-600 rounded-lg flex flex-col items-center justify-center transition cursor-pointer"
               title="Tick Xanh"
             >
@@ -164,7 +162,7 @@ export default function ShapesModulePanel({
             </button>
 
             <button
-              onClick={() => onSelectShape('cross')}
+              onClick={() => handleShapeClick('cross')}
               className="p-1.5 bg-rose-100 hover:bg-rose-200 border border-rose-600 rounded-lg flex flex-col items-center justify-center transition cursor-pointer"
               title="X Đỏ"
             >
@@ -205,7 +203,7 @@ export default function ShapesModulePanel({
                   hasFill ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
                 }`}
               >
-                {hasFill ? '☑️ Có Nền' : '🚫 Trong Suốt'}
+                {hasFill ? '☑️ Có Nền' : '🚫 Trong Suốt (Nền Mặc Định)'}
               </button>
             </div>
           </div>
