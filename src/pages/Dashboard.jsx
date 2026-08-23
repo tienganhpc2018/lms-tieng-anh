@@ -1224,6 +1224,12 @@ export default function Dashboard() {
         onClose={() => setSelectedAssignActivity(null)}
         activity={selectedAssignActivity}
       />
+
+      {/* MODAL QUẢN LÝ HỌC SINH & PHÂN QUYỀN HỆ THỐNG */}
+      <UserManagementModal
+        isOpen={isUserMgmtOpen}
+        onClose={() => setIsUserMgmtOpen(false)}
+      />
     </div>
   );
 }
