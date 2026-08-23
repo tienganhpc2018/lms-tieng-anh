@@ -11,7 +11,7 @@ import {
   Highlighter, Bold, Italic, Underline, Search, ZoomIn, ZoomOut, Check, ChevronLeft, ChevronRight,
   Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand, Minus, MousePointer, Pause, RefreshCw, Users,
   StickyNote, AlignLeft, AlignCenter, AlignRight, CornerUpRight, ArrowUpRight, Star, Diamond, Layers3, ArrowDownToLine, ArrowUpToLine,
-  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket, GripHorizontal, CheckCircle, FileText
+  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket, GripHorizontal, CheckCircle, FileText, Wrench
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ShapesModulePanel from '../components/whiteboard/ShapesModulePanel';
@@ -50,6 +50,72 @@ const playFinishChime = () => {
       osc.stop(ctx.currentTime + idx * 0.1 + 0.4);
     });
   } catch (e) {}
+};
+
+// COMPONENT RENDER MẶT HỘT XÚC XẮC THỰC TẾ (VẼ CHẤM TRÒN ⚀ ⚁ ⚂ ⚃ ⚄ ⚅ CHUẨN XÁC THEO CHỈ ĐẠO THẦY HẢI)
+const DiceFace = ({ value, isSpinning }) => {
+  const renderDots = () => {
+    switch (value) {
+      case 1:
+        return <div className="w-5 h-5 bg-rose-600 rounded-full shadow-md m-auto" />;
+      case 2:
+        return (
+          <div className="w-full h-full flex justify-between p-2">
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full self-start" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full self-end" />
+          </div>
+        );
+      case 3:
+        return (
+          <div className="w-full h-full flex justify-between p-2">
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full self-start" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full self-center" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full self-end" />
+          </div>
+        );
+      case 4:
+        return (
+          <div className="w-full h-full grid grid-cols-2 p-2 gap-2">
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full justify-self-end" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full justify-self-end" />
+          </div>
+        );
+      case 5:
+        return (
+          <div className="w-full h-full relative p-2">
+            <div className="absolute top-2 left-2 w-3.5 h-3.5 bg-slate-900 rounded-full" />
+            <div className="absolute top-2 right-2 w-3.5 h-3.5 bg-slate-900 rounded-full" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-slate-900 rounded-full" />
+            <div className="absolute bottom-2 left-2 w-3.5 h-3.5 bg-slate-900 rounded-full" />
+            <div className="absolute bottom-2 right-2 w-3.5 h-3.5 bg-slate-900 rounded-full" />
+          </div>
+        );
+      case 6:
+      default:
+        return (
+          <div className="w-full h-full grid grid-cols-2 p-2 gap-1.5">
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full justify-self-end" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full justify-self-end" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full" />
+            <div className="w-3.5 h-3.5 bg-slate-900 rounded-full justify-self-end" />
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div
+      className={`w-20 h-20 bg-amber-50 rounded-2xl border-4 border-amber-300 shadow-2xl flex items-center justify-center transition transform cursor-pointer ${
+        isSpinning ? 'animate-spin scale-110' : 'hover:scale-105'
+      }`}
+    >
+      {renderDots()}
+    </div>
+  );
 };
 
 export default function WhiteboardView() {
@@ -108,7 +174,7 @@ export default function WhiteboardView() {
   // Background Nền Bảng
   const [bgType, setBgType] = useState('greenboard');
 
-  // Popups & Teaching Tools (BẤM GIỜ, XÚC XẮC, GỌI TÊN HỌC SINH, BẢNG MÀU)
+  // Popups & Teaching Tools (GOM 3 MINI-GAMES VÀO 1 MENU DUY NHẤT VỚI ICON TOOLBAR)
   const [activeWindow, setActiveWindow] = useState(null);
 
   // MINI-GAMES GIẢNG DẠY
@@ -1243,7 +1309,7 @@ export default function WhiteboardView() {
         )}
       </div>
 
-      {/* COMPONENT MODULE SHAPES ĐƯỢC TÁCH CẤU TRÚC RIÊNG BỆNH CHUẨN ẢNH MYVIEWBOARD */}
+      {/* COMPONENT MODULE SHAPES GIAO DIỆN NHỎ GỌN VỚI THANH MÀU DỌC BÊN HÔNG CHUẨN THẦY HẢI CHỈ ĐẠO */}
       <ShapesModulePanel
         isOpen={activeWindow === 'shapes'}
         onClose={() => setActiveWindow(null)}
@@ -1297,6 +1363,37 @@ export default function WhiteboardView() {
             className="w-7 h-7 rounded-lg cursor-pointer border border-slate-400 p-0"
             title="Màu tùy chỉnh"
           />
+        </div>
+      )}
+
+      {/* MENU CHỌN 3 CÔNG CỤ MINI-GAMES (GOM NẰM TRONG 1 ICON DUY NHẤT THEO CHỈ ĐẠO CỦA THẦY HẢI) */}
+      {activeWindow === 'minigamesMenu' && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 border-2 border-amber-500 rounded-2xl shadow-2xl p-3 flex items-center space-x-3 animate-scale-up font-sans text-white">
+          <span className="text-xs font-black text-amber-400 uppercase tracking-wide">Công Cụ Giảng Dạy:</span>
+          
+          <button
+            onClick={() => setActiveWindow('timer')}
+            className="px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm cursor-pointer"
+          >
+            <Clock className="w-4 h-4 text-sky-200" />
+            <span>⏱️ Bấm Giờ</span>
+          </button>
+
+          <button
+            onClick={() => setActiveWindow('dice')}
+            className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm cursor-pointer"
+          >
+            <Dices className="w-4 h-4 text-purple-200" />
+            <span>🎲 Xúc Xắc</span>
+          </button>
+
+          <button
+            onClick={() => setActiveWindow('picker')}
+            className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm cursor-pointer"
+          >
+            <Users className="w-4 h-4 text-amber-200" />
+            <span>🎯 Gọi Tên</span>
+          </button>
         </div>
       )}
 
@@ -1370,7 +1467,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP XÚC XẮC THÔNG MINH ĐỒNG BỘ 100% SỐ HỘT VỚI NÚT + VÀ - (ĐÚNG CHÍNH XÁC YÊU CẦU THẦY HẢI) */}
+      {/* POPUP XÚC XẮC THÔNG MINH HIỂN THỊ CHÍNH XÁC MẶT CHẤM TRÒN XÚC XẮC ⚀ ⚁ ⚂ (ĐÚNG CHÍNH XÁC YÊU CẦU THẦY HẢI) */}
       {activeWindow === 'dice' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-purple-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
@@ -1403,17 +1500,10 @@ export default function WhiteboardView() {
             </div>
           </div>
 
-          {/* HIỂN THỊ ĐÚNG CÁC KHỐI HỘT XÚC XẮC THEO SỐ LƯỢNG */}
+          {/* HIỂN THỊ ĐÚNG CÁC MẶT HỘT XÚC XẮC THỰC TẾ VỚI CÁC CHẤM TRÒN CHUẨN XÁC NGUYÊN BẢN */}
           <div className="flex justify-center items-center gap-3 py-4">
             {diceValues.map((val, idx) => (
-              <div
-                key={idx}
-                className={`w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-700 rounded-3xl border-4 border-purple-300 shadow-2xl flex items-center justify-center text-5xl font-black text-white transition transform ${
-                  isSpinningDice ? 'animate-bounce scale-105' : ''
-                }`}
-              >
-                {val}
-              </div>
+              <DiceFace key={idx} value={val} isSpinning={isSpinningDice} />
             ))}
           </div>
 
@@ -1591,7 +1681,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* THANH TOOLBAR DƯỚI CÙNG HOÀN LẠI 100% NGUYÊN BẢN GỐC CAM KẾT ĐẦY ĐỦ CÓ 18 CÔNG CỤ THẦY YÊU CẦU */}
+      {/* THANH TOOLBAR DƯỚI CÙNG SANG TRỌNG GOM 3 CÔNG CỤ MINI-GAMES NẰM TRONG 1 ICON THEO CHỈ ĐẠO THẦY HẢI */}
       <div className={getToolbarStyle()}>
         {/* 1. XOAY CHUYỂN VỊ TRÍ TOOLBAR */}
         <button
@@ -1708,7 +1798,20 @@ export default function WhiteboardView() {
 
         <span className="w-px h-6 bg-slate-400/60 my-auto" />
 
-        {/* 10. IMAGE UPLOAD NGUYÊN BẢN (CHÈN ẢNH TỪ MÁY TÍNH) */}
+        {/* 10. ICON DUY NHẤT GOM 3 CÔNG CỤ MINI-GAMES GIẢNG DẠY (BẤM GIỜ, XÚC XẮC, GỌI TÊN HỌC SINH) */}
+        <button
+          onClick={() => setActiveWindow(activeWindow === 'minigamesMenu' ? null : 'minigamesMenu')}
+          className={`p-2 rounded-xl transition cursor-pointer relative ${
+            ['minigamesMenu', 'timer', 'dice', 'picker'].includes(activeWindow)
+              ? 'bg-gradient-to-r from-amber-500 to-purple-600 text-white shadow-md ring-2 ring-amber-300 scale-105'
+              : 'hover:bg-[#c4bb9c] text-slate-800'
+          }`}
+          title="🎲 ⏱️ 🎯 Bộ 3 công cụ giảng dạy: Bấm giờ, Xúc xắc, Gọi tên học sinh"
+        >
+          <Wrench className="w-4 h-4 text-purple-800 font-black" />
+        </button>
+
+        {/* 11. IMAGE UPLOAD NGUYÊN BẢN (CHÈN ẢNH TỪ MÁY TÍNH) */}
         <button
           onClick={() => fileInputRef.current?.click()}
           className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
@@ -1717,7 +1820,7 @@ export default function WhiteboardView() {
           <ImageIcon className="w-4 h-4 text-sky-700" />
         </button>
 
-        {/* 11. THƯỚC KẺ HỌC TẬP (RULER TOOL) NGUYÊN BẢN */}
+        {/* 12. THƯỚC KẺ HỌC TẬP (RULER TOOL) NGUYÊN BẢN */}
         <button
           onClick={() => setShowRuler(!showRuler)}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1730,7 +1833,7 @@ export default function WhiteboardView() {
           <Ruler className="w-4 h-4 text-amber-800" />
         </button>
 
-        {/* 12. UNDO NGUYÊN BẢN (HOÀN TÁC VẼ) */}
+        {/* 13. UNDO NGUYÊN BẢN (HOÀN TÁC VẼ) */}
         <button
           onClick={handleUndo}
           className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
@@ -1739,7 +1842,7 @@ export default function WhiteboardView() {
           <Undo className="w-4 h-4 text-slate-700" />
         </button>
 
-        {/* 13. BẢNG MÀU BÚT VẼ NGUYÊN BẢN (PALETTE COLOR PICKER) */}
+        {/* 14. BẢNG MÀU BÚT VẼ NGUYÊN BẢN (PALETTE COLOR PICKER) */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'penColor' ? null : 'penColor')}
           className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer flex items-center space-x-1"
@@ -1750,46 +1853,7 @@ export default function WhiteboardView() {
 
         <span className="w-px h-6 bg-slate-400/60 my-auto" />
 
-        {/* 14. TIMER MINI-GAME CÓ ÂM THANH */}
-        <button
-          onClick={() => setActiveWindow(activeWindow === 'timer' ? null : 'timer')}
-          className={`p-2 rounded-xl transition cursor-pointer ${
-            activeWindow === 'timer'
-              ? 'bg-sky-600 text-white shadow-md ring-2 ring-sky-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="⏱️ Đồng hồ bấm giờ làm bài tập"
-        >
-          <Clock className="w-4 h-4 text-sky-700" />
-        </button>
-
-        {/* 15. DICE MINI-GAME ĐỒNG BỘ 100% SỐ HỘT NÚT + VÀ - */}
-        <button
-          onClick={() => setActiveWindow(activeWindow === 'dice' ? null : 'dice')}
-          className={`p-2 rounded-xl transition cursor-pointer ${
-            activeWindow === 'dice'
-              ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="🎲 Lắc xúc xắc ngẫu nhiên bài tập"
-        >
-          <Dices className="w-4 h-4 text-purple-700" />
-        </button>
-
-        {/* 16. RANDOM NAME PICKER MINI-GAME CÓ ÂM THANH */}
-        <button
-          onClick={() => setActiveWindow(activeWindow === 'picker' ? null : 'picker')}
-          className={`p-2 rounded-xl transition cursor-pointer ${
-            activeWindow === 'picker'
-              ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="🎯 Gọi tên học sinh ngẫu nhiên"
-        >
-          <Users className="w-4 h-4 text-amber-800" />
-        </button>
-
-        {/* 17. XÓA ĐỐI TƯỢNG ĐANG CHỌN */}
+        {/* 15. XÓA ĐỐI TƯỢNG ĐANG CHỌN */}
         <button
           onClick={handleDeleteActiveObject}
           className="p-2 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition text-rose-600 cursor-pointer font-bold"
@@ -1798,7 +1862,7 @@ export default function WhiteboardView() {
           <Trash2 className="w-4 h-4 text-rose-600" />
         </button>
 
-        {/* 18. XÓA SẠCH TRANG BẢNG (CLEAR ALL) */}
+        {/* 16. XÓA SẠCH TRANG BẢNG (CLEAR ALL) */}
         <button
           onClick={handleClearAll}
           className="p-2 hover:bg-rose-600 hover:text-white rounded-xl transition text-rose-700 font-extrabold cursor-pointer"
