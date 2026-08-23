@@ -16,6 +16,18 @@ import {
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ShapesModulePanel from '../components/whiteboard/ShapesModulePanel';
 
+// HÀM CHUẨN HÓA TÊN BÀI HỌC CỰC KỲ AN TOÀN V49: LẤY ĐÚNG TÊN TỪ SAU DẤU NẮC ĐÓNG ] CHUẨN 100%
+const formatLessonTitle = (rawTitle) => {
+  if (!rawTitle) return 'Getting started';
+  let cleaned = String(rawTitle);
+  if (cleaned.includes(']')) {
+    const parts = cleaned.split(']');
+    cleaned = parts[parts.length - 1];
+  }
+  cleaned = cleaned.trim();
+  return cleaned || rawTitle;
+};
+
 // BỘ TẠO ÂM THANH SINH ĐỘNG WEB AUDIO API DÀNH CHO BẢNG WHITEBOARD
 const playTickSound = () => {
   try {
@@ -340,7 +352,7 @@ export default function WhiteboardView() {
       width: window.innerWidth,
       height: window.innerHeight - 110,
       backgroundColor: 'transparent',
-      selection: userIsTeacher, // HỌC SINH KHÔNG THỂ CHỈNH SỬA VẬT THỂ CỦA THẦY VẼ
+      selection: userIsTeacher,
       preserveObjectStacking: true,
     });
 
@@ -443,7 +455,7 @@ export default function WhiteboardView() {
     };
   }, [userIsTeacher]);
 
-  // NẠP VÀ HIỂN THỊ CHÍNH XÁC NỘI DUNG VẼ VÀ TÊN LESSON CỦA BÀI HỌC V48 CHO THẦY VÀ HỌC SINH XEM LAI
+  // NẠP VÀ HIỂN THỊ CHÍNH XÁC NỘI DUNG VẼ VÀ TÊN LESSON V49 (ẢNH media_1787464478525.png)
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -457,8 +469,8 @@ export default function WhiteboardView() {
             .single();
 
           if (!error && data) {
-            let cleanTitle = data.title ? data.title.replace(/[WHITEBOARD.*?]/gi, '').trim() : '';
-            if (!cleanTitle) cleanTitle = data.title || 'Getting started';
+            // SỬ DỤNG HÀM formatLessonTitle CHUẨN XÁC V49 VĨNH VIỄN KHÔNG LỖI [] Gng s
+            const cleanTitle = formatLessonTitle(data.title);
             setLessonTitle(cleanTitle);
 
             if (data.content && data.content !== '{}') {
@@ -471,7 +483,6 @@ export default function WhiteboardView() {
               if (parsed.fabric) {
                 fabricCanvas.loadFromJSON(parsed.fabric).then(() => {
                   if (!userIsTeacher) {
-                    // NẾU LÀ HỌC SINH XEM LẠI BÀI ➔ KHÓA KHÔNG CHO SỬA HOẶC DI CHUYỂN CÁC OBJECT TRÊN BẢNG
                     fabricCanvas.forEachObject((obj) => {
                       obj.set({
                         selectable: false,
@@ -1227,8 +1238,7 @@ export default function WhiteboardView() {
     setLoadingSavedLessons(false);
   };
 
-  // NÂNG CẤP LƯU BÀI DẠY V48 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI:
-  // LƯU CƠ SỞ DỮ LIỆU CỘT CONTENT CỦA LESSON VÀ QUAY VỀ TRANG KHÓA HỌC CHO HỌC SINH VÀO XEM LAI
+  // NÂNG CẤP LƯU BÀI DẠY V49 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI
   const handleSaveLesson = async () => {
     if (!userIsTeacher) return;
     setSavingLesson(true);
@@ -1243,7 +1253,6 @@ export default function WhiteboardView() {
       }
 
       if (activityId) {
-        // CẬP NHẬT DỮ LIỆU BÀI GIẢNG VÀO SUPABASE CSDL CỘT CONTENT
         const { error } = await supabase
           .from('activities')
           .update({
@@ -1346,7 +1355,7 @@ export default function WhiteboardView() {
         className="hidden"
       />
 
-      {/* HEADER BAR WHITEBOARD V48: CHẾ ĐỘ THẦY GIÁO DẠY HỌC VS HỌC SINH XEM BÀI GIẢNG */}
+      {/* HEADER BAR WHITEBOARD V49: HIỂN THỊ CHÍNH XÁC NGUYÊN VẸN TÊN LESSON TỪ KHÓA HỌC (ẢNH media_1787464478525.png) */}
       <div className="bg-[#24211a] text-white px-4 py-1.5 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-40 relative">
         <div className="flex items-center space-x-2">
           <button
@@ -1406,7 +1415,7 @@ export default function WhiteboardView() {
           {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG */}
           <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{realtimeClock || 'Aug/23/2026 12:51 PM'} {currentPageIndex + 1}/{pages.length}</span>
+            <span>{realtimeClock || 'Aug/23/2026 12:54 PM'} {currentPageIndex + 1}/{pages.length}</span>
           </div>
 
           {userIsTeacher && (
@@ -2026,7 +2035,7 @@ export default function WhiteboardView() {
                   className="p-3 bg-slate-50 hover:bg-sky-50 border border-slate-200 rounded-2xl flex items-center justify-between transition"
                 >
                   <div>
-                    <h4 className="font-extrabold text-xs text-slate-900">{lesson.title.replace(/[WHITEBOARD:.*?]/, '').replace(/[WHITEBOARD]/, '').trim()}</h4>
+                    <h4 className="font-extrabold text-xs text-slate-900">{formatLessonTitle(lesson.title)}</h4>
                     <span className="text-[10px] font-extrabold text-sky-700 uppercase bg-sky-100 px-2 py-0.5 rounded-md mt-1 inline-block">
                       {lesson.title.match(/[WHITEBOARD:(.*?)]/)?.[1] || 'UNIT 1'}
                     </span>
@@ -2050,7 +2059,7 @@ export default function WhiteboardView() {
                         if (fabricCanvas && parsedData.fabric) {
                           fabricCanvas.loadFromJSON(parsedData.fabric).then(() => {
                             fabricCanvas.renderAll();
-                            alert(`🚀 ĐÃ MỞ THÀNH CÔNG BÀI GIẢNG: "${lesson.title.replace(/\[WHITEBOARD:.*?\]/, '').replace(/\[WHITEBOARD\]/, '').trim()}"`);
+                            alert(`🚀 ĐÃ MỞ THÀNH CÔNG BÀI GIẢNG: "${formatLessonTitle(lesson.title)}"`);
                             setActiveWindow(null);
                           });
                         }
