@@ -640,7 +640,7 @@ export default function CourseView() {
 
   const handleActivityClick = (act) => {
     const isWhiteboard = act.type === 'whiteboard' || (act.title && act.title.includes('[WHITEBOARD]'));
-                    const isAudioRecord = act.type === 'audio_record' || (act.title && act.title.includes('[AUDIO_RECORD]'));
+    const isAudioRecord = act.type === 'audio_record' || act.type === 'audio' || (act.title && act.title.includes('[AUDIO_RECORD]'));
     if (isWhiteboard) {
       navigate(`/whiteboard/${act.id}`);
     } else {
@@ -963,7 +963,7 @@ export default function CourseView() {
                           <div className="space-y-0.5">
                             <div className="flex items-center space-x-2 flex-wrap gap-1">
                               <h3 className="font-extrabold text-slate-900 text-sm group-hover:text-emerald-700 transition">
-                                {act.title.replace('[WHITEBOARD]', '').trim()}
+                                {act.title.replace('[WHITEBOARD]', '').replace('[AUDIO_RECORD]', '').trim()}
                               </h3>
                               {act.is_hidden && (
                                 <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-extrabold text-[10px] rounded-md border border-amber-500/40">
