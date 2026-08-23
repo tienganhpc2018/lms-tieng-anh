@@ -143,18 +143,21 @@ export default function WhiteboardView() {
 
   // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'eraser' | 'drawShape'...
   const [tool, setTool] = useState('pointer');
-  const [activeShapeType, setActiveShapeType] = useState(null); // 'rect' | 'circle' | 'oval' | 'triangle' | 'line' | 'arrow' | 'highlightBox'
+  const [activeShapeType, setActiveShapeType] = useState(null);
   const [color, setColor] = useState('#ef4444');
   const [fontSize, setFontSize] = useState(36);
   const [fontFamily, setFontFamily] = useState('Noto Sans');
 
-  // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD (BỎ NỀN MẶC ĐỊNH -> HASFILL = FALSE)
-  const [strokeColor, setStrokeColor] = useState('#ef4444'); // Mặc định màu đỏ rực rỡ chuẩn ảnh media_1787455462392.png của Thầy Hải!
+  // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD (MẶC ĐỊNH MÀU ĐỎ NẾT DÀY 5PX NỀN TRONG SUỐT)
+  const [strokeColor, setStrokeColor] = useState('#ef4444');
   const [fillColor, setFillColor] = useState('#ef4444');
-  const [hasFill, setHasFill] = useState(false); // Nền trong suốt mặc định!
-  const [strokeWidth, setStrokeWidth] = useState(5); // Dày 5px nét căng rõ ràng!
+  const [hasFill, setHasFill] = useState(false);
+  const [strokeWidth, setStrokeWidth] = useState(5);
   const [opacity, setOpacity] = useState(1.0);
   const [isDashed, setIsDashed] = useState(false);
+
+  // QUẢN LÝ THÔNG SỐ ĐO KÍCH THƯỚC KHI ĐANG KÉO SHAPE REAL-TIME
+  const [drawingDimension, setDrawingDimension] = useState(null);
 
   // QUẢN LÝ TRANG BÀI GIẢNG MULTI-PAGES (PAGE 1, PAGE 2...)
   const [pages, setPages] = useState([{ id: 1, name: 'Trang 1', data: null, textElements: [] }]);
@@ -175,7 +178,7 @@ export default function WhiteboardView() {
   // Background Nền Bảng
   const [bgType, setBgType] = useState('greenboard');
 
-  // Popups & Teaching Tools (GOM POPUP HỘP BÚT, MINI-GAMES VÀ HIGHLIGHT DROPDOWN)
+  // Popups & Teaching Tools
   const [activeWindow, setActiveWindow] = useState(null);
   const [showHighlightDropdown, setShowHighlightDropdown] = useState(false);
 
@@ -414,12 +417,12 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // KHẮC PHỤC LỖI TRIỆT ĐỂ: KHI CHỌN VẼ SHAPE ➔ TẮT KHUNG VÙNG CHỌN (fabricCanvas.selection = false) ĐỂ KHÔNG BỊ DÍNH KHUNG XANH ĐỤC VÙNG CHỌN
+  // KHẮC PHỤC HOÀN HẢO 100% VẼ SHAPES DRAG-TO-DRAW TRÊN FABRIC CANVAS VÀ HIỂN THỊ KÍCH THƯỚC REAL-TIME CHUẨN MYVIEWBOARD
   useEffect(() => {
     if (!fabricCanvas || tool !== 'drawShape' || !activeShapeType) return;
 
     fabricCanvas.isDrawingMode = false;
-    fabricCanvas.selection = false; // TẮT VÙNG CHỌN FABRIC MẶC ĐỊNH
+    fabricCanvas.selection = false; // Tắt khung vùng chọn canvas đục mờ
     fabricCanvas.defaultCursor = 'crosshair';
 
     let isMouseDown = false;
@@ -428,13 +431,20 @@ export default function WhiteboardView() {
     let shapeObj = null;
 
     const curFill = hasFill ? fillColor : 'transparent';
-    const curStroke = activeShapeType === 'highlightBox' ? color : strokeColor;
-    const curWidth = Number(strokeWidth);
-    const curOpacity = Number(opacity);
+    const curStroke = activeShapeType === 'highlightBox' ? color : (strokeColor || '#ef4444');
+    const curWidth = Number(strokeWidth || 5);
+    const curOpacity = Number(opacity || 1.0);
     const curDash = isDashed ? [8, 8] : null;
 
+    const getPointerPos = (e) => {
+      if (fabricCanvas.getScenePoint) {
+        return fabricCanvas.getScenePoint(e);
+      }
+      return fabricCanvas.getPointer(e);
+    };
+
     const onMouseDown = (opt) => {
-      const pointer = fabricCanvas.getPointer(opt.e);
+      const pointer = getPointerPos(opt.e);
       isMouseDown = true;
       startX = pointer.x;
       startY = pointer.y;
@@ -443,8 +453,8 @@ export default function WhiteboardView() {
         shapeObj = new fabric.Rect({
           left: startX,
           top: startY,
-          width: 1,
-          height: 1,
+          width: 2,
+          height: 2,
           fill: curFill,
           stroke: curStroke,
           strokeWidth: curWidth,
@@ -457,7 +467,7 @@ export default function WhiteboardView() {
         shapeObj = new fabric.Circle({
           left: startX,
           top: startY,
-          radius: 1,
+          radius: 2,
           fill: curFill,
           stroke: curStroke,
           strokeWidth: curWidth,
@@ -468,8 +478,8 @@ export default function WhiteboardView() {
         shapeObj = new fabric.Ellipse({
           left: startX,
           top: startY,
-          rx: 1,
-          ry: 1,
+          rx: 2,
+          ry: 2,
           fill: curFill,
           stroke: curStroke,
           strokeWidth: curWidth,
@@ -480,8 +490,8 @@ export default function WhiteboardView() {
         shapeObj = new fabric.Triangle({
           left: startX,
           top: startY,
-          width: 1,
-          height: 1,
+          width: 2,
+          height: 2,
           fill: curFill,
           stroke: curStroke,
           strokeWidth: curWidth,
@@ -495,56 +505,90 @@ export default function WhiteboardView() {
           opacity: curOpacity,
           strokeDashArray: curDash,
         });
+      } else if (activeShapeType === 'arrow') {
+        shapeObj = new fabric.Path('M 0 0 L 140 0 M 140 0 L 120 -12 M 140 0 L 120 12', {
+          left: startX,
+          top: startY,
+          stroke: curStroke,
+          strokeWidth: curWidth,
+          fill: 'transparent',
+          opacity: curOpacity,
+          strokeDashArray: curDash,
+        });
       }
 
       if (shapeObj) {
         fabricCanvas.add(shapeObj);
+        fabricCanvas.requestRenderAll();
       }
     };
 
     const onMouseMove = (opt) => {
       if (!isMouseDown || !shapeObj) return;
-      const pointer = fabricCanvas.getPointer(opt.e);
+      const pointer = getPointerPos(opt.e);
+
+      const width = Math.abs(pointer.x - startX);
+      const height = Math.abs(pointer.y - startY);
+      const left = Math.min(startX, pointer.x);
+      const top = Math.min(startY, pointer.y);
+
+      // Cập nhật chỉ số kích thước hiển thị bên dưới khung hình vẽ!
+      const widthCm = (width / 37.8).toFixed(1);
+      const heightCm = (height / 37.8).toFixed(1);
+      setDrawingDimension({
+        x: left + width / 2,
+        y: top + height + 15,
+        text: `${widthCm} cm × ${heightCm} cm (${Math.round(width)}px × ${Math.round(height)}px)`,
+      });
 
       if (activeShapeType === 'rect' || activeShapeType === 'highlightBox' || activeShapeType === 'triangle') {
-        const width = Math.abs(pointer.x - startX);
-        const height = Math.abs(pointer.y - startY);
         shapeObj.set({
-          left: Math.min(startX, pointer.x),
-          top: Math.min(startY, pointer.y),
+          left: left,
+          top: top,
           width: Math.max(5, width),
           height: Math.max(5, height),
         });
       } else if (activeShapeType === 'circle') {
         const radius = Math.sqrt(Math.pow(pointer.x - startX, 2) + Math.pow(pointer.y - startY, 2)) / 2;
         shapeObj.set({
+          left: left,
+          top: top,
           radius: Math.max(5, radius),
         });
       } else if (activeShapeType === 'oval') {
-        const rx = Math.abs(pointer.x - startX) / 2;
-        const ry = Math.abs(pointer.y - startY) / 2;
         shapeObj.set({
-          left: Math.min(startX, pointer.x),
-          top: Math.min(startY, pointer.y),
-          rx: Math.max(5, rx),
-          ry: Math.max(5, ry),
+          left: left,
+          top: top,
+          rx: Math.max(5, width / 2),
+          ry: Math.max(5, height / 2),
         });
       } else if (activeShapeType === 'line') {
         shapeObj.set({
           x2: pointer.x,
           y2: pointer.y,
         });
+      } else if (activeShapeType === 'arrow') {
+        const scaleX = Math.max(0.2, width / 140);
+        const scaleY = Math.max(0.2, height / 50);
+        shapeObj.set({
+          left: left,
+          top: top,
+          scaleX: scaleX,
+          scaleY: scaleY,
+        });
       }
 
-      fabricCanvas.renderAll();
+      if (shapeObj.setCoords) shapeObj.setCoords();
+      fabricCanvas.requestRenderAll();
     };
 
     const onMouseUp = () => {
       if (isMouseDown && shapeObj) {
         isMouseDown = false;
-        fabricCanvas.selection = true; // KHÔI PHỤC VÙNG CHỌN
+        setDrawingDimension(null); // Tắt nhãn thông số kích thước khi vẽ xong!
+        fabricCanvas.selection = true;
         fabricCanvas.setActiveObject(shapeObj);
-        fabricCanvas.renderAll();
+        fabricCanvas.requestRenderAll();
         // Hoàn tất vẽ ➔ Chuyển ngay về con trỏ pointer và khôi phục cursor mặc định!
         setTool('pointer');
         setActiveShapeType(null);
@@ -561,6 +605,7 @@ export default function WhiteboardView() {
       fabricCanvas.off('mouse:move', onMouseMove);
       fabricCanvas.off('mouse:up', onMouseUp);
       fabricCanvas.selection = true;
+      setDrawingDimension(null);
     };
   }, [fabricCanvas, tool, activeShapeType, hasFill, fillColor, strokeColor, color, strokeWidth, opacity, isDashed]);
 
@@ -1187,6 +1232,19 @@ export default function WhiteboardView() {
         className={`relative w-full h-[calc(100vh-50px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : tool === 'drawShape' ? 'cursor-crosshair' : ''}`}
       >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
+
+        {/* NHÃN HIỂN THỊ KÍCH THƯỚC REAL-TIME (CM & PX) KHI ĐANG ĐÈ GIỮ RÊ CHUỘT KÉO HÌNH CỰC KỲ ĐẮC LỰC */}
+        {drawingDimension && (
+          <div
+            style={{
+              left: `${drawingDimension.x}px`,
+              top: `${drawingDimension.y}px`,
+            }}
+            className="fixed z-[95] -translate-x-1/2 bg-rose-600/90 text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-lg border border-rose-300 pointer-events-none animate-pulse font-mono"
+          >
+            {drawingDimension.text}
+          </div>
+        )}
 
         {/* THƯỚC KẺ HỌC TẬP (RULER TOOL) CHUẨN MYVIEWBOARD NGUYÊN BẢN */}
         {showRuler && (
