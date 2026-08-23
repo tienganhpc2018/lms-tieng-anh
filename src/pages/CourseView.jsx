@@ -1,3 +1,4 @@
+import { isWhiteboardAct, isAudioRecordAct, isInteractiveVideoAct } from '../utils/activityTypeHelpers';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -11,21 +12,12 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 
 
 // TOP-LEVEL HELPER FUNCTIONS TRÁNH MỌI LỖI REFERENCE ERROR AN TOÀN TUYỆT ĐỐI V54
-const isWhiteboardAct = (act) => {
-  if (!act) return false;
-  return act.type === 'whiteboard' || (act.title && String(act.title).includes('[WHITEBOARD]'));
-};
 
 
-const isInteractiveVideoAct = (act) => {
-  if (!act) return false;
-  return act.type === 'video' || act.type === 'interactive_video' || (act.title && String(act.title).includes('[INTERACTIVE_VIDEO]'));
-};
 
-const isAudioRecordAct = (act) => {
-  if (!act) return false;
-  return act.type === 'audio_record' || act.type === 'audio' || (act.title && String(act.title).includes('[AUDIO_RECORD]'));
-};
+
+
+
 
 // HÀM TẠO ICON VÀ MÀU SẮC ĐỘNG SINH ĐỘNG THEO TÊN BÀI HỌC V50 THEO CHỈ ĐẠO THẦY HẢI
 const getDynamicLessonIcon = (act, index) => {
