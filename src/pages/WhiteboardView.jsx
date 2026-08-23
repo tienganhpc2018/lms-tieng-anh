@@ -143,14 +143,14 @@ export default function WhiteboardView() {
 
   // Công cụ active: 'pointer' | 'hand' | 'text' | 'sticky' | 'pen' | 'highlighter' | 'highlightBox' | 'eraser' | shapes...
   const [tool, setTool] = useState('pointer');
-  const [color, setColor] = useState('#ef4444'); // Mặc định màu đỏ nổi bật
+  const [color, setColor] = useState('#ef4444');
   const [fontSize, setFontSize] = useState(36);
   const [fontFamily, setFontFamily] = useState('Noto Sans');
 
-  // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD
+  // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD (BỎ NỀN MẶC ĐỊNH -> HASFILL = FALSE)
   const [strokeColor, setStrokeColor] = useState('#09090b');
   const [fillColor, setFillColor] = useState('#ef4444');
-  const [hasFill, setHasFill] = useState(false);
+  const [hasFill, setHasFill] = useState(false); // Nền trong suốt mặc định!
   const [strokeWidth, setStrokeWidth] = useState(4);
   const [opacity, setOpacity] = useState(1.0);
   const [isDashed, setIsDashed] = useState(false);
@@ -174,8 +174,9 @@ export default function WhiteboardView() {
   // Background Nền Bảng
   const [bgType, setBgType] = useState('greenboard');
 
-  // Popups & Teaching Tools (GOM POPUP HỘP BÚT VÀ MINI-GAMES)
+  // Popups & Teaching Tools (GOM POPUP HỘP BÚT, MINI-GAMES VÀ HIGHLIGHT DROPDOWN)
   const [activeWindow, setActiveWindow] = useState(null);
+  const [showHighlightDropdown, setShowHighlightDropdown] = useState(false);
 
   // MINI-GAMES GIẢNG DẠY
   const [timerSeconds, setTimerSeconds] = useState(60);
@@ -223,13 +224,13 @@ export default function WhiteboardView() {
   ];
 
   const HIGHLIGHT_PALETTE = [
-    { name: 'Yellow', color: '#fef08a' },
-    { name: 'Orange', color: '#fed7aa' },
-    { name: 'Pink', color: '#fbcfe8' },
-    { name: 'Green', color: '#bbf7d0' },
-    { name: 'Blue', color: '#bae6fd' },
-    { name: 'Purple', color: '#e9d5ff' },
-    { name: 'White', color: '#ffffff' },
+    { name: 'Yellow', color: 'rgba(254, 240, 138, 0.45)' },
+    { name: 'Orange', color: 'rgba(254, 215, 170, 0.45)' },
+    { name: 'Pink', color: 'rgba(251, 207, 232, 0.45)' },
+    { name: 'Green', color: 'rgba(187, 247, 208, 0.45)' },
+    { name: 'Blue', color: 'rgba(186, 230, 253, 0.45)' },
+    { name: 'Purple', color: 'rgba(233, 213, 255, 0.45)' },
+    { name: 'White', color: 'rgba(255, 255, 255, 0.45)' },
   ];
 
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
@@ -421,8 +422,8 @@ export default function WhiteboardView() {
       top: 180,
       width: 240,
       height: 120,
-      fill: color + '22', // Nền mờ cùng tông màu
-      stroke: color,     // Viền nổi bật rực rỡ
+      fill: 'transparent', // Trong suốt theo yêu cầu bỏ nền của Thầy Hai!
+      stroke: color,        // Viền nổi bật rực rỡ
       strokeWidth: 4,
       rx: 12,
       ry: 12,
@@ -575,7 +576,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // HIGHLIGHT TÔ MÀU 7 SẮC CẦU VỒNG CHO CHỮ BÔI ĐEN
+  // HIGHLIGHT TÔ MÀU NỀN CHO CHỮ BÔI ĐEN (NỀN LỚP HIGHLIGHT LUÔN NẰM DƯỚI CÙNG LỚP VĂN BẢN THEO ĐÚNG CHỈ ĐẠO THẦY HẢI)
   const applySelectionHighlight = (selectedColor) => {
     const selection = window.getSelection();
     if (!selection.rangeCount || selection.isCollapsed) {
@@ -586,10 +587,10 @@ export default function WhiteboardView() {
     const range = selection.getRangeAt(0);
     const span = document.createElement('span');
     span.style.backgroundColor = selectedColor;
-    span.style.color = '#0f172a';
+    span.style.color = 'inherit'; // Chữ giữ nguyên nét căng màu gốc!
     span.style.borderRadius = '4px';
-    span.style.padding = '1px 4px';
-    span.style.fontWeight = 'bold';
+    span.style.padding = '1px 3px';
+    span.style.lineHeight = '1.3';
 
     try {
       range.surroundContents(span);
@@ -598,6 +599,8 @@ export default function WhiteboardView() {
       span.appendChild(fragment);
       range.insertNode(span);
     }
+
+    setShowHighlightDropdown(false);
   };
 
   // XÓA Ô TEXT DỰ A VÀO PHÍM DELETE HOẶC NÚT XÓA
@@ -799,7 +802,7 @@ export default function WhiteboardView() {
   const handleSelectShape = (shapeType) => {
     if (!fabricCanvas) return;
 
-    const curFill = hasFill ? fillColor : 'transparent';
+    const curFill = hasFill ? fillColor : 'transparent'; // Mặc định trong suốt không nền!
     const curStroke = strokeColor;
     const curWidth = Number(strokeWidth);
     const curOpacity = Number(opacity);
@@ -1128,7 +1131,7 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* THANH RICH TEXT EDITOR CHUẨN CẢM GIÁC DÍNH LIỀN 1 NƠI CỰC KỲ TIỆN TAY CHỈNH SỬA (CHỈ HIỂN THỊ KHI ĐANG ĐƯỢC CHỌN) */}
+              {/* THANH RICH TEXT EDITOR THU GỌN - HỆ THỐNG MENU HIGHLIGHT DROPDOWN GỌN GÀNG CHUẨN ẢNH media_1787452765117.png */}
               {isSelected && (
                 <div
                   className="absolute bottom-full mb-3 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
@@ -1203,6 +1206,7 @@ export default function WhiteboardView() {
 
                   <span className="w-px h-5 bg-slate-400" />
 
+                  {/* ĐỔI MÀU CHỮ CHÍNH */}
                   <input
                     type="color"
                     value={box.color || color}
@@ -1214,19 +1218,32 @@ export default function WhiteboardView() {
                     title="Đổi màu chữ"
                   />
 
-                  {/* Tô màu nền Highlight cho chữ bôi đen */}
-                  <div className="flex items-center space-x-1 bg-[#d2caa9] p-1 rounded-xl border border-[#c8c0a3]">
-                    <span className="text-[10px] font-black text-slate-800">Highlight:</span>
-                    {HIGHLIGHT_PALETTE.map((item) => (
-                      <button
-                        key={item.name}
-                        type="button"
-                        onClick={() => applySelectionHighlight(item.color)}
-                        style={{ backgroundColor: item.color }}
-                        className="w-5 h-5 rounded-full border border-slate-500 hover:scale-110 transition shadow-2xs cursor-pointer"
-                        title={`Tô màu Highlight ${item.name} cho chữ bôi đen`}
-                      />
-                    ))}
+                  {/* THU GỌN HIGHLIGHT THÀNH 1 NÚT CHỮ "Highlight ✨" CÓ POPUP MENU DROPDOWN CHỌN MÀU BÊN TRONG THEO ĐÚNG CHỈ ĐẠO CỦA THẦY HẢI (ẢNH media_1787452765117.png) */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowHighlightDropdown(!showHighlightDropdown)}
+                      className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-extrabold text-xs flex items-center space-x-1 shadow-sm transition border border-amber-300 cursor-pointer"
+                      title="Chọn màu Highlight nền cho chữ bôi đen"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Highlight ✨</span>
+                    </button>
+
+                    {showHighlightDropdown && (
+                      <div className="absolute top-full mt-2 left-0 z-[120] bg-slate-900 border-2 border-amber-400 rounded-2xl shadow-2xl p-2 flex items-center space-x-1.5 animate-scale-up">
+                        {HIGHLIGHT_PALETTE.map((item) => (
+                          <button
+                            key={item.name}
+                            type="button"
+                            onClick={() => applySelectionHighlight(item.color)}
+                            style={{ backgroundColor: item.color }}
+                            className="w-6 h-6 rounded-full border border-slate-300 hover:scale-125 transition shadow-2xs cursor-pointer"
+                            title={`Tô màu Highlight ${item.name} cho chữ bôi đen`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <span className="w-px h-5 bg-slate-400" />
@@ -1242,7 +1259,7 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG 100% - KHI NHẢ CHUỘT CHỈ HIỂN THỊ MỖI CHỮ TRÊN BẢNG */}
+              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG 100% - LỚP NỀN HIGHLIGHT LUÔN NẰM DƯỚI CÙNG LỚP VĂN BẢN */}
               <div
                 contentEditable
                 suppressContentEditableWarning
@@ -1338,7 +1355,7 @@ export default function WhiteboardView() {
         )}
       </div>
 
-      {/* COMPONENT MODULE SHAPES GIAO DIỆN NHỎ GỌN VỚI THANH MÀU DỌC BÊN HÔNG CHUẨN THẦY HẢI CHỈ ĐẠO */}
+      {/* COMPONENT MODULE SHAPES VỊ TRÍ NẰM NGAY TRÊN TOOLBAR DƯỚI CÙNG VÀ TỰ ẨN KHI NGƯỜI DÙNG CHỌN SHAPE CHUẨN THẦY HẢI CHỈ ĐẠO */}
       <ShapesModulePanel
         isOpen={activeWindow === 'shapes'}
         onClose={() => setActiveWindow(null)}
@@ -1398,7 +1415,7 @@ export default function WhiteboardView() {
               <span className="text-[10px]">2. Bút Dạ Quang</span>
             </button>
 
-            {/* BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC (ẢNH media_1787452344528.png THẦY HẢI YÊU CẦU) */}
+            {/* BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC */}
             <button
               onClick={handleAddHighlightBox}
               className="p-2.5 bg-rose-950/80 hover:bg-rose-900 border-2 border-rose-500 rounded-xl text-xs font-black flex flex-col items-center justify-center space-y-1 transition cursor-pointer text-rose-300 shadow-md"
@@ -1852,7 +1869,7 @@ export default function WhiteboardView() {
           <Eraser className="w-4 h-4" />
         </button>
 
-        {/* 8. SHAPES PANEL */}
+        {/* 8. SHAPES PANEL (NẰM NGAY TRÊN PHÍA TRÊN THANH TOOLBAR DƯỚI CÙNG VÀ TỰ ĐỘNG ẨN KHI CHỌN VẼ SHAPE) */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
           className={`p-2 rounded-xl transition cursor-pointer ${
