@@ -8,6 +8,18 @@ const extractYoutubeId = (url) => {
   return match && match[2].length === 11 ? match[2] : null;
 };
 
+// HELPER TÁCH CÂU HỎI ĐIỀN TỪ
+const parseFillBlanksText = (textWithBlanks = '') => {
+  if (!textWithBlanks) return { parts: [], answers: [] };
+  const answers = [];
+  const regex = /\*(.*?)\*/g;
+  let match;
+  while ((match = regex.exec(textWithBlanks)) !== null) {
+    answers.push(match[1].trim());
+  }
+  return { answers };
+};
+
 const H5P_QUESTION_TYPES = [
   { id: 'multiple_choice', name: 'Multiple Choice', label: 'Trắc nghiệm nhiều lựa chọn', icon: CheckSquare },
   { id: 'fill_blanks', name: 'Fill in the Blanks', label: 'Điền từ vào ô trống', icon: Type },
@@ -31,21 +43,22 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
   const [interactions, setInteractions] = useState(initialSettings.interactions || [
     {
       id: 'int_1',
-      timestamp: 10,
-      type: 'true_false',
-      question: 'A tailor cuts hair.',
-      isTrue: false,
+      timestamp: 33,
+      type: 'fill_blanks',
+      question: 'The _____ made a new _____ for me.',
+      textWithBlanks: 'The *tailor* made a new *suit* for me.',
       options: [],
-      correctIndex: 1,
+      correctIndex: 0,
     },
     {
       id: 'int_2',
-      timestamp: 47,
-      type: 'fill_blanks',
-      question: 'Fill in the correct word.',
-      textWithBlanks: 'Fill in the correct *word*.',
+      timestamp: 46,
+      type: 'true_false',
+      question: 'A tailor cuts hair.',
+      isTrue: false,
+      answer: 'False',
       options: [],
-      correctIndex: 0,
+      correctIndex: 1,
     },
     {
       id: 'int_3',
@@ -54,10 +67,20 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
       question: 'Who protects people and keeps the community safe?',
       options: ['Police officer', 'Doctor', 'Vet'],
       correctIndex: 0,
+      answer: 'Police officer',
+    },
+    {
+      id: 'int_4',
+      timestamp: 153,
+      type: 'fill_blanks',
+      question: 'The _____ is a person who fixes and installs _____ systems.',
+      textWithBlanks: 'The *electrician* is a person who fixes and installs *electrical* systems.',
+      options: [],
+      correctIndex: 0,
     },
   ]);
 
-  // FORM SOẠN THẢO VÀ ĐANG Ở CHẾ ĐỘ SỬA (EDITING ID)
+  // FORM SOẠN THẢO VÀ ĐANG Ở CHẾ ĐỘ SỬA
   const [editingId, setEditingId] = useState(null);
   const [selectedType, setSelectedType] = useState('multiple_choice');
   const [questionText, setQuestionText] = useState('');
@@ -88,7 +111,6 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
     }
   };
 
-  // NÚT SỬA (PENCIL) ĐỂ NẠP DỮ LIỆU CÂU HỎI VÀ MỐC GIÂY VÀO FORM ĐỂ THẦY HẢI CHỈNH SỬA
   const handleEditInteraction = (item) => {
     setEditingId(item.id);
     setCurrentTime(item.timestamp);
@@ -177,6 +199,32 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
     return found ? `${found.name} (${found.label})` : typeId;
   };
 
+  // HELPER LẤY ĐÁP ÁN ĐÚNG CHUẨN XÁC CHO MỌI DẠNG CÂU HỎI
+  const getAnswerDisplay = (item) => {
+    if (item.type === 'fill_blanks') {
+      const { answers } = parseFillBlanksText(item.textWithBlanks);
+      if (answers && answers.length > 0) return answers.join(', ');
+    }
+    if (item.type === 'true_false') {
+      const targetBool = typeof item.isTrue === 'boolean'
+        ? item.isTrue
+        : String(item.isTrue || item.answer || '').toLowerCase() === 'true';
+      return targetBool ? 'True (Đúng)' : 'False (Sai)';
+    }
+    if (item.type === 'mark_word') {
+      const words = item.correctWords || (item.correctWordsInput ? item.correctWordsInput.split(',').map((s) => s.trim()).filter(Boolean) : []);
+      if (words && words.length > 0) return words.join(', ');
+    }
+    if (item.type === 'multiple_choice' || item.type === 'drag_drop' || !item.type) {
+      if (item.options && item.options.length > 0) {
+        const idx = typeof item.correctIndex === 'number' ? item.correctIndex : 0;
+        return item.options[idx] || item.options[0] || item.answer;
+      }
+      if (item.answer) return item.answer;
+    }
+    return item.answer || null;
+  };
+
   return (
     <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-2xl space-y-6 font-sans select-none max-w-6xl mx-auto">
       {/* HEADER BANNER & BARS CÔNG CỤ 3 STEP WIZARD BAR */}
@@ -184,7 +232,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="space-y-0.5">
             <span className="px-3 py-1 bg-amber-400 text-slate-950 text-[10px] font-black uppercase rounded-full tracking-wider">
-              H5P STUDIO EDITOR V65
+              H5P STUDIO EDITOR V67
             </span>
             <h3 className="text-xl font-extrabold flex items-center space-x-2">
               <Video className="w-6 h-6 text-rose-400" />
@@ -306,7 +354,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
           </div>
         )}
 
-        {/* BƯỚC 2: THIẾT LẬP TƯƠNG TÁC (TIMELINE DÍNH TRỰC TIẾP DƯỚI ĐÁY KHUNG VIDEO CHUẨN ẢNH 3 & 4) */}
+        {/* BƯỚC 2: THIẾT LẬP TƯƠNG TÁC (TIMELINE DÍNH TRỰC TIẾP TRÊN DẢI PHÁT KHUNG VIDEO CHUẨN ẢNH 1) */}
         {step === 2 && (
           <div className="space-y-6">
             <div className="bg-slate-900 text-white p-4 rounded-3xl border border-slate-800 space-y-3 shadow-lg">
@@ -344,7 +392,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
               </div>
             </div>
 
-            {/* TRÌNH PHÁT VIDEO CHUẨN VỚI THANH SCRUBBER MỐC NÚT DÍNH TRỰC TIẾP DƯỚI ĐÁY KHUNG VIDEO (CHUẨN ẢNH 3 & 4) */}
+            {/* TRÌNH PHÁT VIDEO KÈM NÚT DỪNG DÍNH THẲNG TRÊN DẢI PHÁT CỦA VIDEO CHUẨN ẢNH 1 media_1787499725208.png */}
             <div className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
               {youtubeId ? (
                 <iframe
@@ -365,17 +413,20 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                 />
               )}
 
-              {/* THANH TIMELINE DÍNH TRỰC TIẾP VÀO BOTTOM CỦA MÀN HÌNH VIDEO (ẢNH 3 & ẢNH 4) */}
-              <div className="absolute bottom-0 inset-x-0 bg-slate-950/95 backdrop-blur-md p-3.5 flex items-center justify-between text-white text-xs space-x-4 border-t border-slate-800 z-30">
-                <button onClick={togglePlay} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer border border-slate-700">
+              {/* THANH TIMELINE DÍNH TRỰC TIẾP VÀO BOTTOM KHUNG VIDEO VỚI CÁC ĐIỂM DỪNG NẰM TRONG THANH PHÁT (ẢNH 1) */}
+              <div className="absolute bottom-0 inset-x-0 bg-slate-950/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between text-white text-xs space-x-3 border-t border-slate-800/80 z-30">
+                <button onClick={togglePlay} className="p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer text-white">
                   {isPlaying ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-emerald-400 ml-0.5" />}
                 </button>
 
-                <div className="flex-1 relative bg-slate-800/90 h-3 rounded-full overflow-hidden border border-slate-700">
-                  <div
-                    className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all"
-                    style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-                  />
+                <div className="flex-1 relative h-6 flex items-center cursor-pointer">
+                  <div className="w-full bg-slate-800/90 h-2 rounded-full overflow-hidden border border-slate-700 relative">
+                    <div
+                      className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all"
+                      style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                    />
+                  </div>
+
                   {interactions.map((w, idx) => {
                     const posPercent = duration ? (w.timestamp / duration) * 100 : 0;
                     return (
@@ -385,15 +436,17 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                           e.stopPropagation();
                           handleEditInteraction(w);
                         }}
-                        title={`Bấm để sửa mốc ${w.timestamp}s: ${w.question}`}
+                        title={`Mốc ${w.timestamp}s: ${w.question}`}
                         style={{ left: `${posPercent}%` }}
-                        className="absolute top-0 bottom-0 w-3.5 -ml-1.5 rounded-full bg-amber-400 ring-2 ring-amber-200 animate-pulse cursor-pointer hover:scale-125 transition z-40"
-                      />
+                        className="absolute top-1/2 -translate-y-1/2 -ml-2 w-4 h-4 rounded-full bg-amber-400 border-2 border-white ring-2 ring-amber-500/50 shadow-md cursor-pointer hover:scale-125 transition z-40 flex items-center justify-center"
+                      >
+                        <div className="w-1.5 h-1.5 bg-slate-950 rounded-full" />
+                      </div>
                     );
                   })}
                 </div>
 
-                <span className="font-mono text-slate-300 text-[11px] font-bold bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
+                <span className="font-mono text-slate-300 text-[11px] font-bold bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-800">
                   {currentTime}s / {Math.floor(duration)}s
                 </span>
               </div>
@@ -570,7 +623,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                 </button>
               </div>
 
-              {/* CỘT PHẢI: DANH SÁCH MỐC ĐÃ THIẾT LẬP KÈM NÚT ✏️ SỬA VÀ 🗑️ XÓA CHUẨN ẢNH 1 */}
+              {/* CỘT PHẢI: DANH SÁCH MỐC ĐÃ THIẾT LẬP KÈM HIỂN THỊ ĐÁP ÁN ĐÚNG CHUẨN XÁC CHO MỌI LOẠI CÂU HỎI (ẢNH 2 media_1787499782541.png) */}
               <div className="space-y-3">
                 <h4 className="font-extrabold text-sm text-slate-900">
                   📋 Danh Sách Mốc Tương Tác Đã Tạo ({interactions.length})
@@ -582,48 +635,50 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                    {interactions.map((item) => (
-                      <div
-                        key={item.id}
-                        className={`p-4 border rounded-2xl shadow-xs transition flex justify-between items-start space-x-3 ${
-                          editingId === item.id ? 'border-amber-400 bg-amber-50/50 ring-2 ring-amber-300' : 'bg-white border-slate-200'
-                        }`}
-                      >
-                        <div className="space-y-1">
-                          <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 font-black text-[10px] rounded-md inline-block">
-                            ⏱️ Mốc: {item.timestamp}s ({getTypeNameFormatted(item.type)})
-                          </span>
-                          <h5 className="text-xs font-bold text-slate-900 leading-snug">{item.question}</h5>
-                          {item.options && item.options.length > 0 && (
-                            <p className="text-[11px] text-emerald-700 font-bold">
-                              ✓ Đáp án đúng: {item.options[item.correctIndex]}
-                            </p>
-                          )}
-                        </div>
+                    {interactions.map((item) => {
+                      const answerDisp = getAnswerDisplay(item);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`p-4 border rounded-2xl shadow-xs transition flex justify-between items-start space-x-3 ${
+                            editingId === item.id ? 'border-amber-400 bg-amber-50/50 ring-2 ring-amber-300' : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 font-black text-[10px] rounded-md inline-block">
+                              ⏱️ Mốc: {item.timestamp}s ({getTypeNameFormatted(item.type)})
+                            </span>
+                            <h5 className="text-xs font-bold text-slate-900 leading-snug">{item.question}</h5>
+                            {answerDisp && (
+                              <p className="text-[11px] text-emerald-700 font-bold flex items-center space-x-1">
+                                <span>✓ Đáp án đúng: {answerDisp}</span>
+                              </p>
+                            )}
+                          </div>
 
-                        {/* NÚT ✏️ SỬA VÀ 🗑️ XÓA CHUẨN ĐẸP NẰM CẠNH NHAU NỔI BẬT */}
-                        <div className="flex items-center space-x-1.5 flex-shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleEditInteraction(item)}
-                            title="Sửa mốc này"
-                            className="p-2 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-200 transition cursor-pointer flex items-center space-x-1 text-xs font-bold"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            <span>Sửa</span>
-                          </button>
+                          <div className="flex items-center space-x-1.5 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleEditInteraction(item)}
+                              title="Sửa mốc này"
+                              className="p-2 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-200 transition cursor-pointer flex items-center space-x-1 text-xs font-bold"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              <span>Sửa</span>
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => removeInteraction(item.id)}
-                            title="Xóa mốc này"
-                            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => removeInteraction(item.id)}
+                              title="Xóa mốc này"
+                              className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
