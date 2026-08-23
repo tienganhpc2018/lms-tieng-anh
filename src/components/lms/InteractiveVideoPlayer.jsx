@@ -33,14 +33,14 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
-// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN 100% ẢNH 1 (media_1787500996817.png) & ẢNH 2 (media_1787501117346.png)
+// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN FIX DỨT ĐIỂM LỖI GÕ PHÍM VÀ MẤT FOCUS INPUT
 const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback, isSolutionVisible }) => {
   const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
   const isChecked = quizFeedback !== null;
 
   return (
-    <div className="space-y-4 text-left">
-      <div className="text-base sm:text-lg text-slate-900 leading-relaxed font-medium">
+    <div className="space-y-4 text-left select-text">
+      <div className="text-base sm:text-lg text-slate-900 leading-relaxed font-medium select-text">
         {parts.map((item, pIdx) => {
           if (item.type === 'text') {
             return <span key={`text_${pIdx}`}>{item.content}</span>;
@@ -55,9 +55,15 @@ const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInput
                   key={`blank_input_${item.index}`}
                   type="text"
                   value={blankInputs[item.index] || ''}
-                  onChange={(e) => onInputChange(item.index, e.target.value)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    onInputChange(item.index, e.target.value);
+                  }}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onKeyUp={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                   placeholder=""
-                  className="mx-1 px-2.5 py-1 border-2 border-slate-300 rounded-md text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none inline-block min-w-[90px] text-center shadow-xs align-baseline"
+                  className="mx-1 px-3 py-1.5 border-2 border-slate-300 focus:border-blue-600 rounded-md text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none inline-block min-w-[100px] text-center shadow-xs align-baseline pointer-events-auto select-text cursor-text relative z-50"
                 />
               );
             }
@@ -161,6 +167,17 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       }
     } catch (e) {}
   };
+
+  // 1. DỰ PHÒNG CHẶN EVENT PROPAGATION HOTKEY TOÀN CỤC KHI ĐANG GÕ THẺ INPUT / TEXTAREA
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
+  }, []);
 
   useEffect(() => {
     if (!youtubeId) return;
@@ -396,7 +413,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-8 max-w-5xl mx-auto space-y-6 font-sans select-none">
+    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-8 max-w-5xl mx-auto space-y-6 font-sans select-text">
       {/* HEADER BANNER */}
       <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="space-y-1">
@@ -437,20 +454,20 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
         {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CHỦN H5P 100% ẢNH 1 & ẢNH 2 media_1787500996817.png / media_1787501117346.png) */}
         {activeQuiz && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up">
-            <div className="bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-200 max-w-xl w-full shadow-2xl space-y-4 text-left relative">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up pointer-events-auto">
+            <div className="bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-200 max-w-xl w-full shadow-2xl space-y-4 text-left relative z-50 pointer-events-auto select-text">
               <button
                 type="button"
                 onClick={handleCloseAndContinue}
                 title="Đóng câu hỏi và tiếp tục xem video"
-                className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer border border-slate-300"
+                className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer border border-slate-300 z-50"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              {/* DẠNG GAP-FILL / FILL IN THE BLANKS CHUẨN H5P (ẢNH 1 & ẢNH 2) */}
+              {/* DẠNG GAP-FILL / FILL IN THE BLANKS CHUẨN H5P */}
               {activeQuiz.type === 'fill_blanks' && (
-                <div className="space-y-4">
+                <div className="space-y-4 select-text">
                   <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug border-b border-slate-100 pb-3">
                     {activeQuiz.question || 'Fill in the correct ingredients'}
                   </h3>
@@ -463,17 +480,16 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     isSolutionVisible={isSolutionVisible}
                   />
 
-                  {/* THỐNG KÊ SỐ LỖI ĐÚNG / SAI CÂU ĐIỀN TỪ (ẢNH 2 media_1787501117346.png) */}
+                  {/* THỐNG KÊ SỐ LỖI ĐÚNG / SAI CÂU ĐIỀN TỪ */}
                   {quizFeedback && (
-                    <p className="text-blue-600 font-extrabold text-base pt-1">
+                    <p className="text-blue-600 font-extrabold text-base pt-1 select-text">
                       You got {quizFeedback.correctCount} of {quizFeedback.totalCount} blanks correct.
                     </p>
                   )}
 
-                  {/* THANH THỐNG KÊ NGÔI SAO & BỘ NÚT ĐIỀU KHIỂN CHUẨN H5P ẢNH 1 & ẢNH 2 */}
+                  {/* THANH THỐNG KÊ NGÔI SAO & BỘ NÚT ĐIỀU KHIỂN CHUẨN H5P */}
                   {quizFeedback ? (
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                      {/* THANH NGÔI SAO TÍNH ĐIỂM (STAR SCORE BAR) */}
                       <div className="flex items-center space-x-2 bg-slate-100 px-4 py-2 rounded-full border border-slate-200 shadow-2xs">
                         <div className="w-24 bg-slate-200 h-2.5 rounded-full overflow-hidden">
                           <div
@@ -487,9 +503,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         </span>
                       </div>
 
-                      {/* BỘ NÚT CON MẮT (👁️), RETRY (🔄), PHÁT TIẾP (▶) CHUẨN ẢNH 2 */}
                       <div className="flex items-center space-x-2.5">
-                        {/* NÚT CON MẮT HẠN ĐÁP ÁN (EYE ICON 👁️) */}
                         <button
                           type="button"
                           onClick={() => setIsSolutionVisible(!isSolutionVisible)}
@@ -501,7 +515,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                           <Eye className="w-5 h-5" />
                         </button>
 
-                        {/* NÚT RETRY LÀM LẠI (RETRY ICON 🔄) */}
                         <button
                           type="button"
                           onClick={() => {
@@ -515,7 +528,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                           <RotateCcw className="w-5 h-5" />
                         </button>
 
-                        {/* NÚT XEM TIẾP VIDEO (PLAY ICON ▶) */}
                         <button
                           type="button"
                           onClick={handleCloseAndContinue}
@@ -527,7 +539,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       </div>
                     </div>
                   ) : (
-                    /* NÚT CHECK & CONTINUE KHI CHƯA CHECK CHUẨN ẢNH 1 */
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                       <button
                         type="button"
