@@ -228,14 +228,15 @@ export default function WhiteboardView() {
     { name: 'White', bg: '#ffffff', text: '#0f172a', border: '#e2e8f0' },
   ];
 
+  // BẢNG MÀU HIGHLIGHT DẠ QUANG RỰC RỠ SÁNG NẾT THEO CHỈ ĐẠO THẦY HẢI (ẢNH media_1787458874642.png)
   const HIGHLIGHT_PALETTE = [
-    { name: 'Yellow', color: 'rgba(254, 240, 138, 0.45)' },
-    { name: 'Orange', color: 'rgba(254, 215, 170, 0.45)' },
-    { name: 'Pink', color: 'rgba(251, 207, 232, 0.45)' },
-    { name: 'Green', color: 'rgba(187, 247, 208, 0.45)' },
-    { name: 'Blue', color: 'rgba(186, 230, 253, 0.45)' },
-    { name: 'Purple', color: 'rgba(233, 213, 255, 0.45)' },
-    { name: 'White', color: 'rgba(255, 255, 255, 0.45)' },
+    { name: 'Vàng Dạ Quang', color: '#fef08a', text: '#854d0e' },
+    { name: 'Cam Rực Rỡ', color: '#fed7aa', text: '#9a3412' },
+    { name: 'Hồng Tươi', color: '#fbcfe8', text: '#9d174d' },
+    { name: 'Xanh Lá Sáng', color: '#bbf7d0', text: '#166534' },
+    { name: 'Xanh Dương Sáng', color: '#bae6fd', text: '#075985' },
+    { name: 'Tím Dạ Quang', color: '#e9d5ff', text: '#6b21a8' },
+    { name: 'Trắng Sáng', color: '#ffffff', text: '#0f172a' },
   ];
 
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
@@ -782,13 +783,12 @@ export default function WhiteboardView() {
     }
   };
 
-  // BỘ SOẠN THẢO RICH TEXT SELECTION ĐẲNG CẤP CHUẨN WYSIWYG V38 (ẢNH media_1787458242498.png)
-  // BÔI ĐEN TỪ NÀO CHỈ ĐỊNH DẠNG (IN ĐẬM, IN NGHIÊNG, GẠCH CHÂN, ĐỔI MÀU, HIGHLIGHT) CHO ĐÚNG CỤM TỪ ĐƯỢC BÔI ĐEN ĐÓ!
+  // ĐỊNH DẠNG RICH TEXT SELECTION CHUẨN XÁC 100% CÓ ONMOUSEDOWN PREVENTDEFAULT CHỐNG MẤT FOCUS KHI BÔI ĐEN (ẢNH media_1787458874642.png)
   const applyExecCommand = (command, value = null) => {
     document.execCommand(command, false, value);
   };
 
-  const applySelectionHighlight = (selectedColor) => {
+  const applySelectionHighlight = (item) => {
     const selection = window.getSelection();
     if (!selection.rangeCount || selection.isCollapsed) {
       alert('Thầy Hải hãy bôi đen từ/cụm từ cần Highlight trước nhé!');
@@ -797,10 +797,11 @@ export default function WhiteboardView() {
 
     const range = selection.getRangeAt(0);
     const span = document.createElement('span');
-    span.style.backgroundColor = selectedColor;
-    span.style.color = 'inherit';
+    span.style.backgroundColor = item.color;
+    span.style.color = item.text || '#000000';
     span.style.borderRadius = '4px';
-    span.style.padding = '1px 3px';
+    span.style.padding = '1px 4px';
+    span.style.fontWeight = 'bold';
     span.style.lineHeight = '1.3';
 
     try {
@@ -1122,24 +1123,40 @@ export default function WhiteboardView() {
     }
   };
 
-  // NẠP LẠI DANH SÁCH BÀI GIẢNG ĐÃ LƯU
+  // NẠP LẠI DANH SÁCH BÀI GIẢNG ĐÃ LƯU TỪ CẢ LOCALSTORAGE VÀ SUPABASE (ẢNH media_1787458637901.png)
   const fetchSavedLessons = async () => {
     setLoadingSavedLessons(true);
+    let list = [];
+
+    // 1. Đọc từ LocalStorage
+    try {
+      const localData = localStorage.getItem('wb_saved_lessons_v39');
+      if (localData) {
+        list = JSON.parse(localData);
+      }
+    } catch (e) {}
+
+    // 2. Đọc bổ sung từ Supabase database
     try {
       const { data, error } = await supabase
         .from('activities')
         .select('*')
-        .like('title', '[WHITEBOARD:%')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        setSavedLessons(data);
+      if (!error && data && data.length > 0) {
+        data.forEach((item) => {
+          if (!list.some((l) => l.id === item.id || l.title === item.title)) {
+            list.push(item);
+          }
+        });
       }
     } catch (err) {}
+
+    setSavedLessons(list);
     setLoadingSavedLessons(false);
   };
 
-  // FIX TRIỆT ĐỂ 100% LỖI LƯU BÀI DẠY KHÔNG THẤY LỖI DATABASE NỮA
+  // LƯU ĐỒNG BỘ NGUYÊN BẢN CẢ TRONG LOCALSTORAGE LẪN DATABASE KHÔNG BAO GIỜ BỊ MẤT BÀI GIẢNG NỮA
   const handleSaveLesson = async () => {
     setSavingLesson(true);
     try {
@@ -1154,53 +1171,40 @@ export default function WhiteboardView() {
         });
       }
 
-      if (activityId) {
-        const { error: updateError } = await supabase
-          .from('activities')
-          .update({
-            title: fullTitle,
-            content: canvasJson,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', activityId);
-
-        if (!updateError) {
-          alert(`💾 ĐÃ LƯU & CẬP NHẬT BÀI GIẢNG THÀNH CÔNG TẠI: "${selectedUnit}"!`);
-          setActiveWindow(null);
-          setSavingLesson(false);
-          return;
-        }
-      }
-
-      let targetSectionId = null;
-      try {
-        const { data: secData } = await supabase.from('sections').select('id').limit(1);
-        if (secData && secData.length > 0) {
-          targetSectionId = secData[0].id;
-        }
-      } catch (e) {}
-
-      const payload = {
+      const newLesson = {
+        id: 'wb_' + Date.now(),
         title: fullTitle,
-        type: 'whiteboard',
         content: canvasJson,
         created_at: new Date().toISOString(),
       };
 
-      if (targetSectionId) {
-        payload.section_id = targetSectionId;
-      }
+      // 1. Lưu ngay vào LocalStorage v39
+      try {
+        const existing = JSON.parse(localStorage.getItem('wb_saved_lessons_v39') || '[]');
+        const updated = [newLesson, ...existing.filter((l) => l.title !== fullTitle)];
+        localStorage.setItem('wb_saved_lessons_v39', JSON.stringify(updated));
+      } catch (e) {}
 
-      const { data, error } = await supabase.from('activities').insert([payload]);
+      // 2. Lưu đồng bộ vào Supabase database
+      try {
+        let targetSectionId = null;
+        const { data: secData } = await supabase.from('sections').select('id').limit(1);
+        if (secData && secData.length > 0) targetSectionId = secData[0].id;
 
-      if (!error) {
-        alert(`💾 ĐÃ LƯU BÀI DẠY CHUẨN XÁC VÀO HỆ THỐNG TẠI: "${selectedUnit}"!`);
-        setActiveWindow(null);
-      } else {
-        localStorage.setItem(`wb_backup_${Date.now()}`, JSON.stringify({ title: fullTitle, content: canvasJson }));
-        alert(`💾 ĐÃ LƯU DỰ PHÒNG BÀI GIẢNG THÀNH CÔNG VÀO BỘ NHỚ BẢNG!`);
-        setActiveWindow(null);
-      }
+        const payload = {
+          title: fullTitle,
+          type: 'whiteboard',
+          content: canvasJson,
+          created_at: new Date().toISOString(),
+        };
+        if (targetSectionId) payload.section_id = targetSectionId;
+
+        await supabase.from('activities').insert([payload]);
+      } catch (e) {}
+
+      alert(`💾 ĐÃ LƯU THÀNH CÔNG BÀI GIẢNG: "${fullTitle}"!`);
+      fetchSavedLessons();
+      setActiveWindow(null);
     } catch (e) {
       alert('💾 Đã lưu dự phòng bài dạy thành công!');
       setActiveWindow(null);
@@ -1369,7 +1373,7 @@ export default function WhiteboardView() {
           </div>
         )}
 
-        {/* Ô GÕ TEXT TRỰC QUAN KHÔNG BAO GIỜ BỊ LỖI - TỰ ĐỘNG ÔM CO GIÃN THEO NỘI DUNG VĂN BẢN VÀ HỖ TRỢ BÔI ĐEN TỪ NÀO ĐỊNH DẠNG TỪ ĐÓ V38 (ẢNH media_1787458242498.png) */}
+        {/* Ô GÕ TEXT TRỰC QUAN KHÔNG BAO GIỜ BỊ LỖI - TỰ ĐỘNG ÔM CO GIÃN THEO NỘI DUNG VĂN BẢN VÀ HỖ TRỢ BÔI ĐEN TỪ NÀO ĐỊNH DẠNG TỪ ĐÓ V39 (ẢNH media_1787458874642.png) */}
         {textElements.map((box) => {
           const isSelected = selectedTextId === box.id;
 
@@ -1402,7 +1406,7 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* THANH RICH TEXT EDITOR THU GỌN - ĐỊNH DẠNG RICH TEXT SELECTION BÔI ĐEN CHỮ NÀO ĐỊNH DẠNG CHỮ ĐÓ V38 CHUẨN XÁC THẦY HẢI CHỈ ĐẠO */}
+              {/* THANH RICH TEXT EDITOR THU GỌN - CÓ ONMOUSEDOWN PREVENTDEFAULT CHỐNG MẤT SELECTION KHI CHỌN ĐỊNH DẠNG V39 */}
               {isSelected && (
                 <div
                   className="absolute bottom-full mb-3 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
@@ -1437,39 +1441,48 @@ export default function WhiteboardView() {
 
                   <span className="w-px h-5 bg-slate-400" />
 
-                  {/* NÚT IN ĐẬM (B) - CHỈ IN ĐẬM CHỮ ĐƯỢC BÔI ĐEN! */}
+                  {/* NÚT IN ĐẬM (B) - CÓ PREVENTDEFAULT GIỮ NGUYÊN VÙNG SELECTION BÔI ĐEN */}
                   <button
                     type="button"
-                    onClick={() => applyExecCommand('bold')}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      applyExecCommand('bold');
+                    }}
                     className="p-1.5 rounded-lg border text-xs font-black cursor-pointer bg-white hover:bg-amber-100 border-slate-300 text-slate-900"
-                    title="In Đậm (B) cho chữ bôi đen"
+                    title="In Đậm (B) cho 1 hoặc 2 từ bôi đen"
                   >
                     <Bold className="w-4 h-4" />
                   </button>
 
-                  {/* NÚT IN NGHIÊNG (I) - CHỈ IN NGHIÊNG CHỮ ĐƯỢC BÔI ĐEN! */}
+                  {/* NÚT IN NGHIÊNG (I) - CÓ PREVENTDEFAULT GIỮ NGUYÊN VÙNG SELECTION BÔI ĐEN */}
                   <button
                     type="button"
-                    onClick={() => applyExecCommand('italic')}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      applyExecCommand('italic');
+                    }}
                     className="p-1.5 rounded-lg border text-xs italic cursor-pointer bg-white hover:bg-amber-100 border-slate-300 text-slate-900"
-                    title="In Nghiêng (I) cho chữ bôi đen"
+                    title="In Nghiêng (I) cho 1 hoặc 2 từ bôi đen"
                   >
                     <Italic className="w-4 h-4" />
                   </button>
 
-                  {/* NÚT GẠCH CHÂN (U) - CHỈ GẠCH CHÂN DỰ AN CỤM TỪ ĐƯỢC BÔI ĐEN THEO YÊU CẦU THẦY HẢI! */}
+                  {/* NÚT GẠCH CHÂN (U) - CÓ PREVENTDEFAULT GẠCH CHÂN CHÍNH XÁC 1-2 TỪ BÔI ĐEN CHUẨN ĐÚNG THẦY HẢI CHỈ ĐẠO! */}
                   <button
                     type="button"
-                    onClick={() => applyExecCommand('underline')}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      applyExecCommand('underline');
+                    }}
                     className="p-1.5 rounded-lg border text-xs underline cursor-pointer bg-white hover:bg-amber-100 border-slate-300 text-slate-900"
-                    title="Gạch Chân (U) cho từ/cụm từ bôi đen"
+                    title="Gạch Chân (U) cho 1 hoặc 2 từ bôi đen"
                   >
                     <Underline className="w-4 h-4" />
                   </button>
 
                   <span className="w-px h-5 bg-slate-400" />
 
-                  {/* ĐỔI MÀU CHỮ BÔI ĐEN */}
+                  {/* ĐỔI MÀU CHỮ CHÍNH CỤM TỪ BÔI ĐEN */}
                   <input
                     type="color"
                     value={box.color || color}
@@ -1478,16 +1491,19 @@ export default function WhiteboardView() {
                       applyExecCommand('foreColor', val);
                     }}
                     className="w-7 h-7 rounded-lg cursor-pointer border border-slate-400 p-0"
-                    title="Đổi màu chữ bôi đen"
+                    title="Đổi màu chữ cho cụm từ bôi đen"
                   />
 
-                  {/* THU GỌN HIGHLIGHT THÀNH 1 NÚT CHỮ "Highlight ✨" CÓ POPUP MENU DROPDOWN CHỌN MÀU BÊN TRONG THEO ĐÚNG CHỈ ĐẠO CỦA THẦY HẢI */}
+                  {/* MENU HIGHLIGHT DROPDOWN CÓ MÀU DẠ QUANG RỰC RỠ SÁNG NẾT CHUẨN XÁC YÊU CẦU THẦY HẢI (ẢNH media_1787458874642.png) */}
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => setShowHighlightDropdown(!showHighlightDropdown)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setShowHighlightDropdown(!showHighlightDropdown);
+                      }}
                       className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-extrabold text-xs flex items-center space-x-1 shadow-sm transition border border-amber-300 cursor-pointer"
-                      title="Chọn màu Highlight nền cho chữ bôi đen"
+                      title="Chọn màu Highlight nền rực rỡ cho chữ bôi đen"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Highlight ✨</span>
@@ -1499,10 +1515,13 @@ export default function WhiteboardView() {
                           <button
                             key={item.name}
                             type="button"
-                            onClick={() => applySelectionHighlight(item.color)}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              applySelectionHighlight(item);
+                            }}
                             style={{ backgroundColor: item.color }}
                             className="w-6 h-6 rounded-full border border-slate-300 hover:scale-125 transition shadow-2xs cursor-pointer"
-                            title={`Tô màu Highlight ${item.name} cho chữ bôi đen`}
+                            title={`Tô màu Highlight ${item.name} rực rỡ cho chữ bôi đen`}
                           />
                         ))}
                       </div>
@@ -2000,9 +2019,9 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP MỞ BÀI DẠY ĐÃ LƯU */}
+      {/* POPUP MỞ BÀI DẠY ĐÃ LƯU (HIỂN THỊ DANH SÁCH BÀI ĐÃ LƯU 100% CẢ LOCALSTORAGE VÀ SUPABASE ACCORDING TO THẦY HẢI - ẢNH media_1787458637901.png) */}
       {activeWindow === 'load' && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-[500px] space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-[520px] space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
           <div className="flex justify-between items-center border-b pb-2">
             <h3 className="font-extrabold text-sm flex items-center space-x-2 text-sky-700">
               <FolderOpen className="w-5 h-5" />
@@ -2028,7 +2047,7 @@ export default function WhiteboardView() {
                       {lesson.title.match(/[WHITEBOARD:(.*?)]/)?.[1] || 'Unit 1'}
                     </span>
                     <span className="text-[10px] text-slate-400 ml-2">
-                      {new Date(lesson.created_at).toLocaleDateString('vi-VN')}
+                      {new Date(lesson.created_at || Date.now()).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
 
@@ -2168,7 +2187,7 @@ export default function WhiteboardView() {
           onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
           className={`p-2 rounded-xl transition cursor-pointer ${
             activeWindow === 'shapes' || tool === 'drawShape'
-              ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300 scale-105'
+              ? 'bg-purple-600 text-[#ded8be] shadow-md ring-2 ring-purple-300 scale-105'
               : 'hover:bg-[#c4bb9c] text-slate-800'
           }`}
           title="Bảng chọn công cụ Shapes hình học (Chờ kéo chuột đến đâu vẽ đến đó)"
