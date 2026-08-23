@@ -24,7 +24,7 @@ const playTickSound = () => {
     const gain = ctx.createGain();
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(800, ctx.currentTime);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -52,7 +52,7 @@ const playFinishChime = () => {
   } catch (e) {}
 };
 
-// COMPONENT RENDER MẶT HỘT XÚC XẮC THỰC TẾ (VẼ CHẤM TRÒN ⚀ ⚁ ⚂ ⚃ ⚄ ⚅ CHUẨN XÁC THEO CHỈ ĐẠO THẦY HẢI)
+// COMPONENT RENDER MẶT HỘT XÚC XẮC THỰC TẾ
 const DiceFace = ({ value, isSpinning }) => {
   const renderDots = () => {
     switch (value) {
@@ -138,6 +138,26 @@ export default function WhiteboardView() {
     }
   }, [user, isTeacher, navigate]);
 
+  // ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK (ẢNH media_1787459586193.png)
+  const [realtimeClock, setRealtimeClock] = useState('');
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const m = months[now.getMonth()];
+      const d = now.getDate();
+      const y = now.getFullYear();
+      let h = now.getHours();
+      const min = now.getMinutes().toString().padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      setRealtimeClock(`${m}/${d}/${y} ${h}:${min} ${ampm}`);
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // VỊ TRÍ THANH TOOLBAR DƯỚI CÙNG SÁT MEP (BOTTOM-3)
   const [toolbarPos, setToolbarPos] = useState('bottom');
 
@@ -148,7 +168,7 @@ export default function WhiteboardView() {
   const [fontSize, setFontSize] = useState(36);
   const [fontFamily, setFontFamily] = useState('Noto Sans');
 
-  // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD (MẶC ĐỊNH MÀU ĐỎ NẾT DÀY 5PX NỀN TRONG SUỐT)
+  // THUỘC TÍNH VẼ SHAPES REAL-TIME CHUẨN MYVIEWBOARD
   const [strokeColor, setStrokeColor] = useState('#ef4444');
   const [fillColor, setFillColor] = useState('#ef4444');
   const [hasFill, setHasFill] = useState(false);
@@ -163,7 +183,7 @@ export default function WhiteboardView() {
   const [pages, setPages] = useState([{ id: 1, name: 'Trang 1', data: null, textElements: [] }]);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
-  // QUẢN LÝ Ô GÕ TEXT TRỰC QUAN NGUYÊN BẢN SANG TRỌNG V40 (ẢNH media_1787459246892.png)
+  // QUẢN LÝ Ô GÕ TEXT TRỰC QUAN NGUYÊN BẢN SANG TRỌNG V40
   const [textElements, setTextElements] = useState([]);
   const [selectedTextId, setSelectedTextId] = useState(null);
 
@@ -176,7 +196,7 @@ export default function WhiteboardView() {
   const [activeSelectionObjects, setActiveSelectionObjects] = useState([]);
   const [floatingMenuPos, setFloatingMenuPos] = useState(null);
 
-  // Background Nền Bảng
+  // Background Nền Bảng (CẬP NHẬT 6 MẪU NỀN THEO ẢNH media_1787459474821.png)
   const [bgType, setBgType] = useState('greenboard');
 
   // Popups & Teaching Tools
@@ -228,7 +248,7 @@ export default function WhiteboardView() {
     { name: 'White', bg: '#ffffff', text: '#0f172a', border: '#e2e8f0' },
   ];
 
-  // BẢNG MÀU HIGHLIGHT DẠ QUANG RỰC RỠ SÁNG NẾT THEO CHỈ ĐẠO THẦY HẢI
+  // BẢNG MÀU HIGHLIGHT DẠ QUANG RỰC RỠ SÁNG NẾT
   const HIGHLIGHT_PALETTE = [
     { name: 'Vàng Dạ Quang', color: '#fef08a', text: '#854d0e' },
     { name: 'Cam Rực Rỡ', color: '#fed7aa', text: '#9a3412' },
@@ -422,6 +442,59 @@ export default function WhiteboardView() {
       fc.dispose();
     };
   }, []);
+
+  // TỰ ĐỘNG AUTO-LOAD NỘI DUNG BÀI GIẢNG KHI TỪ KHÓA HỌC MỞ WHITEBOARD (ACTIVITYID) V41 (ẢNH media_1787459646669.png & media_1787459724662.png)
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    const loadActivityContent = async () => {
+      // 1. Thử load từ Supabase Database theo activityId
+      if (activityId) {
+        try {
+          const { data, error } = await supabase
+            .from('activities')
+            .select('*')
+            .eq('id', activityId)
+            .single();
+
+          if (!error && data && data.content) {
+            setLessonTitle(data.title.replace(/[WHITEBOARD:.*?]/, '').trim() || 'Bài Giảng Tiếng Anh');
+            const unitMatch = data.title.match(/[WHITEBOARD:(.*?)]/);
+            if (unitMatch) setSelectedUnit(unitMatch[1]);
+
+            const parsed = JSON.parse(data.content);
+            if (parsed.textElements) setTextElements(parsed.textElements);
+            if (parsed.pages) setPages(parsed.pages);
+            if (parsed.fabric) {
+              fabricCanvas.loadFromJSON(parsed.fabric).then(() => {
+                fabricCanvas.renderAll();
+              });
+            }
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 2. Nếu không có activityId hoặc rỗng ➔ Tự động khôi phục bài giảng vừa lưu gần nhất từ LocalStorage!
+      try {
+        const localSaved = JSON.parse(localStorage.getItem('wb_saved_lessons_v39') || '[]');
+        if (localSaved.length > 0) {
+          const latest = localSaved[0];
+          setLessonTitle(latest.title.replace(/[WHITEBOARD:.*?]/, '').trim() || 'Bài Giảng Tiếng Anh');
+          const parsed = JSON.parse(latest.content);
+          if (parsed.textElements) setTextElements(parsed.textElements);
+          if (parsed.pages) setPages(parsed.pages);
+          if (parsed.fabric) {
+            fabricCanvas.loadFromJSON(parsed.fabric).then(() => {
+              fabricCanvas.renderAll();
+            });
+          }
+        }
+      } catch (e) {}
+    };
+
+    loadActivityContent();
+  }, [fabricCanvas, activityId]);
 
   // TÍNH NĂNG NHÓM (GROUP) VÀ BỎ NHÓM (UNGROUP) CHUẨN XÁC CHỦ ĐẠO THẦY HẢI
   const handleGroupSelectedObjects = () => {
@@ -770,7 +843,7 @@ export default function WhiteboardView() {
         x: Math.max(10, clickX),
         y: Math.max(10, clickY),
         htmlContent: 'Nhấp để gõ bài giảng...',
-        color: bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000',
+        color: bgType === 'greenboard' || bgType === 'blackboard' || bgType === 'green_grid' || bgType === 'english_lines' ? '#ffffff' : '#000000',
         fontSize: fontSize || 36,
         fontFamily: fontFamily || 'Noto Sans',
       };
@@ -1156,7 +1229,7 @@ export default function WhiteboardView() {
     setLoadingSavedLessons(false);
   };
 
-  // LƯU ĐỒNG BỘ NGUYÊN BẢN CẢ TRONG LOCALSTORAGE LẪN DATABASE KHÔNG BAO GIỜ BỊ MẤT BÀI GIẢNG NỮA
+  // LƯU ĐỒNG BỘ NGUYÊN BẢN CẢ TRONG LOCALSTORAGE LẪN DATABASE CHO CẢ KHÓA HỌC (ẢNH media_1787459646669.png & media_1787459724662.png)
   const handleSaveLesson = async () => {
     setSavingLesson(true);
     try {
@@ -1172,7 +1245,7 @@ export default function WhiteboardView() {
       }
 
       const newLesson = {
-        id: 'wb_' + Date.now(),
+        id: activityId || ('wb_' + Date.now()),
         title: fullTitle,
         content: canvasJson,
         created_at: new Date().toISOString(),
@@ -1181,28 +1254,42 @@ export default function WhiteboardView() {
       // 1. Lưu ngay vào LocalStorage v39
       try {
         const existing = JSON.parse(localStorage.getItem('wb_saved_lessons_v39') || '[]');
-        const updated = [newLesson, ...existing.filter((l) => l.title !== fullTitle)];
+        const updated = [newLesson, ...existing.filter((l) => l.title !== fullTitle && l.id !== activityId)];
         localStorage.setItem('wb_saved_lessons_v39', JSON.stringify(updated));
       } catch (e) {}
 
-      // 2. Lưu đồng bộ vào Supabase database
-      try {
-        let targetSectionId = null;
-        const { data: secData } = await supabase.from('sections').select('id').limit(1);
-        if (secData && secData.length > 0) targetSectionId = secData[0].id;
+      // 2. Cập nhật bài học trong Khóa học nếu có activityId
+      if (activityId) {
+        try {
+          await supabase
+            .from('activities')
+            .update({
+              title: fullTitle,
+              content: canvasJson,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', activityId);
+        } catch (e) {}
+      } else {
+        // Lưu mới vào Supabase database
+        try {
+          let targetSectionId = null;
+          const { data: secData } = await supabase.from('sections').select('id').limit(1);
+          if (secData && secData.length > 0) targetSectionId = secData[0].id;
 
-        const payload = {
-          title: fullTitle,
-          type: 'whiteboard',
-          content: canvasJson,
-          created_at: new Date().toISOString(),
-        };
-        if (targetSectionId) payload.section_id = targetSectionId;
+          const payload = {
+            title: fullTitle,
+            type: 'whiteboard',
+            content: canvasJson,
+            created_at: new Date().toISOString(),
+          };
+          if (targetSectionId) payload.section_id = targetSectionId;
 
-        await supabase.from('activities').insert([payload]);
-      } catch (e) {}
+          await supabase.from('activities').insert([payload]);
+        } catch (e) {}
+      }
 
-      alert(`💾 ĐÃ LƯU THÀNH CÔNG BÀI GIẢNG: "${fullTitle}"!`);
+      alert(`💾 ĐÃ LƯU BÀI GIẢNG VÀO KHÓA HỌC THÀNH CÔNG: "${fullTitle}"!`);
       fetchSavedLessons();
       setActiveWindow(null);
     } catch (e) {
@@ -1241,6 +1328,12 @@ export default function WhiteboardView() {
           ? 'bg-slate-950'
           : bgType === 'grid'
           ? 'bg-slate-100'
+          : bgType === 'paper_note'
+          ? 'bg-[#fdfbf7] bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]'
+          : bgType === 'green_grid'
+          ? 'bg-[#0a2e23] bg-[linear-gradient(to_right,#0d382b_1px,transparent_1px),linear-gradient(to_bottom,#0d382b_1px,transparent_1px)] bg-[size:24px_24px]'
+          : bgType === 'english_lines'
+          ? 'bg-[#0f382c]'
           : 'bg-white'
       }`}
     >
@@ -1304,6 +1397,12 @@ export default function WhiteboardView() {
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG THEO CHỈ ĐẠO THẦY HẢI (ẢNH media_1787459586193.png) */}
+          <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2.5 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
+            <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+            <span>{realtimeClock || 'Aug/23/2026 11:35 AM'} {currentPageIndex + 1}/{pages.length}</span>
+          </div>
+
           <button
             onClick={() => {
               fetchSavedLessons();
@@ -1323,16 +1422,15 @@ export default function WhiteboardView() {
             <span>💾 Lưu Bài Dạy</span>
           </button>
 
-          <select
-            value={bgType}
-            onChange={(e) => setBgType(e.target.value)}
-            className="bg-slate-800 text-slate-100 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-slate-700 outline-none"
+          {/* QUẢN LÝ NỀN BẢNG BACKGROUND MANAGEMENT CHUẨN XÁC NGUYÊN BẢN (ẢNH media_1787459474821.png) */}
+          <button
+            onClick={() => setActiveWindow(activeWindow === 'bgMgmt' ? null : 'bgMgmt')}
+            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-extrabold rounded-xl border border-slate-700 flex items-center space-x-1 cursor-pointer"
+            title="🖼️ Quản Lý Nền Bảng (Background Management)"
           >
-            <option value="greenboard">🟩 Nền: Bảng Xanh</option>
-            <option value="blackboard">⬛ Nền: Bảng Đen</option>
-            <option value="whiteboard">⬜ Nền: Trắng Tinh</option>
-            <option value="grid">▦ Nền: Ô Kẻ Tập</option>
-          </select>
+            <Layout className="w-4 h-4 text-purple-400" />
+            <span>Quản Lý Nền</span>
+          </button>
         </div>
       </div>
 
@@ -1373,7 +1471,7 @@ export default function WhiteboardView() {
           </div>
         )}
 
-        {/* Ô GÕ TEXT TRỰC QUAN NGUYÊN BẢN SANG TRỌNG TRỞ LẠI V40 THEO ĐÚNG Ý THẦY NGUYỄN VĂN HẢI (ẢNH media_1787459246892.png) */}
+        {/* Ô GÕ TEXT TRỰC QUAN NGUYÊN BẢN SANG TRỌNG TRỞ LẠI V40 THEO ĐÚNG Ý THẦY NGUYỄN VĂN HẢI */}
         {textElements.map((box) => {
           const isSelected = selectedTextId === box.id;
 
@@ -1394,7 +1492,7 @@ export default function WhiteboardView() {
                   : 'border border-transparent bg-transparent'
               }`}
             >
-              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) VỪA VẶN TRÊN ĐỈNH KHUNG VĂN BẢN (ẢNH media_1787459246892.png) */}
+              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) VỪA VẶN TRÊN ĐỈNH KHUNG VĂN BẢN */}
               {isSelected && (
                 <div
                   onMouseDown={(e) => handleStartDragText(e, box.id)}
@@ -1406,7 +1504,7 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* THANH TOOLBAR ĐỊNH DẠNG NẰM NỔI PHÍA TRÊN NGUYÊN BẢN SANG TRỌNG V40 (ẢNH media_1787459246892.png) */}
+              {/* THANH TOOLBAR ĐỊNH DẠNG NẰM NỔI PHÍA TRÊN NGUYÊN BẢN SANG TRỌNG V40 */}
               {isSelected && (
                 <div
                   className="absolute bottom-full mb-5 left-1/2 -translate-x-1/2 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans whitespace-nowrap"
@@ -1541,7 +1639,7 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG NGUYÊN BẢN GỐC SANG TRỌNG 100% (ẢNH media_1787459246892.png) */}
+              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG NGUYÊN BẢN GỐC SANG TRỌNG 100% */}
               <div
                 contentEditable
                 suppressContentEditableWarning
@@ -1557,7 +1655,7 @@ export default function WhiteboardView() {
                 }}
                 dangerouslySetInnerHTML={{ __html: box.htmlContent || 'Nhấp để gõ bài giảng...' }}
                 style={{
-                  color: box.color || (bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000'),
+                  color: box.color || (bgType === 'greenboard' || bgType === 'blackboard' || bgType === 'green_grid' || bgType === 'english_lines' ? '#ffffff' : '#000000'),
                   fontSize: `${box.fontSize || fontSize}px`,
                   fontFamily: box.fontFamily || fontFamily,
                 }}
@@ -1656,6 +1754,81 @@ export default function WhiteboardView() {
           </div>
         )}
       </div>
+
+      {/* POPUP CHỌN BẢNG NỀN BACKGROUND MANAGEMENT THEO ĐÚNG CHỈ ĐẠO THẦY HẢI (ẢNH media_1787459474821.png) */}
+      {activeWindow === 'bgMgmt' && (
+        <div className="fixed top-16 right-12 z-[100] bg-slate-900 border-2 border-purple-500 rounded-3xl shadow-2xl p-4 w-96 text-white animate-scale-up font-sans space-y-3">
+          <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+            <h3 className="font-extrabold text-xs text-purple-400 flex items-center space-x-2">
+              <Layout className="w-4 h-4 text-purple-400" />
+              <span>🖼️ QUẢN LÝ NỀN BẢNG (BACKGROUND MANAGEMENT)</span>
+            </h3>
+            <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white font-black">✕</button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 max-h-[320px] overflow-y-auto pr-1">
+            <button
+              onClick={() => { setBgType('greenboard'); setActiveWindow(null); }}
+              className={`p-3 rounded-2xl border-2 text-left space-y-1 transition cursor-pointer ${
+                bgType === 'greenboard' ? 'bg-emerald-950 border-emerald-400 ring-2 ring-emerald-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <div className="w-full h-12 bg-[#0f382c] rounded-xl border border-emerald-600 flex items-center justify-center text-xs font-black text-emerald-200">Bảng Xanh</div>
+              <span className="text-[11px] font-extrabold block text-slate-200">1. Bảng Xanh Lá</span>
+            </button>
+
+            <button
+              onClick={() => { setBgType('blackboard'); setActiveWindow(null); }}
+              className={`p-3 rounded-2xl border-2 text-left space-y-1 transition cursor-pointer ${
+                bgType === 'blackboard' ? 'bg-slate-900 border-amber-400 ring-2 ring-amber-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <div className="w-full h-12 bg-slate-950 rounded-xl border border-slate-700 flex items-center justify-center text-xs font-black text-slate-300">Bảng Đen</div>
+              <span className="text-[11px] font-extrabold block text-slate-200">2. Bảng Đen Tuyền</span>
+            </button>
+
+            <button
+              onClick={() => { setBgType('whiteboard'); setActiveWindow(null); }}
+              className={`p-3 rounded-2xl border-2 text-left space-y-1 transition cursor-pointer ${
+                bgType === 'whiteboard' ? 'bg-slate-800 border-sky-400 ring-2 ring-sky-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <div className="w-full h-12 bg-white rounded-xl border border-slate-300 flex items-center justify-center text-xs font-black text-slate-900">Bảng Trắng</div>
+              <span className="text-[11px] font-extrabold block text-slate-200">3. Bảng Trắng Tinh</span>
+            </button>
+
+            <button
+              onClick={() => { setBgType('paper_note'); setActiveWindow(null); }}
+              className={`p-3 rounded-2xl border-2 text-left space-y-1 transition cursor-pointer ${
+                bgType === 'paper_note' ? 'bg-amber-950 border-amber-400 ring-2 ring-amber-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <div className="w-full h-12 bg-[#fdfbf7] rounded-xl border border-amber-300 flex items-center justify-center text-xs font-black text-amber-900 shadow-inner">Giấy Tập</div>
+              <span className="text-[11px] font-extrabold block text-slate-200">4. Giấy Note Kẻ Ngang</span>
+            </button>
+
+            <button
+              onClick={() => { setBgType('green_grid'); setActiveWindow(null); }}
+              className={`p-3 rounded-2xl border-2 text-left space-y-1 transition cursor-pointer ${
+                bgType === 'green_grid' ? 'bg-emerald-950 border-emerald-400 ring-2 ring-emerald-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <div className="w-full h-12 bg-[#0a2e23] rounded-xl border border-emerald-500 flex items-center justify-center text-xs font-black text-emerald-300">Ô Kẻ Tập</div>
+              <span className="text-[11px] font-extrabold block text-slate-200">5. Ô Kẻ Tập Vuông</span>
+            </button>
+
+            <button
+              onClick={() => { setBgType('english_lines'); setActiveWindow(null); }}
+              className={`p-3 rounded-2xl border-2 text-left space-y-1 transition cursor-pointer ${
+                bgType === 'english_lines' ? 'bg-emerald-950 border-emerald-400 ring-2 ring-emerald-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <div className="w-full h-12 bg-[#0f382c] rounded-xl border border-emerald-400 flex items-center justify-center text-xs font-black text-emerald-100">Kẻ 4 Dòng</div>
+              <span className="text-[11px] font-extrabold block text-slate-200">6. Kẻ 4 Dòng Tiếng Anh</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* COMPONENT MODULE SHAPES VỊ TRÍ NẰM NGAY TRÊN TOOLBAR DƯỚI CÙNG VÀ TỰ ĐỘNG ẨN KHI CHỌN SHAPE CHUẨN THẦY HẢI CHỈ ĐẠO */}
       <ShapesModulePanel
@@ -1869,7 +2042,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP XÚC XẮC THÔNG MINH HIỂN THỊ CHÍNH XÁC MẶT CHẤM TRÒN XÚC XẮC ⚀ ⚁ ⚂ (ĐÚNG CHÍNH XÁC YÊU CẦU THẦY HẢI) */}
+      {/* POPUP XÚC XẮC THÔNG MINH HIỂN THỊ CHÍNH XÁC MẶT CHẤM TRÒN XÚC XẮC ⚀ ⚁ ⚂ */}
       {activeWindow === 'dice' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-purple-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
@@ -1880,7 +2053,6 @@ export default function WhiteboardView() {
             <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
           </div>
 
-          {/* NÚT TĂNG GIẢM SỐ HỘT XÚC XẮC (+ VÀ -) */}
           <div className="flex items-center justify-between bg-slate-800 p-2.5 rounded-2xl border border-slate-700">
             <span className="text-xs font-extrabold text-slate-200">Số lượng Hột Xúc Xắc:</span>
             <div className="flex items-center space-x-2">
@@ -1902,7 +2074,6 @@ export default function WhiteboardView() {
             </div>
           </div>
 
-          {/* HIỂN THỊ ĐÚNG CÁC MẶT HỘT XÚC XẮC THỰC TẾ VỚI CÁC CHẤM TRÒN CHUẨN XÁC NGUYÊN BẢN */}
           <div className="flex justify-center items-center gap-3 py-4">
             {diceValues.map((val, idx) => (
               <DiceFace key={idx} value={val} isSpinning={isSpinningDice} />
