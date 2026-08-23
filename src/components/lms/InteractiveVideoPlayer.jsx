@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Play, Pause, Lock, CheckCircle2, RotateCcw, Check, ArrowRight, X, Award, HelpCircle, FileText, Type, CheckSquare, Sparkles } from 'lucide-react';
+import { Play, Pause, Lock, CheckCircle2, RotateCcw, Check, ArrowRight, X, Award, HelpCircle, FileText, Type, CheckSquare, Sparkles, Eye } from 'lucide-react';
 
 const extractYoutubeId = (url) => {
   if (!url || typeof url !== 'string') return null;
@@ -33,51 +33,54 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
-// COMPONENT ĐIỀN TỪ MEMO HÓA GÕ LIÊN TỤC VÀ HIỂN THỊ ĐÁP ÁN SAI CỦA HỌC SINH KÈM TỪ ĐÚNG CHUẨN ĐẸP (ẢNH media_1787500594356.png)
-const FillBlanksSentence = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback }) => {
+// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN 100% ẢNH 1 (media_1787500996817.png) & ẢNH 2 (media_1787501117346.png)
+const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback, isSolutionVisible }) => {
   const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
+  const isChecked = quizFeedback !== null;
 
   return (
-    <div className="space-y-4">
-      <div className="text-sm sm:text-base text-slate-900 leading-relaxed bg-slate-50 p-5 rounded-2xl border border-slate-200 font-medium shadow-xs">
+    <div className="space-y-4 text-left">
+      <div className="text-base sm:text-lg text-slate-900 leading-relaxed font-medium">
         {parts.map((item, pIdx) => {
           if (item.type === 'text') {
             return <span key={`text_${pIdx}`}>{item.content}</span>;
           } else {
             const userVal = (blankInputs[item.index] || '').trim();
             const correctAns = answers[item.index] || item.answer || '';
-            const isChecked = quizFeedback !== null;
             const isCorrect = isChecked && userVal.toLowerCase() === correctAns.toLowerCase();
 
-            return (
-              <span key={`blank_wrap_${item.index}`} className="inline-flex flex-col items-center mx-1 my-1.5 align-middle">
-                <span className="relative inline-flex items-center">
-                  <input
-                    key={`blank_input_${item.index}`}
-                    type="text"
-                    disabled={isChecked && isCorrect}
-                    value={blankInputs[item.index] || ''}
-                    onChange={(e) => onInputChange(item.index, e.target.value)}
-                    placeholder="gõ từ..."
-                    className={`px-3 py-1.5 border-2 rounded-xl text-xs font-extrabold transition shadow-xs ${
-                      !isChecked
-                        ? 'border-brand-500 text-brand-900 bg-white focus:ring-2 focus:ring-brand-400 focus:outline-none min-w-[120px]'
-                        : isCorrect
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 pr-7 min-w-[120px]'
-                        : 'border-rose-500 bg-rose-50 text-rose-900 pr-7 font-bold min-w-[120px]'
-                    }`}
-                  />
-                  {isChecked && (
-                    <span className={`absolute right-2 text-xs font-black ${isCorrect ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {isCorrect ? '✓' : '✕'}
-                    </span>
-                  )}
-                </span>
+            if (!isChecked) {
+              return (
+                <input
+                  key={`blank_input_${item.index}`}
+                  type="text"
+                  value={blankInputs[item.index] || ''}
+                  onChange={(e) => onInputChange(item.index, e.target.value)}
+                  placeholder=""
+                  className="mx-1 px-2.5 py-1 border-2 border-slate-300 rounded-md text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none inline-block min-w-[90px] text-center shadow-xs align-baseline"
+                />
+              );
+            }
 
-                {/* SHOW ĐÁP ÁN SAI CỦA HỌC SINH VÀ TỪ ĐÚNG CHUẨN CHÍNH XÁC THEO ẢNH media_1787500594356.png */}
-                {isChecked && !isCorrect && (
-                  <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md mt-1 border border-rose-200 shadow-2xs">
-                    ✕ Bạn điền: "{userVal || 'bỏ trống'}" ➔ Từ đúng: <strong className="text-emerald-800 underline">{correctAns}</strong>
+            if (isCorrect) {
+              return (
+                <span key={`blank_input_${item.index}`} className="inline-flex items-center mx-1 px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold border border-emerald-300 text-sm align-baseline shadow-2xs">
+                  <span>{userVal}</span>
+                  <span className="ml-1 text-emerald-600 font-black text-xs">✓</span>
+                </span>
+              );
+            }
+
+            return (
+              <span key={`blank_input_${item.index}`} className="inline-flex items-center mx-1 align-baseline">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-100 text-rose-900 font-medium border border-rose-300 text-sm shadow-2xs">
+                  <span className="line-through">{userVal || '___'}</span>
+                  <span className="ml-1 text-rose-600 font-black text-xs">✕</span>
+                </span>
+                {isSolutionVisible && (
+                  <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold border border-emerald-300 text-sm animate-scale-up shadow-2xs">
+                    <span>{correctAns}</span>
+                    <span className="ml-1 text-emerald-600 font-black text-xs">✓</span>
                   </span>
                 )}
               </span>
@@ -102,10 +105,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const waypoints = activity?.settings?.waypoints || [
     {
       id: 'wp1',
-      timeSec: 33,
+      timeSec: 31,
       type: 'fill_blanks',
-      question: 'Fill in the correct word.',
-      textWithBlanks: 'The *tailor* made a new *suit* for me.',
+      question: 'Fill in the correct ingredients',
+      textWithBlanks: 'Strawberries and *blueberries* are mixed with *milk* and oatmeal *banana* to make this delicious smoothie.',
     },
     {
       id: 'wp2',
@@ -123,13 +126,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       options: ['Police officer', 'Doctor', 'Vet'],
       answer: 'Police officer',
     },
-    {
-      id: 'wp4',
-      timeSec: 153,
-      type: 'fill_blanks',
-      question: 'The _____ is a person who fixes and installs _____ systems.',
-      textWithBlanks: 'The *electrician* is a person who fixes and installs *electrical* systems.',
-    },
   ];
 
   const [activeQuiz, setActiveQuiz] = useState(null);
@@ -140,6 +136,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
   const [quizPassed, setQuizPassed] = useState({});
   const [quizFeedback, setQuizFeedback] = useState(null);
+  const [isSolutionVisible, setIsSolutionVisible] = useState(false);
   const [passedCount, setPassedCount] = useState(0);
 
   const rawVideoUrl = activity?.settings?.videoUrl || activity?.content_url || activity?.content || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
@@ -247,6 +244,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       pauseVideo();
       setActiveQuiz(wp);
       setQuizFeedback(null);
+      setIsSolutionVisible(false);
       setBlankInputs({});
       setSelectedOpt('');
       setTrueFalseChoice(null);
@@ -343,25 +341,22 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     } else if (activeQuiz.type === 'fill_blanks') {
       const { answers } = parseFillBlanksText(activeQuiz.textWithBlanks);
       let isAllCorrect = true;
-      const wrongList = [];
+      let correctCount = 0;
 
       answers.forEach((ans, idx) => {
         const userTyped = (blankInputs[idx] || '').trim();
-        if (userTyped.toLowerCase() !== ans.toLowerCase()) {
+        if (userTyped.toLowerCase() === ans.toLowerCase()) {
+          correctCount++;
+        } else {
           isAllCorrect = false;
-          wrongList.push(`Từ ${idx + 1}: Bạn nhập "${userTyped || 'bỏ trống'}" ➔ Đúng là "${ans}"`);
         }
       });
 
-      if (isAllCorrect) {
-        setQuizFeedback({ success: true, msg: '🎉 Tuyệt vời! Bạn đã điền chính xác tất cả các từ.', details: `Đáp án: ${answers.join(', ')}` });
-      } else {
-        setQuizFeedback({
-          success: false,
-          msg: '❌ Một số từ điền chưa đúng. Hãy kiểm tra lại bên dưới!',
-          details: wrongList.join(' | '),
-        });
-      }
+      setQuizFeedback({
+        success: isAllCorrect,
+        correctCount,
+        totalCount: answers.length || 1,
+      });
     } else if (activeQuiz.type === 'mark_word') {
       const correctWords = activeQuiz.correctWords || [];
       const isMatch = selectedMarkWords.length === correctWords.length && selectedMarkWords.every((w) => correctWords.includes(w));
@@ -387,6 +382,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     setTrueFalseChoice(null);
     setSelectedMarkWords([]);
     setQuizFeedback(null);
+    setIsSolutionVisible(false);
     playVideo();
   };
 
@@ -439,10 +435,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           />
         )}
 
-        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC */}
+        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CHỦN H5P 100% ẢNH 1 & ẢNH 2 media_1787500996817.png / media_1787501117346.png) */}
         {activeQuiz && (
-          <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up">
-            <div className="bg-white p-6 rounded-3xl border-2 border-sky-400 max-w-xl w-full shadow-2xl space-y-4 text-left relative">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up">
+            <div className="bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-200 max-w-xl w-full shadow-2xl space-y-4 text-left relative">
               <button
                 type="button"
                 onClick={handleCloseAndContinue}
@@ -452,12 +448,108 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="flex items-center space-x-2 border-b border-slate-100 pb-3 pr-10">
-                <span className="text-sky-600 text-xs font-black uppercase tracking-wider flex items-center space-x-1.5">
-                  <Lock className="w-4 h-4 text-amber-500 animate-pulse" />
-                  <span>⏸️ VIDEO DỪNG - CÂU HỎI H5P ({activeQuiz.timeSec}S)</span>
-                </span>
-              </div>
+              {/* DẠNG GAP-FILL / FILL IN THE BLANKS CHUẨN H5P (ẢNH 1 & ẢNH 2) */}
+              {activeQuiz.type === 'fill_blanks' && (
+                <div className="space-y-4">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug border-b border-slate-100 pb-3">
+                    {activeQuiz.question || 'Fill in the correct ingredients'}
+                  </h3>
+
+                  <FillBlanksSentenceH5P
+                    textWithBlanks={activeQuiz.textWithBlanks}
+                    blankInputs={blankInputs}
+                    onInputChange={handleBlankInputChange}
+                    quizFeedback={quizFeedback}
+                    isSolutionVisible={isSolutionVisible}
+                  />
+
+                  {/* THỐNG KÊ SỐ LỖI ĐÚNG / SAI CÂU ĐIỀN TỪ (ẢNH 2 media_1787501117346.png) */}
+                  {quizFeedback && (
+                    <p className="text-blue-600 font-extrabold text-base pt-1">
+                      You got {quizFeedback.correctCount} of {quizFeedback.totalCount} blanks correct.
+                    </p>
+                  )}
+
+                  {/* THANH THỐNG KÊ NGÔI SAO & BỘ NÚT ĐIỀU KHIỂN CHUẨN H5P ẢNH 1 & ẢNH 2 */}
+                  {quizFeedback ? (
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                      {/* THANH NGÔI SAO TÍNH ĐIỂM (STAR SCORE BAR) */}
+                      <div className="flex items-center space-x-2 bg-slate-100 px-4 py-2 rounded-full border border-slate-200 shadow-2xs">
+                        <div className="w-24 bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-blue-600 h-full transition-all"
+                            style={{ width: `${(quizFeedback.correctCount / quizFeedback.totalCount) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-amber-500 font-black text-lg">⭐</span>
+                        <span className="text-slate-800 font-extrabold text-sm">
+                          {quizFeedback.correctCount}/{quizFeedback.totalCount}
+                        </span>
+                      </div>
+
+                      {/* BỘ NÚT CON MẮT (👁️), RETRY (🔄), PHÁT TIẾP (▶) CHUẨN ẢNH 2 */}
+                      <div className="flex items-center space-x-2.5">
+                        {/* NÚT CON MẮT HẠN ĐÁP ÁN (EYE ICON 👁️) */}
+                        <button
+                          type="button"
+                          onClick={() => setIsSolutionVisible(!isSolutionVisible)}
+                          title="Xem / Ẩn đáp án chuẩn"
+                          className={`p-3 rounded-full transition cursor-pointer shadow-md ${
+                            isSolutionVisible ? 'bg-blue-700 text-white ring-4 ring-blue-300' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          }`}
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+
+                        {/* NÚT RETRY LÀM LẠI (RETRY ICON 🔄) */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBlankInputs({});
+                            setQuizFeedback(null);
+                            setIsSolutionVisible(false);
+                          }}
+                          title="Làm lại bài tập này"
+                          className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition cursor-pointer shadow-md"
+                        >
+                          <RotateCcw className="w-5 h-5" />
+                        </button>
+
+                        {/* NÚT XEM TIẾP VIDEO (PLAY ICON ▶) */}
+                        <button
+                          type="button"
+                          onClick={handleCloseAndContinue}
+                          title="Đóng & tiếp tục xem video"
+                          className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition cursor-pointer shadow-md animate-pulse"
+                        >
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* NÚT CHECK & CONTINUE KHI CHƯA CHECK CHUẨN ẢNH 1 */
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={handleCheckAnswer}
+                        className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Check</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCloseAndContinue}
+                        className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                        <span>Continue</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* DẠNG 1: MULTIPLE CHOICE */}
               {(activeQuiz.type === 'multiple_choice' || (!activeQuiz.type && activeQuiz.options?.length > 0)) && (
@@ -487,25 +579,37 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
 
-              {/* DẠNG 2: FILL IN THE BLANKS (CÓ MEMO HÓA VÀ HIỂN THỊ ĐÁP ÁN SAI CỦA HS KÈM TỪ ĐÚNG CHUẨN ẢNH media_1787500594356.png) */}
-              {activeQuiz.type === 'fill_blanks' && (
-                <div className="space-y-3">
-                  {activeQuiz.question &&
-                    activeQuiz.question !== 'Fill in the correct word.' &&
-                    !activeQuiz.textWithBlanks?.includes(activeQuiz.question) && (
-                      <h4 className="text-base font-extrabold text-slate-900 leading-snug">
-                        {activeQuiz.question}
-                      </h4>
+                  {quizFeedback && (
+                    <div className={`p-4 rounded-2xl text-xs font-bold space-y-1 border ${
+                      quizFeedback.success ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
+                    }`}>
+                      <p className="text-sm font-extrabold">{quizFeedback.msg}</p>
+                      {quizFeedback.details && <p className="text-[11px] font-semibold opacity-90">{quizFeedback.details}</p>}
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-3 pt-2">
+                    {!quizFeedback ? (
+                      <button
+                        type="button"
+                        onClick={handleCheckAnswer}
+                        className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Check</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleCloseAndContinue}
+                        className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <span>Continue (Đóng & Xem Tiếp Video)</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
                     )}
-                  <FillBlanksSentence
-                    textWithBlanks={activeQuiz.textWithBlanks}
-                    blankInputs={blankInputs}
-                    onInputChange={handleBlankInputChange}
-                    quizFeedback={quizFeedback}
-                  />
+                  </div>
                 </div>
               )}
 
@@ -540,6 +644,37 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       <span>✕ False (Sai)</span>
                     </button>
                   </div>
+
+                  {quizFeedback && (
+                    <div className={`p-4 rounded-2xl text-xs font-bold space-y-1 border ${
+                      quizFeedback.success ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
+                    }`}>
+                      <p className="text-sm font-extrabold">{quizFeedback.msg}</p>
+                      {quizFeedback.details && <p className="text-[11px] font-semibold opacity-90">{quizFeedback.details}</p>}
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-3 pt-2">
+                    {!quizFeedback ? (
+                      <button
+                        type="button"
+                        onClick={handleCheckAnswer}
+                        className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Check</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleCloseAndContinue}
+                        className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <span>Continue (Đóng & Xem Tiếp Video)</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -568,63 +703,39 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       );
                     })}
                   </div>
-                </div>
-              )}
 
-              {/* DẠNG 5: DRAG AND DROP */}
-              {activeQuiz.type === 'drag_drop' && (
-                <div className="space-y-3">
-                  <h4 className="text-base font-extrabold text-slate-900 leading-snug">
-                    {activeQuiz.question}
-                  </h4>
-                  <p className="text-xs text-slate-500">Hãy chọn các đáp án phù hợp bên dưới:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {activeQuiz.options?.map((opt, i) => (
+                  {quizFeedback && (
+                    <div className={`p-4 rounded-2xl text-xs font-bold space-y-1 border ${
+                      quizFeedback.success ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
+                    }`}>
+                      <p className="text-sm font-extrabold">{quizFeedback.msg}</p>
+                      {quizFeedback.details && <p className="text-[11px] font-semibold opacity-90">{quizFeedback.details}</p>}
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-3 pt-2">
+                    {!quizFeedback ? (
                       <button
-                        key={i}
                         type="button"
-                        onClick={() => setSelectedOpt(opt)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${selectedOpt === opt ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-800'}`}
+                        onClick={handleCheckAnswer}
+                        className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
-                        {opt}
+                        <Check className="w-4 h-4" />
+                        <span>Check</span>
                       </button>
-                    ))}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleCloseAndContinue}
+                        className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <span>Continue (Đóng & Xem Tiếp Video)</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
-
-              {/* THÔNG BÁO PHẢN HỒI ĐÚNG / SAI VÀ ĐÁP ÁN CHUẨN */}
-              {quizFeedback && (
-                <div className={`p-4 rounded-2xl text-xs font-bold space-y-1 border ${
-                  quizFeedback.success ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
-                }`}>
-                  <p className="text-sm font-extrabold">{quizFeedback.msg}</p>
-                  {quizFeedback.details && <p className="text-[11px] font-semibold opacity-90">{quizFeedback.details}</p>}
-                </div>
-              )}
-
-              {/* NÚT CHECK VÀ NÚT CONTINUE / ĐÓNG XEM TIẾP */}
-              <div className="flex items-center space-x-3 pt-2">
-                {!quizFeedback ? (
-                  <button
-                    type="button"
-                    onClick={handleCheckAnswer}
-                    className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>Check</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleCloseAndContinue}
-                    className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer animate-pulse"
-                  >
-                    <span>Continue (Đóng & Xem Tiếp Video)</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
             </div>
           </div>
         )}
