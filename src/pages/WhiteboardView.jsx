@@ -422,7 +422,7 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // TÍNH NĂNG NHÓM (GROUP) VÀ BỎ NHÓM (UNGROUP) CHUẨN XÁC CHỦ ĐẠO THẦY HẢI (ẢNH media_1787456496420.png)
+  // TÍNH NĂNG NHÓM (GROUP) VÀ BỎ NHÓM (UNGROUP) CHUẨN XÁC CHỦ ĐẠO THẦY HẢI
   const handleGroupSelectedObjects = () => {
     if (!fabricCanvas) return;
     const activeObj = fabricCanvas.getActiveObject();
@@ -768,14 +768,10 @@ export default function WhiteboardView() {
         id: newId,
         x: Math.max(10, clickX),
         y: Math.max(10, clickY),
-        width: 450,
         htmlContent: 'Nhấp để gõ bài giảng...',
         color: bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000',
         fontSize: fontSize || 36,
         fontFamily: fontFamily || 'Noto Sans',
-        isBold: false,
-        isItalic: false,
-        isUnderline: false,
       };
 
       setTextElements((prev) => [...prev, newBox]);
@@ -786,7 +782,12 @@ export default function WhiteboardView() {
     }
   };
 
-  // HIGHLIGHT TÔ MÀU NỀN CHO CHỮ BÔI ĐEN (NỀN LỚP HIGHLIGHT LUÔN NẰM DƯỚI CÙNG LỚP VĂN BẢN THEO ĐÚNG CHỈ ĐẠO THẦY HẢI)
+  // BỘ SOẠN THẢO RICH TEXT SELECTION ĐẲNG CẤP CHUẨN WYSIWYG V38 (ẢNH media_1787458242498.png)
+  // BÔI ĐEN TỪ NÀO CHỈ ĐỊNH DẠNG (IN ĐẬM, IN NGHIÊNG, GẠCH CHÂN, ĐỔI MÀU, HIGHLIGHT) CHO ĐÚNG CỤM TỪ ĐƯỢC BÔI ĐEN ĐÓ!
+  const applyExecCommand = (command, value = null) => {
+    document.execCommand(command, false, value);
+  };
+
   const applySelectionHighlight = (selectedColor) => {
     const selection = window.getSelection();
     if (!selection.rangeCount || selection.isCollapsed) {
@@ -819,7 +820,7 @@ export default function WhiteboardView() {
     if (selectedTextId === id) setSelectedTextId(null);
   };
 
-  // ĐẶC BIỆT: TÍNH NĂNG BÀN TAY PAN TRƯỢT 100% TOÀN BỘ CÁC VẬT THỂ & CÁC Ô CHỮ NGUYÊN TRANG CHUẨN XÁC MYVIEWBOARD (ẢNH media_1787456573055.png)
+  // ĐẶC BIỆT: TÍNH NĂNG BÀN TAY PAN TRƯỢT 100% TOÀN BỘ CÁC VẬT THỂ & CÁC Ô CHỮ NGUYÊN TRANG CHUẨN XÁC MYVIEWBOARD
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -866,13 +867,11 @@ export default function WhiteboardView() {
           const deltaX = e.clientX - lastPosX;
           const deltaY = e.clientY - lastPosY;
 
-          // 1. Trượt toàn bộ Fabric Canvas (Shapes, nét vẽ, ảnh)
           const vpt = fabricCanvas.viewportTransform;
           vpt[4] += deltaX;
           vpt[5] += deltaY;
           fabricCanvas.requestRenderAll();
 
-          // 2. Trượt toàn bộ các ô Chữ gõ bài giảng (textElements) đồng bộ nguyên trang lên, xuống, trái, phải!
           setTextElements((prev) =>
             prev.map((t) => ({
               ...t,
@@ -1022,12 +1021,10 @@ export default function WhiteboardView() {
     setActiveWindow(null);
   };
 
-  // KHI CHỌN SHAPE HÌNH HỌC ➔ CHUYỂN CHẾ ĐỘ VẼ KÉO CHUỘT (DRAG-TO-DRAW) KHÔNG VẼ SẴN HÌNH THEO CHỈ ĐẠO THẦY HẢI
-  // KHI CHỌN SHAPE HOẶC BỘ STICKERS CHẤM BÀI DỄ THƯƠNG THEO CHỈ ĐẠO THẦY HẢI (ẢNH media_1787457229898.png & media_1787457323523.png)
+  // KHI CHỌN SHAPE HOẶC BỘ STICKERS CHẤM BÀI DỄ THƯƠNG THEO CHỈ ĐẠO THẦY HẢI
   const handleSelectShape = (shapeType) => {
     if (!fabricCanvas) return;
 
-    // THU NHỎ KÍCH THƯỚC ICONS CHẤM BÀI VỪA DÒNG CHỮ (VD: 36PX - 40PX) VỚI NẾT VẼ DÀY VỪA PHẢI MỊN MÀNG
     const isSticker = ['check', 'cross', 'heart', 'smile', 'frown', 'star', 'crown', 'thumbsUp'].includes(shapeType);
 
     if (isSticker) {
@@ -1036,7 +1033,6 @@ export default function WhiteboardView() {
       const initY = 200;
 
       if (shapeType === 'check') {
-        // Tick Xanh ✔️ nhỏ xinh vừa với hàng chữ
         shape = new fabric.Path('M 10 30 L 25 45 L 60 10', {
           left: initX,
           top: initY,
@@ -1049,7 +1045,6 @@ export default function WhiteboardView() {
           scaleY: 0.55,
         });
       } else if (shapeType === 'cross') {
-        // X Đỏ ❌ nhỏ xinh vừa với hàng chữ
         shape = new fabric.Path('M 15 15 L 50 50 M 50 15 L 15 50', {
           left: initX,
           top: initY,
@@ -1061,7 +1056,6 @@ export default function WhiteboardView() {
           scaleY: 0.55,
         });
       } else if (shapeType === 'heart') {
-        // Trái Tim ❤️ Dễ thương
         shape = new fabric.Path('M 24 42 S 4 28 4 16 A 10 10 0 0 1 24 10 A 10 10 0 0 1 44 16 C 44 28 24 42 24 42 Z', {
           left: initX,
           top: initY,
@@ -1072,14 +1066,12 @@ export default function WhiteboardView() {
           scaleY: 0.8,
         });
       } else if (shapeType === 'smile') {
-        // Mặt Cười 😊
         const circle = new fabric.Circle({ radius: 20, fill: '#fef08a', stroke: '#eab308', strokeWidth: 3 });
         const eye1 = new fabric.Circle({ radius: 2.5, fill: '#854d0e', left: 11, top: 12 });
         const eye2 = new fabric.Circle({ radius: 2.5, fill: '#854d0e', left: 24, top: 12 });
         const mouth = new fabric.Path('M 12 24 Q 20 34 28 24', { stroke: '#854d0e', strokeWidth: 3, fill: 'transparent', strokeLineCap: 'round' });
         shape = new fabric.Group([circle, eye1, eye2, mouth], { left: initX, top: initY });
       } else if (shapeType === 'frown') {
-        // Mặt Khóc 😢
         const circle = new fabric.Circle({ radius: 20, fill: '#e0f2fe', stroke: '#0284c7', strokeWidth: 3 });
         const eye1 = new fabric.Circle({ radius: 2.5, fill: '#0369a1', left: 11, top: 12 });
         const eye2 = new fabric.Circle({ radius: 2.5, fill: '#0369a1', left: 24, top: 12 });
@@ -1087,7 +1079,6 @@ export default function WhiteboardView() {
         const tear = new fabric.Path('M 26 18 Q 28 22 26 24 Q 24 22 26 18 Z', { fill: '#38bdf8' });
         shape = new fabric.Group([circle, eye1, eye2, mouth, tear], { left: initX, top: initY });
       } else if (shapeType === 'star') {
-        // Ngôi Sao ⭐ Khen Thưởng
         shape = new fabric.Path('M 20 0 L 26 12 L 40 14 L 30 24 L 32 38 L 20 31 L 8 38 L 10 24 L 0 14 L 14 12 Z', {
           left: initX,
           top: initY,
@@ -1098,7 +1089,6 @@ export default function WhiteboardView() {
           scaleY: 0.8,
         });
       } else if (shapeType === 'crown') {
-        // Vương Miện 👑
         shape = new fabric.Path('M 5 32 L 0 12 L 12 20 L 20 4 L 28 20 L 40 12 L 35 32 Z', {
           left: initX,
           top: initY,
@@ -1109,7 +1099,6 @@ export default function WhiteboardView() {
           scaleY: 0.85,
         });
       } else if (shapeType === 'thumbsUp') {
-        // Ngón Tay Like 👍
         shape = new fabric.Path('M 8 18 L 8 36 L 14 36 L 22 42 Q 26 42 26 38 L 26 28 L 38 28 Q 42 28 42 24 Q 42 20 38 20 L 28 20 L 30 10 Q 30 4 26 4 L 24 4 L 14 18 Z', {
           left: initX,
           top: initY,
@@ -1380,7 +1369,7 @@ export default function WhiteboardView() {
           </div>
         )}
 
-        {/* Ô GÕ TEXT TRỰC QUAN HỖ TRỢ KÉO RÊ DI CHUYỂN (DRAGGABLE) THOẢI MÁI THEO THẦY HẢI CHỈ ĐẠO */}
+        {/* Ô GÕ TEXT TRỰC QUAN KHÔNG BAO GIỜ BỊ LỖI - TỰ ĐỘNG ÔM CO GIÃN THEO NỘI DUNG VĂN BẢN VÀ HỖ TRỢ BÔI ĐEN TỪ NÀO ĐỊNH DẠNG TỪ ĐÓ V38 (ẢNH media_1787458242498.png) */}
         {textElements.map((box) => {
           const isSelected = selectedTextId === box.id;
 
@@ -1390,10 +1379,12 @@ export default function WhiteboardView() {
               style={{
                 left: `${box.x}px`,
                 top: `${box.y}px`,
-                width: `${box.width || 450}px`,
+                width: box.width ? `${box.width}px` : 'fit-content',
+                maxWidth: '85vw',
+                minWidth: '150px',
                 zIndex: 80,
               }}
-              className={`absolute p-1 rounded-xl transition-all duration-75 pointer-events-auto ${
+              className={`absolute p-1.5 rounded-xl transition-all duration-75 pointer-events-auto resize-x overflow-auto ${
                 isSelected
                   ? 'border-2 border-dashed border-amber-400 ring-2 ring-amber-400/40 shadow-2xl bg-slate-900/20'
                   : 'border border-transparent bg-transparent'
@@ -1411,7 +1402,7 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* THANH RICH TEXT EDITOR THU GỌN - HỆ THỐNG MENU HIGHLIGHT DROPDOWN GỌN GÀNG CHUẨN ẢNH media_1787452765117.png */}
+              {/* THANH RICH TEXT EDITOR THU GỌN - ĐỊNH DẠNG RICH TEXT SELECTION BÔI ĐEN CHỮ NÀO ĐỊNH DẠNG CHỮ ĐÓ V38 CHUẨN XÁC THẦY HẢI CHỈ ĐẠO */}
               {isSelected && (
                 <div
                   className="absolute bottom-full mb-3 left-0 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
@@ -1421,6 +1412,7 @@ export default function WhiteboardView() {
                     value={box.fontFamily || 'Noto Sans'}
                     onChange={(e) => {
                       const val = e.target.value;
+                      applyExecCommand('fontName', val);
                       setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, fontFamily: val } : t));
                     }}
                     className="p-1 border border-slate-400 rounded-xl text-xs font-bold bg-white outline-none"
@@ -1445,57 +1437,48 @@ export default function WhiteboardView() {
 
                   <span className="w-px h-5 bg-slate-400" />
 
+                  {/* NÚT IN ĐẬM (B) - CHỈ IN ĐẬM CHỮ ĐƯỢC BÔI ĐEN! */}
                   <button
                     type="button"
-                    onClick={() => {
-                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, isBold: !t.isBold } : t));
-                    }}
-                    className={`p-1.5 rounded-lg border text-xs font-black cursor-pointer ${
-                      box.isBold ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
-                    }`}
-                    title="In Đậm (B)"
+                    onClick={() => applyExecCommand('bold')}
+                    className="p-1.5 rounded-lg border text-xs font-black cursor-pointer bg-white hover:bg-amber-100 border-slate-300 text-slate-900"
+                    title="In Đậm (B) cho chữ bôi đen"
                   >
                     <Bold className="w-4 h-4" />
                   </button>
 
+                  {/* NÚT IN NGHIÊNG (I) - CHỈ IN NGHIÊNG CHỮ ĐƯỢC BÔI ĐEN! */}
                   <button
                     type="button"
-                    onClick={() => {
-                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, isItalic: !t.isItalic } : t));
-                    }}
-                    className={`p-1.5 rounded-lg border text-xs italic cursor-pointer ${
-                      box.isItalic ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
-                    }`}
-                    title="In Nghiêng (I)"
+                    onClick={() => applyExecCommand('italic')}
+                    className="p-1.5 rounded-lg border text-xs italic cursor-pointer bg-white hover:bg-amber-100 border-slate-300 text-slate-900"
+                    title="In Nghiêng (I) cho chữ bôi đen"
                   >
                     <Italic className="w-4 h-4" />
                   </button>
 
+                  {/* NÚT GẠCH CHÂN (U) - CHỈ GẠCH CHÂN DỰ AN CỤM TỪ ĐƯỢC BÔI ĐEN THEO YÊU CẦU THẦY HẢI! */}
                   <button
                     type="button"
-                    onClick={() => {
-                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, isUnderline: !t.isUnderline } : t));
-                    }}
-                    className={`p-1.5 rounded-lg border text-xs underline cursor-pointer ${
-                      box.isUnderline ? 'bg-amber-600 text-white border-amber-700' : 'bg-white hover:bg-slate-100 border-slate-300'
-                    }`}
-                    title="Gạch Chân (U)"
+                    onClick={() => applyExecCommand('underline')}
+                    className="p-1.5 rounded-lg border text-xs underline cursor-pointer bg-white hover:bg-amber-100 border-slate-300 text-slate-900"
+                    title="Gạch Chân (U) cho từ/cụm từ bôi đen"
                   >
                     <Underline className="w-4 h-4" />
                   </button>
 
                   <span className="w-px h-5 bg-slate-400" />
 
-                  {/* ĐỔI MÀU CHỮ CHÍNH */}
+                  {/* ĐỔI MÀU CHỮ BÔI ĐEN */}
                   <input
                     type="color"
                     value={box.color || color}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, color: val } : t));
+                      applyExecCommand('foreColor', val);
                     }}
                     className="w-7 h-7 rounded-lg cursor-pointer border border-slate-400 p-0"
-                    title="Đổi màu chữ"
+                    title="Đổi màu chữ bôi đen"
                   />
 
                   {/* THU GỌN HIGHLIGHT THÀNH 1 NÚT CHỮ "Highlight ✨" CÓ POPUP MENU DROPDOWN CHỌN MÀU BÊN TRONG THEO ĐÚNG CHỈ ĐẠO CỦA THẦY HẢI */}
@@ -1539,10 +1522,11 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG 100% - LỚP NỀN HIGHLIGHT LUÔN NẰM DƯỚI CÙNG LỚP VĂN BẢN */}
+              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG 100% - TẮT NẾT GẠCH ĐỎ KIỂM TRA CHÍNH TẢ VÀ TỰ ĐỘNG ÔM CHỮ CO GIÃN */}
               <div
                 contentEditable
                 suppressContentEditableWarning
+                spellCheck={false}
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedTextId(box.id);
@@ -1557,17 +1541,14 @@ export default function WhiteboardView() {
                   color: box.color || (bgType === 'greenboard' || bgType === 'blackboard' ? '#ffffff' : '#000000'),
                   fontSize: `${box.fontSize || fontSize}px`,
                   fontFamily: box.fontFamily || fontFamily,
-                  fontWeight: box.isBold ? 'bold' : 'normal',
-                  fontStyle: box.isItalic ? 'italic' : 'normal',
-                  textDecoration: box.isUnderline ? 'underline' : 'none',
                 }}
-                className="bg-transparent border-none outline-none font-sans p-0 m-0 shadow-none leading-normal w-full min-h-[40px] cursor-text select-text"
+                className="bg-transparent border-none outline-none font-sans p-0 m-0 shadow-none leading-normal w-full min-h-[40px] cursor-text select-text whitespace-pre-wrap"
               />
             </div>
           );
         })}
 
-        {/* MENU NỔI FLOATING MENU CHO FABRIC OBJECTS (ẢNH DÁN, SHAPES, STICKY) + CÓ NÚT NHÓM GROUP VÀ BỎ NHÓM UNGROUP CHUẨN XÁC THẦY HẢI CHỈ ĐẠO (ẢNH media_1787456496420.png) */}
+        {/* MENU NỔI FLOATING MENU CHO FABRIC OBJECTS (ẢNH DÁN, SHAPES, STICKY) + CÓ NÚT NHÓM GROUP VÀ BỎ NHÓM UNGROUP CHUẨN XÁC THẦY HẢI CHỈ ĐẠO */}
         {activeObject && floatingMenuPos && (
           <div
             style={{
@@ -1576,7 +1557,6 @@ export default function WhiteboardView() {
             }}
             className="fixed z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
           >
-            {/* NÚT NHÓM GROUP KHI KHOANH VÙNG CHỌN TỪ 2 DỤNG CỤ TRỞ LÊN (ẢNH media_1787456496420.png) */}
             {activeSelectionObjects.length > 1 && (
               <button
                 onClick={handleGroupSelectedObjects}
@@ -1588,7 +1568,6 @@ export default function WhiteboardView() {
               </button>
             )}
 
-            {/* NÚT BỎ NHÓM UNGROUP KHI CHỌN VÀO 1 KHỐI GROUP */}
             {activeObject.type === 'group' && (
               <button
                 onClick={handleUngroupSelectedObject}
@@ -2112,7 +2091,7 @@ export default function WhiteboardView() {
           <MousePointer className="w-4 h-4" />
         </button>
 
-        {/* 3. HAND PAN CANVAS TRƯỢT 100% CÁC ĐỐI TƯỢNG SHAPES & CÁC Ô CHỮ NGUYÊN TRANG BÀI GIẢNG CHUẨN XÁC MYVIEWBOARD (ẢNH media_1787456573055.png) */}
+        {/* 3. HAND PAN CANVAS TRƯỢT 100% CÁC ĐỐI TƯỢNG SHAPES & CÁC Ô CHỮ NGUYÊN TRANG BÀI GIẢNG CHUẨN XÁC MYVIEWBOARD */}
         <button
           onClick={() => {
             setTool('hand');
