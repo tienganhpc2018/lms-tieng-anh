@@ -173,6 +173,7 @@ export default function WhiteboardView() {
 
   // Quản lý Đối Tượng Đang Chọn & Menu Nổi (Floating Toolbar Position)
   const [activeObject, setActiveObject] = useState(null);
+  const [activeSelectionObjects, setActiveSelectionObjects] = useState([]);
   const [floatingMenuPos, setFloatingMenuPos] = useState(null);
 
   // Background Nền Bảng
@@ -350,6 +351,9 @@ export default function WhiteboardView() {
     };
 
     const updateFloatingMenu = () => {
+      const activeObjs = fc.getActiveObjects();
+      setActiveSelectionObjects(activeObjs);
+
       const obj = fc.getActiveObject();
       if (obj) {
         setActiveObject(obj);
@@ -370,6 +374,7 @@ export default function WhiteboardView() {
     fc.on('selection:updated', updateFloatingMenu);
     fc.on('selection:cleared', () => {
       setActiveObject(null);
+      setActiveSelectionObjects([]);
       setFloatingMenuPos(null);
     });
     fc.on('object:moving', updateFloatingMenu);
@@ -417,12 +422,39 @@ export default function WhiteboardView() {
     };
   }, []);
 
+  // TÍNH NĂNG NHÓM (GROUP) VÀ BỎ NHÓM (UNGROUP) CHUẨN XÁC CHỦ ĐẠO THẦY HẢI (ẢNH media_1787456496420.png)
+  const handleGroupSelectedObjects = () => {
+    if (!fabricCanvas) return;
+    const activeObj = fabricCanvas.getActiveObject();
+    if (!activeObj || activeObj.type !== 'activeSelection') {
+      alert('Thầy Hải hãy khoanh vùng chọn từ 2 đối tượng trở lên để Nhóm lại nhé!');
+      return;
+    }
+
+    const group = activeObj.toGroup();
+    fabricCanvas.setActiveObject(group);
+    fabricCanvas.requestRenderAll();
+  };
+
+  const handleUngroupSelectedObject = () => {
+    if (!fabricCanvas) return;
+    const activeObj = fabricCanvas.getActiveObject();
+    if (!activeObj || activeObj.type !== 'group') {
+      alert('Thầy Hải hãy chọn 1 Khối Nhóm để Bỏ Nhóm ra nhé!');
+      return;
+    }
+
+    const items = activeObj.toActiveSelection();
+    fabricCanvas.setActiveObject(items);
+    fabricCanvas.requestRenderAll();
+  };
+
   // KHẮC PHỤC HOÀN HẢO 100% VẼ SHAPES DRAG-TO-DRAW TRÊN FABRIC CANVAS VÀ HIỂN THỊ KÍCH THƯỚC REAL-TIME CHUẨN MYVIEWBOARD
   useEffect(() => {
     if (!fabricCanvas || tool !== 'drawShape' || !activeShapeType) return;
 
     fabricCanvas.isDrawingMode = false;
-    fabricCanvas.selection = false; // Tắt khung vùng chọn canvas đục mờ
+    fabricCanvas.selection = false;
     fabricCanvas.defaultCursor = 'crosshair';
 
     let isMouseDown = false;
@@ -532,7 +564,6 @@ export default function WhiteboardView() {
       const left = Math.min(startX, pointer.x);
       const top = Math.min(startY, pointer.y);
 
-      // Cập nhật chỉ số kích thước hiển thị bên dưới khung hình vẽ!
       const widthCm = (width / 37.8).toFixed(1);
       const heightCm = (height / 37.8).toFixed(1);
       setDrawingDimension({
@@ -585,11 +616,10 @@ export default function WhiteboardView() {
     const onMouseUp = () => {
       if (isMouseDown && shapeObj) {
         isMouseDown = false;
-        setDrawingDimension(null); // Tắt nhãn thông số kích thước khi vẽ xong!
+        setDrawingDimension(null);
         fabricCanvas.selection = true;
         fabricCanvas.setActiveObject(shapeObj);
         fabricCanvas.requestRenderAll();
-        // Hoàn tất vẽ ➔ Chuyển ngay về con trỏ pointer và khôi phục cursor mặc định!
         setTool('pointer');
         setActiveShapeType(null);
         fabricCanvas.defaultCursor = 'default';
@@ -789,7 +819,7 @@ export default function WhiteboardView() {
     if (selectedTextId === id) setSelectedTextId(null);
   };
 
-  // XỬ LÝ CHUYỂN ĐỔI CÔNG CỤ KHÁC
+  // ĐẶC BIỆT: TÍNH NĂNG BÀN TAY PAN TRƯỢT 100% TOÀN BỘ CÁC VẬT THỂ & CÁC Ô CHỮ NGUYÊN TRANG CHUẨN XÁC MYVIEWBOARD (ẢNH media_1787456573055.png)
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -833,10 +863,24 @@ export default function WhiteboardView() {
       const onMouseMove = (opt) => {
         if (isDragging) {
           const e = opt.e;
+          const deltaX = e.clientX - lastPosX;
+          const deltaY = e.clientY - lastPosY;
+
+          // 1. Trượt toàn bộ Fabric Canvas (Shapes, nét vẽ, ảnh)
           const vpt = fabricCanvas.viewportTransform;
-          vpt[4] += e.clientX - lastPosX;
-          vpt[5] += e.clientY - lastPosY;
+          vpt[4] += deltaX;
+          vpt[5] += deltaY;
           fabricCanvas.requestRenderAll();
+
+          // 2. Trượt toàn bộ các ô Chữ gõ bài giảng (textElements) đồng bộ nguyên trang lên, xuống, trái, phải!
+          setTextElements((prev) =>
+            prev.map((t) => ({
+              ...t,
+              x: t.x + deltaX,
+              y: t.y + deltaY,
+            }))
+          );
+
           lastPosX = e.clientX;
           lastPosY = e.clientY;
         }
@@ -1229,7 +1273,7 @@ export default function WhiteboardView() {
       <div 
         ref={containerRef} 
         onClick={handleCanvasContainerClick}
-        className={`relative w-full h-[calc(100vh-50px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : tool === 'drawShape' ? 'cursor-crosshair' : ''}`}
+        className={`relative w-full h-[calc(100vh-50px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : tool === 'drawShape' ? 'cursor-crosshair' : tool === 'hand' ? 'cursor-grab active:cursor-grabbing' : ''}`}
       >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
 
@@ -1449,7 +1493,7 @@ export default function WhiteboardView() {
           );
         })}
 
-        {/* MENU NỔI FLOATING MENU CHO FABRIC OBJECTS (ẢNH DÁN, SHAPES, STICKY) */}
+        {/* MENU NỔI FLOATING MENU CHO FABRIC OBJECTS (ẢNH DÁN, SHAPES, STICKY) + CÓ NÚT NHÓM GROUP VÀ BỎ NHÓM UNGROUP CHUẨN XÁC THẦY HẢI CHỈ ĐẠO (ẢNH media_1787456496420.png) */}
         {activeObject && floatingMenuPos && (
           <div
             style={{
@@ -1458,6 +1502,30 @@ export default function WhiteboardView() {
             }}
             className="fixed z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans"
           >
+            {/* NÚT NHÓM GROUP KHI KHOANH VÙNG CHỌN TỪ 2 DỤNG CỤ TRỞ LÊN (ẢNH media_1787456496420.png) */}
+            {activeSelectionObjects.length > 1 && (
+              <button
+                onClick={handleGroupSelectedObjects}
+                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl flex items-center space-x-1 transition shadow-md cursor-pointer border border-emerald-400"
+                title="🔗 Nhóm các đối tượng đang chọn lại thành 1 Khối duy nhất"
+              >
+                <Group className="w-4 h-4 text-emerald-200" />
+                <span>🔗 Nhóm Khối</span>
+              </button>
+            )}
+
+            {/* NÚT BỎ NHÓM UNGROUP KHI CHỌN VÀO 1 KHỐI GROUP */}
+            {activeObject.type === 'group' && (
+              <button
+                onClick={handleUngroupSelectedObject}
+                className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs rounded-xl flex items-center space-x-1 transition shadow-md cursor-pointer border border-amber-400"
+                title="🔓 Bỏ Nhóm rời rạc từng đối tượng"
+              >
+                <Ungroup className="w-4 h-4 text-amber-200" />
+                <span>🔓 Bỏ Nhóm</span>
+              </button>
+            )}
+
             <button
               onClick={handleDeleteActiveObject}
               className="p-2 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl flex items-center justify-center transition border border-rose-300 shadow-2xs cursor-pointer"
@@ -1970,7 +2038,7 @@ export default function WhiteboardView() {
           <MousePointer className="w-4 h-4" />
         </button>
 
-        {/* 3. HAND PAN CANVAS */}
+        {/* 3. HAND PAN CANVAS TRƯỢT 100% CÁC ĐỐI TƯỢNG SHAPES & CÁC Ô CHỮ NGUYÊN TRANG BÀI GIẢNG CHUẨN XÁC MYVIEWBOARD (ẢNH media_1787456573055.png) */}
         <button
           onClick={() => {
             setTool('hand');
@@ -1981,7 +2049,7 @@ export default function WhiteboardView() {
               ? 'bg-amber-500 text-slate-950 shadow-md font-bold ring-2 ring-amber-300 scale-105'
               : 'hover:bg-[#c4bb9c] text-slate-800'
           }`}
-          title="Bàn tay kéo trượt toàn bộ canvas"
+          title="Bàn tay đè giữ trượt nguyên 1 trang tất cả chữ và đối tượng lên, xuống, trái, phải"
         >
           <Hand className="w-4 h-4" />
         </button>
