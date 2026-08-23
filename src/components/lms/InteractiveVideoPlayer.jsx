@@ -34,6 +34,7 @@ const parseFillBlanksText = (textWithBlanks = '') => {
 };
 
 export default function InteractiveVideoPlayer({ activity, isTeacher }) {
+  const containerRef = useRef(null);
   const html5VideoRef = useRef(null);
   const ytPlayerRef = useRef(null);
 
