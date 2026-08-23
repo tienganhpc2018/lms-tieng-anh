@@ -22,11 +22,10 @@ export default function ShapesModulePanel({
 }) {
   if (!isOpen) return null;
 
+  // Bảng màu tinh gọn 14 màu sặc sỡ chuẩn nhất
   const colorPalette = [
-    '#ef4444', '#f97316', '#eab308', '#22c55e', '#1d4ed8', '#9333ea', '#ffffff', '#09090b',
-    '#f472b6', '#fb923c', '#fde047', '#4ade80', '#60a5fa', '#a78bfa', '#e4e4e7', '#71717a',
-    '#fbcfe8', '#fed7aa', '#fef08a', '#bbf7d0', '#bfdbfe', '#ddd6fe', '#f4f4f5', '#27272a',
-    '#fff1f2', '#fff7ed', '#fefce8', '#f0fdf4', '#eff6ff', '#faf5ff', '#fafafa', '#18181b'
+    '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6',
+    '#ec4899', '#ffffff', '#09090b', '#71717a', '#a78bfa', '#4ade80', '#fde047'
   ];
 
   const handleStrokeWidthChange = (val) => {
@@ -80,21 +79,141 @@ export default function ShapesModulePanel({
   };
 
   return (
-    <div className="fixed top-16 left-16 z-[100] bg-[#ded8be] border-4 border-[#b8af91] rounded-3xl shadow-2xl p-4 w-96 font-sans text-slate-900 animate-scale-up">
-      {/* HEADER POPUP SHAPES */}
-      <div className="flex justify-between items-center border-b border-[#c8c0a3] pb-2 mb-3">
-        <h3 className="font-extrabold text-base text-slate-800 tracking-wide">Shapes (Bảng Hình Học)</h3>
+    <div className="fixed top-16 left-6 z-[100] bg-[#ded8be] border-2 border-[#b8af91] rounded-2xl shadow-xl p-2.5 w-[330px] font-sans text-slate-900 animate-scale-up">
+      {/* HEADER POPUP SHAPES NHỎ GỌN */}
+      <div className="flex justify-between items-center border-b border-[#c8c0a3] pb-1.5 mb-2">
+        <h3 className="font-extrabold text-xs text-slate-800 tracking-wide flex items-center space-x-1">
+          <Square className="w-3.5 h-3.5 text-purple-700" />
+          <span>Shapes (Công Cụ Hình Học)</span>
+        </h3>
         <button
           onClick={onClose}
-          className="w-7 h-7 rounded-full bg-[#c8c0a3] hover:bg-[#b8af91] flex items-center justify-center text-slate-800 transition cursor-pointer"
+          className="w-5 h-5 rounded-full bg-[#c8c0a3] hover:bg-[#b8af91] flex items-center justify-center text-slate-800 transition cursor-pointer text-xs font-bold"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3 h-3" />
         </button>
       </div>
 
-      {/* BẢNG MÀU 32 Ô CHUẨN ẢNH MYVIEWBOARD */}
-      <div className="space-y-1 mb-3">
-        <div className="grid grid-cols-8 gap-1.5 p-2 bg-[#d2caa9] rounded-2xl border border-[#c8c0a3]">
+      {/* BỐ CỤC 2 CỘT: CỘT TRÁI CHỨA CÁC SHAPES & CỘT PHẢI CHỨA THANH MÀU DỌC GỌN GÀNG */}
+      <div className="flex gap-2">
+        {/* CỘT TRÁI: GRID SHAPES & THANH TRƯỢT */}
+        <div className="flex-1 space-y-2">
+          {/* GRID ICONS DẠNG KHỐI HÌNH HỌC & TICK XANH / X ĐỎ */}
+          <div className="grid grid-cols-4 gap-1">
+            <button
+              onClick={() => onSelectShape('rect')}
+              className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
+              title="Vuông"
+            >
+              <Square className="w-4 h-4 text-slate-900" />
+              <span className="text-[9px] font-bold mt-0.5">Vuông</span>
+            </button>
+
+            <button
+              onClick={() => onSelectShape('circle')}
+              className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
+              title="Tròn"
+            >
+              <Circle className="w-4 h-4 text-slate-900" />
+              <span className="text-[9px] font-bold mt-0.5">Tròn</span>
+            </button>
+
+            <button
+              onClick={() => onSelectShape('oval')}
+              className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
+              title="Bầu Dục"
+            >
+              <div className="w-4 h-2.5 border-2 border-slate-900 rounded-full" />
+              <span className="text-[9px] font-bold mt-0.5">Bầu Dục</span>
+            </button>
+
+            <button
+              onClick={() => onSelectShape('triangle')}
+              className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
+              title="Tam Giác"
+            >
+              <Triangle className="w-4 h-4 text-slate-900" />
+              <span className="text-[9px] font-bold mt-0.5">Tam Giác</span>
+            </button>
+
+            <button
+              onClick={() => onSelectShape('line')}
+              className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
+              title="Đường Thẳng"
+            >
+              <Minus className="w-4 h-4 text-slate-900" />
+              <span className="text-[9px] font-bold mt-0.5">Thẳng</span>
+            </button>
+
+            <button
+              onClick={() => onSelectShape('arrow')}
+              className="p-1.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-lg border border-slate-500 flex flex-col items-center justify-center transition cursor-pointer"
+              title="Mũi Tên"
+            >
+              <ArrowRight className="w-4 h-4 text-slate-900" />
+              <span className="text-[9px] font-bold mt-0.5">Mũi Tên</span>
+            </button>
+
+            <button
+              onClick={() => onSelectShape('check')}
+              className="p-1.5 bg-emerald-100 hover:bg-emerald-200 border border-emerald-600 rounded-lg flex flex-col items-center justify-center transition cursor-pointer"
+              title="Tick Xanh"
+            >
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
+              <span className="text-[9px] text-emerald-900 font-extrabold mt-0.5">Tick</span>
+            </button>
+
+            <button
+              onClick={() => onSelectShape('cross')}
+              className="p-1.5 bg-rose-100 hover:bg-rose-200 border border-rose-600 rounded-lg flex flex-col items-center justify-center transition cursor-pointer"
+              title="X Đỏ"
+            >
+              <XCircle className="w-4 h-4 text-rose-600" />
+              <span className="text-[9px] text-rose-900 font-extrabold mt-0.5">X Đỏ</span>
+            </button>
+          </div>
+
+          {/* THANH TRƯỢT ĐỘ DÀY VIỀN & ĐỘ TRONG SUỐT GỌI GÀNG */}
+          <div className="bg-[#d2caa9] p-2 rounded-xl border border-[#c8c0a3] space-y-1.5 text-[10px] font-extrabold">
+            <div className="flex justify-between items-center">
+              <span>Nét Stroke: <strong className="text-sky-800">{strokeWidth}px</strong></span>
+              <button
+                type="button"
+                onClick={handleToggleDashed}
+                className={`px-1.5 py-0.5 rounded border text-[9px] transition ${
+                  isDashed ? 'bg-amber-600 text-white' : 'bg-slate-200 text-slate-800'
+                }`}
+              >
+                {isDashed ? 'Viền Nét Đứt' : 'Viền Nét Liền'}
+              </button>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="30"
+              value={strokeWidth}
+              onChange={(e) => handleStrokeWidthChange(e.target.value)}
+              className="w-full h-1.5 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-sky-600"
+            />
+
+            <div className="flex justify-between items-center pt-1 border-t border-[#c8c0a3]">
+              <span>Màu Nền Fill:</span>
+              <button
+                type="button"
+                onClick={handleToggleHasFill}
+                className={`px-1.5 py-0.5 rounded border text-[9px] transition ${
+                  hasFill ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-700'
+                }`}
+              >
+                {hasFill ? '☑️ Có Nền' : '🚫 Trong Suốt'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* CỘT PHẢI: THANH MÀU XẾP DỌC TINH TẾ THEO YÊU CẦU THẦY HẢI */}
+        <div className="flex flex-col items-center gap-1 p-1 bg-[#d2caa9] rounded-xl border border-[#c8c0a3] max-h-[170px] overflow-y-auto">
+          <span className="text-[8px] font-black uppercase text-slate-700">Màu</span>
           {colorPalette.map((c, i) => (
             <button
               key={i}
@@ -104,191 +223,11 @@ export default function ShapesModulePanel({
                 if (hasFill) handleFillColorChange(c);
               }}
               style={{ backgroundColor: c }}
-              className={`w-7 h-7 rounded-full border-2 border-slate-200/80 shadow-2xs transition transform hover:scale-110 cursor-pointer ${
+              className={`w-4 h-4 rounded-full border border-slate-300 shadow-2xs transition transform hover:scale-125 cursor-pointer ${
                 strokeColor === c ? 'ring-2 ring-slate-900 scale-110' : ''
               }`}
             />
           ))}
-        </div>
-      </div>
-
-      {/* THANH TRƯỢT CONTROL: ĐỘ DÀY VIỀN & ĐỘ TRONG SUỐT & CHỌN NÉT ĐỨT / NÉT LIỀN */}
-      <div className="bg-[#d2caa9] p-3 rounded-2xl border border-[#c8c0a3] space-y-3 mb-3">
-        {/* Thanh trượt 1: Độ dày viền khung bo (Stroke Width) */}
-        <div>
-          <div className="flex justify-between items-center text-[11px] font-extrabold text-slate-800 mb-1">
-            <span className="flex items-center space-x-1">
-              <CircleDot className="w-3.5 h-3.5 text-slate-700" />
-              <span>Độ dày viền khung (Stroke):</span>
-            </span>
-            <span className="font-mono text-sky-800">{strokeWidth}px</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-7 h-7 bg-[#ded8be] rounded-full border border-slate-600 flex items-center justify-center">
-              <div
-                style={{ width: `${Math.min(18, Math.max(4, strokeWidth))}px`, height: `${Math.min(18, Math.max(4, strokeWidth))}px` }}
-                className="bg-slate-900 rounded-full"
-              />
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="30"
-              value={strokeWidth}
-              onChange={(e) => handleStrokeWidthChange(e.target.value)}
-              className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-sky-600"
-            />
-          </div>
-        </div>
-
-        {/* Thanh trượt 2: Độ trong suốt (Opacity) */}
-        <div>
-          <div className="flex justify-between items-center text-[11px] font-extrabold text-slate-800 mb-1">
-            <span className="flex items-center space-x-1">
-              <Sun className="w-3.5 h-3.5 text-slate-700" />
-              <span>Độ trong suốt (Opacity):</span>
-            </span>
-            <span className="font-mono text-sky-800">{Math.round(opacity * 100)}%</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-7 h-7 bg-[#ded8be] rounded-full border border-slate-600 flex items-center justify-center">
-              <div
-                style={{ opacity: opacity }}
-                className="w-4 h-4 bg-slate-900 rounded-full"
-              />
-            </div>
-            <input
-              type="range"
-              min="0.1"
-              max="1.0"
-              step="0.05"
-              value={opacity}
-              onChange={(e) => handleOpacityChange(e.target.value)}
-              className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-sky-600"
-            />
-          </div>
-        </div>
-
-        {/* CHỌN NẾT VIỀN: NẾT LIỀN HOẶC NẾT ĐỨT (DASHED LINE) THEO YÊU CẦU THẦY HẢI */}
-        <div className="flex items-center justify-between pt-2 border-t border-[#c8c0a3] text-xs font-extrabold">
-          <span>Kiểu Nét Viền Khung:</span>
-          <button
-            type="button"
-            onClick={handleToggleDashed}
-            className={`px-3 py-1 rounded-xl border text-[11px] transition font-black cursor-pointer ${
-              isDashed ? 'bg-amber-600 text-white border-amber-700' : 'bg-slate-200 text-slate-800 border-slate-400'
-            }`}
-          >
-            {isDashed ? '✂️ Viền Nét Đứt' : '➖ Viền Nét Liền'}
-          </button>
-        </div>
-      </div>
-
-      {/* GRID ICONS DẠNG KHỐI HÌNH HỌC + 2 ICON CHẤM BÀI DẤU TICK XANH VÀ DẤU X ĐỎ THEO YÊU CẦU THẦY HẢI */}
-      <div className="bg-[#d2caa9] p-3 rounded-2xl border border-[#c8c0a3] space-y-2 mb-3">
-        <div className="grid grid-cols-4 gap-2 text-center text-xs font-black">
-          <button
-            onClick={() => onSelectShape('rect')}
-            className="p-2.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-xl border border-slate-600 flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="Chữ nhật / Vuông"
-          >
-            <Square className="w-5 h-5 text-slate-900" />
-            <span className="text-[10px]">Vuông</span>
-          </button>
-
-          <button
-            onClick={() => onSelectShape('circle')}
-            className="p-2.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-xl border border-slate-600 flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="Hình Tròn"
-          >
-            <Circle className="w-5 h-5 text-slate-900" />
-            <span className="text-[10px]">Tròn</span>
-          </button>
-
-          <button
-            onClick={() => onSelectShape('oval')}
-            className="p-2.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-xl border border-slate-600 flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="Hình Bầu Dục (Oval)"
-          >
-            <div className="w-6 h-4 border-2 border-slate-900 rounded-full" />
-            <span className="text-[10px]">Bầu Dục</span>
-          </button>
-
-          <button
-            onClick={() => onSelectShape('triangle')}
-            className="p-2.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-xl border border-slate-600 flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="Hình Tam Giác"
-          >
-            <Triangle className="w-5 h-5 text-slate-900" />
-            <span className="text-[10px]">Tam Giác</span>
-          </button>
-
-          <button
-            onClick={() => onSelectShape('line')}
-            className="p-2.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-xl border border-slate-600 flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="Đường Thẳng"
-          >
-            <Minus className="w-5 h-5 text-slate-900" />
-            <span className="text-[10px]">Đường Thẳng</span>
-          </button>
-
-          <button
-            onClick={() => onSelectShape('arrow')}
-            className="p-2.5 bg-[#ded8be] hover:bg-[#c8c0a3] rounded-xl border border-slate-600 flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="Mũi Tên"
-          >
-            <ArrowRight className="w-5 h-5 text-slate-900" />
-            <span className="text-[10px]">Mũi Tên</span>
-          </button>
-
-          {/* ========================================================================= */}
-          {/* 2 ICON CHẤM BÀI: DẤU TICK XANH (CHECK) VÀ DẤU X ĐỎ THEO CHỈ ĐẠO CỦA THẦY HẢI */}
-          {/* ========================================================================= */}
-          <button
-            onClick={() => onSelectShape('check')}
-            className="p-2.5 bg-emerald-100 hover:bg-emerald-200 border-2 border-emerald-600 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="✔️ Dấu Tick Xanh Đánh Dấu Đúng"
-          >
-            <CheckCircle className="w-5 h-5 text-emerald-600" />
-            <span className="text-[10px] text-emerald-900 font-extrabold">Tick Xanh</span>
-          </button>
-
-          <button
-            onClick={() => onSelectShape('cross')}
-            className="p-2.5 bg-rose-100 hover:bg-rose-200 border-2 border-rose-600 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-2xs transition cursor-pointer"
-            title="❌ Dấu X Đỏ Đánh Dấu Sai"
-          >
-            <XCircle className="w-5 h-5 text-rose-600" />
-            <span className="text-[10px] text-rose-900 font-extrabold">X Đỏ</span>
-          </button>
-        </div>
-
-        {/* NÚT TOGGLE MÀU NỀN & XÔ SƠN FILL */}
-        <div className="flex items-center justify-between pt-2 border-t border-[#c8c0a3] text-xs font-extrabold">
-          <div className="flex items-center space-x-2">
-            <PaintBucket className="w-4 h-4 text-slate-800" />
-            <span>Màu Nền (Fill):</span>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="color"
-              value={fillColor}
-              onChange={(e) => handleFillColorChange(e.target.value)}
-              disabled={!hasFill}
-              className="w-7 h-7 rounded-lg cursor-pointer border border-slate-600 p-0 disabled:opacity-30"
-            />
-
-            <button
-              type="button"
-              onClick={handleToggleHasFill}
-              className={`px-3 py-1 rounded-xl border text-[11px] transition font-black cursor-pointer ${
-                hasFill ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-slate-300 text-slate-700 border-slate-400'
-              }`}
-            >
-              {hasFill ? '☑️ Có Màu' : '🚫 Trong Suốt'}
-            </button>
-          </div>
         </div>
       </div>
     </div>
