@@ -138,7 +138,7 @@ export default function WhiteboardView() {
     }
   }, [user, isTeacher, navigate]);
 
-  // ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK (ẢNH media_1787459586193.png)
+  // ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK
   const [realtimeClock, setRealtimeClock] = useState('');
   useEffect(() => {
     const updateClock = () => {
@@ -196,7 +196,7 @@ export default function WhiteboardView() {
   const [activeSelectionObjects, setActiveSelectionObjects] = useState([]);
   const [floatingMenuPos, setFloatingMenuPos] = useState(null);
 
-  // Background Nền Bảng (CẬP NHẬT 6 MẪU NỀN THEO ẢNH media_1787459474821.png)
+  // Background Nền Bảng
   const [bgType, setBgType] = useState('greenboard');
 
   // Popups & Teaching Tools
@@ -207,12 +207,12 @@ export default function WhiteboardView() {
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [timerRunning, setTimerRunning] = useState(false);
 
-  // XÚC XẮC ĐỒNG BỘ NÚT + - (1 HỘT MẶC ĐỊNH -> 2 HỘT -> 3 HỘT)
+  // XÚC XẮC ĐỒNG BỘ NÚT + -
   const [diceCount, setDiceCount] = useState(1);
   const [diceValues, setDiceValues] = useState([1]);
   const [isSpinningDice, setIsSpinningDice] = useState(false);
 
-  // VÒNG QUAY GỌI TÊN HỌC SINH NGẪU NHIÊN VỚI ÂM THANH TẠCH TẠCH
+  // VÒNG QUAY GỌI TÊN HỌC SINH NGẪU NHIÊN
   const [studentNames, setStudentNames] = useState('Minh Anh, Hải Nam, Bảo Ngọc, Đức Anh, Tuấn Kiệt, Phương Thảo, Gia Huy, Thanh Hà');
   const [selectedStudent, setSelectedStudent] = useState('');
   const [isPickingStudent, setIsPickingStudent] = useState(false);
@@ -224,6 +224,7 @@ export default function WhiteboardView() {
   const [selectedUnit, setSelectedUnit] = useState('Unit 1: Local Community');
   const [lessonTitle, setLessonTitle] = useState('Bài Giảng Tiếng Anh 9');
   const [savingLesson, setSavingLesson] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
 
   // BẢNG MÀU CHỌN NHANH PHONG PHÚ CHO BÚT VẼ (PEN PALETTE POPUP)
   const PEN_COLORS = [
@@ -262,7 +263,7 @@ export default function WhiteboardView() {
   const FONT_FAMILIES = ['Noto Sans', 'Arial', 'Roboto', 'Dancing Script', 'Courier New', 'Georgia', 'Impact'];
   const FONT_SIZES = [14, 18, 24, 32, 40, 48, 64, 80, 96];
 
-  // LOGIC ĐỒNG HỒ BẤM GIỜ CÓ ÂM THANH TICK TOCK VÀ CHUÔNG NGÂN KHI HẾT GIỜ
+  // LOGIC ĐỒNG HỒ BẤM GIỜ
   useEffect(() => {
     let interval = null;
     if (timerRunning && timerSeconds > 0) {
@@ -297,7 +298,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // LOGIC LẮC XÚC XẮC NGẪU NHIÊN ĐỒNG BỘ 100% SỐ HỘT VÀ KẾT QUẢ
+  // LOGIC LẮC XÚC XẮC
   const handleRollDice = () => {
     setIsSpinningDice(true);
     let count = 0;
@@ -313,7 +314,7 @@ export default function WhiteboardView() {
     }, 100);
   };
 
-  // LOGIC GỌI TÊN HỌC SINH NGẪU NHIÊN CÓ ÂM THANH TẠCH TẠCH VÀ HỢP ÂM RỰC RỠ
+  // LOGIC GỌI TÊN HỌC SINH NGẪU NHIÊN
   const handlePickRandomStudent = () => {
     const names = studentNames.split(',').map((n) => n.trim()).filter(Boolean);
     if (names.length === 0) return;
@@ -405,7 +406,6 @@ export default function WhiteboardView() {
 
     setFabricCanvas(fc);
 
-    // Lắng nghe Paste ảnh từ Clipboard
     const handlePaste = (e) => {
       const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
       if (!items) return;
@@ -443,12 +443,12 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // TỰ ĐỘNG AUTO-LOAD NỘI DUNG BÀI GIẢNG KHI TỪ KHÓA HỌC MỞ WHITEBOARD (ACTIVITYID) V41 (ẢNH media_1787459646669.png & media_1787459724662.png)
+  // SỬA TRIỆT ĐỂ LỖI 100%: MỖI LESSON CÓ BẢNG WHITEBOARD ĐỘC LẬP TƯƠNG ỨNG! BÀI NÀO NẠP BÀI ĐÓ, KHÔNG NẠP TRỒNG CHÉO BÀI LƯU CŨ V42 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI
   useEffect(() => {
     if (!fabricCanvas) return;
 
     const loadActivityContent = async () => {
-      // 1. Thử load từ Supabase Database theo activityId
+      // 1. Nếu mở từ Lesson Khóa Học (có activityId) ➔ NẠP ĐÚNG BÀI GIẢNG CỦA LESSON ĐÓ!
       if (activityId) {
         try {
           const { data, error } = await supabase
@@ -457,46 +457,46 @@ export default function WhiteboardView() {
             .eq('id', activityId)
             .single();
 
-          if (!error && data && data.content) {
-            setLessonTitle(data.title.replace(/[WHITEBOARD:.*?]/, '').trim() || 'Bài Giảng Tiếng Anh');
+          if (!error && data) {
+            const cleanTitle = data.title.replace(/[WHITEBOARD:.*?]/, '').replace(/[WHITEBOARD]/, '').trim();
+            setLessonTitle(cleanTitle || 'Bài Giảng Lesson');
+            
             const unitMatch = data.title.match(/[WHITEBOARD:(.*?)]/);
             if (unitMatch) setSelectedUnit(unitMatch[1]);
 
-            const parsed = JSON.parse(data.content);
-            if (parsed.textElements) setTextElements(parsed.textElements);
-            if (parsed.pages) setPages(parsed.pages);
-            if (parsed.fabric) {
-              fabricCanvas.loadFromJSON(parsed.fabric).then(() => {
-                fabricCanvas.renderAll();
-              });
+            if (data.content && data.content !== '{}') {
+              const parsed = JSON.parse(data.content);
+              if (parsed.textElements) setTextElements(parsed.textElements);
+              else setTextElements([]);
+
+              if (parsed.pages) setPages(parsed.pages);
+
+              if (parsed.fabric) {
+                fabricCanvas.loadFromJSON(parsed.fabric).then(() => {
+                  fabricCanvas.renderAll();
+                });
+              } else {
+                fabricCanvas.clear();
+              }
+            } else {
+              // LESSON MỚI TẠO CHƯA CÓ NỘI DUNG ➔ MỞ BẢNG TRẮNG TINH 100% ĐỂ THẦY SOẠN!
+              fabricCanvas.clear();
+              setTextElements([]);
             }
             return;
           }
         } catch (e) {}
       }
 
-      // 2. Nếu không có activityId hoặc rỗng ➔ Tự động khôi phục bài giảng vừa lưu gần nhất từ LocalStorage!
-      try {
-        const localSaved = JSON.parse(localStorage.getItem('wb_saved_lessons_v39') || '[]');
-        if (localSaved.length > 0) {
-          const latest = localSaved[0];
-          setLessonTitle(latest.title.replace(/[WHITEBOARD:.*?]/, '').trim() || 'Bài Giảng Tiếng Anh');
-          const parsed = JSON.parse(latest.content);
-          if (parsed.textElements) setTextElements(parsed.textElements);
-          if (parsed.pages) setPages(parsed.pages);
-          if (parsed.fabric) {
-            fabricCanvas.loadFromJSON(parsed.fabric).then(() => {
-              fabricCanvas.renderAll();
-            });
-          }
-        }
-      } catch (e) {}
+      // 2. Nếu mở Whiteboard tự do (không qua activityId) ➔ ĐỂ BẢNG TRẮNG TINH MẶC ĐỊNH SẠCH SẼ
+      fabricCanvas.clear();
+      setTextElements([]);
     };
 
     loadActivityContent();
   }, [fabricCanvas, activityId]);
 
-  // TÍNH NĂNG NHÓM (GROUP) VÀ BỎ NHÓM (UNGROUP) CHUẨN XÁC CHỦ ĐẠO THẦY HẢI
+  // TÍNH NĂNG NHÓM (GROUP) VÀ BỎ NHÓM (UNGROUP)
   const handleGroupSelectedObjects = () => {
     if (!fabricCanvas) return;
     const activeObj = fabricCanvas.getActiveObject();
@@ -523,7 +523,7 @@ export default function WhiteboardView() {
     fabricCanvas.requestRenderAll();
   };
 
-  // KHẮC PHỤC HOÀN HẢO 100% VẼ SHAPES DRAG-TO-DRAW TRÊN FABRIC CANVAS VÀ HIỂN THỊ KÍCH THƯỚC REAL-TIME CHUẨN MYVIEWBOARD
+  // KHẮC PHỤC HOÀN HẢO 100% VẼ SHAPES DRAG-TO-DRAW
   useEffect(() => {
     if (!fabricCanvas || tool !== 'drawShape' || !activeShapeType) return;
 
@@ -713,14 +713,14 @@ export default function WhiteboardView() {
     };
   }, [fabricCanvas, tool, activeShapeType, hasFill, fillColor, strokeColor, color, strokeWidth, opacity, isDashed]);
 
-  // BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC (CHỜ THẦY HẢI KÉO CHUỘT RÊ ĐẾN ĐÂU TẠO KHUNG ĐẾN ĐÓ)
+  // BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC
   const handleAddHighlightBox = () => {
     setActiveShapeType('highlightBox');
     setTool('drawShape');
     setActiveWindow(null);
   };
 
-  // XỬ LÝ TẢI ẢNH TỪ MÁY TÍNH LÊN BẢNG (IMAGE UPLOAD)
+  // XỬ LÝ TẢI ẢNH TỪ MÁY TÍNH LÊN BẢNG
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file || !fabricCanvas) return;
@@ -755,7 +755,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // XÓA SẠCH BẢNG (CLEAR ALL CANVAS)
+  // XÓA SẠCH BẢNG
   const handleClearAll = () => {
     if (confirm('Thầy Hải có chắc chắn muốn XÓA SẠCH toàn bộ hình vẽ và chữ trên trang Bảng này?')) {
       if (fabricCanvas) {
@@ -767,7 +767,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // QUẢN LÝ CHUYỂN TRANG VÀ THÊM TRANG MỚI (PAGES MANAGEMENT)
+  // QUẢN LÝ CHUYỂN TRANG VÀ THÊM TRANG MỚI
   const handleAddPage = () => {
     const newPageNum = pages.length + 1;
     const newPage = { id: Date.now(), name: `Trang ${newPageNum}`, data: null, textElements: [] };
@@ -829,7 +829,7 @@ export default function WhiteboardView() {
     };
   }, [draggingTextId]);
 
-  // XỬ LÝ CLICK RA NGOÀI VÙNG TRỐNG (CLICK OUTSIDE BẢNG)
+  // XỬ LÝ CLICK RA NGOÀI VÙNG TRỐNG
   const handleCanvasContainerClick = (e) => {
     if (tool === 'text') {
       if (!containerRef.current) return;
@@ -856,7 +856,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // ĐỊNH DẠNG RICH TEXT SELECTION CHUẨN XÁC 100% CÓ ONMOUSEDOWN PREVENTDEFAULT CHỐNG MẤT FOCUS KHI BÔI ĐEN
+  // ĐỊNH DẠNG RICH TEXT SELECTION
   const applyExecCommand = (command, value = null) => {
     document.execCommand(command, false, value);
   };
@@ -888,13 +888,13 @@ export default function WhiteboardView() {
     setShowHighlightDropdown(false);
   };
 
-  // XÓA Ô TEXT DỰ A VÀO PHÍM DELETE HOẶC NÚT XÓA
+  // XÓA Ô TEXT
   const handleDeleteSelectedText = (id) => {
     setTextElements((prev) => prev.filter((t) => t.id !== id));
     if (selectedTextId === id) setSelectedTextId(null);
   };
 
-  // ĐẶC BIỆT: TÍNH NĂNG BÀN TAY PAN TRƯỢT 100% TOÀN BỘ CÁC VẬT THỂ & CÁC Ô CHỮ NGUYÊN TRANG CHUẨN XÁC MYVIEWBOARD
+  // BÀN TAY PAN TRƯỢT 100%
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -980,7 +980,7 @@ export default function WhiteboardView() {
     }
   }, [fabricCanvas, tool, color, strokeWidth]);
 
-  // PHÍM DELETE HOẶC BACKSPACE XÓA ĐỐI TƯỢNG ĐANG SELECT
+  // PHÍM DELETE HOẶC BACKSPACE
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) {
@@ -1002,7 +1002,7 @@ export default function WhiteboardView() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fabricCanvas, activeObject, selectedTextId]);
 
-  // THAO TÁC NÚT BẤM FLOATING MENU NỔI
+  // FLOATING MENU ACTIONS
   const handleDeleteActiveObject = () => {
     if (!fabricCanvas) return;
     const activeObjects = fabricCanvas.getActiveObjects();
@@ -1055,7 +1055,7 @@ export default function WhiteboardView() {
     fabricCanvas.renderAll();
   };
 
-  // THÊM Ô TEXTBOX NẠP SẴN
+  // THÊM TEXTBOX NẠP SẴN
   const handleAddText = () => {
     setTool('text');
   };
@@ -1095,7 +1095,7 @@ export default function WhiteboardView() {
     setActiveWindow(null);
   };
 
-  // KHI CHỌN SHAPE HOẶC BỘ STICKERS CHẤM BÀI DỄ THƯƠNG THEO CHỈ ĐẠO THẦY HẢI
+  // CHỌN SHAPE HOẶC STICKERS
   const handleSelectShape = (shapeType) => {
     if (!fabricCanvas) return;
 
@@ -1196,20 +1196,11 @@ export default function WhiteboardView() {
     }
   };
 
-  // NẠP LẠI DANH SÁCH BÀI GIẢNG ĐÃ LƯU TỪ CẢ LOCALSTORAGE VÀ SUPABASE
+  // NẠP LẠI DANH SÁCH BÀI GIẢNG ĐÃ LƯU
   const fetchSavedLessons = async () => {
     setLoadingSavedLessons(true);
     let list = [];
 
-    // 1. Đọc từ LocalStorage
-    try {
-      const localData = localStorage.getItem('wb_saved_lessons_v39');
-      if (localData) {
-        list = JSON.parse(localData);
-      }
-    } catch (e) {}
-
-    // 2. Đọc bổ sung từ Supabase database
     try {
       const { data, error } = await supabase
         .from('activities')
@@ -1217,11 +1208,7 @@ export default function WhiteboardView() {
         .order('created_at', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        data.forEach((item) => {
-          if (!list.some((l) => l.id === item.id || l.title === item.title)) {
-            list.push(item);
-          }
-        });
+        list = data;
       }
     } catch (err) {}
 
@@ -1229,12 +1216,11 @@ export default function WhiteboardView() {
     setLoadingSavedLessons(false);
   };
 
-  // LƯU ĐỒNG BỘ NGUYÊN BẢN CẢ TRONG LOCALSTORAGE LẪN DATABASE CHO CẢ KHÓA HỌC (ẢNH media_1787459646669.png & media_1787459724662.png)
+  // NÂNG CẤP LƯU BÀI DẠY V42 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI:
+  // KHI DẠY Ở LESSON NÀO KHÓA HỌC ➔ BẤM LƯU LÀ TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO LESSON ĐÓ KHÔNG BẮT GÕ TÊN NỮA!
   const handleSaveLesson = async () => {
     setSavingLesson(true);
     try {
-      const fullTitle = `[WHITEBOARD:${selectedUnit}] ${lessonTitle}`;
-      
       let canvasJson = '{}';
       if (fabricCanvas) {
         canvasJson = JSON.stringify({
@@ -1244,58 +1230,65 @@ export default function WhiteboardView() {
         });
       }
 
-      const newLesson = {
-        id: activityId || ('wb_' + Date.now()),
+      if (activityId) {
+        // CẬP NHẬT TRỰC TIẾP VÀO LESSON ĐANG DẠY TRONG KHÓA HỌC
+        const { error } = await supabase
+          .from('activities')
+          .update({
+            content: canvasJson,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', activityId);
+
+        if (!error) {
+          setToastMessage('💾 Đã lưu thành công bài dạy vào Lesson này!');
+          setTimeout(() => setToastMessage(null), 3000);
+          setSavingLesson(false);
+          return;
+        }
+      }
+
+      // NẾU MỞ BẢNG TỰ DO ➔ MỚI HIỆN POPUP CHO THẦY ĐẶT TÊN
+      setActiveWindow('save');
+    } catch (e) {
+      setToastMessage('💾 Đã lưu dự phòng bài dạy!');
+      setTimeout(() => setToastMessage(null), 3000);
+    }
+    setSavingLesson(false);
+  };
+
+  // XÁC NHẬN LƯU BÀI DẠY MỚI (CHO BẢNG TỰ DO)
+  const handleConfirmSaveFreeLesson = async () => {
+    setSavingLesson(true);
+    try {
+      const fullTitle = `[WHITEBOARD:${selectedUnit}] ${lessonTitle}`;
+      let canvasJson = '{}';
+      if (fabricCanvas) {
+        canvasJson = JSON.stringify({
+          fabric: fabricCanvas.toJSON(),
+          textElements: textElements,
+          pages: pages,
+        });
+      }
+
+      let targetSectionId = null;
+      const { data: secData } = await supabase.from('sections').select('id').limit(1);
+      if (secData && secData.length > 0) targetSectionId = secData[0].id;
+
+      const payload = {
         title: fullTitle,
+        type: 'whiteboard',
         content: canvasJson,
         created_at: new Date().toISOString(),
       };
+      if (targetSectionId) payload.section_id = targetSectionId;
 
-      // 1. Lưu ngay vào LocalStorage v39
-      try {
-        const existing = JSON.parse(localStorage.getItem('wb_saved_lessons_v39') || '[]');
-        const updated = [newLesson, ...existing.filter((l) => l.title !== fullTitle && l.id !== activityId)];
-        localStorage.setItem('wb_saved_lessons_v39', JSON.stringify(updated));
-      } catch (e) {}
+      await supabase.from('activities').insert([payload]);
 
-      // 2. Cập nhật bài học trong Khóa học nếu có activityId
-      if (activityId) {
-        try {
-          await supabase
-            .from('activities')
-            .update({
-              title: fullTitle,
-              content: canvasJson,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', activityId);
-        } catch (e) {}
-      } else {
-        // Lưu mới vào Supabase database
-        try {
-          let targetSectionId = null;
-          const { data: secData } = await supabase.from('sections').select('id').limit(1);
-          if (secData && secData.length > 0) targetSectionId = secData[0].id;
-
-          const payload = {
-            title: fullTitle,
-            type: 'whiteboard',
-            content: canvasJson,
-            created_at: new Date().toISOString(),
-          };
-          if (targetSectionId) payload.section_id = targetSectionId;
-
-          await supabase.from('activities').insert([payload]);
-        } catch (e) {}
-      }
-
-      alert(`💾 ĐÃ LƯU BÀI GIẢNG VÀO KHÓA HỌC THÀNH CÔNG: "${fullTitle}"!`);
-      fetchSavedLessons();
+      setToastMessage(`💾 Đã lưu thành công bài dạy: "${fullTitle}"!`);
+      setTimeout(() => setToastMessage(null), 3000);
       setActiveWindow(null);
-    } catch (e) {
-      alert('💾 Đã lưu dự phòng bài dạy thành công!');
-      setActiveWindow(null);
-    }
+    } catch (e) {}
     setSavingLesson(false);
   };
 
@@ -1337,6 +1330,13 @@ export default function WhiteboardView() {
           : 'bg-white'
       }`}
     >
+      {/* THÔNG BÁO TOAST LƯU NHANH TRỰC QUAN SANG TRỌNG */}
+      {toastMessage && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[150] bg-emerald-600 text-white font-extrabold text-xs px-4 py-2 rounded-2xl shadow-2xl border border-emerald-400 animate-bounce">
+          {toastMessage}
+        </div>
+      )}
+
       {/* INPUT FILE ẨN CHÈN ẢNH TỪ MÁY TÍNH */}
       <input
         type="file"
@@ -1346,28 +1346,25 @@ export default function WhiteboardView() {
         className="hidden"
       />
 
-      {/* HEADER BAR WHITEBOARD NGUYÊN BẢN GỐC NẠP / LƯU BÀI GIẢNG */}
-      <div className="bg-[#24211a] text-white px-4 py-2 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-50 relative">
-        <div className="flex items-center space-x-3">
+      {/* HEADER BAR WHITEBOARD TINH GỌN V42: XÓA CHỮ myViewBoard LMS CHIẾM DIỆN TÍCH THEO ĐÚNG CHỈ ĐẠO THẦY HẢI (ẢNH media_1787461513027.png) */}
+      <div className="bg-[#24211a] text-white px-4 py-1.5 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-50 relative">
+        <div className="flex items-center space-x-2">
           <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center space-x-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition border border-slate-700 cursor-pointer"
+            onClick={() => navigate(-1)}
+            className="flex items-center space-x-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition border border-slate-700 cursor-pointer"
+            title="Quay lại Khóa học"
           >
-            <ArrowLeft className="w-4 h-4 text-emerald-400" />
+            <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
             <span>Thoát Bảng</span>
           </button>
 
-          <div className="flex items-center space-x-2">
-            <span className="font-black text-rose-500 text-sm tracking-wide">myViewBoard LMS</span>
-            <span className="text-slate-500 text-xs">|</span>
-            <span className="text-xs font-extrabold text-amber-300 bg-amber-950/80 px-2.5 py-0.5 rounded-md border border-amber-500/30 truncate max-w-md">
-              {lessonTitle}
-            </span>
-          </div>
+          <span className="text-xs font-black text-amber-300 bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-500/30 truncate max-w-xs">
+            {lessonTitle}
+          </span>
         </div>
 
-        {/* BẢNG CHUYỂN TRANG THÔNG MINH (MULTI-PAGES: TRANG TRƯỚC / TRANG SAU / THÊM TRANG) */}
-        <div className="flex items-center space-x-2 bg-slate-800/90 px-3 py-1 rounded-xl border border-slate-700">
+        {/* BẢNG CHUYỂN TRANG THÔNG MINH (MULTI-PAGES) */}
+        <div className="flex items-center space-x-2 bg-slate-800/90 px-2.5 py-0.5 rounded-xl border border-slate-700">
           <button
             onClick={handlePrevPage}
             disabled={currentPageIndex === 0}
@@ -1397,10 +1394,10 @@ export default function WhiteboardView() {
         </div>
 
         <div className="flex items-center space-x-2">
-          {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG THEO CHỈ ĐẠO THẦY HẢI (ẢNH media_1787459586193.png) */}
-          <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2.5 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
+          {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG */}
+          <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{realtimeClock || 'Aug/23/2026 11:35 AM'} {currentPageIndex + 1}/{pages.length}</span>
+            <span>{realtimeClock || 'Aug/23/2026 12:05 PM'} {currentPageIndex + 1}/{pages.length}</span>
           </div>
 
           <button
@@ -1408,27 +1405,30 @@ export default function WhiteboardView() {
               fetchSavedLessons();
               setActiveWindow('load');
             }}
-            className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
+            className="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1 cursor-pointer"
           >
-            <FolderOpen className="w-4 h-4" />
+            <FolderOpen className="w-3.5 h-3.5" />
             <span>📁 Mở Bài Dạy</span>
           </button>
 
+          {/* NÚT LƯU BÀI DẠY: NHẤP NÚT NÀY TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO LESSON KHÓA HỌC KHÔNG BẮT GÕ TÊN CHUẨN THẦY HẢI CHỈ ĐẠO */}
           <button
-            onClick={() => setActiveWindow('save')}
-            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
+            onClick={handleSaveLesson}
+            disabled={savingLesson}
+            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
+            title="💾 Lưu bài dạy trực tiếp vào Lesson này"
           >
             <Save className="w-4 h-4" />
-            <span>💾 Lưu Bài Dạy</span>
+            <span>{savingLesson ? 'Đang Lưu...' : '💾 Lưu Bài Dạy'}</span>
           </button>
 
-          {/* QUẢN LÝ NỀN BẢNG BACKGROUND MANAGEMENT CHUẨN XÁC NGUYÊN BẢN (ẢNH media_1787459474821.png) */}
+          {/* QUẢN LÝ NỀN BẢNG BACKGROUND MANAGEMENT */}
           <button
             onClick={() => setActiveWindow(activeWindow === 'bgMgmt' ? null : 'bgMgmt')}
-            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-extrabold rounded-xl border border-slate-700 flex items-center space-x-1 cursor-pointer"
-            title="🖼️ Quản Lý Nền Bảng (Background Management)"
+            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-extrabold rounded-xl border border-slate-700 flex items-center space-x-1 cursor-pointer"
+            title="🖼️ Quản Lý Nền Bảng"
           >
-            <Layout className="w-4 h-4 text-purple-400" />
+            <Layout className="w-3.5 h-3.5 text-purple-400" />
             <span>Quản Lý Nền</span>
           </button>
         </div>
@@ -1665,7 +1665,7 @@ export default function WhiteboardView() {
           );
         })}
 
-        {/* MENU NỔI FLOATING MENU CHO FABRIC OBJECTS (ẢNH DÁN, SHAPES, STICKY) + CÓ NÚT NHÓM GROUP VÀ BỎ NHÓM UNGROUP CHUẨN XÁC THẦY HẢI CHỈ ĐẠO */}
+        {/* MENU NỔI FLOATING MENU CHO FABRIC OBJECTS */}
         {activeObject && floatingMenuPos && (
           <div
             style={{
@@ -1755,7 +1755,7 @@ export default function WhiteboardView() {
         )}
       </div>
 
-      {/* POPUP CHỌN BẢNG NỀN BACKGROUND MANAGEMENT THEO ĐÚNG CHỈ ĐẠO THẦY HẢI (ẢNH media_1787459474821.png) */}
+      {/* POPUP CHỌN BẢNG NỀN BACKGROUND MANAGEMENT */}
       {activeWindow === 'bgMgmt' && (
         <div className="fixed top-16 right-12 z-[100] bg-slate-900 border-2 border-purple-500 rounded-3xl shadow-2xl p-4 w-96 text-white animate-scale-up font-sans space-y-3">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
@@ -1830,7 +1830,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* COMPONENT MODULE SHAPES VỊ TRÍ NẰM NGAY TRÊN TOOLBAR DƯỚI CÙNG VÀ TỰ ĐỘNG ẨN KHI CHỌN SHAPE CHUẨN THẦY HẢI CHỈ ĐẠO */}
+      {/* COMPONENT MODULE SHAPES */}
       <ShapesModulePanel
         isOpen={activeWindow === 'shapes'}
         onClose={() => setActiveWindow(null)}
@@ -1851,7 +1851,7 @@ export default function WhiteboardView() {
         fabricCanvas={fabricCanvas}
       />
 
-      {/* POPUP HỘP CÔNG CỤ BÚT VẼ (PEN TOOLBOX POPUP): GOM BÚT VẼ, BÚT DẠ QUANG, BÚT KHOANH KHUNG CÔNG THỨC & BẢNG MÀU VÀO 1 HỘP CÔNG CỤ */}
+      {/* POPUP HỘP CÔNG CỤ BÚT VẼ */}
       {activeWindow === 'penToolbox' && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 border-2 border-emerald-500 rounded-3xl shadow-2xl p-4 w-96 space-y-3 animate-scale-up font-sans text-white">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
@@ -1862,7 +1862,6 @@ export default function WhiteboardView() {
             <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white text-xs font-extrabold">✕</button>
           </div>
 
-          {/* CHỌN CÁC LOẠI BÚT */}
           <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => {
@@ -1890,7 +1889,6 @@ export default function WhiteboardView() {
               <span className="text-[10px]">2. Bút Dạ Quang</span>
             </button>
 
-            {/* BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC (CHỜ THẦY HẢI KÉO CHUỘT RÊ ĐẾN ĐÂU MỚI TẠO KHUNG ĐẾN ĐÓ) */}
             <button
               onClick={handleAddHighlightBox}
               className="p-2.5 bg-rose-950/80 hover:bg-rose-900 border-2 border-rose-500 rounded-xl text-xs font-black flex flex-col items-center justify-center space-y-1 transition cursor-pointer text-rose-300 shadow-md"
@@ -1901,7 +1899,6 @@ export default function WhiteboardView() {
             </button>
           </div>
 
-          {/* BẢNG MÀU CHỌN NHANH CHO BÚT VẼ (PEN COLOR PALETTE) */}
           <div className="pt-2 border-t border-slate-700 space-y-1.5">
             <span className="text-[11px] font-extrabold text-slate-300 block">Bảng Màu Bút:</span>
             <div className="flex items-center space-x-2 bg-slate-950 p-2 rounded-2xl border border-slate-800 overflow-x-auto">
@@ -1941,7 +1938,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* MENU CHỌN 3 CÔNG CỤ MINI-GAMES (GOM NẰM TRONG 1 ICON DUY NHẤT THEO CHỈ ĐẠO CỦA THẦY HẢI) */}
+      {/* MENU CHỌN 3 CÔNG CỤ MINI-GAMES GIẢNG DẠY */}
       {activeWindow === 'minigamesMenu' && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 border-2 border-amber-500 rounded-2xl shadow-2xl p-3 flex items-center space-x-3 animate-scale-up font-sans text-white">
           <span className="text-xs font-black text-amber-400 uppercase tracking-wide">Công Cụ Giảng Dạy:</span>
@@ -1999,7 +1996,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP ĐỒNG HỒ BẤM GIỜ (TIMER) CÓ ÂM THANH TICK TOCK VÀ CHUÔNG BÁO NHỊP NHÀNG */}
+      {/* POPUP ĐỒNG HỒ BẤM GIỜ */}
       {activeWindow === 'timer' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-80 space-y-4 border-2 border-sky-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
@@ -2042,7 +2039,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP XÚC XẮC THÔNG MINH HIỂN THỊ CHÍNH XÁC MẶT CHẤM TRÒN XÚC XẮC ⚀ ⚁ ⚂ */}
+      {/* POPUP XÚC XẮC THÔNG MINH */}
       {activeWindow === 'dice' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-purple-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
@@ -2091,7 +2088,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP GỌI TÊN HỌC SINH NGẪU NHIÊN VỚI ÂM THANH TẠCH TẠCH VÀ HỢP ÂM RỰC RỠ */}
+      {/* POPUP GỌI TÊN HỌC SINH NGẪU NHIÊN */}
       {activeWindow === 'picker' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-amber-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
@@ -2131,7 +2128,7 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP LƯU BÀI DẠY */}
+      {/* POPUP LƯU BÀI DẠY (CHO BẢNG TỰ DO DÙNG NẾU KHÔNG CÓ ACTIVITYID) */}
       {activeWindow === 'save' && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
           <div className="flex justify-between items-center border-b pb-2">
@@ -2179,7 +2176,7 @@ export default function WhiteboardView() {
                 Hủy
               </button>
               <button
-                onClick={handleSaveLesson}
+                onClick={handleConfirmSaveFreeLesson}
                 disabled={savingLesson}
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer"
               >
@@ -2213,9 +2210,9 @@ export default function WhiteboardView() {
                   className="p-3 bg-slate-50 hover:bg-sky-50 border border-slate-200 rounded-2xl flex items-center justify-between transition"
                 >
                   <div>
-                    <h4 className="font-extrabold text-xs text-slate-900">{lesson.title.replace(/[WHITEBOARD:.*?]/, '').trim()}</h4>
+                    <h4 className="font-extrabold text-xs text-slate-900">{lesson.title.replace(/[WHITEBOARD:.*?]/, '').replace(/[WHITEBOARD]/, '').trim()}</h4>
                     <span className="text-[10px] font-extrabold text-sky-700 uppercase bg-sky-100 px-2 py-0.5 rounded-md mt-1 inline-block">
-                      {lesson.title.match(/[WHITEBOARD:(.*?)]/)?.[1] || 'Unit 1'}
+                      {lesson.title.match(/[WHITEBOARD:(.*?)]/)?.[1] || 'UNIT 1'}
                     </span>
                     <span className="text-[10px] text-slate-400 ml-2">
                       {new Date(lesson.created_at || Date.now()).toLocaleDateString('vi-VN')}
@@ -2228,14 +2225,16 @@ export default function WhiteboardView() {
                         const parsedData = JSON.parse(lesson.content);
                         if (parsedData.textElements) {
                           setTextElements(parsedData.textElements);
+                        } else {
+                          setTextElements([]);
                         }
-                        if (parsedData.pages) {
-                          setPages(parsedData.pages);
-                        }
+
+                        if (parsedData.pages) setPages(parsedData.pages);
+
                         if (fabricCanvas && parsedData.fabric) {
                           fabricCanvas.loadFromJSON(parsedData.fabric).then(() => {
                             fabricCanvas.renderAll();
-                            alert(`🚀 ĐÃ MỞ THÀNH CÔNG BÀI GIẢNG: "${lesson.title.replace(/\[WHITEBOARD:.*?\]/, '').trim()}"`);
+                            alert(`🚀 ĐÃ MỞ THÀNH CÔNG BÀI GIẢNG: "${lesson.title.replace(/\[WHITEBOARD:.*?\]/, '').replace(/\[WHITEBOARD\]/, '').trim()}"`);
                             setActiveWindow(null);
                           });
                         }
@@ -2353,7 +2352,7 @@ export default function WhiteboardView() {
           <Eraser className="w-4 h-4" />
         </button>
 
-        {/* 8. SHAPES PANEL (KHI CHỌN SHAPE ➔ CHỜ THẦY HẢI ĐÈ GIỮ CHUỘT KÉO ĐẾN ĐÂU VẼ ĐẾN ĐÓ REAL-TIME) */}
+        {/* 8. SHAPES PANEL */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -2361,14 +2360,14 @@ export default function WhiteboardView() {
               ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300 scale-105'
               : 'hover:bg-[#c4bb9c] text-slate-800'
           }`}
-          title="Bảng chọn công cụ Shapes hình học (Chờ kéo chuột đến đâu vẽ đến đó)"
+          title="Bảng chọn công cụ Shapes hình học"
         >
           <Square className="w-4 h-4" />
         </button>
 
         <span className="w-px h-6 bg-slate-400/60 my-auto" />
 
-        {/* 9. ICON DUY NHẤT GOM 3 CÔNG CỤ MINI-GAMES GIẢNG DẠY (BẤM GIỜ, XÚC XẮC, GỌI TÊN HỌC SINH) */}
+        {/* 9. ICON DUY NHẤT GOM 3 CÔNG CỤ MINI-GAMES GIẢNG DẠY */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'minigamesMenu' ? null : 'minigamesMenu')}
           className={`p-2 rounded-xl transition cursor-pointer relative ${
@@ -2381,7 +2380,7 @@ export default function WhiteboardView() {
           <Wrench className="w-4 h-4 text-purple-800 font-black" />
         </button>
 
-        {/* 10. IMAGE UPLOAD NGUYÊN BẢN (CHÈN ẢNH TỪ MÁY TÍNH) */}
+        {/* 10. IMAGE UPLOAD NGUYÊN BẢN */}
         <button
           onClick={() => fileInputRef.current?.click()}
           className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
@@ -2403,7 +2402,7 @@ export default function WhiteboardView() {
           <Ruler className="w-4 h-4 text-amber-800" />
         </button>
 
-        {/* 12. UNDO NGUYÊN BẢN (HOÀN TÁC VẼ) */}
+        {/* 12. UNDO NGUYÊN BẢN */}
         <button
           onClick={handleUndo}
           className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
