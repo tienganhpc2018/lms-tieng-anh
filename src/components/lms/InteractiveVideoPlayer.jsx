@@ -41,17 +41,16 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [ytApiLoaded, setYtApiLoaded] = useState(false);
 
   // Mốc tương tác từ activity settings
   const waypoints = activity?.settings?.waypoints || [
     {
       id: 'wp1',
-      timeSec: 11,
-      type: 'multiple_choice',
-      question: 'Who is a bus driver?',
-      options: ['A person who takes us to school every day', 'A person who keeps the community safe', 'A person who helps sick people'],
-      answer: 'A person who takes us to school every day',
+      timeSec: 10,
+      type: 'true_false',
+      question: 'A tailor cuts hair.',
+      isTrue: false,
+      answer: 'False',
     },
     {
       id: 'wp2',
@@ -73,17 +72,33 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const [activeQuiz, setActiveQuiz] = useState(null);
   const [selectedOpt, setSelectedOpt] = useState('');
   const [blankInputs, setBlankInputs] = useState({});
-  const [trueFalseChoice, setTrueFalseChoice] = useState(null);
+  const [trueFalseChoice, setTrueFalseChoice] = useState(null); // boolean true / false
   const [selectedMarkWords, setSelectedMarkWords] = useState([]);
 
   const [quizPassed, setQuizPassed] = useState({});
-  const [quizFeedback, setQuizFeedback] = useState(null);
+  const [quizFeedback, setQuizFeedback] = useState(null); // { success: boolean, msg: string, details: string }
   const [passedCount, setPassedCount] = useState(0);
 
   const rawVideoUrl = activity?.settings?.videoUrl || activity?.content_url || activity?.content || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
   const youtubeId = extractYoutubeId(rawVideoUrl);
 
-  // LOAD YOUTUBE API AN TOÀN SIÊU TỐC KHÔNG NỔI LỖI HOẶC DELAY NẠP TRANG
+  // GỬI LỆNH DỪNG/PHÁT VIDEO QUA POSTMESSAGE CHO YOUTUBE IFRAME (100% TIN CẬY KHÔNG CẦN CHỜ SDK NẠP)
+  const sendYtCommand = (command) => {
+    try {
+      const iframe = document.getElementById('yt-interactive-player-iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: command,
+            args: '',
+          }),
+          '*'
+        );
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     if (!youtubeId) return;
 
@@ -102,7 +117,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             playerVars: {
               autoplay: 0,
               controls: 1,
-              disablekb: 0,
+              enablejsapi: 1,
               cc_load_policy: 0,
               iv_load_policy: 3,
               modestbranding: 1,
@@ -111,7 +126,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             events: {
               onReady: (event) => {
                 if (isSubscribed) {
-                  setYtApiLoaded(true);
                   setDuration(event.target.getDuration() || 0);
                 }
               },
@@ -182,26 +196,36 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   };
 
   const playVideo = () => {
-    if (youtubeId && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
-      try {
-        ytPlayerRef.current.playVideo();
-        setIsPlaying(true);
-      } catch (e) {}
+    setIsPlaying(true);
+    if (youtubeId) {
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+        try {
+          ytPlayerRef.current.playVideo();
+        } catch (e) {
+          sendYtCommand('playVideo');
+        }
+      } else {
+        sendYtCommand('playVideo');
+      }
     } else if (html5VideoRef.current) {
       html5VideoRef.current.play();
-      setIsPlaying(true);
     }
   };
 
   const pauseVideo = () => {
-    if (youtubeId && ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
-      try {
-        ytPlayerRef.current.pauseVideo();
-        setIsPlaying(false);
-      } catch (e) {}
+    setIsPlaying(false);
+    if (youtubeId) {
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+        try {
+          ytPlayerRef.current.pauseVideo();
+        } catch (e) {
+          sendYtCommand('pauseVideo');
+        }
+      } else {
+        sendYtCommand('pauseVideo');
+      }
     } else if (html5VideoRef.current) {
       html5VideoRef.current.pause();
-      setIsPlaying(false);
     }
   };
 
@@ -213,11 +237,39 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     }
   };
 
-  // NÚT CHECK CHẤM ĐIỂM VÀ HIỂN THỊ ĐÁP ÁN ĐÚNG CỤ THỂ
+  // NÚT CHECK CHẤM ĐIỂM CHUẨN XÁC VÀ CHO PHÉP ĐI TIẾP VỚI CÁC DẠNG CÂU HỎI
   const handleCheckAnswer = () => {
     if (!activeQuiz) return;
 
-    if (activeQuiz.type === 'multiple_choice' || !activeQuiz.type) {
+    if (activeQuiz.type === 'true_false') {
+      if (trueFalseChoice === null) {
+        setQuizFeedback({ success: false, msg: '⚠️ Vui lòng nhấp chọn True (Đúng) hoặc False (Sai) trước khi bấm Check!', details: '' });
+        return;
+      }
+
+      // CHUẨN HÓA KIỂM TRA ĐÁP ÁN TRUE / FALSE KHÔNG BỊ LỖI CHUỖI VS BOOLEAN
+      let targetBool = false;
+      if (typeof activeQuiz.isTrue === 'boolean') {
+        targetBool = activeQuiz.isTrue;
+      } else if (typeof activeQuiz.isTrue === 'string') {
+        targetBool = activeQuiz.isTrue.toLowerCase() === 'true';
+      } else if (activeQuiz.answer) {
+        targetBool = String(activeQuiz.answer).toLowerCase() === 'true';
+      } else if (typeof activeQuiz.correctIndex === 'number') {
+        targetBool = activeQuiz.correctIndex === 0;
+      }
+
+      const isCorrect = trueFalseChoice === targetBool;
+      if (isCorrect) {
+        setQuizFeedback({ success: true, msg: '🎉 Chính xác tuyệt đối!', details: `Đáp án đúng: ${targetBool ? 'True (Đúng)' : 'False (Sai)'}` });
+      } else {
+        setQuizFeedback({ success: false, msg: '❌ Chưa chính xác rồi!', details: `Đáp án đúng là: ${targetBool ? 'True (Đúng)' : 'False (Sai)'}` });
+      }
+    } else if (activeQuiz.type === 'multiple_choice' || !activeQuiz.type) {
+      if (!selectedOpt) {
+        setQuizFeedback({ success: false, msg: '⚠️ Vui lòng chọn 1 đáp án trước khi bấm Check!', details: '' });
+        return;
+      }
       const isCorrect = selectedOpt === activeQuiz.answer;
       if (isCorrect) {
         setQuizFeedback({ success: true, msg: '🎉 Chính xác! Bạn trả lời rất giỏi.', details: `Đáp án đúng: ${activeQuiz.answer}` });
@@ -239,13 +291,6 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       } else {
         setQuizFeedback({ success: false, msg: '❌ Một số từ điền chưa đúng. Hãy kiểm tra lại!', details: `Các từ đúng cần điền là: ${answers.join(', ')}` });
       }
-    } else if (activeQuiz.type === 'true_false') {
-      const isCorrect = trueFalseChoice === activeQuiz.isTrue;
-      if (isCorrect) {
-        setQuizFeedback({ success: true, msg: '🎉 Chính xác tuyệt đối!', details: `Đáp án đúng là: ${activeQuiz.isTrue ? 'True (Đúng)' : 'False (Sai)'}` });
-      } else {
-        setQuizFeedback({ success: false, msg: '❌ Chưa đúng rồi!', details: `Đáp án đúng là: ${activeQuiz.isTrue ? 'True (Đúng)' : 'False (Sai)'}` });
-      }
     } else if (activeQuiz.type === 'mark_word') {
       const correctWords = activeQuiz.correctWords || [];
       const isMatch = selectedMarkWords.length === correctWords.length && selectedMarkWords.every((w) => correctWords.includes(w));
@@ -259,7 +304,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     }
   };
 
-  // NÚT ĐÓNG (X) HOẶC CONTINUE ĐỂ ĐÓNG OVERLAY & CHẠY TIẾP VIDEO
+  // NÚT ĐÓNG (X) HOẶC CONTINUE ĐỂ ĐÓNG OVERLAY & CHẠY TIẾP VIDEO 100%
   const handleCloseAndContinue = () => {
     if (activeQuiz) {
       const qKey = activeQuiz.id || activeQuiz.timeSec;
@@ -324,7 +369,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           />
         )}
 
-        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CÓ NÚT ✕ ĐÓNG Ở GÓC PHẢI VÀ Ô NHẬP LIỆU GÕ TỰ DO) */}
+        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CÓ NÚT ✕ ĐÓNG Ở GÓC PHẢI DỄ DÀNG ĐI TIẾP) */}
         {activeQuiz && (
           <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up">
             <div className="bg-white p-6 rounded-3xl border-2 border-sky-400 max-w-xl w-full shadow-2xl space-y-4 text-left relative">
@@ -346,7 +391,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
               </div>
 
               {/* DẠNG 1: MULTIPLE CHOICE */}
-              {(activeQuiz.type === 'multiple_choice' || !activeQuiz.type) && (
+              {(activeQuiz.type === 'multiple_choice' || (!activeQuiz.type && activeQuiz.options?.length > 0)) && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
                     {activeQuiz.question}
@@ -376,7 +421,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 2: FILL IN THE BLANKS (CÓ Ô INPUT <input /> HỌC SINH GÕ TRỰC TIẾP LÊN Ô DỄ DÀNG) */}
+              {/* DẠNG 2: FILL IN THE BLANKS */}
               {activeQuiz.type === 'fill_blanks' && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
@@ -408,7 +453,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 3: TRUE / FALSE (ĐÚNG HOẶC SAI) */}
+              {/* DẠNG 3: TRUE / FALSE (ĐÚNG HOẶC SAI - CHỌN 1-CLICK RÕ RÀNG VIỀN XANH/ĐỎ CHUẨN ẢNH media_1787497404863.png) */}
               {activeQuiz.type === 'true_false' && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
@@ -418,31 +463,31 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     <button
                       type="button"
                       onClick={() => setTrueFalseChoice(true)}
-                      className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center ${
+                      className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === true
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-400/30'
+                          ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-4 ring-emerald-500/20 shadow-md scale-[1.02]'
                           : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
                       }`}
                     >
-                      ✓ True (Đúng)
+                      <span>✓ True (Đúng)</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setTrueFalseChoice(false)}
-                      className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center ${
+                      className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === false
-                          ? 'border-rose-500 bg-rose-50 text-rose-900 ring-2 ring-rose-400/30'
+                          ? 'border-rose-600 bg-rose-50 text-rose-900 ring-4 ring-rose-500/20 shadow-md scale-[1.02]'
                           : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
                       }`}
                     >
-                      ✕ False (Sai)
+                      <span>✕ False (Sai)</span>
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* DẠNG 4: HIGHLIGHT / MARK THE WORD (CHẨN ẢNH 4 media_1787494585863.png) */}
+              {/* DẠNG 4: HIGHLIGHT / MARK THE WORD */}
               {activeQuiz.type === 'mark_word' && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
@@ -502,13 +547,13 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* NÚT CHECK VÀ NÚT CONTINUE / ĐÓNG */}
+              {/* NÚT CHECK VÀ NÚT CONTINUE / ĐÓNG XEM TIẾP */}
               <div className="flex items-center space-x-3 pt-2">
-                {!quizFeedback?.success ? (
+                {!quizFeedback ? (
                   <button
                     type="button"
                     onClick={handleCheckAnswer}
-                    className="flex-1 py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                    className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
                     <span>Check</span>
