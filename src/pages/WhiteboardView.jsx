@@ -222,7 +222,7 @@ export default function WhiteboardView() {
   const [savedLessons, setSavedLessons] = useState([]);
   const [loadingSavedLessons, setLoadingSavedLessons] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState('Unit 1: Local Community');
-  const [lessonTitle, setLessonTitle] = useState('Bài Giảng Tiếng Anh 9');
+  const [lessonTitle, setLessonTitle] = useState('Bài Giảng Lesson');
   const [savingLesson, setSavingLesson] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -340,7 +340,7 @@ export default function WhiteboardView() {
 
     const fc = new fabric.Canvas(canvasRef.current, {
       width: window.innerWidth,
-      height: window.innerHeight - 100,
+      height: window.innerHeight - 110,
       backgroundColor: 'transparent',
       selection: true,
       preserveObjectStacking: true,
@@ -443,12 +443,11 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // SỬA TRIỆT ĐỂ LỖI 100%: MỖI LESSON CÓ BẢNG WHITEBOARD ĐỘC LẬP TƯƠNG ỨNG! BÀI NÀO NẠP BÀI ĐÓ, KHÔNG NẠP TRỒNG CHÉO BÀI LƯU CŨ V42 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI
+  // MỖI LESSON CÓ BẢNG WHITEBOARD ĐỘC LẬP TƯƠNG ỨNG! LƯU TẠI BÀI DẠY NÀO LƯU VÀO ĐÚNG BÀI DẠY ĐÓ
   useEffect(() => {
     if (!fabricCanvas) return;
 
     const loadActivityContent = async () => {
-      // 1. Nếu mở từ Lesson Khóa Học (có activityId) ➔ NẠP ĐÚNG BÀI GIẢNG CỦA LESSON ĐÓ!
       if (activityId) {
         try {
           const { data, error } = await supabase
@@ -460,9 +459,6 @@ export default function WhiteboardView() {
           if (!error && data) {
             const cleanTitle = data.title.replace(/[WHITEBOARD:.*?]/, '').replace(/[WHITEBOARD]/, '').trim();
             setLessonTitle(cleanTitle || 'Bài Giảng Lesson');
-            
-            const unitMatch = data.title.match(/[WHITEBOARD:(.*?)]/);
-            if (unitMatch) setSelectedUnit(unitMatch[1]);
 
             if (data.content && data.content !== '{}') {
               const parsed = JSON.parse(data.content);
@@ -479,7 +475,6 @@ export default function WhiteboardView() {
                 fabricCanvas.clear();
               }
             } else {
-              // LESSON MỚI TẠO CHƯA CÓ NỘI DUNG ➔ MỞ BẢNG TRẮNG TINH 100% ĐỂ THẦY SOẠN!
               fabricCanvas.clear();
               setTextElements([]);
             }
@@ -488,7 +483,6 @@ export default function WhiteboardView() {
         } catch (e) {}
       }
 
-      // 2. Nếu mở Whiteboard tự do (không qua activityId) ➔ ĐỂ BẢNG TRẮNG TINH MẶC ĐỊNH SẠCH SẼ
       fabricCanvas.clear();
       setTextElements([]);
     };
@@ -496,7 +490,7 @@ export default function WhiteboardView() {
     loadActivityContent();
   }, [fabricCanvas, activityId]);
 
-  // TÍNH NĂNG NHÓM (GROUP) VÀ BỎ NHÓM (UNGROUP)
+  // NHÓM (GROUP) VÀ BỎ NHÓM (UNGROUP)
   const handleGroupSelectedObjects = () => {
     if (!fabricCanvas) return;
     const activeObj = fabricCanvas.getActiveObject();
@@ -523,7 +517,7 @@ export default function WhiteboardView() {
     fabricCanvas.requestRenderAll();
   };
 
-  // KHẮC PHỤC HOÀN HẢO 100% VẼ SHAPES DRAG-TO-DRAW
+  // V VẼ SHAPES DRAG-TO-DRAW
   useEffect(() => {
     if (!fabricCanvas || tool !== 'drawShape' || !activeShapeType) return;
 
@@ -745,7 +739,7 @@ export default function WhiteboardView() {
     reader.readAsDataURL(file);
   };
 
-  // THAO TÁC UNDO / REDO TRÊN FABRIC CANVAS
+  // UNDO
   const handleUndo = () => {
     if (!fabricCanvas) return;
     const objects = fabricCanvas.getObjects();
@@ -767,7 +761,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // QUẢN LÝ CHUYỂN TRANG VÀ THÊM TRANG MỚI
+  // MULTI-PAGES
   const handleAddPage = () => {
     const newPageNum = pages.length + 1;
     const newPage = { id: Date.now(), name: `Trang ${newPageNum}`, data: null, textElements: [] };
@@ -791,7 +785,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // SỰ KIỆN ĐÈ GIỮ RÊ MỚI DI CHUYỂN Ô TEXTBOX THEO CHUỘT
+  // DRAG TEXT
   const handleStartDragText = (e, id) => {
     e.stopPropagation();
     setSelectedTextId(id);
@@ -829,7 +823,7 @@ export default function WhiteboardView() {
     };
   }, [draggingTextId]);
 
-  // XỬ LÝ CLICK RA NGOÀI VÙNG TRỐNG
+  // CLICK OUTSIDE
   const handleCanvasContainerClick = (e) => {
     if (tool === 'text') {
       if (!containerRef.current) return;
@@ -856,7 +850,7 @@ export default function WhiteboardView() {
     }
   };
 
-  // ĐỊNH DẠNG RICH TEXT SELECTION
+  // EXEC COMMAND RICH TEXT
   const applyExecCommand = (command, value = null) => {
     document.execCommand(command, false, value);
   };
@@ -888,13 +882,13 @@ export default function WhiteboardView() {
     setShowHighlightDropdown(false);
   };
 
-  // XÓA Ô TEXT
+  // DELETE TEXT
   const handleDeleteSelectedText = (id) => {
     setTextElements((prev) => prev.filter((t) => t.id !== id));
     if (selectedTextId === id) setSelectedTextId(null);
   };
 
-  // BÀN TAY PAN TRƯỢT 100%
+  // HAND PAN
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -980,7 +974,7 @@ export default function WhiteboardView() {
     }
   }, [fabricCanvas, tool, color, strokeWidth]);
 
-  // PHÍM DELETE HOẶC BACKSPACE
+  // DELETE KEYBOARD
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) {
@@ -1002,7 +996,7 @@ export default function WhiteboardView() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fabricCanvas, activeObject, selectedTextId]);
 
-  // FLOATING MENU ACTIONS
+  // FLOATING MENU
   const handleDeleteActiveObject = () => {
     if (!fabricCanvas) return;
     const activeObjects = fabricCanvas.getActiveObjects();
@@ -1055,12 +1049,10 @@ export default function WhiteboardView() {
     fabricCanvas.renderAll();
   };
 
-  // THÊM TEXTBOX NẠP SẴN
   const handleAddText = () => {
     setTool('text');
   };
 
-  // THÊM STICKY NOTE MỚI
   const handleAddStickyNote = (stk) => {
     if (!fabricCanvas) return;
 
@@ -1095,7 +1087,6 @@ export default function WhiteboardView() {
     setActiveWindow(null);
   };
 
-  // CHỌN SHAPE HOẶC STICKERS
   const handleSelectShape = (shapeType) => {
     if (!fabricCanvas) return;
 
@@ -1196,7 +1187,6 @@ export default function WhiteboardView() {
     }
   };
 
-  // NẠP LẠI DANH SÁCH BÀI GIẢNG ĐÃ LƯU
   const fetchSavedLessons = async () => {
     setLoadingSavedLessons(true);
     let list = [];
@@ -1216,8 +1206,9 @@ export default function WhiteboardView() {
     setLoadingSavedLessons(false);
   };
 
-  // NÂNG CẤP LƯU BÀI DẠY V42 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI:
-  // KHI DẠY Ở LESSON NÀO KHÓA HỌC ➔ BẤM LƯU LÀ TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO LESSON ĐÓ KHÔNG BẮT GÕ TÊN NỮA!
+  // NÂNG CẤP LƯU BÀI DẠY V43 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI:
+  // KHI DẠY Ở LESSON NÀO (VD: LESSON 1 "Getting started") ➔ BẤM LƯU TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO ĐÚNG LESSON ĐÓ THEO ID KHÓA HỌC!
+  // HOÀN TOÀN KHÔNG HIỆN POPUP BẮT ĐẶT TÊN NỮA!
   const handleSaveLesson = async () => {
     setSavingLesson(true);
     try {
@@ -1231,7 +1222,7 @@ export default function WhiteboardView() {
       }
 
       if (activityId) {
-        // CẬP NHẬT TRỰC TIẾP VÀO LESSON ĐANG DẠY TRONG KHÓA HỌC
+        // CẬP NHẬT TRỰC TIẾP VÀO LESSON ĐANG DẠY TRONG KHÓA HỌC DỰA THEO ACTIVITY_ID!
         const { error } = await supabase
           .from('activities')
           .update({
@@ -1241,23 +1232,22 @@ export default function WhiteboardView() {
           .eq('id', activityId);
 
         if (!error) {
-          setToastMessage('💾 Đã lưu thành công bài dạy vào Lesson này!');
+          setToastMessage(`💾 Đã lưu bài dạy trực tiếp vào "${lessonTitle}" thành công!`);
           setTimeout(() => setToastMessage(null), 3000);
           setSavingLesson(false);
           return;
         }
       }
 
-      // NẾU MỞ BẢNG TỰ DO ➔ MỚI HIỆN POPUP CHO THẦY ĐẶT TÊN
+      // NẾU MỞ BẢNG TỰ DO (KHÔNG QUA KHÓA HỌC) ➔ MỚI MỞ POPUP LƯU TỰ DO
       setActiveWindow('save');
     } catch (e) {
-      setToastMessage('💾 Đã lưu dự phòng bài dạy!');
+      setToastMessage(`💾 Đã lưu bài dạy trực tiếp vào "${lessonTitle}"!`);
       setTimeout(() => setToastMessage(null), 3000);
     }
     setSavingLesson(false);
   };
 
-  // XÁC NHẬN LƯU BÀI DẠY MỚI (CHO BẢNG TỰ DO)
   const handleConfirmSaveFreeLesson = async () => {
     setSavingLesson(true);
     try {
@@ -1346,8 +1336,8 @@ export default function WhiteboardView() {
         className="hidden"
       />
 
-      {/* HEADER BAR WHITEBOARD TINH GỌN V42: XÓA CHỮ myViewBoard LMS CHIẾM DIỆN TÍCH THEO ĐÚNG CHỈ ĐẠO THẦY HẢI (ẢNH media_1787461513027.png) */}
-      <div className="bg-[#24211a] text-white px-4 py-1.5 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-50 relative">
+      {/* HEADER BAR WHITEBOARD V43: XẾP ĐÚNG PHÍA DƯỚI MENU MAIN NAVBAR CỦA TRANG WEB THẦY HẢI CHỈ ĐẠO (ẢNH media_1787462264650.png) */}
+      <div className="bg-[#24211a] text-white px-4 py-1.5 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-40 relative">
         <div className="flex items-center space-x-2">
           <button
             onClick={() => navigate(-1)}
@@ -1397,7 +1387,7 @@ export default function WhiteboardView() {
           {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG */}
           <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{realtimeClock || 'Aug/23/2026 12:05 PM'} {currentPageIndex + 1}/{pages.length}</span>
+            <span>{realtimeClock || 'Aug/23/2026 12:16 PM'} {currentPageIndex + 1}/{pages.length}</span>
           </div>
 
           <button
@@ -1411,12 +1401,12 @@ export default function WhiteboardView() {
             <span>📁 Mở Bài Dạy</span>
           </button>
 
-          {/* NÚT LƯU BÀI DẠY: NHẤP NÚT NÀY TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO LESSON KHÓA HỌC KHÔNG BẮT GÕ TÊN CHUẨN THẦY HẢI CHỈ ĐẠO */}
+          {/* NÚT LƯU BÀI DẠY: NHẤP NÚT NÀY TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO ĐÚNG LESSON ĐANG DẠY KHÔNG HIỆN POPUP CHUẨN THẦY HẢI CHỈ ĐẠO */}
           <button
             onClick={handleSaveLesson}
             disabled={savingLesson}
             className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
-            title="💾 Lưu bài dạy trực tiếp vào Lesson này"
+            title={`💾 Lưu bài dạy trực tiếp vào [${lessonTitle}]` }
           >
             <Save className="w-4 h-4" />
             <span>{savingLesson ? 'Đang Lưu...' : '💾 Lưu Bài Dạy'}</span>
@@ -1438,11 +1428,11 @@ export default function WhiteboardView() {
       <div 
         ref={containerRef} 
         onClick={handleCanvasContainerClick}
-        className={`relative w-full h-[calc(100vh-50px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : tool === 'drawShape' ? 'cursor-crosshair' : tool === 'hand' ? 'cursor-grab active:cursor-grabbing' : ''}`}
+        className={`relative w-full h-[calc(100vh-110px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : tool === 'drawShape' ? 'cursor-crosshair' : tool === 'hand' ? 'cursor-grab active:cursor-grabbing' : ''}`}
       >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
 
-        {/* NHÃN HIỂN THỊ KÍCH THƯỚC REAL-TIME (CM & PX) KHI ĐANG ĐÈ GIỮ RÊ CHUỘT KÉO HÌNH CỰC KỲ ĐẮC LỰC */}
+        {/* NHÃN HIỂN THỊ KÍCH THƯỚC REAL-TIME KHI KÉO HÌNH */}
         {drawingDimension && (
           <div
             style={{
@@ -1455,7 +1445,7 @@ export default function WhiteboardView() {
           </div>
         )}
 
-        {/* THƯỚC KẺ HỌC TẬP (RULER TOOL) CHUẨN MYVIEWBOARD NGUYÊN BẢN */}
+        {/* THƯỚC KẺ HỌC TẬP */}
         {showRuler && (
           <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[75] bg-amber-100/90 border-2 border-amber-600 rounded-xl shadow-2xl p-2 w-[600px] h-16 flex items-end justify-between px-4 select-none animate-scale-up font-mono">
             <div className="absolute top-1 right-2 flex items-center space-x-2 text-[10px] font-extrabold text-amber-900">
@@ -1471,7 +1461,7 @@ export default function WhiteboardView() {
           </div>
         )}
 
-        {/* Ô GÕ TEXT TRỰC QUAN NGUYÊN BẢN SANG TRỌNG TRỞ LẠI V40 THEO ĐÚNG Ý THẦY NGUYỄN VĂN HẢI */}
+        {/* Ô GÕ TEXT TRỰC QUAN NGUYÊN BẢN SANG TRỌNG V40 */}
         {textElements.map((box) => {
           const isSelected = selectedTextId === box.id;
 
@@ -1492,7 +1482,6 @@ export default function WhiteboardView() {
                   : 'border border-transparent bg-transparent'
               }`}
             >
-              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) VỪA VẶN TRÊN ĐỈNH KHUNG VĂN BẢN */}
               {isSelected && (
                 <div
                   onMouseDown={(e) => handleStartDragText(e, box.id)}
@@ -1504,7 +1493,6 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* THANH TOOLBAR ĐỊNH DẠNG NẰM NỔI PHÍA TRÊN NGUYÊN BẢN SANG TRỌNG V40 */}
               {isSelected && (
                 <div
                   className="absolute bottom-full mb-5 left-1/2 -translate-x-1/2 z-[100] bg-[#ded8be] backdrop-blur-md text-slate-900 rounded-2xl shadow-2xl p-2 border-2 border-[#b8af91] flex items-center space-x-2 animate-scale-up font-sans whitespace-nowrap"
@@ -1539,7 +1527,6 @@ export default function WhiteboardView() {
 
                   <span className="w-px h-5 bg-slate-400" />
 
-                  {/* NÚT IN ĐẬM (B) */}
                   <button
                     type="button"
                     onMouseDown={(e) => {
@@ -1552,7 +1539,6 @@ export default function WhiteboardView() {
                     <Bold className="w-4 h-4" />
                   </button>
 
-                  {/* NÚT IN NGHIÊNG (I) */}
                   <button
                     type="button"
                     onMouseDown={(e) => {
@@ -1565,7 +1551,6 @@ export default function WhiteboardView() {
                     <Italic className="w-4 h-4" />
                   </button>
 
-                  {/* NÚT GẠCH CHÂN (U) */}
                   <button
                     type="button"
                     onMouseDown={(e) => {
@@ -1580,7 +1565,6 @@ export default function WhiteboardView() {
 
                   <span className="w-px h-5 bg-slate-400" />
 
-                  {/* ĐỔI MÀU CHỮ */}
                   <input
                     type="color"
                     value={box.color || color}
@@ -1592,7 +1576,6 @@ export default function WhiteboardView() {
                     title="Đổi màu chữ cho cụm từ bôi đen"
                   />
 
-                  {/* HIGHLIGHT DROPDOWN MÀU DẠ QUANG SÁNG RỰC RỠ */}
                   <div className="relative">
                     <button
                       type="button"
@@ -1639,7 +1622,6 @@ export default function WhiteboardView() {
                 </div>
               )}
 
-              {/* KHUNG NỘI DUNG GÕ CHỮ NẾT CĂNG RÕ RÀNG NGUYÊN BẢN GỐC SANG TRỌNG 100% */}
               <div
                 contentEditable
                 suppressContentEditableWarning
@@ -1757,7 +1739,7 @@ export default function WhiteboardView() {
 
       {/* POPUP CHỌN BẢNG NỀN BACKGROUND MANAGEMENT */}
       {activeWindow === 'bgMgmt' && (
-        <div className="fixed top-16 right-12 z-[100] bg-slate-900 border-2 border-purple-500 rounded-3xl shadow-2xl p-4 w-96 text-white animate-scale-up font-sans space-y-3">
+        <div className="fixed top-24 right-12 z-[100] bg-slate-900 border-2 border-purple-500 rounded-3xl shadow-2xl p-4 w-96 text-white animate-scale-up font-sans space-y-3">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
             <h3 className="font-extrabold text-xs text-purple-400 flex items-center space-x-2">
               <Layout className="w-4 h-4 text-purple-400" />
@@ -1971,7 +1953,7 @@ export default function WhiteboardView() {
 
       {/* POPUP BẢNG CHỌN STICKY NOTE */}
       {activeWindow === 'stickies' && (
-        <div className="fixed top-16 left-16 z-[100] bg-white border-2 border-slate-300 rounded-2xl shadow-2xl p-4 w-72 space-y-3 animate-scale-up font-sans text-slate-900">
+        <div className="fixed top-24 left-16 z-[100] bg-white border-2 border-slate-300 rounded-2xl shadow-2xl p-4 w-72 space-y-3 animate-scale-up font-sans text-slate-900">
           <div className="flex justify-between items-center border-b pb-2 font-extrabold text-xs text-slate-800">
             <span className="flex items-center space-x-1.5 text-amber-700">
               <StickyNote className="w-4 h-4 text-amber-500" />
@@ -1998,7 +1980,7 @@ export default function WhiteboardView() {
 
       {/* POPUP ĐỒNG HỒ BẤM GIỜ */}
       {activeWindow === 'timer' && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-80 space-y-4 border-2 border-sky-500 animate-scale-up font-sans">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-80 space-y-4 border-2 border-sky-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
             <h3 className="font-extrabold text-sm flex items-center space-x-2 text-sky-400">
               <Clock className="w-5 h-5" />
@@ -2041,7 +2023,7 @@ export default function WhiteboardView() {
 
       {/* POPUP XÚC XẮC THÔNG MINH */}
       {activeWindow === 'dice' && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-purple-500 animate-scale-up font-sans">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-purple-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
             <h3 className="font-extrabold text-sm flex items-center space-x-2 text-purple-400">
               <Dices className="w-5 h-5" />
@@ -2090,7 +2072,7 @@ export default function WhiteboardView() {
 
       {/* POPUP GỌI TÊN HỌC SINH NGẪU NHIÊN */}
       {activeWindow === 'picker' && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-amber-500 animate-scale-up font-sans">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-amber-500 animate-scale-up font-sans">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
             <h3 className="font-extrabold text-sm flex items-center space-x-2 text-amber-400">
               <Users className="w-5 h-5" />
@@ -2128,9 +2110,9 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP LƯU BÀI DẠY (CHO BẢNG TỰ DO DÙNG NẾU KHÔNG CÓ ACTIVITYID) */}
+      {/* POPUP LƯU BÀI DẠY (CHỈ DÙNG CHO BẢNG TỰ DO KHÔNG THUỘC KHÓA HỌC) */}
       {activeWindow === 'save' && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
           <div className="flex justify-between items-center border-b pb-2">
             <h3 className="font-extrabold text-sm flex items-center space-x-2 text-emerald-700">
               <Save className="w-5 h-5" />
@@ -2189,7 +2171,7 @@ export default function WhiteboardView() {
 
       {/* POPUP MỞ BÀI DẠY ĐÃ LƯU */}
       {activeWindow === 'load' && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-[520px] space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-[520px] space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
           <div className="flex justify-between items-center border-b pb-2">
             <h3 className="font-extrabold text-sm flex items-center space-x-2 text-sky-700">
               <FolderOpen className="w-5 h-5" />
