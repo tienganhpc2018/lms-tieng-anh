@@ -7,8 +7,8 @@ import { ArrowLeft, Gamepad2 } from 'lucide-react';
 import QuizEngine from '../components/lms/QuizEngine';
 import QuizBuilder from '../components/lms/QuizBuilder';
 import AudioRecordEngine from '../components/lms/AudioRecordEngine';
-import InteractiveVideo from '../components/lms/InteractiveVideo';
-import InteractiveVideoBuilder from '../components/lms/InteractiveVideoBuilder';
+import InteractiveVideoPlayer from '../components/lms/InteractiveVideoPlayer';
+import InteractiveVideoStudio from '../components/lms/InteractiveVideoStudio';
 import TeacherAudioGradingModal from '../components/lms/TeacherAudioGradingModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -111,24 +111,26 @@ export default function AssignmentView() {
     return <LoadingSpinner text="Đang nạp bài học..." />;
   }
 
-  
   const handleSaveInteractiveVideo = async (videoData) => {
     try {
       const updatedSettings = {
         ...(activity?.settings || {}),
         videoUrl: videoData.videoUrl,
         waypoints: videoData.interactions?.map((item) => ({
+          id: item.id || ('wp_' + Date.now()),
           timeSec: Number(item.timestamp),
+          type: item.type || 'multiple_choice',
           question: item.question,
-          options: item.options,
-          answer: item.options[item.correctIndex] || item.options[0],
+          options: item.options || [],
+          answer: item.options ? item.options[item.correctIndex] || item.options[0] : '',
+          textWithBlanks: item.textWithBlanks || '',
         })),
       };
 
       const { data, error } = await supabase
         .from('activities')
         .update({
-          title: videoData.title ? `[INTERACTIVE_VIDEO] ${videoData.title.replace('[INTERACTIVE_VIDEO]', '').trim()}` : activity.title,
+          title: videoData.title ? `[INTERACTIVE_VIDEO] ${videoData.title.replace('[INTERACTIVE_VIDEO]', '').replace('[WHITEBOARD]', '').trim()}` : activity.title,
           content_url: videoData.videoUrl,
           settings: updatedSettings,
         })
@@ -214,21 +216,24 @@ export default function AssignmentView() {
           <AudioRecordEngine activity={activeAct} />
         ) : isInteractiveVideoType ? (
           userIsTeacher && showBuilderMode ? (
-            <InteractiveVideoBuilder
+            <InteractiveVideoStudio
               initialSettings={{
                 title: (activeAct?.title || '').replace('[INTERACTIVE_VIDEO]', '').replace('[WHITEBOARD]', '').trim(),
                 videoUrl: activeAct?.settings?.videoUrl || activeAct?.content_url || activeAct?.content || '',
                 interactions: (activeAct?.settings?.waypoints || []).map((w) => ({
+                  id: w.id || ('int_' + w.timeSec),
                   timestamp: w.timeSec,
+                  type: w.type || 'multiple_choice',
                   question: w.question,
                   options: w.options || [],
                   correctIndex: (w.options || []).indexOf(w.answer) >= 0 ? (w.options || []).indexOf(w.answer) : 0,
+                  textWithBlanks: w.textWithBlanks || '',
                 })),
               }}
               onSave={handleSaveInteractiveVideo}
             />
           ) : (
-            <InteractiveVideo activity={activeAct} isTeacher={userIsTeacher} />
+            <InteractiveVideoPlayer activity={activeAct} isTeacher={userIsTeacher} />
           )
         ) : showBuilderMode ? (
           <QuizBuilder activity={activeAct} activityId={targetActivityId} />
