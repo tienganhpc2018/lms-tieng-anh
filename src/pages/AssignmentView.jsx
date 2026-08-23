@@ -6,6 +6,7 @@ import { ArrowLeft, Gamepad2 } from 'lucide-react';
 import QuizEngine from '../components/lms/QuizEngine';
 import QuizBuilder from '../components/lms/QuizBuilder';
 import AudioRecordEngine from '../components/lms/AudioRecordEngine';
+import InteractiveVideo from '../components/lms/InteractiveVideo';
 import TeacherAudioGradingModal from '../components/lms/TeacherAudioGradingModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -117,8 +118,9 @@ export default function AssignmentView() {
 
   const isIframeType = activeAct.type === 'iframe';
   const isAudioRecordType = activeAct.type === 'audio_record' || activeAct.type === 'audio' || (activeAct.title && activeAct.title.includes('[AUDIO_RECORD]'));
+  const isInteractiveVideoType = isInteractiveVideoAct(activeAct);
 
-  const showBuilderMode = userIsTeacher && !isReviewMode && !isExplicitStudentView && !isIframeType && !isAudioRecordType;
+  const showBuilderMode = userIsTeacher && !isReviewMode && !isExplicitStudentView && !isIframeType && !isAudioRecordType && !isInteractiveVideoType;
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 font-sans select-none">
@@ -139,6 +141,8 @@ export default function AssignmentView() {
                   ? '🎮 GAME TƯƠNG TÁC E-LEARNING'
                   : isAudioRecordType
                   ? '🎙️ BÀI LUYỆN NÓI GHI ÂM'
+                  : isInteractiveVideoType
+                  ? '🎥 VIDEO TƯƠNG TÁC H5P TỰ ĐỘNG DỪNG CÂU HỎI'
                   : showBuilderMode
                   ? 'TRÌNH SOẠN ĐỀ THI 20 DẠNG CÂU HỎI'
                   : isReviewMode
@@ -171,6 +175,8 @@ export default function AssignmentView() {
           <IframeGameView activity={activeAct} />
         ) : isAudioRecordType ? (
           <AudioRecordEngine activity={activeAct} />
+        ) : isInteractiveVideoType ? (
+          <InteractiveVideo activity={activeAct} isTeacher={userIsTeacher} />
         ) : showBuilderMode ? (
           <QuizBuilder activity={activeAct} activityId={targetActivityId} />
         ) : (
