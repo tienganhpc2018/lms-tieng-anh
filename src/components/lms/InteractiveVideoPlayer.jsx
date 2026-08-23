@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Play, Pause, Lock, CheckCircle2, RotateCcw, Check, ArrowRight, X, Award, HelpCircle, FileText, Type, CheckSquare, Sparkles } from 'lucide-react';
 
 const extractYoutubeId = (url) => {
@@ -10,7 +10,7 @@ const extractYoutubeId = (url) => {
 
 // HELPER XỬ LÝ PHÂN TÁCH ĐOẠN VĂN ĐIỀN TỪ (FILL IN THE BLANKS)
 const parseFillBlanksText = (textWithBlanks = '') => {
-  if (!textWithBlanks) return { parts: ['No text provided'], answers: [] };
+  if (!textWithBlanks) return { parts: [{ type: 'text', content: 'No text provided' }], answers: [] };
   const parts = [];
   const answers = [];
   const regex = /\*(.*?)\*/g;
@@ -33,6 +33,32 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
+// COMPONENT ĐIỀN TỪ ĐƯỢC MEMO HÓA GIÚP GIỮ GIỮ CON TRỎ MÁY TÍNH KHÔNG BỊ MẤT CON TRỎ HOẶC NỐI CHỮ LÚC HỌC SINH GÕ
+const FillBlanksSentence = React.memo(({ textWithBlanks, blankInputs, onInputChange }) => {
+  const { parts } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
+
+  return (
+    <div className="text-sm text-slate-800 leading-relaxed bg-slate-50 p-4.5 rounded-2xl border border-slate-200 font-medium">
+      {parts.map((item, pIdx) => {
+        if (item.type === 'text') {
+          return <span key={`text_${pIdx}`}>{item.content}</span>;
+        } else {
+          return (
+            <input
+              key={`blank_input_${item.index}`}
+              type="text"
+              value={blankInputs[item.index] || ''}
+              onChange={(e) => onInputChange(item.index, e.target.value)}
+              placeholder="gõ từ..."
+              className="mx-1 px-2.5 py-1 border-2 border-brand-500 rounded-xl text-xs font-bold text-brand-900 bg-white focus:ring-2 focus:ring-brand-400 focus:outline-none inline-block min-w-[100px] shadow-xs"
+            />
+          );
+        }
+      })}
+    </div>
+  );
+});
+
 export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const containerRef = useRef(null);
   const html5VideoRef = useRef(null);
@@ -54,10 +80,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     },
     {
       id: 'wp2',
-      timeSec: 47,
+      timeSec: 33,
       type: 'fill_blanks',
       question: 'Fill in the correct word.',
-      textWithBlanks: 'Fill in the correct *word*.',
+      textWithBlanks: 'The *tailor* made a new *suit* for me.',
     },
     {
       id: 'wp3',
@@ -81,6 +107,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
   const rawVideoUrl = activity?.settings?.videoUrl || activity?.content_url || activity?.content || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
   const youtubeId = extractYoutubeId(rawVideoUrl);
+
+  const handleBlankInputChange = useCallback((blankIndex, value) => {
+    setBlankInputs((prev) => ({ ...prev, [blankIndex]: value }));
+  }, []);
 
   const sendYtCommand = (command) => {
     try {
@@ -262,7 +292,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       } else {
         setQuizFeedback({ success: false, msg: '❌ Chưa chính xác rồi!', details: `Đáp án đúng là: ${targetBool ? 'True (Đúng)' : 'False (Sai)'}` });
       }
-    } else if (activeQuiz.type === 'multiple_choice' || !activeQuiz.type) {
+    } else if (activeQuiz.type === 'multiple_choice' || (!activeQuiz.type && activeQuiz.options?.length > 0)) {
       if (!selectedOpt) {
         setQuizFeedback({ success: false, msg: '⚠️ Vui lòng chọn 1 đáp án trước khi bấm Check!', details: '' });
         return;
@@ -344,7 +374,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
         </div>
       </div>
 
-      {/* VÙNG PHÁT VIDEO CHÍNH KÈM OVERLAY POPUP KÈM THANH TIMELINE SCRUBBER DÍNH NẰM TRONG KHUNG VIDEO (ẢNH 3 & ẢNH 4) */}
+      {/* VÙNG PHÁT VIDEO CHÍNH KÈM OVERLAY POPUP */}
       <div ref={containerRef} className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
         {youtubeId ? (
           <iframe
@@ -365,7 +395,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           />
         )}
 
-        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CÓ NÚT ✕ ĐÓNG Ở GÓC PHẢI DỄ DÀNG ĐI TIẾP) */}
+        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC */}
         {activeQuiz && (
           <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up">
             <div className="bg-white p-6 rounded-3xl border-2 border-sky-400 max-w-xl w-full shadow-2xl space-y-4 text-left relative">
@@ -416,35 +446,17 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 2: FILL IN THE BLANKS */}
+              {/* DẠNG 2: FILL IN THE BLANKS (CÓ MEMO HÓA KHÔNG BỊ MẤT CON TRỎ HOẶC MẤT CHỮ THỨ 1 NỮA CHUẨN ẢNH media_1787499130315.png) */}
               {activeQuiz.type === 'fill_blanks' && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
                     {activeQuiz.question}
                   </h4>
-                  <div className="text-sm text-slate-800 leading-relaxed bg-slate-50 p-4.5 rounded-2xl border border-slate-200 font-medium">
-                    {(() => {
-                      const { parts } = parseFillBlanksText(activeQuiz.textWithBlanks);
-                      return parts.map((item, pIdx) => {
-                        if (item.type === 'text') {
-                          return <span key={pIdx}>{item.content}</span>;
-                        } else {
-                          return (
-                            <input
-                              key={pIdx}
-                              type="text"
-                              value={blankInputs[item.index] || ''}
-                              onChange={(e) => {
-                                setBlankInputs({ ...blankInputs, [item.index]: e.target.value });
-                              }}
-                              placeholder="gõ từ..."
-                              className="mx-1 px-2.5 py-1 border-2 border-brand-500 rounded-xl text-xs font-bold text-brand-900 bg-white focus:ring-2 focus:ring-brand-400 focus:outline-none inline-block min-w-[100px] shadow-xs"
-                            />
-                          );
-                        }
-                      });
-                    })()}
-                  </div>
+                  <FillBlanksSentence
+                    textWithBlanks={activeQuiz.textWithBlanks}
+                    blankInputs={blankInputs}
+                    onInputChange={handleBlankInputChange}
+                  />
                 </div>
               )}
 
@@ -568,7 +580,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           </div>
         )}
 
-        {/* THANH TIMELINE SCRUBBER DÍNH TRỰC TIẾP VÀO BOTTOM CỦA KHUNG VIDEO CHUẨN H5P (ẢNH 3 & ẢNH 4) */}
+        {/* THANH TIMELINE SCRUBBER DÍNH TRỰC TIẾP VÀO BOTTOM CỦA KHUNG VIDEO CHUẨN H5P */}
         <div className="absolute bottom-0 inset-x-0 bg-slate-950/95 backdrop-blur-md p-3.5 flex items-center justify-between text-white text-xs space-x-4 border-t border-slate-800 z-30">
           <button onClick={togglePlay} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer border border-slate-700">
             {isPlaying ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-emerald-400 ml-0.5" />}
