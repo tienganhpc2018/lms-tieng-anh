@@ -11,7 +11,7 @@ import {
   Highlighter, Bold, Italic, Underline, Search, ZoomIn, ZoomOut, Check, ChevronLeft, ChevronRight,
   Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand, Minus, MousePointer, Pause, RefreshCw, Users,
   StickyNote, AlignLeft, AlignCenter, AlignRight, CornerUpRight, ArrowUpRight, Star, Diamond, Layers3, ArrowDownToLine, ArrowUpToLine,
-  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket, GripHorizontal, CheckCircle
+  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket, GripHorizontal, CheckCircle, FileText
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ShapesModulePanel from '../components/whiteboard/ShapesModulePanel';
@@ -53,6 +53,10 @@ export default function WhiteboardView() {
   const [opacity, setOpacity] = useState(1.0);
   const [isDashed, setIsDashed] = useState(false);
 
+  // QUẢN LÝ TRANG BÀI GIẢNG MULTI-PAGES (PAGE 1, PAGE 2...)
+  const [pages, setPages] = useState([{ id: 1, name: 'Trang 1', data: null, textElements: [] }]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+
   // QUẢN LÝ Ô GÕ TEXT TRỰC QUAN KHÔNG BAO GIỜ BỊ LỖI
   const [textElements, setTextElements] = useState([]);
   const [selectedTextId, setSelectedTextId] = useState(null);
@@ -68,7 +72,7 @@ export default function WhiteboardView() {
   // Background Nền Bảng
   const [bgType, setBgType] = useState('greenboard');
 
-  // Popups & Teaching Tools (BẤM GIỜ, XÚC XẮC, GỌI TÊN HỌC SINH)
+  // Popups & Teaching Tools (BẤM GIỜ, XÚC XẮC, GỌI TÊN HỌC SINH, BẢNG MÀU)
   const [activeWindow, setActiveWindow] = useState(null);
 
   // MINI-GAMES GIẢNG DẠY
@@ -79,6 +83,7 @@ export default function WhiteboardView() {
   const [studentNames, setStudentNames] = useState('Minh Anh, Hải Nam, Bảo Ngọc, Đức Anh, Tuấn Kiệt, Phương Thảo, Gia Huy, Thanh Hà');
   const [selectedStudent, setSelectedStudent] = useState('');
   const [isPickingStudent, setIsPickingStudent] = useState(false);
+  const [showRuler, setShowRuler] = useState(false);
 
   // NẠP & LƯU BÀI DẠY
   const [savedLessons, setSavedLessons] = useState([]);
@@ -86,6 +91,10 @@ export default function WhiteboardView() {
   const [selectedUnit, setSelectedUnit] = useState('Unit 1: Local Community');
   const [lessonTitle, setLessonTitle] = useState('Bài Giảng Tiếng Anh 9');
   const [savingLesson, setSavingLesson] = useState(false);
+
+  const PEN_COLORS = [
+    '#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
+  ];
 
   const STICKY_COLORS = [
     { name: 'Yellow', bg: '#fef08a', text: '#854d0e', border: '#fde047' },
@@ -260,6 +269,77 @@ export default function WhiteboardView() {
       fc.dispose();
     };
   }, []);
+
+  // XỬ LÝ TẢI ẢNH TỪ MÁY TÍNH LÊN BẢNG (IMAGE UPLOAD)
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !fabricCanvas) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      fabric.Image.fromURL(evt.target.result).then((img) => {
+        const maxW = window.innerWidth * 0.6;
+        if (img.width > maxW) {
+          img.scaleToWidth(maxW);
+        }
+        img.set({
+          left: 200,
+          top: 100,
+        });
+        fabricCanvas.add(img);
+        fabricCanvas.setActiveObject(img);
+        fabricCanvas.renderAll();
+        setTool('pointer');
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // THAO TÁC UNDO / REDO TRÊN FABRIC CANVAS
+  const handleUndo = () => {
+    if (!fabricCanvas) return;
+    const objects = fabricCanvas.getObjects();
+    if (objects.length > 0) {
+      fabricCanvas.remove(objects[objects.length - 1]);
+      fabricCanvas.renderAll();
+    }
+  };
+
+  // XÓA SẠCH BẢNG (CLEAR ALL CANVAS)
+  const handleClearAll = () => {
+    if (confirm('Thầy Hải có chắc chắn muốn XÓA SẠCH toàn bộ hình vẽ và chữ trên trang Bảng này?')) {
+      if (fabricCanvas) {
+        fabricCanvas.clear();
+        fabricCanvas.renderAll();
+      }
+      setTextElements([]);
+      setSelectedTextId(null);
+    }
+  };
+
+  // QUẢN LÝ CHUYỂN TRANG VÀ THÊM TRANG MỚI (PAGES MANAGEMENT)
+  const handleAddPage = () => {
+    const newPageNum = pages.length + 1;
+    const newPage = { id: Date.now(), name: `Trang ${newPageNum}`, data: null, textElements: [] };
+    setPages((prev) => [...prev, newPage]);
+    setCurrentPageIndex(pages.length);
+    if (fabricCanvas) fabricCanvas.clear();
+    setTextElements([]);
+  };
+
+  const handleNextPage = () => {
+    if (currentPageIndex < pages.length - 1) {
+      setCurrentPageIndex(currentPageIndex + 1);
+    } else {
+      handleAddPage();
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPageIndex > 0) {
+      setCurrentPageIndex(currentPageIndex - 1);
+    }
+  };
 
   // SỰ KIỆN ĐÈ GIỮ RÊ MỚI DI CHUYỂN Ô TEXTBOX THEO CHUỘT
   const handleStartDragText = (e, id) => {
@@ -647,7 +727,8 @@ export default function WhiteboardView() {
       if (fabricCanvas) {
         canvasJson = JSON.stringify({
           fabric: fabricCanvas.toJSON(),
-          textElements: textElements
+          textElements: textElements,
+          pages: pages,
         });
       }
 
@@ -714,14 +795,14 @@ export default function WhiteboardView() {
   const getToolbarStyle = () => {
     switch (toolbarPos) {
       case 'top':
-        return 'fixed top-14 left-1/2 -translate-x-1/2 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5 animate-scale-up font-sans';
+        return 'fixed top-14 left-1/2 -translate-x-1/2 z-[60] bg-[#ded8be] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5 animate-scale-up font-sans';
       case 'right':
-        return 'fixed top-1/2 -translate-y-1/2 right-3 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-1.5 animate-scale-up font-sans';
+        return 'fixed top-1/2 -translate-y-1/2 right-3 z-[60] bg-[#ded8be] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-1.5 animate-scale-up font-sans';
       case 'left':
-        return 'fixed top-1/2 -translate-y-1/2 left-3 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-1.5 animate-scale-up font-sans';
+        return 'fixed top-1/2 -translate-y-1/2 left-3 z-[60] bg-[#ded8be] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex flex-col items-center space-y-1.5 animate-scale-up font-sans';
       case 'bottom':
       default:
-        return 'fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] bg-[#d8d2b8] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5 animate-scale-up font-sans';
+        return 'fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] bg-[#ded8be] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5 animate-scale-up font-sans';
     }
   };
 
@@ -737,7 +818,16 @@ export default function WhiteboardView() {
           : 'bg-white'
       }`}
     >
-      {/* HEADER BAR WHITEBOARD */}
+      {/* INPUT FILE ẨN CHÈN ẢNH TỪ MÁY TÍNH */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleImageUpload}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {/* HEADER BAR WHITEBOARD NGUYÊN BẢN GỐC NẠP / LƯU BÀI GIẢNG */}
       <div className="bg-[#24211a] text-white px-4 py-2 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-50 relative">
         <div className="flex items-center space-x-3">
           <button
@@ -755,6 +845,36 @@ export default function WhiteboardView() {
               {lessonTitle}
             </span>
           </div>
+        </div>
+
+        {/* BẢNG CHUYỂN TRANG THÔNG MINH (MULTI-PAGES: TRANG TRƯỚC / TRANG SAU / THÊM TRANG) */}
+        <div className="flex items-center space-x-2 bg-slate-800/90 px-3 py-1 rounded-xl border border-slate-700">
+          <button
+            onClick={handlePrevPage}
+            disabled={currentPageIndex === 0}
+            className="p-1 text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer"
+            title="Trang Trước"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-xs font-extrabold text-amber-300">
+            Trang {currentPageIndex + 1} / {pages.length}
+          </span>
+          <button
+            onClick={handleNextPage}
+            className="p-1 text-slate-300 hover:text-white cursor-pointer"
+            title="Trang Sau / Thêm Trang Mới"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleAddPage}
+            className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black rounded-lg transition flex items-center space-x-1 cursor-pointer"
+            title="Tạo Trang Bài Giảng Mới"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Thêm Trang</span>
+          </button>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -787,10 +907,6 @@ export default function WhiteboardView() {
             <option value="whiteboard">⬜ Nền: Trắng Tinh</option>
             <option value="grid">▦ Nền: Ô Kẻ Tập</option>
           </select>
-
-          <span className="text-xs text-slate-400 font-bold px-2">
-            {new Date().toLocaleDateString('vi-VN')} • Fabric.js v6
-          </span>
         </div>
       </div>
 
@@ -801,6 +917,22 @@ export default function WhiteboardView() {
         className={`relative w-full h-[calc(100vh-50px)] overflow-hidden ${tool === 'text' ? 'cursor-text' : ''}`}
       >
         <canvas ref={canvasRef} className="absolute top-0 left-0" />
+
+        {/* THƯỚC KẺ HỌC TẬP (RULER TOOL) CHUẨN MYVIEWBOARD NGUYÊN BẢN */}
+        {showRuler && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[75] bg-amber-100/90 border-2 border-amber-600 rounded-xl shadow-2xl p-2 w-[600px] h-16 flex items-end justify-between px-4 select-none animate-scale-up font-mono">
+            <div className="absolute top-1 right-2 flex items-center space-x-2 text-[10px] font-extrabold text-amber-900">
+              <span>📏 Thước Kẻ Đo Chiều Dài (cm)</span>
+              <button onClick={() => setShowRuler(false)} className="hover:text-rose-600 font-black">✕</button>
+            </div>
+            {Array.from({ length: 31 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div className={`bg-amber-900 w-0.5 ${i % 5 === 0 ? 'h-6' : 'h-3'}`} />
+                {i % 5 === 0 && <span className="text-[10px] font-bold text-amber-950 mt-0.5">{i}</span>}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Ô GÕ TEXT TRỰC QUAN HỖ TRỢ KÉO RÊ DI CHUYỂN (DRAGGABLE) THOẢI MÁI THEO THẦY HẢI CHỈ ĐẠO */}
         {textElements.map((box) => {
@@ -821,7 +953,7 @@ export default function WhiteboardView() {
                   : 'border border-transparent bg-transparent'
               }`}
             >
-              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) TRỰC QUAN Ó VIỀN TRÊN DÙNG ĐỂ RÊ CHUỘT THOẢI MÁI */}
+              {/* NÚT KÉO RÊ DI CHUYỂN (DRAG HANDLE) TRỰC QUAN Ở VIỀN TRÊN DÙNG ĐỂ RÊ CHUỘT THOẢI MÁI */}
               {isSelected && (
                 <div
                   onMouseDown={(e) => handleStartDragText(e, box.id)}
@@ -1064,6 +1196,42 @@ export default function WhiteboardView() {
         fabricCanvas={fabricCanvas}
       />
 
+      {/* POPUP PALETTE CHỌN MÀU BÚT VẼ SCHEME CHUẨN GỐC */}
+      {activeWindow === 'penColor' && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-white border-2 border-slate-300 rounded-2xl shadow-2xl p-3 flex items-center space-x-2 animate-scale-up">
+          <span className="text-xs font-extrabold text-slate-700">Màu Bút:</span>
+          {PEN_COLORS.map((c) => (
+            <button
+              key={c}
+              onClick={() => {
+                setColor(c);
+                if (fabricCanvas && fabricCanvas.freeDrawingBrush) {
+                  fabricCanvas.freeDrawingBrush.color = c;
+                }
+                setActiveWindow(null);
+              }}
+              style={{ backgroundColor: c }}
+              className={`w-7 h-7 rounded-full border-2 border-slate-300 shadow-2xs hover:scale-110 transition cursor-pointer ${
+                color === c ? 'ring-2 ring-slate-900 scale-110' : ''
+              }`}
+            />
+          ))}
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => {
+              const val = e.target.value;
+              setColor(val);
+              if (fabricCanvas && fabricCanvas.freeDrawingBrush) {
+                fabricCanvas.freeDrawingBrush.color = val;
+              }
+            }}
+            className="w-7 h-7 rounded-lg cursor-pointer border border-slate-400 p-0"
+            title="Màu tùy chỉnh"
+          />
+        </div>
+      )}
+
       {/* POPUP BẢNG CHỌN STICKY NOTE */}
       {activeWindow === 'stickies' && (
         <div className="fixed top-16 left-16 z-[100] bg-white border-2 border-slate-300 rounded-2xl shadow-2xl p-4 w-72 space-y-3 animate-scale-up font-sans text-slate-900">
@@ -1302,6 +1470,9 @@ export default function WhiteboardView() {
                         if (parsedData.textElements) {
                           setTextElements(parsedData.textElements);
                         }
+                        if (parsedData.pages) {
+                          setPages(parsedData.pages);
+                        }
                         if (fabricCanvas && parsedData.fabric) {
                           fabricCanvas.loadFromJSON(parsedData.fabric).then(() => {
                             fabricCanvas.renderAll();
@@ -1324,8 +1495,9 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* THANH TOOLBAR DƯỚI CÙNG SÁT MEP (BOTTOM-3) ĐẦY ĐỦ BỘ CÔNG CỤ THẦY YÊU CẦU */}
+      {/* THANH TOOLBAR DƯỚI CÙNG HOÀN LẠI 100% NGUYÊN BẢN GỐC CAM KẾT ĐẦY ĐỦ NHƯ ẢNH media_1787448644889.png */}
       <div className={getToolbarStyle()}>
+        {/* 1. XOAY CHUYỂN VỊ TRÍ TOOLBAR */}
         <button
           onClick={toggleToolbarPosition}
           className="p-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl transition shadow-md font-bold cursor-pointer"
@@ -1334,7 +1506,7 @@ export default function WhiteboardView() {
           <Move className="w-4 h-4 animate-pulse" />
         </button>
 
-        {/* NÚT SELECT TOOL MŨI TÊN (FABRIC OBJECT TRANSFORMER) */}
+        {/* 2. SELECT POINTER TOOL */}
         <button
           onClick={() => setTool('pointer')}
           className={`p-2 rounded-xl transition cursor-pointer relative ${
@@ -1347,6 +1519,7 @@ export default function WhiteboardView() {
           <MousePointer className="w-4 h-4" />
         </button>
 
+        {/* 3. HAND PAN CANVAS */}
         <button
           onClick={() => setTool('hand')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1359,6 +1532,7 @@ export default function WhiteboardView() {
           <Hand className="w-4 h-4" />
         </button>
 
+        {/* 4. TEXT EDITOR */}
         <button
           onClick={handleAddText}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1371,6 +1545,7 @@ export default function WhiteboardView() {
           <Type className="w-4 h-4" />
         </button>
 
+        {/* 5. STICKY NOTES */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'stickies' ? null : 'stickies')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1383,6 +1558,7 @@ export default function WhiteboardView() {
           <StickyNote className="w-4 h-4 text-amber-600" />
         </button>
 
+        {/* 6. FABRIC PENCIL */}
         <button
           onClick={() => setTool('pen')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1395,6 +1571,7 @@ export default function WhiteboardView() {
           <Pencil className="w-4 h-4" />
         </button>
 
+        {/* 7. HIGHLIGHTER */}
         <button
           onClick={() => setTool('highlighter')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1407,6 +1584,7 @@ export default function WhiteboardView() {
           <Highlighter className="w-4 h-4" />
         </button>
 
+        {/* 8. ERASER */}
         <button
           onClick={() => setTool('eraser')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1419,6 +1597,7 @@ export default function WhiteboardView() {
           <Eraser className="w-4 h-4" />
         </button>
 
+        {/* 9. SHAPES PANEL */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1433,6 +1612,49 @@ export default function WhiteboardView() {
 
         <span className="w-px h-6 bg-slate-400/60 my-auto" />
 
+        {/* 10. IMAGE UPLOAD NGUYÊN BẢN (CHÈN ẢNH TỪ MÁY TÍNH) */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
+          title="🖼️ Chèn ảnh bài tập từ máy tính lên Bảng"
+        >
+          <ImageIcon className="w-4 h-4 text-sky-700" />
+        </button>
+
+        {/* 11. THƯỚC KẺ HỌC TẬP (RULER TOOL) NGUYÊN BẢN */}
+        <button
+          onClick={() => setShowRuler(!showRuler)}
+          className={`p-2 rounded-xl transition cursor-pointer ${
+            showRuler
+              ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300 scale-105'
+              : 'hover:bg-[#c4bb9c] text-slate-800'
+          }`}
+          title="📏 Thước kẻ học tập đo kích thước"
+        >
+          <Ruler className="w-4 h-4 text-amber-800" />
+        </button>
+
+        {/* 12. UNDO NGUYÊN BẢN (HOÀN TÁC VẼ) */}
+        <button
+          onClick={handleUndo}
+          className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
+          title="↩️ Hoàn tác hình vẽ vừa tạo (Undo)"
+        >
+          <Undo className="w-4 h-4 text-slate-700" />
+        </button>
+
+        {/* 13. BẢNG MÀU BÚT VẼ NGUYÊN BẢN (PALETTE COLOR PICKER) */}
+        <button
+          onClick={() => setActiveWindow(activeWindow === 'penColor' ? null : 'penColor')}
+          className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer flex items-center space-x-1"
+          title="🎨 Chọn màu bút vẽ tự do"
+        >
+          <div className="w-4 h-4 rounded-full border border-slate-600 shadow-2xs" style={{ backgroundColor: color }} />
+        </button>
+
+        <span className="w-px h-6 bg-slate-400/60 my-auto" />
+
+        {/* 14. TIMER MINI-GAME */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'timer' ? null : 'timer')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1445,6 +1667,7 @@ export default function WhiteboardView() {
           <Clock className="w-4 h-4 text-sky-700" />
         </button>
 
+        {/* 15. DICE MINI-GAME */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'dice' ? null : 'dice')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1457,6 +1680,7 @@ export default function WhiteboardView() {
           <Dices className="w-4 h-4 text-purple-700" />
         </button>
 
+        {/* 16. RANDOM NAME PICKER MINI-GAME */}
         <button
           onClick={() => setActiveWindow(activeWindow === 'picker' ? null : 'picker')}
           className={`p-2 rounded-xl transition cursor-pointer ${
@@ -1469,12 +1693,22 @@ export default function WhiteboardView() {
           <Users className="w-4 h-4 text-amber-800" />
         </button>
 
+        {/* 17. XÓA ĐỐI TƯỢNG ĐANG CHỌN */}
         <button
           onClick={handleDeleteActiveObject}
           className="p-2 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition text-rose-600 cursor-pointer font-bold"
-          title="Xóa đối tượng đang được chọn (phím Delete)"
+          title="🗑️ Xóa đối tượng đang chọn (phím Delete)"
         >
           <Trash2 className="w-4 h-4 text-rose-600" />
+        </button>
+
+        {/* 18. XÓA SẠCH TRANG BẢNG (CLEAR ALL) */}
+        <button
+          onClick={handleClearAll}
+          className="p-2 hover:bg-rose-600 hover:text-white rounded-xl transition text-rose-700 font-extrabold cursor-pointer"
+          title="🧹 Xóa sạch tất cả hình vẽ & chữ trên trang Bảng"
+        >
+          <RotateCcw className="w-4 h-4 text-rose-700 hover:text-white" />
         </button>
       </div>
     </div>
