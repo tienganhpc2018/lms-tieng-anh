@@ -1,3 +1,4 @@
+import { isWhiteboardAct, isAudioRecordAct, isInteractiveVideoAct } from '../utils/activityTypeHelpers';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
