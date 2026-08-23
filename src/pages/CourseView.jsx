@@ -1079,7 +1079,7 @@ export default function CourseView() {
                               ? 'bg-rose-100 text-rose-800 border-rose-300'
                               : 'bg-white text-slate-700'
                           }`}>
-                            {isWhiteboardAct(act) ? 'Vào Giảng Dạy' : isAudioRecordAct(act) ? '🎙️ Thu Âm Bài Nói' : isInteractiveVideoAct(act) ? '🎥 Xem Video Tương Tác' : !userIsTeacher && isTimeLocked ? '🔒 Bài Đang Khóa' : 'Mở Bài Học'}
+                            {isWhiteboardAct(act) ? 'Vào Giảng Dạy' : isAudioRecordAct(act) ? '🎙️ Thu Âm Bài Nói' : isInteractiveVideoAct(act) ? (userIsTeacher ? '🎥 Thiết Kế Video Tương Tác' : '🎥 Học Bài Video Tương Tác') : !userIsTeacher && isTimeLocked ? '🔒 Bài Đang Khóa' : 'Mở Bài Học'}
                           </span>
                           <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition" />
                         </div>
