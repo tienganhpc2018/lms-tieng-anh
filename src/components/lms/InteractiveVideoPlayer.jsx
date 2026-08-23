@@ -33,7 +33,7 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
-// COMPONENT ĐIỀN TỪ ĐƯỢC MEMO HÓA GIÚP GIỮ GIỮ CON TRỎ MÁY TÍNH KHÔNG BỊ MẤT CON TRỎ HOẶC NỐI CHỮ LÚC HỌC SINH GÕ
+// COMPONENT ĐIỀN TỪ MEMO HÓA DÙNG GIỮ CHUẨN CON TRỎ KHÔNG BỊ NHẢY MẤT CHỮ CÁI
 const FillBlanksSentence = React.memo(({ textWithBlanks, blankInputs, onInputChange }) => {
   const { parts } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
 
@@ -72,18 +72,18 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const waypoints = activity?.settings?.waypoints || [
     {
       id: 'wp1',
-      timeSec: 10,
+      timeSec: 33,
+      type: 'fill_blanks',
+      question: 'The _____ made a new _____ for me.',
+      textWithBlanks: 'The *tailor* made a new *suit* for me.',
+    },
+    {
+      id: 'wp2',
+      timeSec: 46,
       type: 'true_false',
       question: 'A tailor cuts hair.',
       isTrue: false,
       answer: 'False',
-    },
-    {
-      id: 'wp2',
-      timeSec: 33,
-      type: 'fill_blanks',
-      question: 'Fill in the correct word.',
-      textWithBlanks: 'The *tailor* made a new *suit* for me.',
     },
     {
       id: 'wp3',
@@ -92,6 +92,13 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       question: 'Who protects people and keeps the community safe?',
       options: ['Police officer', 'Doctor', 'Vet'],
       answer: 'Police officer',
+    },
+    {
+      id: 'wp4',
+      timeSec: 153,
+      type: 'fill_blanks',
+      question: 'The _____ is a person who fixes and installs _____ systems.',
+      textWithBlanks: 'The *electrician* is a person who fixes and installs *electrical* systems.',
     },
   ];
 
@@ -446,7 +453,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 2: FILL IN THE BLANKS (CÓ MEMO HÓA KHÔNG BỊ MẤT CON TRỎ HOẶC MẤT CHỮ THỨ 1 NỮA CHUẨN ẢNH media_1787499130315.png) */}
+              {/* DẠNG 2: FILL IN THE BLANKS */}
               {activeQuiz.type === 'fill_blanks' && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
@@ -580,17 +587,20 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           </div>
         )}
 
-        {/* THANH TIMELINE SCRUBBER DÍNH TRỰC TIẾP VÀO BOTTOM CỦA KHUNG VIDEO CHUẨN H5P */}
-        <div className="absolute bottom-0 inset-x-0 bg-slate-950/95 backdrop-blur-md p-3.5 flex items-center justify-between text-white text-xs space-x-4 border-t border-slate-800 z-30">
-          <button onClick={togglePlay} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer border border-slate-700">
+        {/* THANH TIMELINE DÍNH TRỰC TIẾP VÀO BOTTOM KHUNG VIDEO VỚI CÁC ĐIỂM DỪNG NẰM TRONG THANH PHÁT (ẢNH 1 media_1787499725208.png) */}
+        <div className="absolute bottom-0 inset-x-0 bg-slate-950/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between text-white text-xs space-x-3 border-t border-slate-800/80 z-30">
+          <button onClick={togglePlay} className="p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer text-white">
             {isPlaying ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-emerald-400 ml-0.5" />}
           </button>
 
-          <div className="flex-1 relative bg-slate-800/90 h-3 rounded-full overflow-hidden border border-slate-700">
-            <div
-              className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all"
-              style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-            />
+          <div className="flex-1 relative h-6 flex items-center cursor-pointer">
+            <div className="w-full bg-slate-800/90 h-2 rounded-full overflow-hidden border border-slate-700 relative">
+              <div
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all"
+                style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+              />
+            </div>
+
             {waypoints.map((w, idx) => {
               const posPercent = duration ? (w.timeSec / duration) * 100 : 0;
               const isP = quizPassed[w.id || w.timeSec];
@@ -599,15 +609,17 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                   key={idx}
                   title={`Mốc ${w.timeSec}s: ${w.question}`}
                   style={{ left: `${posPercent}%` }}
-                  className={`absolute top-0 bottom-0 w-3.5 -ml-1.5 rounded-full transition transform hover:scale-125 cursor-pointer z-40 ${
-                    isP ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse ring-2 ring-amber-200'
+                  className={`absolute top-1/2 -translate-y-1/2 -ml-2 w-4 h-4 rounded-full border-2 border-white ring-2 shadow-md cursor-pointer hover:scale-125 transition z-40 flex items-center justify-center ${
+                    isP ? 'bg-emerald-400 ring-emerald-500/50' : 'bg-amber-400 ring-amber-500/50 animate-pulse'
                   }`}
-                />
+                >
+                  <div className="w-1.5 h-1.5 bg-slate-950 rounded-full" />
+                </div>
               );
             })}
           </div>
 
-          <span className="font-mono text-slate-300 text-[11px] font-bold bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
+          <span className="font-mono text-slate-300 text-[11px] font-bold bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-800">
             {currentTime}s / {Math.floor(duration)}s
           </span>
         </div>
