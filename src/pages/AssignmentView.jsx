@@ -116,7 +116,7 @@ export default function AssignmentView() {
   const isExplicitStudentView = searchParams.get('student_view') === 'true';
 
   const isIframeType = activeAct.type === 'iframe';
-  const isAudioRecordType = activeAct.type === 'audio_record';
+  const isAudioRecordType = activeAct.type === 'audio_record' || activeAct.type === 'audio' || (activeAct.title && activeAct.title.includes('[AUDIO_RECORD]'));
 
   const showBuilderMode = userIsTeacher && !isReviewMode && !isExplicitStudentView && !isIframeType && !isAudioRecordType;
 
@@ -146,7 +146,7 @@ export default function AssignmentView() {
                   : 'ĐỀ THI THỬ TRỰC TUYẾN'}
               </span>
               <h1 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
-                {(activeAct?.title || 'Bài Học').replace('[WHITEBOARD]', '').trim()}
+                {(activeAct?.title || 'Bài Học').replace('[WHITEBOARD]', '').replace('[AUDIO_RECORD]', '').trim()}
               </h1>
             </div>
           </div>
