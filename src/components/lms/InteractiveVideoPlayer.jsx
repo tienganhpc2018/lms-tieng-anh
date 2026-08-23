@@ -33,28 +33,58 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
-// COMPONENT ĐIỀN TỪ MEMO HÓA DÙNG GIỮ CHUẨN CON TRỎ KHÔNG BỊ NHẢY MẤT CHỮ CÁI
-const FillBlanksSentence = React.memo(({ textWithBlanks, blankInputs, onInputChange }) => {
-  const { parts } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
+// COMPONENT ĐIỀN TỪ MEMO HÓA GÕ LIÊN TỤC VÀ HIỂN THỊ ĐÁP ÁN SAI CỦA HỌC SINH KÈM TỪ ĐÚNG CHUẨN ĐẸP (ẢNH media_1787500594356.png)
+const FillBlanksSentence = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback }) => {
+  const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
 
   return (
-    <div className="text-sm text-slate-800 leading-relaxed bg-slate-50 p-4.5 rounded-2xl border border-slate-200 font-medium">
-      {parts.map((item, pIdx) => {
-        if (item.type === 'text') {
-          return <span key={`text_${pIdx}`}>{item.content}</span>;
-        } else {
-          return (
-            <input
-              key={`blank_input_${item.index}`}
-              type="text"
-              value={blankInputs[item.index] || ''}
-              onChange={(e) => onInputChange(item.index, e.target.value)}
-              placeholder="gõ từ..."
-              className="mx-1 px-2.5 py-1 border-2 border-brand-500 rounded-xl text-xs font-bold text-brand-900 bg-white focus:ring-2 focus:ring-brand-400 focus:outline-none inline-block min-w-[100px] shadow-xs"
-            />
-          );
-        }
-      })}
+    <div className="space-y-4">
+      <div className="text-sm sm:text-base text-slate-900 leading-relaxed bg-slate-50 p-5 rounded-2xl border border-slate-200 font-medium shadow-xs">
+        {parts.map((item, pIdx) => {
+          if (item.type === 'text') {
+            return <span key={`text_${pIdx}`}>{item.content}</span>;
+          } else {
+            const userVal = (blankInputs[item.index] || '').trim();
+            const correctAns = answers[item.index] || item.answer || '';
+            const isChecked = quizFeedback !== null;
+            const isCorrect = isChecked && userVal.toLowerCase() === correctAns.toLowerCase();
+
+            return (
+              <span key={`blank_wrap_${item.index}`} className="inline-flex flex-col items-center mx-1 my-1.5 align-middle">
+                <span className="relative inline-flex items-center">
+                  <input
+                    key={`blank_input_${item.index}`}
+                    type="text"
+                    disabled={isChecked && isCorrect}
+                    value={blankInputs[item.index] || ''}
+                    onChange={(e) => onInputChange(item.index, e.target.value)}
+                    placeholder="gõ từ..."
+                    className={`px-3 py-1.5 border-2 rounded-xl text-xs font-extrabold transition shadow-xs ${
+                      !isChecked
+                        ? 'border-brand-500 text-brand-900 bg-white focus:ring-2 focus:ring-brand-400 focus:outline-none min-w-[120px]'
+                        : isCorrect
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 pr-7 min-w-[120px]'
+                        : 'border-rose-500 bg-rose-50 text-rose-900 pr-7 font-bold min-w-[120px]'
+                    }`}
+                  />
+                  {isChecked && (
+                    <span className={`absolute right-2 text-xs font-black ${isCorrect ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {isCorrect ? '✓' : '✕'}
+                    </span>
+                  )}
+                </span>
+
+                {/* SHOW ĐÁP ÁN SAI CỦA HỌC SINH VÀ TỪ ĐÚNG CHUẨN CHÍNH XÁC THEO ẢNH media_1787500594356.png */}
+                {isChecked && !isCorrect && (
+                  <span className="text-[10px] font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md mt-1 border border-rose-200 shadow-2xs">
+                    ✕ Bạn điền: "{userVal || 'bỏ trống'}" ➔ Từ đúng: <strong className="text-emerald-800 underline">{correctAns}</strong>
+                  </span>
+                )}
+              </span>
+            );
+          }
+        })}
+      </div>
     </div>
   );
 });
@@ -74,7 +104,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       id: 'wp1',
       timeSec: 33,
       type: 'fill_blanks',
-      question: 'The _____ made a new _____ for me.',
+      question: 'Fill in the correct word.',
       textWithBlanks: 'The *tailor* made a new *suit* for me.',
     },
     {
@@ -313,17 +343,24 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     } else if (activeQuiz.type === 'fill_blanks') {
       const { answers } = parseFillBlanksText(activeQuiz.textWithBlanks);
       let isAllCorrect = true;
+      const wrongList = [];
+
       answers.forEach((ans, idx) => {
-        const userTyped = (blankInputs[idx] || '').trim().toLowerCase();
-        if (userTyped !== ans.toLowerCase()) {
+        const userTyped = (blankInputs[idx] || '').trim();
+        if (userTyped.toLowerCase() !== ans.toLowerCase()) {
           isAllCorrect = false;
+          wrongList.push(`Từ ${idx + 1}: Bạn nhập "${userTyped || 'bỏ trống'}" ➔ Đúng là "${ans}"`);
         }
       });
 
       if (isAllCorrect) {
         setQuizFeedback({ success: true, msg: '🎉 Tuyệt vời! Bạn đã điền chính xác tất cả các từ.', details: `Đáp án: ${answers.join(', ')}` });
       } else {
-        setQuizFeedback({ success: false, msg: '❌ Một số từ điền chưa đúng. Hãy kiểm tra lại!', details: `Các từ đúng cần điền là: ${answers.join(', ')}` });
+        setQuizFeedback({
+          success: false,
+          msg: '❌ Một số từ điền chưa đúng. Hãy kiểm tra lại bên dưới!',
+          details: wrongList.join(' | '),
+        });
       }
     } else if (activeQuiz.type === 'mark_word') {
       const correctWords = activeQuiz.correctWords || [];
@@ -453,16 +490,21 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 2: FILL IN THE BLANKS */}
+              {/* DẠNG 2: FILL IN THE BLANKS (CÓ MEMO HÓA VÀ HIỂN THỊ ĐÁP ÁN SAI CỦA HS KÈM TỪ ĐÚNG CHUẨN ẢNH media_1787500594356.png) */}
               {activeQuiz.type === 'fill_blanks' && (
                 <div className="space-y-3">
-                  <h4 className="text-base font-extrabold text-slate-900 leading-snug">
-                    {activeQuiz.question}
-                  </h4>
+                  {activeQuiz.question &&
+                    activeQuiz.question !== 'Fill in the correct word.' &&
+                    !activeQuiz.textWithBlanks?.includes(activeQuiz.question) && (
+                      <h4 className="text-base font-extrabold text-slate-900 leading-snug">
+                        {activeQuiz.question}
+                      </h4>
+                    )}
                   <FillBlanksSentence
                     textWithBlanks={activeQuiz.textWithBlanks}
                     blankInputs={blankInputs}
                     onInputChange={handleBlankInputChange}
+                    quizFeedback={quizFeedback}
                   />
                 </div>
               )}
@@ -587,7 +629,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           </div>
         )}
 
-        {/* THANH TIMELINE DÍNH TRỰC TIẾP VÀO BOTTOM KHUNG VIDEO VỚI CÁC ĐIỂM DỪNG NẰM TRONG THANH PHÁT (ẢNH 1 media_1787499725208.png) */}
+        {/* THANH TIMELINE DÍNH TRỰC TIẾP VÀO BOTTOM KHUNG VIDEO CHUẨN H5P */}
         <div className="absolute bottom-0 inset-x-0 bg-slate-950/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between text-white text-xs space-x-3 border-t border-slate-800/80 z-30">
           <button onClick={togglePlay} className="p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer text-white">
             {isPlaying ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-emerald-400 ml-0.5" />}
