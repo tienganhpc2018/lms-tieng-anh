@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Video, HelpCircle, FileText, Plus, Trash2, CheckCircle2, Play, Pause, Save, Eye, Layers, Type, CheckSquare, Move, Sparkles, Sliders, CornerDownRight, Check } from 'lucide-react';
+import { Video, HelpCircle, FileText, Plus, Trash2, CheckCircle2, Play, Pause, Save, Eye, Layers, Type, CheckSquare, Move, Sparkles, Highlighter, Check, ToggleLeft } from 'lucide-react';
 
 const extractYoutubeId = (url) => {
   if (!url || typeof url !== 'string') return null;
@@ -8,8 +8,17 @@ const extractYoutubeId = (url) => {
   return match && match[2].length === 11 ? match[2] : null;
 };
 
+// ĐỊNH NGHĨA 5 DẠNG CÂU HỎI H5P CHUẨN ĐƯỢC HỖ TRỢ TRONG STUDIO EDITOR
+const H5P_QUESTION_TYPES = [
+  { id: 'multiple_choice', name: 'Multiple Choice', label: 'Trắc nghiệm nhiều lựa chọn', icon: CheckSquare },
+  { id: 'fill_blanks', name: 'Fill in the Blanks', label: 'Điền từ vào ô trống', icon: Type },
+  { id: 'true_false', name: 'True / False', label: 'Đúng hoặc Sai', icon: ToggleLeft },
+  { id: 'mark_word', name: 'Highlight Words', label: 'Highlight từ đúng trong danh sách', icon: Highlighting },
+  { id: 'drag_drop', name: 'Drag & Drop', label: 'Kéo thả đáp án', icon: Move },
+];
+
 export default function InteractiveVideoStudio({ initialSettings = {}, onSave }) {
-  const [step, setStep] = useState(1); // 1: Nguồn Video, 2: Timeline Editor & Interactive Canvas, 3: Summary Task
+  const [step, setStep] = useState(1); // 1: Quản lý Nguồn Video, 2: Thiết lập Tương tác, 3: Summary Task
   const [title, setTitle] = useState(initialSettings.title || 'Interactive Video - Bài Giảng H5P');
   const [videoUrl, setVideoUrl] = useState(initialSettings.videoUrl || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 
@@ -21,16 +30,15 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Danh sách các mốc tương tác (Interactions / Waypoints)
+  // Danh sách các mốc tương tác (Waypoints / Interactions)
   const [interactions, setInteractions] = useState(initialSettings.interactions || [
     {
       id: 'int_1',
       timestamp: 11,
       type: 'multiple_choice',
-      question: 'What kind of berry is this?',
-      options: ['Strawberry', 'Blueberry', 'Raspberry'],
+      question: 'Who is a bus driver?',
+      options: ['A person who takes us to school every day', 'A person who keeps the community safe', 'A person who helps sick people'],
       correctIndex: 0,
-      pos: { x: 20, y: 20, w: 60, h: 55 },
     },
     {
       id: 'int_2',
@@ -40,19 +48,30 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
       textWithBlanks: 'Strawberries and *blueberries* are mixed with *milk* and oatmeal.',
       options: [],
       correctIndex: 0,
-      pos: { x: 25, y: 25, w: 50, h: 50 },
+    },
+    {
+      id: 'int_3',
+      timestamp: 50,
+      type: 'mark_word',
+      question: 'Highlight the ingredients that have been added so far.',
+      wordListInput: 'Strawberries, Cookies, Blueberries, Milk',
+      correctWordsInput: 'Strawberries, Blueberries, Milk',
+      options: [],
+      correctIndex: 0,
     },
   ]);
 
   // Form soạn thảo mốc tương tác ở Step 2
-  const [activeIntId, setActiveIntId] = useState(null);
   const [selectedType, setSelectedType] = useState('multiple_choice');
   const [questionText, setQuestionText] = useState('');
   const [options, setOptions] = useState(['', '', '']);
   const [correctIdx, setCorrectIdx] = useState(0);
   const [textWithBlanks, setTextWithBlanks] = useState('');
+  const [isTrueChoice, setIsTrueChoice] = useState(true);
+  const [wordListInput, setWordListInput] = useState('');
+  const [correctWordsInput, setCorrectWordsInput] = useState('');
 
-  // Setup YouTube Iframe API player ở Step 2
+  // Setup YouTube Iframe API player ở Step 2 & tắt phụ đề YouTube
   useEffect(() => {
     if (step !== 2 || !youtubeId) return;
 
@@ -63,7 +82,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
         if (ytPlayerRef.current) return;
         ytPlayerRef.current = new window.YT.Player('yt-studio-editor-iframe', {
           videoId: youtubeId,
-          playerVars: { autoplay: 0, controls: 1, rel: 0 },
+          playerVars: { autoplay: 0, controls: 1, cc_load_policy: 0, iv_load_policy: 3, rel: 0 },
           events: {
             onReady: (e) => {
               setDuration(e.target.getDuration() || 0);
@@ -134,6 +153,14 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
       alert('Vui lòng nhập nội dung câu hỏi!');
       return;
     }
+
+    let parsedWordList = [];
+    let parsedCorrectWords = [];
+    if (selectedType === 'mark_word') {
+      parsedWordList = wordListInput.split(',').map((w) => w.trim()).filter(Boolean);
+      parsedCorrectWords = correctWordsInput.split(',').map((w) => w.trim()).filter(Boolean);
+    }
+
     const newInt = {
       id: 'int_' + Date.now(),
       timestamp: Number(currentTime || 10),
@@ -142,14 +169,20 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
       options: options.filter((o) => o.trim() !== ''),
       correctIndex: Number(correctIdx),
       textWithBlanks: textWithBlanks.trim(),
-      pos: { x: 20, y: 20, w: 60, h: 55 },
+      isTrue: isTrueChoice,
+      wordList: parsedWordList,
+      correctWords: parsedCorrectWords,
+      wordListInput,
+      correctWordsInput,
     };
 
     setInteractions([...interactions, newInt].sort((a, b) => a.timestamp - b.timestamp));
     setQuestionText('');
     setOptions(['', '', '']);
     setTextWithBlanks('');
-    alert(`✓ Đã thêm câu hỏi tương tác tại mốc ${newInt.timestamp}s thành công!`);
+    setWordListInput('');
+    setCorrectWordsInput('');
+    alert(`✓ Đã thêm mốc câu hỏi ${selectedType} tại ${newInt.timestamp}s thành công!`);
   };
 
   const removeInteraction = (id) => {
@@ -164,6 +197,11 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
     });
   };
 
+  const getTypeNameFormatted = (typeId) => {
+    const found = H5P_QUESTION_TYPES.find((t) => t.id === typeId);
+    return found ? `${found.name} (${found.label})` : typeId;
+  };
+
   return (
     <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-2xl space-y-6 font-sans select-none max-w-6xl mx-auto">
       {/* HEADER BANNER & BARS CÔNG CỤ 3 STEP WIZARD BAR */}
@@ -171,7 +209,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="space-y-0.5">
             <span className="px-3 py-1 bg-amber-400 text-slate-950 text-[10px] font-black uppercase rounded-full tracking-wider">
-              H5P INTERACTIVE VIDEO EDITOR STUDIO V60
+              H5P STUDIO EDITOR V61
             </span>
             <h3 className="text-xl font-extrabold flex items-center space-x-2">
               <Video className="w-6 h-6 text-rose-400" />
@@ -240,7 +278,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ví dụ: Interactive Video - Bat Trang Pottery Village"
+                  placeholder="Ví dụ: Interactive Video - Community Helpers"
                   className="w-full px-4 py-3 border border-slate-300 rounded-2xl text-sm font-extrabold text-slate-900 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
@@ -272,7 +310,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
               <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black flex items-center justify-center border border-slate-800">
                 {youtubeId ? (
                   <iframe
-                    src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&rel=0`}
+                    src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&rel=0&cc_load_policy=0&iv_load_policy=3`}
                     title="Preview Video Source"
                     className="w-full h-full border-0"
                     allowFullScreen
@@ -294,10 +332,10 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
           </div>
         )}
 
-        {/* BƯỚC 2: THIẾT LẬP TƯƠNG TÁC (TIMELINE EDITOR & TOOLBAR CÂU HỎI H5P) */}
+        {/* BƯỚC 2: THIẾT LẬP TƯƠNG TÁC (TIMELINE EDITOR & TOOLBAR CÂU HỎI H5P THAY CÂU HỎI FREE TEXT = TRUE/FALSE VÀ THÊM HIGHLIGHT WORDS CHUẨN ẢNH 2,3,4) */}
         {step === 2 && (
           <div className="space-y-6">
-            {/* TOOLBAR PHÍA TRÊN TRÌNH PHÁT VIDEO CHỨA CÁC ICON ĐẠI DIỆN CÁC LOẠI CÂU HỎI H5P */}
+            {/* TOOLBAR PHÍA TRÊN TRÌNH PHÁT VIDEO CHỨA CÁC ICON CHUẨN 5 DẠNG CÂU HỎI H5P */}
             <div className="bg-slate-900 text-white p-4 rounded-3xl border border-slate-800 space-y-3 shadow-lg">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center space-x-2">
@@ -307,13 +345,8 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                 <span className="text-[11px] text-slate-400 font-mono">Đang ở giây: {currentTime}s</span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {[
-                  { id: 'multiple_choice', name: 'Multiple choice', icon: CheckSquare, desc: 'Trắc nghiệm 1/nhiều đáp án' },
-                  { id: 'fill_blanks', name: 'Fill in the blanks', icon: Type, desc: 'Điền từ vào chỗ trống' },
-                  { id: 'free_text', name: 'Free text', icon: FileText, desc: 'Câu hỏi tự luận ngắn' },
-                  { id: 'drag_drop', name: 'Drag and drop', icon: Move, desc: 'Kéo thả đáp án vào ô' },
-                ].map((item) => {
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                {H5P_QUESTION_TYPES.map((item) => {
                   const Icon = item.icon;
                   const isSel = selectedType === item.id;
                   return (
@@ -321,16 +354,16 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                       key={item.id}
                       type="button"
                       onClick={() => handleCaptureTimestamp(item.id)}
-                      className={`p-3 rounded-2xl border transition text-left cursor-pointer flex items-start space-x-2.5 ${
+                      className={`p-3 rounded-2xl border transition text-left cursor-pointer flex items-start space-x-2 ${
                         isSel
                           ? 'border-amber-400 bg-amber-500/20 text-amber-300 font-extrabold ring-2 ring-amber-400/30'
                           : 'border-slate-800 bg-slate-800/80 hover:bg-slate-700 text-slate-200'
                       }`}
                     >
-                      <Icon className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <Icon className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h5 className="text-xs font-bold leading-snug">{item.name}</h5>
-                        <p className="text-[10px] text-slate-400 line-clamp-1">{item.desc}</p>
+                        <h5 className="text-[11px] font-bold leading-snug">{item.name}</h5>
+                        <p className="text-[9px] text-slate-400 line-clamp-1">{item.label}</p>
                       </div>
                     </button>
                   );
@@ -338,7 +371,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
               </div>
             </div>
 
-            {/* VÙNG TRÌNH PHÁT TIMELINE EDITOR VỚI OVERLAY INTERACTIVE DRAG/RESIZE */}
+            {/* TRÌNH PHÁT VIDEO KÈM OVERLAY POPUP PREVIEW */}
             <div className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
               {youtubeId ? (
                 <div id="yt-studio-editor-iframe" className="w-full h-full border-0" />
@@ -353,25 +386,6 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                   className="w-full h-full object-contain"
                 />
               )}
-
-              {/* OVERLAY NẠP THỬ HOẠT ĐỘNG TẠI TIMESTAMP HIỆN TẠI */}
-              {interactions.filter((i) => i.timestamp === currentTime).map((intItem) => (
-                <div
-                  key={intItem.id}
-                  className="absolute bg-white/95 backdrop-blur-md p-4 rounded-3xl border-2 border-amber-400 shadow-2xl z-30 max-w-sm w-full text-slate-900 animate-scale-up"
-                  style={{ top: '20%', left: '20%' }}
-                >
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-2">
-                    <span className="text-[10px] font-black text-amber-600 uppercase">
-                      ⏸️ Pop-up H5P Mốc {intItem.timestamp}s
-                    </span>
-                    <button onClick={() => removeInteraction(intItem.id)} className="text-rose-600 hover:text-rose-700 text-xs font-bold">
-                      ✕ Xóa
-                    </button>
-                  </div>
-                  <h5 className="text-xs font-bold leading-snug">{intItem.question}</h5>
-                </div>
-              ))}
 
               {/* THANH ĐIỀU KHIỂN & TIMELINE SCRUBBER */}
               <div className="absolute bottom-0 inset-x-0 bg-slate-950/90 p-4 flex items-center justify-between text-white text-xs space-x-4">
@@ -403,12 +417,12 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
               </div>
             </div>
 
-            {/* FORM SOẠN THẢO MỐC VÀ CÂU HỎI */}
+            {/* FORM SOẠN THẢO MỐC VÀ CÂU HỎI (HIỂN THỊ TÊN ĐẸP THAY VÌ RAW STRING DRAG_DROP CHUẨN ẢNH 3) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-4">
                 <h4 className="font-extrabold text-sm text-slate-900 flex items-center space-x-2 border-b border-slate-200 pb-3">
                   <Plus className="w-4 h-4 text-emerald-600" />
-                  <span>Soạn Câu Hỏi Pop-Up Cho Giây {currentTime}s ({selectedType})</span>
+                  <span>Soạn Câu Hỏi Pop-Up Cho Giây {currentTime}s ({getTypeNameFormatted(selectedType)})</span>
                 </h4>
 
                 <div>
@@ -431,11 +445,12 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                     type="text"
                     value={questionText}
                     onChange={(e) => setQuestionText(e.target.value)}
-                    placeholder="Ví dụ: What kind of berry is this?"
+                    placeholder="Ví dụ: Who is a bus driver?"
                     className="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm font-semibold bg-white"
                   />
                 </div>
 
+                {/* FORM THEO TỪNG LOẠI CÂU HỎI */}
                 {selectedType === 'multiple_choice' && (
                   <div className="space-y-2">
                     <label className="block text-xs font-bold text-slate-700">Các Lựa Chọn Đáp Án (Tích chọn đáp án đúng)</label>
@@ -479,6 +494,75 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                   </div>
                 )}
 
+                {selectedType === 'true_false' && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700">Đáp Án Đúng Cho Câu Hỏi Này</label>
+                    <div className="flex items-center space-x-4">
+                      <label className="flex items-center space-x-2 text-xs font-bold cursor-pointer">
+                        <input
+                          type="radio"
+                          name="tf_correct"
+                          checked={isTrueChoice === true}
+                          onChange={() => setIsTrueChoice(true)}
+                        />
+                        <span>✓ True (Đúng)</span>
+                      </label>
+
+                      <label className="flex items-center space-x-2 text-xs font-bold cursor-pointer">
+                        <input
+                          type="radio"
+                          name="tf_correct"
+                          checked={isTrueChoice === false}
+                          onChange={() => setIsTrueChoice(false)}
+                        />
+                        <span>✕ False (Sai)</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {selectedType === 'mark_word' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Danh Sách Từ Cho Phép Chọn (Phân cách bằng dấu phẩy)
+                      </label>
+                      <input
+                        type="text"
+                        value={wordListInput}
+                        onChange={(e) => setWordListInput(e.target.value)}
+                        placeholder="Strawberries, Cookies, Blueberries, Milk"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-emerald-700 mb-1">
+                        Danh Sách Các Từ ĐÚNG Cần Highlight (Phân cách bằng dấu phẩy)
+                      </label>
+                      <input
+                        type="text"
+                        value={correctWordsInput}
+                        onChange={(e) => setCorrectWordsInput(e.target.value)}
+                        placeholder="Strawberries, Blueberries, Milk"
+                        className="w-full px-3 py-2 border border-emerald-300 rounded-xl text-xs bg-emerald-50 font-bold"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedType === 'drag_drop' && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-700">Các Thẻ Đáp Án Kéo Thả (Phân cách bằng dấu phẩy)</label>
+                    <input
+                      type="text"
+                      value={options.join(', ')}
+                      onChange={(e) => setOptions(e.target.value.split(',').map((s) => s.trim()))}
+                      placeholder="Strawberry, Blueberry, Milk"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white"
+                    />
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={addInteraction}
@@ -504,7 +588,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                       <div key={item.id} className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs flex justify-between items-start space-x-3">
                         <div className="space-y-1">
                           <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 font-black text-[10px] rounded-md inline-block">
-                            ⏱️ Mốc: {item.timestamp}s ({item.type})
+                            ⏱️ Mốc: {item.timestamp}s ({getTypeNameFormatted(item.type)})
                           </span>
                           <h5 className="text-xs font-bold text-slate-900 leading-snug">{item.question}</h5>
                           {item.options && item.options.length > 0 && (
