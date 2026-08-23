@@ -11,7 +11,7 @@ import {
   Highlighter, Bold, Italic, Underline, Search, ZoomIn, ZoomOut, Check, ChevronLeft, ChevronRight,
   Layers, Lock, Unlock, Copy, ArrowUp, ArrowDown, BookOpen, Edit3, Hand, Minus, MousePointer, Pause, RefreshCw, Users,
   StickyNote, AlignLeft, AlignCenter, AlignRight, CornerUpRight, ArrowUpRight, Star, Diamond, Layers3, ArrowDownToLine, ArrowUpToLine,
-  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket, GripHorizontal, CheckCircle, FileText, Wrench, BoxSelect
+  Boxes, Group, Ungroup, Scissors, FlipHorizontal, FlipVertical, RefreshCw as RotateIcon, Target, Download, Monitor, PaintBucket, GripHorizontal, CheckCircle, FileText, Wrench, BoxSelect, Eye
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ShapesModulePanel from '../components/whiteboard/ShapesModulePanel';
@@ -125,6 +125,9 @@ export default function WhiteboardView() {
   const [searchParams] = useSearchParams();
   const queryId = searchParams.get('activityId');
   const activityId = pathId || queryId;
+
+  // XÁC ĐỊNH QUYỀN GIÁO VIÊN VÀ HỌC SINH (TEACHER VS STUDENT READ-ONLY MODE)
+  const userIsTeacher = isTeacher || profile?.is_teacher || profile?.role === 'admin' || profile?.role === 'teacher' || (user?.email && (user.email.toLowerCase().includes('hai') || user.email.toLowerCase().includes('nguyensea')));
 
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -337,7 +340,7 @@ export default function WhiteboardView() {
       width: window.innerWidth,
       height: window.innerHeight - 110,
       backgroundColor: 'transparent',
-      selection: true,
+      selection: userIsTeacher, // HỌC SINH KHÔNG THỂ CHỈNH SỬA VẬT THỂ CỦA THẦY VẼ
       preserveObjectStacking: true,
     });
 
@@ -368,6 +371,7 @@ export default function WhiteboardView() {
     };
 
     const updateFloatingMenu = () => {
+      if (!userIsTeacher) return;
       const activeObjs = fc.getActiveObjects();
       setActiveSelectionObjects(activeObjs);
 
@@ -402,6 +406,7 @@ export default function WhiteboardView() {
     setFabricCanvas(fc);
 
     const handlePaste = (e) => {
+      if (!userIsTeacher) return;
       const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
       if (!items) return;
 
@@ -436,9 +441,9 @@ export default function WhiteboardView() {
       window.removeEventListener('paste', handlePaste);
       fc.dispose();
     };
-  }, []);
+  }, [userIsTeacher]);
 
-  // NẠP VÀ HIỂN THỊ CHÍNH XÁC NỘI DUNG VẼ VÀ TÊN LESSON CỦA BÀI HỌC V47
+  // NẠP VÀ HIỂN THỊ CHÍNH XÁC NỘI DUNG VẼ VÀ TÊN LESSON CỦA BÀI HỌC V48 CHO THẦY VÀ HỌC SINH XEM LAI
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -465,6 +470,15 @@ export default function WhiteboardView() {
 
               if (parsed.fabric) {
                 fabricCanvas.loadFromJSON(parsed.fabric).then(() => {
+                  if (!userIsTeacher) {
+                    // NẾU LÀ HỌC SINH XEM LẠI BÀI ➔ KHÓA KHÔNG CHO SỬA HOẶC DI CHUYỂN CÁC OBJECT TRÊN BẢNG
+                    fabricCanvas.forEachObject((obj) => {
+                      obj.set({
+                        selectable: false,
+                        evented: false,
+                      });
+                    });
+                  }
                   fabricCanvas.renderAll();
                 });
               } else {
@@ -484,11 +498,11 @@ export default function WhiteboardView() {
     };
 
     loadActivityContent();
-  }, [fabricCanvas, activityId]);
+  }, [fabricCanvas, activityId, userIsTeacher]);
 
   // NHÓM (GROUP) VÀ BỎ NHÓM (UNGROUP)
   const handleGroupSelectedObjects = () => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas || !userIsTeacher) return;
     const activeObj = fabricCanvas.getActiveObject();
     if (!activeObj || activeObj.type !== 'activeSelection') {
       alert('Thầy Hải hãy khoanh vùng chọn từ 2 đối tượng trở lên để Nhóm lại nhé!');
@@ -501,7 +515,7 @@ export default function WhiteboardView() {
   };
 
   const handleUngroupSelectedObject = () => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas || !userIsTeacher) return;
     const activeObj = fabricCanvas.getActiveObject();
     if (!activeObj || activeObj.type !== 'group') {
       alert('Thầy Hải hãy chọn 1 Khối Nhóm để Bỏ Nhóm ra nhé!');
@@ -515,7 +529,7 @@ export default function WhiteboardView() {
 
   // VẼ SHAPES DRAG-TO-DRAW
   useEffect(() => {
-    if (!fabricCanvas || tool !== 'drawShape' || !activeShapeType) return;
+    if (!fabricCanvas || tool !== 'drawShape' || !activeShapeType || !userIsTeacher) return;
 
     fabricCanvas.isDrawingMode = false;
     fabricCanvas.selection = false;
@@ -701,10 +715,11 @@ export default function WhiteboardView() {
       fabricCanvas.selection = true;
       setDrawingDimension(null);
     };
-  }, [fabricCanvas, tool, activeShapeType, hasFill, fillColor, strokeColor, color, strokeWidth, opacity, isDashed]);
+  }, [fabricCanvas, tool, activeShapeType, hasFill, fillColor, strokeColor, color, strokeWidth, opacity, isDashed, userIsTeacher]);
 
   // BÚT KHOANH KHUNG NỔI BẬT CÔNG THỨC
   const handleAddHighlightBox = () => {
+    if (!userIsTeacher) return;
     setActiveShapeType('highlightBox');
     setTool('drawShape');
     setActiveWindow(null);
@@ -712,6 +727,7 @@ export default function WhiteboardView() {
 
   // XỬ LÝ TẢI ẢNH TỪ MÁY TÍNH LÊN BẢNG
   const handleImageUpload = (e) => {
+    if (!userIsTeacher) return;
     const file = e.target.files?.[0];
     if (!file || !fabricCanvas) return;
 
@@ -737,7 +753,7 @@ export default function WhiteboardView() {
 
   // UNDO
   const handleUndo = () => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas || !userIsTeacher) return;
     const objects = fabricCanvas.getObjects();
     if (objects.length > 0) {
       fabricCanvas.remove(objects[objects.length - 1]);
@@ -747,6 +763,7 @@ export default function WhiteboardView() {
 
   // XÓA SẠCH BẢNG
   const handleClearAll = () => {
+    if (!userIsTeacher) return;
     if (confirm('Thầy Hải có chắc chắn muốn XÓA SẠCH toàn bộ hình vẽ và chữ trên trang Bảng này?')) {
       if (fabricCanvas) {
         fabricCanvas.clear();
@@ -759,6 +776,7 @@ export default function WhiteboardView() {
 
   // MULTI-PAGES
   const handleAddPage = () => {
+    if (!userIsTeacher) return;
     const newPageNum = pages.length + 1;
     const newPage = { id: Date.now(), name: `Trang ${newPageNum}`, data: null, textElements: [] };
     setPages((prev) => [...prev, newPage]);
@@ -770,7 +788,7 @@ export default function WhiteboardView() {
   const handleNextPage = () => {
     if (currentPageIndex < pages.length - 1) {
       setCurrentPageIndex(currentPageIndex + 1);
-    } else {
+    } else if (userIsTeacher) {
       handleAddPage();
     }
   };
@@ -783,6 +801,7 @@ export default function WhiteboardView() {
 
   // DRAG TEXT
   const handleStartDragText = (e, id) => {
+    if (!userIsTeacher) return;
     e.stopPropagation();
     setSelectedTextId(id);
     setDraggingTextId(id);
@@ -796,7 +815,7 @@ export default function WhiteboardView() {
   };
 
   const handleMouseMoveGlobal = (e) => {
-    if (!draggingTextId) return;
+    if (!draggingTextId || !userIsTeacher) return;
     const newX = e.clientX - dragOffsetRef.current.x;
     const newY = e.clientY - dragOffsetRef.current.y;
     setTextElements((prev) =>
@@ -821,6 +840,7 @@ export default function WhiteboardView() {
 
   // CLICK OUTSIDE
   const handleCanvasContainerClick = (e) => {
+    if (!userIsTeacher) return;
     if (tool === 'text') {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
@@ -848,10 +868,12 @@ export default function WhiteboardView() {
 
   // EXEC COMMAND RICH TEXT
   const applyExecCommand = (command, value = null) => {
+    if (!userIsTeacher) return;
     document.execCommand(command, false, value);
   };
 
   const applySelectionHighlight = (item) => {
+    if (!userIsTeacher) return;
     const selection = window.getSelection();
     if (!selection.rangeCount || selection.isCollapsed) {
       alert('Thầy Hải hãy bôi đen từ/cụm từ cần Highlight trước nhé!');
@@ -880,6 +902,7 @@ export default function WhiteboardView() {
 
   // DELETE TEXT
   const handleDeleteSelectedText = (id) => {
+    if (!userIsTeacher) return;
     setTextElements((prev) => prev.filter((t) => t.id !== id));
     if (selectedTextId === id) setSelectedTextId(null);
   };
@@ -888,19 +911,19 @@ export default function WhiteboardView() {
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    if (tool === 'pen') {
+    if (tool === 'pen' && userIsTeacher) {
       fabricCanvas.isDrawingMode = true;
       const brush = new fabric.PencilBrush(fabricCanvas);
       brush.color = color;
       brush.width = strokeWidth || 4;
       fabricCanvas.freeDrawingBrush = brush;
-    } else if (tool === 'highlighter') {
+    } else if (tool === 'highlighter' && userIsTeacher) {
       fabricCanvas.isDrawingMode = true;
       const brush = new fabric.PencilBrush(fabricCanvas);
       brush.color = color === '#000000' ? 'rgba(255, 42, 109, 0.45)' : (color + '77');
       brush.width = 24;
       fabricCanvas.freeDrawingBrush = brush;
-    } else if (tool === 'eraser') {
+    } else if (tool === 'eraser' && userIsTeacher) {
       fabricCanvas.isDrawingMode = false;
       const handleEraserClick = (options) => {
         if (options.target) {
@@ -910,7 +933,7 @@ export default function WhiteboardView() {
       };
       fabricCanvas.on('mouse:down', handleEraserClick);
       return () => fabricCanvas.off('mouse:down', handleEraserClick);
-    } else if (tool === 'hand') {
+    } else if (tool === 'hand' || !userIsTeacher) {
       fabricCanvas.isDrawingMode = false;
       fabricCanvas.defaultCursor = 'grab';
       let isDragging = false;
@@ -968,11 +991,12 @@ export default function WhiteboardView() {
       fabricCanvas.defaultCursor = 'default';
       fabricCanvas.selection = true;
     }
-  }, [fabricCanvas, tool, color, strokeWidth]);
+  }, [fabricCanvas, tool, color, strokeWidth, userIsTeacher]);
 
   // DELETE KEYBOARD
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (!userIsTeacher) return;
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) {
         return;
       }
@@ -990,11 +1014,11 @@ export default function WhiteboardView() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fabricCanvas, activeObject, selectedTextId]);
+  }, [fabricCanvas, activeObject, selectedTextId, userIsTeacher]);
 
   // FLOATING MENU
   const handleDeleteActiveObject = () => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas || !userIsTeacher) return;
     const activeObjects = fabricCanvas.getActiveObjects();
     if (activeObjects.length > 0) {
       activeObjects.forEach((obj) => fabricCanvas.remove(obj));
@@ -1006,19 +1030,19 @@ export default function WhiteboardView() {
   };
 
   const handleBringToFront = () => {
-    if (!fabricCanvas || !activeObject) return;
+    if (!fabricCanvas || !activeObject || !userIsTeacher) return;
     fabricCanvas.bringObjectToFront(activeObject);
     fabricCanvas.renderAll();
   };
 
   const handleSendToBack = () => {
-    if (!fabricCanvas || !activeObject) return;
+    if (!fabricCanvas || !activeObject || !userIsTeacher) return;
     fabricCanvas.sendObjectToBack(activeObject);
     fabricCanvas.renderAll();
   };
 
   const handleToggleLock = () => {
-    if (!fabricCanvas || !activeObject) return;
+    if (!fabricCanvas || !activeObject || !userIsTeacher) return;
     const isLocked = activeObject.lockMovementX;
     activeObject.set({
       lockMovementX: !isLocked,
@@ -1033,24 +1057,25 @@ export default function WhiteboardView() {
   };
 
   const handleFlipHorizontal = () => {
-    if (!fabricCanvas || !activeObject) return;
+    if (!fabricCanvas || !activeObject || !userIsTeacher) return;
     activeObject.set('flipX', !activeObject.flipX);
     fabricCanvas.renderAll();
   };
 
   const handleRotate90 = () => {
-    if (!fabricCanvas || !activeObject) return;
+    if (!fabricCanvas || !activeObject || !userIsTeacher) return;
     const currentAngle = activeObject.angle || 0;
     activeObject.set('angle', (currentAngle + 90) % 360);
     fabricCanvas.renderAll();
   };
 
   const handleAddText = () => {
+    if (!userIsTeacher) return;
     setTool('text');
   };
 
   const handleAddStickyNote = (stk) => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas || !userIsTeacher) return;
 
     const rect = new fabric.Rect({
       width: 260,
@@ -1084,7 +1109,7 @@ export default function WhiteboardView() {
   };
 
   const handleSelectShape = (shapeType) => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas || !userIsTeacher) return;
 
     const isSticker = ['check', 'cross', 'heart', 'smile', 'frown', 'star', 'crown', 'thumbsUp'].includes(shapeType);
 
@@ -1202,9 +1227,10 @@ export default function WhiteboardView() {
     setLoadingSavedLessons(false);
   };
 
-  // NÂNG CẤP LƯU BÀI DẠY V47 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI (ẢNH media_1787464016635.png):
-  // BỎ HOÀN TOÀN TRƯỜNG 'updated_at' KHI UPDATE SUPABASE ĐỂ FIX TRIỆT ĐỂ LỖI SCHEMA CACHE!
+  // NÂNG CẤP LƯU BÀI DẠY V48 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI:
+  // LƯU CƠ SỞ DỮ LIỆU CỘT CONTENT CỦA LESSON VÀ QUAY VỀ TRANG KHÓA HỌC CHO HỌC SINH VÀO XEM LAI
   const handleSaveLesson = async () => {
+    if (!userIsTeacher) return;
     setSavingLesson(true);
     try {
       let canvasJson = '{}';
@@ -1217,7 +1243,7 @@ export default function WhiteboardView() {
       }
 
       if (activityId) {
-        // CẬP NHẬT CHÍNH XÁC CHỈ CỘT CONTENT TRÁNH LỖI SCHEMA CACHE UPDATED_AT SUPABASE
+        // CẬP NHẬT DỮ LIỆU BÀI GIẢNG VÀO SUPABASE CSDL CỘT CONTENT
         const { error } = await supabase
           .from('activities')
           .update({
@@ -1228,7 +1254,7 @@ export default function WhiteboardView() {
         if (error) {
           alert('❌ Lỗi CSDL Supabase khi lưu: ' + error.message);
         } else {
-          setToastMessage(`💾 Đã lưu thành công bài dạy vào CSDL Lesson [${lessonTitle}]! Đang quay lại Khóa học...`);
+          setToastMessage(`💾 Đã lưu thành công bài dạy vào CSDL Lesson [${lessonTitle}]! Đang quay lại Khóa học cho HS xem...`);
           setTimeout(() => {
             navigate(-1);
           }, 1200);
@@ -1320,7 +1346,7 @@ export default function WhiteboardView() {
         className="hidden"
       />
 
-      {/* HEADER BAR WHITEBOARD V47 */}
+      {/* HEADER BAR WHITEBOARD V48: CHẾ ĐỘ THẦY GIÁO DẠY HỌC VS HỌC SINH XEM BÀI GIẢNG */}
       <div className="bg-[#24211a] text-white px-4 py-1.5 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-40 relative">
         <div className="flex items-center space-x-2">
           <button
@@ -1335,6 +1361,13 @@ export default function WhiteboardView() {
           <span className="text-xs font-black text-amber-300 bg-amber-950/80 px-3 py-1 rounded-lg border border-amber-500/40 truncate max-w-xs shadow-inner">
             {lessonTitle}
           </span>
+
+          {!userIsTeacher && (
+            <span className="bg-sky-600/90 text-sky-100 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border border-sky-300 flex items-center space-x-1 animate-pulse">
+              <Eye className="w-3 h-3 text-sky-200" />
+              <span>CHẾ ĐỘ XEM BÀI GIẢNG HỌC SINH</span>
+            </span>
+          )}
         </div>
 
         {/* BẢNG CHUYỂN TRANG THÔNG MINH (MULTI-PAGES) */}
@@ -1357,44 +1390,50 @@ export default function WhiteboardView() {
           >
             <ChevronRight className="w-4 h-4" />
           </button>
-          <button
-            onClick={handleAddPage}
-            className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black rounded-lg transition flex items-center space-x-1 cursor-pointer"
-            title="Tạo Trang Bài Giảng Mới"
-          >
-            <Plus className="w-3 h-3" />
-            <span>Thêm Trang</span>
-          </button>
+          {userIsTeacher && (
+            <button
+              onClick={handleAddPage}
+              className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black rounded-lg transition flex items-center space-x-1 cursor-pointer"
+              title="Tạo Trang Bài Giảng Mới"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Thêm Trang</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center space-x-2">
           {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG */}
           <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{realtimeClock || 'Aug/23/2026 12:46 PM'} {currentPageIndex + 1}/{pages.length}</span>
+            <span>{realtimeClock || 'Aug/23/2026 12:51 PM'} {currentPageIndex + 1}/{pages.length}</span>
           </div>
 
-          <button
-            onClick={() => {
-              fetchSavedLessons();
-              setActiveWindow('load');
-            }}
-            className="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1 cursor-pointer"
-          >
-            <FolderOpen className="w-3.5 h-3.5" />
-            <span>📁 Mở Bài Dạy</span>
-          </button>
+          {userIsTeacher && (
+            <button
+              onClick={() => {
+                fetchSavedLessons();
+                setActiveWindow('load');
+              }}
+              className="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1 cursor-pointer"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+              <span>📁 Mở Bài Dạy</span>
+            </button>
+          )}
 
-          {/* NÚT LƯU BÀI DẠY V47 */}
-          <button
-            onClick={handleSaveLesson}
-            disabled={savingLesson}
-            className="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1.5 cursor-pointer border border-emerald-400"
-            title={`💾 Lưu bài dạy vào [${lessonTitle}] và quay về Khóa học` }
-          >
-            <Save className="w-4 h-4" />
-            <span>{savingLesson ? 'Đang Lưu...' : '💾 Lưu Bài Dạy'}</span>
-          </button>
+          {/* NÚT LƯU BÀI DẠY DÀNH CHO THẦY GIÁO */}
+          {userIsTeacher && (
+            <button
+              onClick={handleSaveLesson}
+              disabled={savingLesson}
+              className="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1.5 cursor-pointer border border-emerald-400"
+              title={`💾 Lưu bài dạy vào [${lessonTitle}] và quay về Khóa học cho Học sinh xem` }
+            >
+              <Save className="w-4 h-4" />
+              <span>{savingLesson ? 'Đang Lưu...' : '💾 Lưu Bài Dạy'}</span>
+            </button>
+          )}
 
           {/* QUẢN LÝ NỀN BẢNG BACKGROUND MANAGEMENT */}
           <button
@@ -1447,7 +1486,7 @@ export default function WhiteboardView() {
 
         {/* Ô GÕ TEXT TRỰC QUAN NGUYÊN BẢN SANG TRỌNG V40 */}
         {textElements.map((box) => {
-          const isSelected = selectedTextId === box.id;
+          const isSelected = selectedTextId === box.id && userIsTeacher;
 
           return (
             <div
@@ -1607,15 +1646,17 @@ export default function WhiteboardView() {
               )}
 
               <div
-                contentEditable
+                contentEditable={userIsTeacher}
                 suppressContentEditableWarning
                 spellCheck={false}
                 onClick={(e) => {
+                  if (!userIsTeacher) return;
                   e.stopPropagation();
                   setSelectedTextId(box.id);
                   if (fabricCanvas) fabricCanvas.discardActiveObject();
                 }}
                 onBlur={(e) => {
+                  if (!userIsTeacher) return;
                   const html = e.target.innerHTML;
                   setTextElements((prev) => prev.map((t) => t.id === box.id ? { ...t, htmlContent: html } : t));
                 }}
@@ -1632,7 +1673,7 @@ export default function WhiteboardView() {
         })}
 
         {/* MENU NỔI FLOATING MENU CHO FABRIC OBJECTS */}
-        {activeObject && floatingMenuPos && (
+        {activeObject && floatingMenuPos && userIsTeacher && (
           <div
             style={{
               left: `${floatingMenuPos.left}px`,
@@ -1798,7 +1839,7 @@ export default function WhiteboardView() {
 
       {/* COMPONENT MODULE SHAPES */}
       <ShapesModulePanel
-        isOpen={activeWindow === 'shapes'}
+        isOpen={activeWindow === 'shapes' && userIsTeacher}
         onClose={() => setActiveWindow(null)}
         strokeColor={strokeColor}
         setStrokeColor={setStrokeColor}
@@ -1817,8 +1858,8 @@ export default function WhiteboardView() {
         fabricCanvas={fabricCanvas}
       />
 
-      {/* POPUP HỘP CÔNG CỤ BÚT VẼ */}
-      {activeWindow === 'penToolbox' && (
+      {/* POPUP HỘP CÔNG CỤ BÚT VẼ DÀNH CHO THẦY GIÁO */}
+      {activeWindow === 'penToolbox' && userIsTeacher && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 border-2 border-emerald-500 rounded-3xl shadow-2xl p-4 w-96 space-y-3 animate-scale-up font-sans text-white">
           <div className="flex justify-between items-center border-b border-slate-700 pb-2">
             <h3 className="font-extrabold text-xs text-emerald-400 flex items-center space-x-2">
@@ -1904,8 +1945,8 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* MENU CHỌN 3 CÔNG CỤ MINI-GAMES GIẢNG DẠY */}
-      {activeWindow === 'minigamesMenu' && (
+      {/* MENU CHỌN 3 CÔNG CỤ MINI-GAMES GIẢNG DẠY DÀNH CHO THẦY GIÁO */}
+      {activeWindow === 'minigamesMenu' && userIsTeacher && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 border-2 border-amber-500 rounded-2xl shadow-2xl p-3 flex items-center space-x-3 animate-scale-up font-sans text-white">
           <span className="text-xs font-black text-amber-400 uppercase tracking-wide">Công Cụ Giảng Dạy:</span>
           
@@ -1935,8 +1976,8 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP BẢNG CHỌN STICKY NOTE */}
-      {activeWindow === 'stickies' && (
+      {/* POPUP BẢNG CHỌN STICKY NOTE DÀNH CHO THẦY GIÁO */}
+      {activeWindow === 'stickies' && userIsTeacher && (
         <div className="fixed top-24 left-16 z-[100] bg-white border-2 border-slate-300 rounded-2xl shadow-2xl p-4 w-72 space-y-3 animate-scale-up font-sans text-slate-900">
           <div className="flex justify-between items-center border-b pb-2 font-extrabold text-xs text-slate-800">
             <span className="flex items-center space-x-1.5 text-amber-700">
@@ -1962,140 +2003,8 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* POPUP ĐỒNG HỒ BẤM GIỜ */}
-      {activeWindow === 'timer' && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-80 space-y-4 border-2 border-sky-500 animate-scale-up font-sans">
-          <div className="flex justify-between items-center border-b border-slate-700 pb-2">
-            <h3 className="font-extrabold text-sm flex items-center space-x-2 text-sky-400">
-              <Clock className="w-5 h-5" />
-              <span>⏱️ ĐỒNG HỒ BẤM GIỜ GIẢNG DẠY</span>
-            </h3>
-            <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
-          </div>
-
-          <div className="text-center py-3">
-            <span className="font-mono text-5xl font-black text-amber-400 tracking-wider">
-              {Math.floor(timerSeconds / 60).toString().padStart(2, '0')}:{(timerSeconds % 60).toString().padStart(2, '0')}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            <button onClick={() => setTimerSeconds(30)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-lg border border-slate-700">30 Giây</button>
-            <button onClick={() => setTimerSeconds(60)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-lg border border-slate-700">1 Phút</button>
-            <button onClick={() => setTimerSeconds(300)} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-lg border border-slate-700">5 Phút</button>
-          </div>
-
-          <div className="flex space-x-2 pt-2">
-            <button
-              onClick={() => setTimerRunning(!timerRunning)}
-              className={`flex-1 py-2.5 rounded-xl font-black text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer ${
-                timerRunning ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              }`}
-            >
-              {timerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              <span>{timerRunning ? 'Tạm Dừng' : 'Bắt Đầu Bấm Giờ'}</span>
-            </button>
-            <button
-              onClick={() => { setTimerSeconds(60); setTimerRunning(false); }}
-              className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 font-bold text-xs border border-slate-700 cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* POPUP XÚC XẮC THÔNG MINH */}
-      {activeWindow === 'dice' && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-purple-500 animate-scale-up font-sans">
-          <div className="flex justify-between items-center border-b border-slate-700 pb-2">
-            <h3 className="font-extrabold text-sm flex items-center space-x-2 text-purple-400">
-              <Dices className="w-5 h-5" />
-              <span>🎲 XÚC XẮC NGẪU NHIÊN BÀI TẬP</span>
-            </h3>
-            <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
-          </div>
-
-          <div className="flex items-center justify-between bg-slate-800 p-2.5 rounded-2xl border border-slate-700">
-            <span className="text-xs font-extrabold text-slate-200">Số lượng Hột Xúc Xắc:</span>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={handleDecreaseDice}
-                disabled={diceCount <= 1}
-                className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-40 font-black text-lg flex items-center justify-center text-white transition cursor-pointer border border-slate-600"
-              >
-                -
-              </button>
-              <span className="font-mono text-base font-black text-amber-400 px-2">{diceCount} Hột</span>
-              <button
-                onClick={handleIncreaseDice}
-                disabled={diceCount >= 3}
-                className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-40 font-black text-lg flex items-center justify-center text-white transition cursor-pointer border border-slate-600"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          <div className="flex justify-center items-center gap-3 py-4">
-            {diceValues.map((val, idx) => (
-              <DiceFace key={idx} value={val} isSpinning={isSpinningDice} />
-            ))}
-          </div>
-
-          <button
-            onClick={handleRollDice}
-            disabled={isSpinningDice}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-xs shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>{isSpinningDice ? 'Đang Đổ Xúc Xắc...' : `🎲 LẮC ${diceCount} HỘT XÚC XẮC NGẪU NHIÊN` }</span>
-          </button>
-        </div>
-      )}
-
-      {/* POPUP GỌI TÊN HỌC SINH NGẪU NHIÊN */}
-      {activeWindow === 'picker' && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border-2 border-amber-500 animate-scale-up font-sans">
-          <div className="flex justify-between items-center border-b border-slate-700 pb-2">
-            <h3 className="font-extrabold text-sm flex items-center space-x-2 text-amber-400">
-              <Users className="w-5 h-5" />
-              <span>🎯 GỌI TÊN HỌC SINH NGẪU NHIÊN</span>
-            </h3>
-            <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
-          </div>
-
-          <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 text-center">
-            <span className="text-xs text-slate-400 font-bold block mb-1">Học sinh được chọn:</span>
-            <span className={`text-2xl font-black text-amber-300 block truncate transition transform ${
-              isPickingStudent ? 'scale-110 text-amber-400' : ''
-            }`}>
-              {selectedStudent || '👉 Bấm Nút Gọi Tên!'}
-            </span>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-extrabold text-slate-400 mb-1">Danh sách học sinh (phân cách bằng dấu phẩy):</label>
-            <textarea
-              value={studentNames}
-              onChange={(e) => setStudentNames(e.target.value)}
-              className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 h-20 outline-none"
-            />
-          </div>
-
-          <button
-            onClick={handlePickRandomStudent}
-            disabled={isPickingStudent}
-            className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-black text-xs shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>{isPickingStudent ? 'Đang Xoay Tên...' : '🎯 GỌI TÊN NGẪU NHIÊN'}</span>
-          </button>
-        </div>
-      )}
-
-      {/* POPUP MỞ BÀI DẠY ĐÃ LƯU */}
-      {activeWindow === 'load' && (
+      {/* POPUP MỞ BÀI DẠY ĐÃ LƯU DÀNH CHO THẦY GIÁO */}
+      {activeWindow === 'load' && userIsTeacher && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-[520px] space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
           <div className="flex justify-between items-center border-b pb-2">
             <h3 className="font-extrabold text-sm flex items-center space-x-2 text-sky-700">
@@ -2160,184 +2069,202 @@ export default function WhiteboardView() {
         </div>
       )}
 
-      {/* THANH TOOLBAR DƯỚI CÙNG SANG TRỌNG GOM CÁC BÚT VÀ CHỨC NĂNG VÀO CÁC HỘP CÔNG CỤ V13 */}
-      <div className={getToolbarStyle()}>
-        {/* 1. XOAY CHUYỂN VỊ TRÍ TOOLBAR */}
-        <button
-          onClick={toggleToolbarPosition}
-          className="p-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl transition shadow-md font-bold cursor-pointer"
-          title="Xoay chuyển vị trí thanh công cụ (Dưới -> Trái -> Trên -> Phải)"
-        >
-          <Move className="w-4 h-4 animate-pulse" />
-        </button>
+      {/* THANH TOOLBAR DƯỚI CÙNG DÀNH CHO THẦY GIÁO (HỌC SINH ẨN HOẶC CHỈ DÙNG BÀN TAY KÉO TRƯỢT XEM BÀI) */}
+      {userIsTeacher ? (
+        <div className={getToolbarStyle()}>
+          {/* 1. XOAY CHUYỂN VỊ TRÍ TOOLBAR */}
+          <button
+            onClick={toggleToolbarPosition}
+            className="p-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl transition shadow-md font-bold cursor-pointer"
+            title="Xoay chuyển vị trí thanh công cụ (Dưới -> Trái -> Trên -> Phải)"
+          >
+            <Move className="w-4 h-4 animate-pulse" />
+          </button>
 
-        {/* 2. SELECT POINTER TOOL */}
-        <button
-          onClick={() => {
-            setTool('pointer');
-            setActiveShapeType(null);
-          }}
-          className={`p-2 rounded-xl transition cursor-pointer relative ${
-            tool === 'pointer'
-              ? 'bg-sky-600 text-white shadow-md font-bold ring-2 ring-sky-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="Select Tool (Nhấp hoặc khoanh vùng chọn & di chuyển đối tượng)"
-        >
-          <MousePointer className="w-4 h-4" />
-        </button>
+          {/* 2. SELECT POINTER TOOL */}
+          <button
+            onClick={() => {
+              setTool('pointer');
+              setActiveShapeType(null);
+            }}
+            className={`p-2 rounded-xl transition cursor-pointer relative ${
+              tool === 'pointer'
+                ? 'bg-sky-600 text-white shadow-md font-bold ring-2 ring-sky-300 scale-105'
+                : 'hover:bg-[#c4bb9c] text-slate-800'
+            }`}
+            title="Select Tool (Nhấp hoặc khoanh vùng chọn & di chuyển đối tượng)"
+          >
+            <MousePointer className="w-4 h-4" />
+          </button>
 
-        {/* 3. HAND PAN CANVAS TRƯỢT 100% CÁC ĐỐI TƯỢNG SHAPES & CÁC Ô CHỮ NGUYÊN TRANG BÀI GIẢNG CHUẨN XÁC MYVIEWBOARD */}
-        <button
-          onClick={() => {
-            setTool('hand');
-            setActiveShapeType(null);
-          }}
-          className={`p-2 rounded-xl transition cursor-pointer ${
-            tool === 'hand'
-              ? 'bg-amber-500 text-slate-950 shadow-md font-bold ring-2 ring-amber-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="Bàn tay đè giữ trượt nguyên 1 trang tất cả chữ và đối tượng lên, xuống, trái, phải"
-        >
-          <Hand className="w-4 h-4" />
-        </button>
+          {/* 3. HAND PAN CANVAS TRƯỢT 100% CÁC ĐỐI TƯỢNG SHAPES & CÁC Ô CHỮ NGUYÊN TRANG BÀI GIẢNG CHUẨN XÁC MYVIEWBOARD */}
+          <button
+            onClick={() => {
+              setTool('hand');
+              setActiveShapeType(null);
+            }}
+            className={`p-2 rounded-xl transition cursor-pointer ${
+              tool === 'hand'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-bold ring-2 ring-amber-300 scale-105'
+                : 'hover:bg-[#c4bb9c] text-slate-800'
+            }`}
+            title="Bàn tay đè giữ trượt nguyên 1 trang tất cả chữ và đối tượng lên, xuống, trái, phải"
+          >
+            <Hand className="w-4 h-4" />
+          </button>
 
-        {/* 4. TEXT EDITOR */}
-        <button
-          onClick={handleAddText}
-          className={`p-2 rounded-xl transition cursor-pointer ${
-            tool === 'text'
-              ? 'bg-indigo-600 text-white shadow-md font-bold ring-2 ring-indigo-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="Tạo ô văn bản gõ mượt mà 100%"
-        >
-          <Type className="w-4 h-4" />
-        </button>
+          {/* 4. TEXT EDITOR */}
+          <button
+            onClick={handleAddText}
+            className={`p-2 rounded-xl transition cursor-pointer ${
+              tool === 'text'
+                ? 'bg-indigo-600 text-white shadow-md font-bold ring-2 ring-indigo-300 scale-105'
+                : 'hover:bg-[#c4bb9c] text-slate-800'
+            }`}
+            title="Tạo ô văn bản gõ mượt mà 100%"
+          >
+            <Type className="w-4 h-4" />
+          </button>
 
-        {/* 5. STICKY NOTES */}
-        <button
-          onClick={() => setActiveWindow(activeWindow === 'stickies' ? null : 'stickies')}
-          className={`p-2 rounded-xl transition cursor-pointer ${
-            activeWindow === 'stickies'
-              ? 'bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="Sticky Note ghi chú nổi bật"
-        >
-          <StickyNote className="w-4 h-4 text-amber-600" />
-        </button>
+          {/* 5. STICKY NOTES */}
+          <button
+            onClick={() => setActiveWindow(activeWindow === 'stickies' ? null : 'stickies')}
+            className={`p-2 rounded-xl transition cursor-pointer ${
+              activeWindow === 'stickies'
+                ? 'bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300 scale-105'
+                : 'hover:bg-[#c4bb9c] text-slate-800'
+            }`}
+            title="Sticky Note ghi chú nổi bật"
+          >
+            <StickyNote className="w-4 h-4 text-amber-600" />
+          </button>
 
-        {/* 6. HỘP CÔNG CỤ BÚT VẼ (PEN TOOLBOX): GOM BÚT VẼ, BÚT DẠ QUANG, BÚT KHOANH KHUNG CÔNG THỨC VÀ BẢNG MÀU VÀO 1 ICON THEO CHỈ ĐẠO THẦY HẢI */}
-        <button
-          onClick={() => setActiveWindow(activeWindow === 'penToolbox' ? null : 'penToolbox')}
-          className={`p-2 rounded-xl transition cursor-pointer flex items-center space-x-1 relative ${
-            ['pen', 'highlighter'].includes(tool) || activeWindow === 'penToolbox'
-              ? 'bg-gradient-to-r from-emerald-600 to-amber-600 text-white shadow-md ring-2 ring-emerald-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="✏️ Hộp Công Cụ Bút Vẽ (Bút vẽ, Dạ quang, Bút Khoanh Khung Công Thức & Bảng Màu)"
-        >
-          <Pencil className="w-4 h-4" />
-          <div className="w-3 h-3 rounded-full border border-slate-400" style={{ backgroundColor: color }} />
-        </button>
+          {/* 6. HỘP CÔNG CỤ BÚT VẼ (PEN TOOLBOX): GOM BÚT VẼ, BÚT DẠ QUANG, BÚT KHOANH KHUNG CÔNG THỨC VÀ BẢNG MÀU VÀO 1 ICON THEO CHỈ ĐẠO THẦY HẢI */}
+          <button
+            onClick={() => setActiveWindow(activeWindow === 'penToolbox' ? null : 'penToolbox')}
+            className={`p-2 rounded-xl transition cursor-pointer flex items-center space-x-1 relative ${
+              ['pen', 'highlighter'].includes(tool) || activeWindow === 'penToolbox'
+                ? 'bg-gradient-to-r from-emerald-600 to-amber-600 text-white shadow-md ring-2 ring-emerald-300 scale-105'
+                : 'hover:bg-[#c4bb9c] text-slate-800'
+            }`}
+            title="✏️ Hộp Công Cụ Bút Vẽ (Bút vẽ, Dạ quang, Bút Khoanh Khung Công Thức & Bảng Màu)"
+          >
+            <Pencil className="w-4 h-4" />
+            <div className="w-3 h-3 rounded-full border border-slate-400" style={{ backgroundColor: color }} />
+          </button>
 
-        {/* 7. ERASER */}
-        <button
-          onClick={() => {
-            setTool('eraser');
-            setActiveShapeType(null);
-          }}
-          className={`p-2 rounded-xl transition cursor-pointer ${
-            tool === 'eraser'
-              ? 'bg-rose-600 text-white shadow-md scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="Cục tẩy nhấp xóa object"
-        >
-          <Eraser className="w-4 h-4" />
-        </button>
+          {/* 7. ERASER */}
+          <button
+            onClick={() => {
+              setTool('eraser');
+              setActiveShapeType(null);
+            }}
+            className={`p-2 rounded-xl transition cursor-pointer ${
+              tool === 'eraser'
+                ? 'bg-rose-600 text-white shadow-md scale-105'
+                : 'hover:bg-[#c4bb9c] text-slate-800'
+            }`}
+            title="Cục tẩy nhấp xóa object"
+          >
+            <Eraser className="w-4 h-4" />
+          </button>
 
-        {/* 8. SHAPES PANEL */}
-        <button
-          onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
-          className={`p-2 rounded-xl transition cursor-pointer ${
-            activeWindow === 'shapes' || tool === 'drawShape'
-              ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="Bảng chọn công cụ Shapes hình học"
-        >
-          <Square className="w-4 h-4" />
-        </button>
+          {/* 8. SHAPES PANEL */}
+          <button
+            onClick={() => setActiveWindow(activeWindow === 'shapes' ? null : 'shapes')}
+            className={`p-2 rounded-xl transition cursor-pointer ${
+              activeWindow === 'shapes' || tool === 'drawShape'
+                ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-300 scale-105'
+                : 'hover:bg-[#c4bb9c] text-slate-800'
+            }`}
+            title="Bảng chọn công cụ Shapes hình học"
+          >
+            <Square className="w-4 h-4" />
+          </button>
 
-        <span className="w-px h-6 bg-slate-400/60 my-auto" />
+          <span className="w-px h-6 bg-slate-400/60 my-auto" />
 
-        {/* 9. ICON DUY NHẤT GOM 3 CÔNG CỤ MINI-GAMES GIẢNG DẠY */}
-        <button
-          onClick={() => setActiveWindow(activeWindow === 'minigamesMenu' ? null : 'minigamesMenu')}
-          className={`p-2 rounded-xl transition cursor-pointer relative ${
-            ['minigamesMenu', 'timer', 'dice', 'picker'].includes(activeWindow)
-              ? 'bg-gradient-to-r from-amber-500 to-purple-600 text-white shadow-md ring-2 ring-amber-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="🎲 ⏱️ 🎯 Bộ 3 công cụ giảng dạy: Bấm giờ, Xúc xắc, Gọi tên học sinh"
-        >
-          <Wrench className="w-4 h-4 text-purple-800 font-black" />
-        </button>
+          {/* 9. ICON DUY NHẤT GOM 3 CÔNG CỤ MINI-GAMES GIẢNG DẠY */}
+          <button
+            onClick={() => setActiveWindow(activeWindow === 'minigamesMenu' ? null : 'minigamesMenu')}
+            className={`p-2 rounded-xl transition cursor-pointer relative ${
+              ['minigamesMenu', 'timer', 'dice', 'picker'].includes(activeWindow)
+                ? 'bg-gradient-to-r from-amber-500 to-purple-600 text-white shadow-md ring-2 ring-amber-300 scale-105'
+                : 'hover:bg-[#c4bb9c] text-slate-800'
+            }`}
+            title="🎲 ⏱️ 🎯 Bộ 3 công cụ giảng dạy: Bấm giờ, Xúc xắc, Gọi tên học sinh"
+          >
+            <Wrench className="w-4 h-4 text-purple-800 font-black" />
+          </button>
 
-        {/* 10. IMAGE UPLOAD NGUYÊN BẢN */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
-          title="🖼️ Chèn ảnh bài tập từ máy tính lên Bảng"
-        >
-          <ImageIcon className="w-4 h-4 text-sky-700" />
-        </button>
+          {/* 10. IMAGE UPLOAD NGUYÊN BẢN */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
+            title="🖼️ Chèn ảnh bài tập từ máy tính lên Bảng"
+          >
+            <ImageIcon className="w-4 h-4 text-sky-700" />
+          </button>
 
-        {/* 11. THƯỚC KẺ HỌC TẬP (RULER TOOL) NGUYÊN BẢN */}
-        <button
-          onClick={() => setShowRuler(!showRuler)}
-          className={`p-2 rounded-xl transition cursor-pointer ${
-            showRuler
-              ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300 scale-105'
-              : 'hover:bg-[#c4bb9c] text-slate-800'
-          }`}
-          title="📏 Thước kẻ học tập đo kích thước"
-        >
-          <Ruler className="w-4 h-4 text-amber-800" />
-        </button>
+          {/* 11. THƯỚC KẺ HỌC TẬP (RULER TOOL) NGUYÊN BẢN */}
+          <button
+            onClick={() => setShowRuler(!showRuler)}
+            className={`p-2 rounded-xl transition cursor-pointer ${
+              showRuler
+                ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-300 scale-105'
+                : 'hover:bg-[#c4bb9c] text-slate-800'
+            }`}
+            title="📏 Thước kẻ học tập đo kích thước"
+          >
+            <Ruler className="w-4 h-4 text-amber-800" />
+          </button>
 
-        {/* 12. UNDO NGUYÊN BẢN */}
-        <button
-          onClick={handleUndo}
-          className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
-          title="↩️ Hoàn tác hình vẽ vừa tạo (Undo)"
-        >
-          <Undo className="w-4 h-4 text-slate-700" />
-        </button>
+          {/* 12. UNDO NGUYÊN BẢN */}
+          <button
+            onClick={handleUndo}
+            className="p-2 hover:bg-[#c4bb9c] text-slate-800 rounded-xl transition cursor-pointer"
+            title="↩️ Hoàn tác hình vẽ vừa tạo (Undo)"
+          >
+            <Undo className="w-4 h-4 text-slate-700" />
+          </button>
 
-        <span className="w-px h-6 bg-slate-400/60 my-auto" />
+          <span className="w-px h-6 bg-slate-400/60 my-auto" />
 
-        {/* 13. XÓA ĐỐI TƯỢNG ĐANG CHỌN */}
-        <button
-          onClick={handleDeleteActiveObject}
-          className="p-2 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition text-rose-600 cursor-pointer font-bold"
-          title="🗑️ Xóa đối tượng đang chọn (phím Delete)"
-        >
-          <Trash2 className="w-4 h-4 text-rose-600" />
-        </button>
+          {/* 13. XÓA ĐỐI TƯỢNG ĐANG CHỌN */}
+          <button
+            onClick={handleDeleteActiveObject}
+            className="p-2 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition text-rose-600 cursor-pointer font-bold"
+            title="🗑️ Xóa đối tượng đang chọn (phím Delete)"
+          >
+            <Trash2 className="w-4 h-4 text-rose-600" />
+          </button>
 
-        {/* 14. XÓA SẠCH TRANG BẢNG (CLEAR ALL) */}
-        <button
-          onClick={handleClearAll}
-          className="p-2 hover:bg-rose-600 hover:text-white rounded-xl transition text-rose-700 font-extrabold cursor-pointer"
-          title="🧹 Xóa sạch tất cả hình vẽ & chữ trên trang Bảng"
-        >
-          <RotateCcw className="w-4 h-4 text-rose-700 hover:text-white" />
-        </button>
-      </div>
+          {/* 14. XÓA SẠCH TRANG BẢNG (CLEAR ALL) */}
+          <button
+            onClick={handleClearAll}
+            className="p-2 hover:bg-rose-600 hover:text-white rounded-xl transition text-rose-700 font-extrabold cursor-pointer"
+            title="🧹 Xóa sạch tất cả hình vẽ & chữ trên trang Bảng"
+          >
+            <RotateCcw className="w-4 h-4 text-rose-700 hover:text-white" />
+          </button>
+        </div>
+      ) : (
+        /* THANH CÔNG CỤ XEM DÀNH CHO HỌC SINH (READ-ONLY VIEWBAR) */
+        <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] bg-slate-900/90 text-white px-4 py-2 rounded-2xl shadow-2xl border-2 border-sky-500 flex items-center space-x-3 font-sans">
+          <span className="text-xs font-black text-sky-300 flex items-center space-x-1">
+            <Eye className="w-4 h-4 text-sky-400" />
+            <span>ĐANG XEM BÀI DẠY CỦA THẦY HẢI</span>
+          </span>
+          <span className="w-px h-4 bg-slate-700" />
+          <button
+            onClick={() => setShowRuler(!showRuler)}
+            className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold rounded-xl transition flex items-center space-x-1 cursor-pointer"
+          >
+            <Ruler className="w-3.5 h-3.5" />
+            <span>Mở Thước Kẻ Đo</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
