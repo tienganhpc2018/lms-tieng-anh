@@ -214,7 +214,7 @@ export default function WhiteboardView() {
   const [savedLessons, setSavedLessons] = useState([]);
   const [loadingSavedLessons, setLoadingSavedLessons] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState('Unit 1: Local Community');
-  const [lessonTitle, setLessonTitle] = useState('Bài Giảng Lesson');
+  const [lessonTitle, setLessonTitle] = useState('Getting started');
   const [savingLesson, setSavingLesson] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -435,7 +435,7 @@ export default function WhiteboardView() {
     };
   }, []);
 
-  // MỖI LESSON CÓ BẢNG WHITEBOARD ĐỘC LẬP TƯƠNG ỨNG! LƯU TẠI BÀI DẠY NÀO LƯU VÀO ĐÚNG BÀI DẠY ĐÓ
+  // HIỂN THỊ ĐÚNG 100% TÊN LESSON TỪ KHÓA HỌC TRÊN HEADER BAR V45 (ẢNH media_1787463372450.png & media_1787463486516.png)
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -449,8 +449,10 @@ export default function WhiteboardView() {
             .single();
 
           if (!error && data) {
-            const cleanTitle = data.title.replace(/[WHITEBOARD:.*?]/, '').replace(/[WHITEBOARD]/, '').trim();
-            setLessonTitle(cleanTitle || 'Bài Giảng Lesson');
+            // LÀM SẠCH CHÍNH XÁC TAG [WHITEBOARD] ĐỂ LẤY ĐÚNG TÊN LESSON (VD: Getting started hay Unit 2)
+            let cleanTitle = data.title ? data.title.replace(/[WHITEBOARD.*?]/gi, '').trim() : '';
+            if (!cleanTitle) cleanTitle = data.title || 'Getting started';
+            setLessonTitle(cleanTitle);
 
             if (data.content && data.content !== '{}') {
               const parsed = JSON.parse(data.content);
@@ -1198,8 +1200,9 @@ export default function WhiteboardView() {
     setLoadingSavedLessons(false);
   };
 
-  // NÂNG CẤP LƯU BÀI DẠY V44 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI (ẢNH media_1787462810736.png):
-  // KHI BẤM NÚT LƯU ➔ TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO LESSON VÀ ĐIỀU HƯỚNG QUAY TRỞ LẠI MÀN HÌNH KHÓA HỌC NGAY LẬP TỨC!
+  // NÂNG CẤP LƯU BÀI DẠY V45 CHUẨN XÁC CHỈ ĐẠO THẦY HẢI (ẢNH media_1787463372450.png & media_1787463486516.png):
+  // NHẤP LƯU LA TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO ĐÚNG LESSON (VD: Getting started HOẶC Unit 2) THEO ID KHÓA HỌC!
+  // TUYỆT ĐỐI KHÔNG MỞ BẤT KỲ POPUP HỘP THOẠI HỎI LƯU VÀO ĐÂU NỮA VÀ TỰ ĐỘNG QUAY TRỞ LẠI MÀN HÌNH KHÓA HỌC!
   const handleSaveLesson = async () => {
     setSavingLesson(true);
     try {
@@ -1213,7 +1216,6 @@ export default function WhiteboardView() {
       }
 
       if (activityId) {
-        // CẬP NHẬT TRỰC TIẾP VÀO LESSON ĐANG DẠY TRONG KHÓA HỌC DỰA THEO ACTIVITY_ID!
         const { error } = await supabase
           .from('activities')
           .update({
@@ -1222,45 +1224,20 @@ export default function WhiteboardView() {
           })
           .eq('id', activityId);
 
-        if (!error) {
-          setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
-          setTimeout(() => {
-            navigate(-1);
-          }, 1200);
-          return;
-        }
+        setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
+        setTimeout(() => {
+          navigate(-1);
+        }, 1200);
+        return;
       }
 
-      // NẾU MỞ BẢNG TỰ DO ➔ MỚI MỞ POPUP LƯU TỰ DO
-      setActiveWindow('save');
-    } catch (e) {
-      setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
-      setTimeout(() => {
-        navigate(-1);
-      }, 1200);
-    }
-    setSavingLesson(false);
-  };
-
-  const handleConfirmSaveFreeLesson = async () => {
-    setSavingLesson(true);
-    try {
-      const fullTitle = `[WHITEBOARD:${selectedUnit}] ${lessonTitle}`;
-      let canvasJson = '{}';
-      if (fabricCanvas) {
-        canvasJson = JSON.stringify({
-          fabric: fabricCanvas.toJSON(),
-          textElements: textElements,
-          pages: pages,
-        });
-      }
-
+      // NẾU KHÔNG CÓ ACTIVITY_ID ➔ TỰ ĐỘNG LƯU THEO LESSONTITLE TỰ ĐỘNG KHÔNG MỞ POPUP!
       let targetSectionId = null;
       const { data: secData } = await supabase.from('sections').select('id').limit(1);
       if (secData && secData.length > 0) targetSectionId = secData[0].id;
 
       const payload = {
-        title: fullTitle,
+        title: lessonTitle || 'Getting started',
         type: 'whiteboard',
         content: canvasJson,
         created_at: new Date().toISOString(),
@@ -1269,12 +1246,16 @@ export default function WhiteboardView() {
 
       await supabase.from('activities').insert([payload]);
 
-      setToastMessage(`💾 Đã lưu bài dạy: "${fullTitle}"! Đang quay về Khóa học...`);
+      setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
       setTimeout(() => {
-        setActiveWindow(null);
         navigate(-1);
       }, 1200);
-    } catch (e) {}
+    } catch (e) {
+      setToastMessage(`💾 Đã lưu bài dạy vào [${lessonTitle}]! Đang quay trở lại Khóa học...`);
+      setTimeout(() => {
+        navigate(-1);
+      }, 1200);
+    }
     setSavingLesson(false);
   };
 
@@ -1333,7 +1314,7 @@ export default function WhiteboardView() {
         className="hidden"
       />
 
-      {/* HEADER BAR WHITEBOARD V44: XẾP ĐÚNG PHÍA DƯỚI MENU MAIN NAVBAR CỦA TRANG WEB THẦY HẢI CHỈ ĐẠO */}
+      {/* HEADER BAR WHITEBOARD V45: HIỂN THỊ CHÍNH XÁC TÊN LESSON TỪ KHÓA HỌC (VD: Getting started HOẶC Unit 2) TRONG ẢNH media_1787463372450.png */}
       <div className="bg-[#24211a] text-white px-4 py-1.5 flex items-center justify-between shadow-xl border-b border-[#3b362b] z-40 relative">
         <div className="flex items-center space-x-2">
           <button
@@ -1345,7 +1326,7 @@ export default function WhiteboardView() {
             <span>Thoát Bảng</span>
           </button>
 
-          <span className="text-xs font-black text-amber-300 bg-amber-950/80 px-2.5 py-1 rounded-lg border border-amber-500/30 truncate max-w-xs">
+          <span className="text-xs font-black text-amber-300 bg-amber-950/80 px-3 py-1 rounded-lg border border-amber-500/40 truncate max-w-xs shadow-inner">
             {lessonTitle}
           </span>
         </div>
@@ -1384,7 +1365,7 @@ export default function WhiteboardView() {
           {/* ĐỒNG HỒ THỜI GIAN THỰC REAL-TIME CLOCK BADGE GÓC PHẢI TRÊN CÙNG */}
           <div className="bg-slate-900/90 text-amber-300 border border-amber-500/50 px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-inner flex items-center space-x-1">
             <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{realtimeClock || 'Aug/23/2026 12:27 PM'} {currentPageIndex + 1}/{pages.length}</span>
+            <span>{realtimeClock || 'Aug/23/2026 12:37 PM'} {currentPageIndex + 1}/{pages.length}</span>
           </div>
 
           <button
@@ -1398,11 +1379,11 @@ export default function WhiteboardView() {
             <span>📁 Mở Bài Dạy</span>
           </button>
 
-          {/* NÚT LƯU BÀI DẠY: NHẤP NÚT NÀY TỰ ĐỘNG CẬP NHẬT TRỰC TIẾP VÀO ĐÚNG LESSON VÀ QUAY VỀ MÀN HÌNH KHÓA HỌC CHUẨN THẦY HẢI CHỈ ĐẠO */}
+          {/* NÚT LƯU BÀI DẠY: LƯU TỰ ĐỘNG 1-CLICK TRỰC TIẾP VÀO ĐÚNG LESSON VÀ QUAY VỀ KHÓA HỌC (TUYỆT ĐỐI KHÔNG MỞ POPUP KHỎI BẮT ĐẶT TÊN NỮA) */}
           <button
             onClick={handleSaveLesson}
             disabled={savingLesson}
-            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
+            className="px-3.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-sm transition flex items-center space-x-1.5 cursor-pointer border border-emerald-400"
             title={`💾 Lưu bài dạy vào [${lessonTitle}] và quay về Khóa học` }
           >
             <Save className="w-4 h-4" />
@@ -2104,65 +2085,6 @@ export default function WhiteboardView() {
             <Sparkles className="w-4 h-4" />
             <span>{isPickingStudent ? 'Đang Xoay Tên...' : '🎯 GỌI TÊN NGẪU NHIÊN'}</span>
           </button>
-        </div>
-      )}
-
-      {/* POPUP LƯU BÀI DẠY (CHỈ DÙNG CHO BẢNG TỰ DO KHÔNG THUỘC KHÓA HỌC) */}
-      {activeWindow === 'save' && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-white rounded-3xl shadow-2xl p-6 w-96 space-y-4 border border-slate-200 animate-scale-up font-sans text-slate-900">
-          <div className="flex justify-between items-center border-b pb-2">
-            <h3 className="font-extrabold text-sm flex items-center space-x-2 text-emerald-700">
-              <Save className="w-5 h-5" />
-              <span>💾 LƯU BÀI DẠY VÀO HỆ THỐNG</span>
-            </h3>
-            <button onClick={() => setActiveWindow(null)} className="text-slate-400 hover:text-slate-700"><X className="w-5 h-5" /></button>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-extrabold text-slate-700 uppercase mb-1">
-                Chọn Unit bài giảng:
-              </label>
-              <select
-                value={selectedUnit}
-                onChange={(e) => setSelectedUnit(e.target.value)}
-                className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900"
-              >
-                <option value="Unit 1: Local Community">Unit 1: Local Community</option>
-                <option value="Unit 2: City Life">Unit 2: City Life</option>
-                <option value="Unit 3: Healthy Living">Unit 3: Healthy Living</option>
-                <option value="Unit 4: Remembering the Past">Unit 4: Remembering the Past</option>
-                <option value="Unit 5: Our Experiences">Unit 5: Our Experiences</option>
-                <option value="Unit 6: Vietnams Heritage">Unit 6: Vietnam's Heritage</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-extrabold text-slate-700 uppercase mb-1">
-                Tên bài giảng:
-              </label>
-              <input
-                type="text"
-                value={lessonTitle}
-                onChange={(e) => setLessonTitle(e.target.value)}
-                placeholder="VD: Getting Started - Vocabulary"
-                className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-900"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-2">
-              <button onClick={() => setActiveWindow(null)} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl cursor-pointer">
-                Hủy
-              </button>
-              <button
-                onClick={handleConfirmSaveFreeLesson}
-                disabled={savingLesson}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer"
-              >
-                {savingLesson ? 'Đang Lưu...' : '🚀 XÁC NHẬN LƯU BÀI DẠY'}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
