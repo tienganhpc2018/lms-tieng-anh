@@ -22,7 +22,7 @@ const parseFillBlanksText = (textWithBlanks = '') => {
 
 const H5P_QUESTION_TYPES = [
   { id: 'multiple_choice', name: 'Multiple Choice', label: 'Trắc nghiệm nhiều lựa chọn', icon: CheckSquare },
-  { id: 'fill_blanks', name: 'Fill in the Blanks', label: 'Điền từ vào ô trống', icon: Type },
+  { id: 'fill_blanks', name: 'Fill in the Blanks', label: 'Điền từ vào ô trống (Gap-Fill)', icon: Type },
   { id: 'true_false', name: 'True / False', label: 'Đúng hoặc Sai', icon: ToggleLeft },
   { id: 'mark_word', name: 'Highlight Words', label: 'Highlight từ đúng trong danh sách', icon: Highlighter },
   { id: 'drag_drop', name: 'Drag & Drop', label: 'Kéo thả đáp án', icon: Move },
@@ -43,10 +43,10 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
   const [interactions, setInteractions] = useState(initialSettings.interactions || [
     {
       id: 'int_1',
-      timestamp: 33,
+      timestamp: 31,
       type: 'fill_blanks',
-      question: 'The _____ made a new _____ for me.',
-      textWithBlanks: 'The *tailor* made a new *suit* for me.',
+      question: 'Fill in the missing words',
+      textWithBlanks: 'Strawberries and *blueberries* are mixed with *milk* and oatmeal *banana* to make this delicious smoothie.',
       options: [],
       correctIndex: 0,
     },
@@ -69,24 +69,15 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
       correctIndex: 0,
       answer: 'Police officer',
     },
-    {
-      id: 'int_4',
-      timestamp: 153,
-      type: 'fill_blanks',
-      question: 'The _____ is a person who fixes and installs _____ systems.',
-      textWithBlanks: 'The *electrician* is a person who fixes and installs *electrical* systems.',
-      options: [],
-      correctIndex: 0,
-    },
   ]);
 
   // FORM SOẠN THẢO VÀ ĐANG Ở CHẾ ĐỘ SỬA
   const [editingId, setEditingId] = useState(null);
-  const [selectedType, setSelectedType] = useState('multiple_choice');
-  const [questionText, setQuestionText] = useState('');
+  const [selectedType, setSelectedType] = useState('fill_blanks');
+  const [questionText, setQuestionText] = useState('Fill in the missing words');
   const [options, setOptions] = useState(['', '', '']);
   const [correctIdx, setCorrectIdx] = useState(0);
-  const [textWithBlanks, setTextWithBlanks] = useState('');
+  const [textWithBlanks, setTextWithBlanks] = useState('Strawberries and *blueberries* are mixed with *milk* and oatmeal *banana* to make this delicious smoothie.');
   const [isTrueChoice, setIsTrueChoice] = useState(true);
   const [wordListInput, setWordListInput] = useState('');
   const [correctWordsInput, setCorrectWordsInput] = useState('');
@@ -105,6 +96,9 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
 
   const handleCaptureTimestamp = (typeId) => {
     setSelectedType(typeId);
+    if (typeId === 'fill_blanks' && !questionText) {
+      setQuestionText('Fill in the missing words');
+    }
     if (videoRef.current) {
       videoRef.current.pause();
       setIsPlaying(false);
@@ -199,7 +193,6 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
     return found ? `${found.name} (${found.label})` : typeId;
   };
 
-  // HELPER LẤY ĐÁP ÁN ĐÚNG CHUẨN XÁC CHO MỌI DẠNG CÂU HỎI
   const getAnswerDisplay = (item) => {
     if (item.type === 'fill_blanks') {
       const { answers } = parseFillBlanksText(item.textWithBlanks);
@@ -227,12 +220,12 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-2xl space-y-6 font-sans select-none max-w-6xl mx-auto">
-      {/* HEADER BANNER & BARS CÔNG CỤ 3 STEP WIZARD BAR */}
+      {/* HEADER BANNER & STEP WIZARD */}
       <div className="bg-navy-900 text-white p-6 space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="space-y-0.5">
             <span className="px-3 py-1 bg-amber-400 text-slate-950 text-[10px] font-black uppercase rounded-full tracking-wider">
-              H5P STUDIO EDITOR V67
+              H5P STUDIO EDITOR V71
             </span>
             <h3 className="text-xl font-extrabold flex items-center space-x-2">
               <Video className="w-6 h-6 text-rose-400" />
@@ -354,7 +347,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
           </div>
         )}
 
-        {/* BƯỚC 2: THIẾT LẬP TƯƠNG TÁC (TIMELINE DÍNH TRỰC TIẾP TRÊN DẢI PHÁT KHUNG VIDEO CHUẨN ẢNH 1) */}
+        {/* BƯỚC 2: THIẾT LẬP TƯƠNG TÁC */}
         {step === 2 && (
           <div className="space-y-6">
             <div className="bg-slate-900 text-white p-4 rounded-3xl border border-slate-800 space-y-3 shadow-lg">
@@ -392,7 +385,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
               </div>
             </div>
 
-            {/* TRÌNH PHÁT VIDEO KÈM NÚT DỪNG DÍNH THẲNG TRÊN DẢI PHÁT CỦA VIDEO CHUẨN ẢNH 1 media_1787499725208.png */}
+            {/* TRÌNH PHÁT VIDEO KÈM CÁC MỐC NÚT DỪNG DÍNH TRONG DẢI PHÁT (ẢNH 1) */}
             <div className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
               {youtubeId ? (
                 <iframe
@@ -413,7 +406,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                 />
               )}
 
-              {/* THANH TIMELINE DÍNH TRỰC TIẾP VÀO BOTTOM KHUNG VIDEO VỚI CÁC ĐIỂM DỪNG NẰM TRONG THANH PHÁT (ẢNH 1) */}
+              {/* THANH TIMELINE DÍNH TRỰC TIẾP VÀO BOTTOM KHUNG VIDEO */}
               <div className="absolute bottom-0 inset-x-0 bg-slate-950/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between text-white text-xs space-x-3 border-t border-slate-800/80 z-30">
                 <button onClick={togglePlay} className="p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer text-white">
                   {isPlaying ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-emerald-400 ml-0.5" />}
@@ -452,7 +445,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
               </div>
             </div>
 
-            {/* FORM SOẠN THẢO & CHỈNH SỬA MỐC CÂU HỎI */}
+            {/* FORM SOẠN THẢO GAP-FILL CHUẨN 100% THEO H5P EDITOR ẢNH 2 (media_1787501870428.png) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-3">
@@ -477,7 +470,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    ⏱️ Mốc Thời Gian Dừng (Thầy có thể sửa lại số giây trực tiếp ở đây) *
+                    ⏱️ Mốc Thời Gian Dừng (Sửa số giây dừng tại đây) *
                   </label>
                   <input
                     type="number"
@@ -487,18 +480,83 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    ❓ Nội Dung Câu Hỏi Pop-Up *
-                  </label>
-                  <input
-                    type="text"
-                    value={questionText}
-                    onChange={(e) => setQuestionText(e.target.value)}
-                    placeholder="Ví dụ: Who is a bus driver?"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm font-semibold bg-white"
-                  />
-                </div>
+                {/* FORM CHUYÊN CHO GAP-FILL DẠNG FILL IN THE BLANKS (CHUẨN ẢNH 2 media_1787501870428.png) */}
+                {selectedType === 'fill_blanks' && (
+                  <div className="space-y-4 border-2 border-blue-500/30 rounded-2xl p-4 bg-white shadow-xs">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Task description <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={questionText}
+                        onChange={(e) => setQuestionText(e.target.value)}
+                        placeholder="Fill in the missing words"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 bg-white"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="bg-blue-600 text-white px-3 py-2 rounded-t-xl text-xs font-bold flex justify-between items-center">
+                        <span>Line of text</span>
+                        <button type="button" onClick={() => setTextWithBlanks('')} className="hover:opacity-80">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* KHUNG HƯỚNG DẪN H5P CỦA THẦY HẢI (ẢNH 2 media_1787501870428.png) */}
+                      <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-xs space-y-1.5 text-amber-900">
+                        <div className="font-extrabold flex items-center space-x-1 text-amber-950">
+                          <span>ℹ️ Important instructions</span>
+                        </div>
+                        <ul className="list-disc list-inside text-[11px] space-y-1 text-amber-850 font-medium">
+                          <li>Blanks are added with an asterisk (*) in front and behind the correct word/phrase.</li>
+                          <li>Alternative answers are separated with a forward slash (/).</li>
+                          <li>You may add a textual tip, using a colon (:) in front of the tip.</li>
+                        </ul>
+                        <div className="bg-emerald-100 border border-emerald-300 p-2 rounded-lg text-[11px] font-mono text-emerald-900 mt-1">
+                          <strong>Example:</strong> H5P content may be edited using a *browser/web-browser:Something you use every day*.
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-800 mb-1">
+                          Text blocks <span className="text-rose-500">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={textWithBlanks}
+                          onChange={(e) => setTextWithBlanks(e.target.value)}
+                          placeholder="Oslo is the capital of *Norway*."
+                          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-mono bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setTextWithBlanks((prev) => (prev ? prev + ' *word*' : 'Oslo is the capital of *Norway*.'))}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow-xs transition flex items-center space-x-1 cursor-pointer"
+                      >
+                        <span>+ ADD TEXT BLOCK</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {selectedType !== 'fill_blanks' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      ❓ Nội Dung Câu Hỏi Pop-Up *
+                    </label>
+                    <input
+                      type="text"
+                      value={questionText}
+                      onChange={(e) => setQuestionText(e.target.value)}
+                      placeholder="Ví dụ: Who is a bus driver?"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm font-semibold bg-white"
+                    />
+                  </div>
+                )}
 
                 {selectedType === 'multiple_choice' && (
                   <div className="space-y-2">
@@ -525,21 +583,6 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                         />
                       </div>
                     ))}
-                  </div>
-                )}
-
-                {selectedType === 'fill_blanks' && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Đoạn Văn Điền Từ (Đặt từ cần điền trong dấu sao *từ*)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={textWithBlanks}
-                      onChange={(e) => setTextWithBlanks(e.target.value)}
-                      placeholder="Ví dụ: Strawberries and *blueberries* are mixed with *milk*."
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-mono"
-                    />
                   </div>
                 )}
 
@@ -623,7 +666,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                 </button>
               </div>
 
-              {/* CỘT PHẢI: DANH SÁCH MỐC ĐÃ THIẾT LẬP KÈM HIỂN THỊ ĐÁP ÁN ĐÚNG CHUẨN XÁC CHO MỌI LOẠI CÂU HỎI (ẢNH 2 media_1787499782541.png) */}
+              {/* CỘT PHẢI: DANH SÁCH MỐC ĐÃ THIẾT LẬP */}
               <div className="space-y-3">
                 <h4 className="font-extrabold text-sm text-slate-900">
                   📋 Danh Sách Mốc Tương Tác Đã Tạo ({interactions.length})
