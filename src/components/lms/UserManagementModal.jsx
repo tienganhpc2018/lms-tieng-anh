@@ -7,6 +7,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
   const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClassFilter, setSelectedClassFilter] = useState('Tất cả lớp');
 
   // Form State Add Single User
   const [username, setUsername] = useState('');
@@ -493,11 +494,13 @@ hoangnm,123456,Hoàng,Nguyễn Minh,hoangnm@gmail.com`;
 
   const filteredUsers = usersList.filter((u) => {
     const q = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       (u.full_name || '').toLowerCase().includes(q) ||
       (u.username || '').toLowerCase().includes(q) ||
       (u.email || '').toLowerCase().includes(q)
     );
+    const matchesClass = selectedClassFilter === 'Tất cả lớp' || (u.class_name || u.class || '7A3') === selectedClassFilter;
+    return matchesSearch && matchesClass;
   });
 
   return (
