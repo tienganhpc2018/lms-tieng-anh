@@ -747,122 +747,123 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 3: TRUE / FALSE */}
-              {activeQuiz.type === 'true_false' && (
-                <div className="space-y-3" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
-                  <h4 className="text-base font-extrabold text-slate-900 leading-snug">
-                    {activeQuiz.question}
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTrueFalseChoice(true);
-                      }}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTrueFalseChoice(true);
-                      }}
-                      onMouseUp={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTrueFalseChoice(true);
-                      }}
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTrueFalseChoice(true);
-                      }}
-                      style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
-                      className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
-                        trueFalseChoice === true
-                          ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
-                          : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-800'
-                      }`}
-                    >
-                      <span>✓ True (Đúng)</span>
-                    </button>
+              {/* DẠNG 3: TRUE / FALSE (HIỂN THỊ CHI TIẾT ĐÁP ÁN ĐÚNG/SAI CHUẨN XÁC ẢNH 1 media_1787544474823.png) */}
+              {activeQuiz.type === 'true_false' && (() => {
+                let targetBool = false;
+                if (typeof activeQuiz.isTrue === 'boolean') {
+                  targetBool = activeQuiz.isTrue;
+                } else if (typeof activeQuiz.isTrue === 'string') {
+                  targetBool = activeQuiz.isTrue.toLowerCase() === 'true';
+                } else if (activeQuiz.answer) {
+                  targetBool = String(activeQuiz.answer).toLowerCase() === 'true' || String(activeQuiz.answer).toLowerCase() === 'true (đúng)';
+                } else if (typeof activeQuiz.correctIndex === 'number') {
+                  targetBool = activeQuiz.correctIndex === 0;
+                }
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTrueFalseChoice(false);
-                      }}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTrueFalseChoice(false);
-                      }}
-                      onMouseUp={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTrueFalseChoice(false);
-                      }}
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setTrueFalseChoice(false);
-                      }}
-                      style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
-                      className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
-                        trueFalseChoice === false
-                          ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
-                          : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-800'
-                      }`}
-                    >
-                      <span>✕ False (Sai)</span>
-                    </button>
-                  </div>
+                return (
+                  <div className="space-y-3" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
+                    <h4 className="text-base font-extrabold text-slate-900 leading-snug">
+                      {activeQuiz.question}
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (quizFeedback) return;
+                          setTrueFalseChoice(true);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
+                        className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
+                          quizFeedback
+                            ? targetBool === true
+                              ? 'border-emerald-500 bg-emerald-100 text-emerald-900 ring-4 ring-emerald-400/40 shadow-lg scale-[1.02]'
+                              : trueFalseChoice === true
+                              ? 'border-rose-500 bg-rose-100 text-rose-900 ring-4 ring-rose-400/40 shadow-lg'
+                              : 'border-slate-200 bg-slate-50 text-slate-400 opacity-60'
+                            : trueFalseChoice === true
+                            ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
+                            : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-800'
+                        }`}
+                      >
+                        <span>
+                          {quizFeedback && targetBool === true ? '✓ True (Đáp án đúng)' : quizFeedback && trueFalseChoice === true ? '✕ True (Lựa chọn của bạn - Sai)' : '✓ True (Đúng)'}
+                        </span>
+                      </button>
 
-                  {quizFeedback && (
-                    <div className={`p-4 rounded-2xl text-xs font-bold space-y-1 border ${
-                      quizFeedback.success ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
-                    }`}>
-                      <p className="text-sm font-extrabold">{quizFeedback.msg}</p>
-                      {quizFeedback.details && <p className="text-[11px] font-semibold opacity-90">{quizFeedback.details}</p>}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (quizFeedback) return;
+                          setTrueFalseChoice(false);
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
+                        className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
+                          quizFeedback
+                            ? targetBool === false
+                              ? 'border-emerald-500 bg-emerald-100 text-emerald-900 ring-4 ring-emerald-400/40 shadow-lg scale-[1.02]'
+                              : trueFalseChoice === false
+                              ? 'border-rose-500 bg-rose-100 text-rose-900 ring-4 ring-rose-400/40 shadow-lg'
+                              : 'border-slate-200 bg-slate-50 text-slate-400 opacity-60'
+                            : trueFalseChoice === false
+                            ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
+                            : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-800'
+                        }`}
+                      >
+                        <span>
+                          {quizFeedback && targetBool === false ? '✓ False (Đáp án đúng)' : quizFeedback && trueFalseChoice === false ? '✕ False (Lựa chọn của bạn - Sai)' : '✕ False (Sai)'}
+                        </span>
+                      </button>
                     </div>
-                  )}
 
-                  <div className="flex items-center space-x-3 pt-2" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
-                    {!quizFeedback ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCheckAnswer();
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
-                        className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
-                      >
-                        <Check className="w-4 h-4" />
-                        <span>Check</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCloseAndContinue();
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
-                        className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
-                      >
-                        <span>Continue (Đóng & Xem Tiếp Video)</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
+                    {quizFeedback && (
+                      <div className={`p-4 rounded-2xl text-xs font-bold space-y-1 border ${
+                        quizFeedback.success ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
+                      }`}>
+                        <p className="text-sm font-extrabold">{quizFeedback.msg}</p>
+                        {quizFeedback.details && <p className="text-xs font-semibold opacity-90">{quizFeedback.details}</p>}
+                      </div>
                     )}
+
+                    <div className="flex items-center space-x-3 pt-2" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
+                      {!quizFeedback ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCheckAnswer();
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
+                          className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>Check</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCloseAndContinue();
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
+                          className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                        >
+                          <span>Continue (Đóng & Xem Tiếp Video)</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* DẠNG 4: HIGHLIGHT / MARK THE WORD */}
               {activeQuiz.type === 'mark_word' && (
