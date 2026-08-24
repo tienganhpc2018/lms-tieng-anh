@@ -33,6 +33,78 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
+// HELPER PHÁT ÂM THANH CHUÔNG VUI TAI KHI TRẢ LỜI ĐÚNG / SAI (WEB AUDIO API CHUẨN 100% KHÔNG CẦN ASSETS NGOÀI)
+const playSoundEffect = (type = 'correct') => {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    if (type === 'correct') {
+      // ÂM THANH "TING TING!" CHUÔNG VUI TAI KHI ĐÚNG (3 NỐT C5 - E5 - G5)
+      const now = ctx.currentTime;
+      
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(523.25, now);
+      gain1.gain.setValueAtTime(0.3, now);
+      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.2);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(659.25, now + 0.12);
+      gain2.gain.setValueAtTime(0.4, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.35);
+
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type = 'sine';
+      osc3.frequency.setValueAtTime(783.99, now + 0.25);
+      gain3.gain.setValueAtTime(0.5, now + 0.25);
+      gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.start(now + 0.25);
+      osc3.stop(now + 0.5);
+    } else {
+      // ÂM THANH "UH OH" KHI TRẢ LỜI CHƯA ĐÚNG
+      const now = ctx.currentTime;
+
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(260, now);
+      gain1.gain.setValueAtTime(0.3, now);
+      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.2);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(180, now + 0.18);
+      gain2.gain.setValueAtTime(0.3, now + 0.18);
+      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.18);
+      osc2.stop(now + 0.45);
+    }
+  } catch (e) {}
+};
+
 // COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN KẾT QUẢ KHI BẤM CHECK V79
 const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback, isSolutionVisible }) => {
   const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
@@ -368,8 +440,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
       const isCorrect = trueFalseChoice === targetBool;
       if (isCorrect) {
+        playSoundEffect('correct');
         setQuizFeedback({ success: true, msg: '🎉 Chính xác tuyệt đối!', details: `Đáp án đúng: ${targetBool ? 'True (Đúng)' : 'False (Sai)'}` });
       } else {
+        playSoundEffect('incorrect');
         setQuizFeedback({ success: false, msg: '❌ Chưa chính xác rồi!', details: `Đáp án đúng là: ${targetBool ? 'True (Đúng)' : 'False (Sai)'}` });
       }
     } else if (activeQuiz.type === 'multiple_choice' || (!activeQuiz.type && activeQuiz.options?.length > 0)) {
@@ -379,8 +453,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       }
       const isCorrect = selectedOpt === activeQuiz.answer;
       if (isCorrect) {
+        playSoundEffect('correct');
         setQuizFeedback({ success: true, msg: '🎉 Chính xác! Bạn trả lời rất giỏi.', details: `Đáp án đúng: ${activeQuiz.answer}` });
       } else {
+        playSoundEffect('incorrect');
         setQuizFeedback({ success: false, msg: '❌ Chưa chính xác. Vui lòng thử lại!', details: `Đáp án đúng chuẩn: ${activeQuiz.answer}` });
       }
     } else if (activeQuiz.type === 'fill_blanks') {
@@ -397,6 +473,12 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
         }
       });
 
+      if (isAllCorrect) {
+        playSoundEffect('correct');
+      } else {
+        playSoundEffect('incorrect');
+      }
+
       setQuizFeedback({
         success: isAllCorrect,
         correctCount,
@@ -406,11 +488,14 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       const correctWords = activeQuiz.correctWords || [];
       const isMatch = selectedMarkWords.length === correctWords.length && selectedMarkWords.every((w) => correctWords.includes(w));
       if (isMatch) {
+        playSoundEffect('correct');
         setQuizFeedback({ success: true, msg: '🎉 Xuất sắc! Bạn đã Highlight đúng tất cả các từ.', details: `Các từ đúng: ${correctWords.join(', ')}` });
       } else {
+        playSoundEffect('incorrect');
         setQuizFeedback({ success: false, msg: '❌ Highlight chưa chính xác.', details: `Các từ đúng cần Highlight là: ${correctWords.join(', ')}` });
       }
     } else {
+      playSoundEffect('correct');
       setQuizFeedback({ success: true, msg: '🎉 Hoàn thành xuất sắc!', details: '' });
     }
   };
