@@ -25,7 +25,7 @@ const H5P_QUESTION_TYPES = [
   { id: 'fill_blanks', name: 'Fill in the Blanks', label: 'Điền từ vào ô trống (Gap-Fill)', icon: Type },
   { id: 'true_false', name: 'True / False', label: 'Đúng hoặc Sai', icon: ToggleLeft },
   { id: 'mark_word', name: 'Highlight Words', label: 'Highlight từ đúng trong danh sách', icon: Highlighter },
-  { id: 'drag_drop', name: 'Drag & Drop', label: 'Kéo thả đáp án', icon: Move },
+  { id: 'drag_drop', name: 'Drag the words', label: 'Kéo thả từ vào chỗ trống', icon: Move },
 ];
 
 export default function InteractiveVideoStudio({ initialSettings = {}, onSave }) {
@@ -694,15 +694,45 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                 )}
 
                 {selectedType === 'drag_drop' && (
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-slate-700">Các Thẻ Đáp Án Kéo Thả (Phân cách bằng dấu phẩy)</label>
-                    <input
-                      type="text"
-                      value={options.join(', ')}
-                      onChange={(e) => setOptions(e.target.value.split(',').map((s) => s.trim()))}
-                      placeholder="Strawberry, Blueberry, Milk"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white"
-                    />
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Task description (Nội dung câu hỏi) <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={questionText}
+                        onChange={(e) => setQuestionText(e.target.value)}
+                        placeholder="Ví dụ: What are the colors of these berries when they are ripe?"
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-semibold bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Text blocks (Các đoạn văn chứa từ cần kéo thả *từ_đúng*) <span className="text-rose-500">*</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={textWithBlanks}
+                        onChange={(e) => setTextWithBlanks(e.target.value)}
+                        placeholder={'Blueberries are *blue*.\nStrawberries are *red*.\nCloudberries are *orange*.'}
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-mono bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Từ gây nhiễu bổ sung trong ngân hàng từ (Phân cách bằng dấu phẩy)
+                      </label>
+                      <input
+                        type="text"
+                        value={options.join(', ')}
+                        onChange={(e) => setOptions(e.target.value.split(',').map((s) => s.trim()))}
+                        placeholder="green, yellow, purple"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white"
+                      />
+                    </div>
                   </div>
                 )}
 
