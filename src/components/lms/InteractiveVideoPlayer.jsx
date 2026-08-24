@@ -33,7 +33,7 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
-// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN 100% ẢNH 1 (media_1787500996817.png) & ẢNH 2 (media_1787501117346.png)
+// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN FIX DỨT ĐIỂM TRIỆT ĐỂ LỖI KẸT FOCUS YOUTUBE IFRAME V74
 const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback, isSolutionVisible }) => {
   const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
   const isChecked = quizFeedback !== null;
@@ -59,16 +59,24 @@ const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInput
                     e.stopPropagation();
                     onInputChange(item.index, e.target.value);
                   }}
+                  onFocus={(e) => {
+                    e.stopPropagation();
+                    window.focus();
+                  }}
                   onMouseDown={(e) => {
                     e.stopPropagation();
+                    window.focus();
+                    e.target.focus();
                   }}
                   onKeyDown={(e) => e.stopPropagation()}
                   onKeyUp={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
+                    window.focus();
+                    e.target.focus();
                   }}
                   placeholder=""
-                  className="mx-1 px-3 py-1.5 border-2 border-slate-300 focus:border-blue-600 rounded-md text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none inline-block min-w-[100px] text-center shadow-xs align-baseline pointer-events-auto select-text cursor-text relative z-50"
+                  className="mx-1 px-3 py-1.5 border-2 border-slate-300 focus:border-blue-600 rounded-md text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none inline-block min-w-[100px] text-center shadow-xs align-baseline pointer-events-auto select-text cursor-text relative z-[99999]"
                 />
               );
             }
@@ -172,6 +180,25 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       }
     } catch (e) {}
   };
+
+  // V74: TỰ ĐỘNG THU HỒI FOCUS TỪ YOUTUBE IFRAME VỀ CỬA SỔ PARENT KHI CÂU HỎI H5P HIỂN THỊ
+  useEffect(() => {
+    if (activeQuiz) {
+      window.focus();
+      if (document.activeElement && document.activeElement.tagName === 'IFRAME') {
+        document.activeElement.blur();
+      }
+      const timer = setTimeout(() => {
+        window.focus();
+        const firstInput = containerRef.current?.querySelector('input[type="text"]');
+        if (firstInput) {
+          firstInput.focus();
+          try { firstInput.select(); } catch (e) {}
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [activeQuiz]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
@@ -456,15 +483,24 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           />
         )}
 
-        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC */}
+        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CHỦN H5P 100% VỚI BẬC KHÓA Z-INDEX 9999 VÀ AUTO FOCUS INPUT V74) */}
         {activeQuiz && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs z-40 flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up pointer-events-auto">
-            <div className="bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-200 max-w-xl w-full shadow-2xl space-y-4 text-left relative z-50 pointer-events-auto select-text">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs z-[9999] flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up pointer-events-auto"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-200 max-w-xl w-full shadow-2xl space-y-4 text-left relative z-[9999] pointer-events-auto select-text"
+            >
               <button
                 type="button"
-                onClick={handleCloseAndContinue}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseAndContinue();
+                }}
                 title="Đóng câu hỏi và tiếp tục xem video"
-                className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer border border-slate-300 z-50"
+                className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer border border-slate-300 z-[9999]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -510,7 +546,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       <div className="flex items-center space-x-2.5">
                         <button
                           type="button"
-                          onClick={() => setIsSolutionVisible(!isSolutionVisible)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsSolutionVisible(!isSolutionVisible);
+                          }}
                           title="Xem / Ẩn đáp án chuẩn"
                           className={`p-3 rounded-full transition cursor-pointer shadow-md ${
                             isSolutionVisible ? 'bg-blue-700 text-white ring-4 ring-blue-300' : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -521,7 +560,8 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setBlankInputs({});
                             setQuizFeedback(null);
                             setIsSolutionVisible(false);
@@ -534,7 +574,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
                         <button
                           type="button"
-                          onClick={handleCloseAndContinue}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCloseAndContinue();
+                          }}
                           title="Đóng & tiếp tục xem video"
                           className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition cursor-pointer shadow-md animate-pulse"
                         >
@@ -546,8 +589,11 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                       <button
                         type="button"
-                        onClick={handleCheckAnswer}
-                        className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCheckAnswer();
+                        }}
+                        className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer relative z-[9999] pointer-events-auto"
                       >
                         <Check className="w-4 h-4" />
                         <span>Check</span>
@@ -555,8 +601,11 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
                       <button
                         type="button"
-                        onClick={handleCloseAndContinue}
-                        className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseAndContinue();
+                        }}
+                        className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer relative z-[9999] pointer-events-auto"
                       >
                         <Play className="w-4 h-4 fill-current ml-0.5" />
                         <span>Continue</span>
@@ -579,7 +628,8 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         <button
                           key={i}
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (quizFeedback?.success) return;
                             setSelectedOpt(opt);
                           }}
@@ -611,7 +661,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     {!quizFeedback ? (
                       <button
                         type="button"
-                        onClick={handleCheckAnswer}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCheckAnswer();
+                        }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <Check className="w-4 h-4" />
@@ -620,7 +673,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     ) : (
                       <button
                         type="button"
-                        onClick={handleCloseAndContinue}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseAndContinue();
+                        }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <span>Continue (Đóng & Xem Tiếp Video)</span>
@@ -631,7 +687,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 3: TRUE / FALSE (HIỂN THỊ NỔI BẬT LỰA CHỌN CỦA HỌC SINH THEO ẢNH 1 media_1787501789005.png) */}
+              {/* DẠNG 3: TRUE / FALSE */}
               {activeQuiz.type === 'true_false' && (
                 <div className="space-y-3">
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
@@ -640,7 +696,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <button
                       type="button"
-                      onClick={() => setTrueFalseChoice(true)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTrueFalseChoice(true);
+                      }}
                       className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === true
                           ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
@@ -652,7 +711,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
                     <button
                       type="button"
-                      onClick={() => setTrueFalseChoice(false)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTrueFalseChoice(false);
+                      }}
                       className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === false
                           ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
@@ -676,7 +738,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     {!quizFeedback ? (
                       <button
                         type="button"
-                        onClick={handleCheckAnswer}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCheckAnswer();
+                        }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <Check className="w-4 h-4" />
@@ -685,7 +750,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     ) : (
                       <button
                         type="button"
-                        onClick={handleCloseAndContinue}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseAndContinue();
+                        }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <span>Continue (Đóng & Xem Tiếp Video)</span>
@@ -709,7 +777,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         <button
                           key={wIdx}
                           type="button"
-                          onClick={() => toggleMarkWordSelect(word)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleMarkWordSelect(word);
+                          }}
                           className={`px-4 py-2 rounded-xl border text-xs font-extrabold transition cursor-pointer ${
                             isSelected
                               ? 'bg-brand-600 text-white border-brand-700 shadow-md transform scale-105'
@@ -735,7 +806,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     {!quizFeedback ? (
                       <button
                         type="button"
-                        onClick={handleCheckAnswer}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCheckAnswer();
+                        }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <Check className="w-4 h-4" />
@@ -744,7 +818,10 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     ) : (
                       <button
                         type="button"
-                        onClick={handleCloseAndContinue}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseAndContinue();
+                        }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <span>Continue (Đóng & Xem Tiếp Video)</span>
