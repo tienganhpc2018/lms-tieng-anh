@@ -232,10 +232,7 @@ const DragTheWordsH5P = React.memo(({ textWithBlanks, extraWords = [], draggedAn
         </div>
 
         {/* BÊN PHẢI: KHUNG NGÂN HÀNG CÁC TỪ KÉO THẢ (WORD BANK CHUẨN ẢNH 3 & 4) */}
-        <div className="md:col-span-4 bg-slate-100 p-4 rounded-2xl border border-slate-200 space-y-2.5">
-          <h5 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider text-left">
-            🏷️ Drag Words (Nhấp hoặc Kéo từ)
-          </h5>
+        <div className="md:col-span-4 bg-slate-100 p-4 rounded-2xl border border-slate-200 space-y-2">
           <div className="flex flex-col space-y-2">
             {availableChips.length > 0 ? (
               availableChips.map((word, wIdx) => {
