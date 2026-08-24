@@ -59,9 +59,14 @@ const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInput
                     e.stopPropagation();
                     onInputChange(item.index, e.target.value);
                   }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                  }}
                   onKeyDown={(e) => e.stopPropagation()}
                   onKeyUp={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
                   placeholder=""
                   className="mx-1 px-3 py-1.5 border-2 border-slate-300 focus:border-blue-600 rounded-md text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none inline-block min-w-[100px] text-center shadow-xs align-baseline pointer-events-auto select-text cursor-text relative z-50"
                 />
@@ -437,7 +442,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             id="yt-interactive-player-iframe"
             src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&autoplay=0&controls=1&cc_load_policy=0&iv_load_policy=3&modestbranding=1&rel=0`}
             title="Interactive Video Player"
-            className="w-full h-full border-0"
+            className={`w-full h-full border-0 ${activeQuiz ? 'pointer-events-none' : 'pointer-events-auto'}`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
@@ -447,7 +452,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             src={rawVideoUrl}
             onTimeUpdate={handleHtml5TimeUpdate}
             onLoadedMetadata={() => setDuration(html5VideoRef.current?.duration || 146)}
-            className="w-full h-full object-contain"
+            className={`w-full h-full object-contain ${activeQuiz ? 'pointer-events-none' : 'pointer-events-auto'}`}
           />
         )}
 
