@@ -82,6 +82,39 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
   const [wordListInput, setWordListInput] = useState('');
   const [correctWordsInput, setCorrectWordsInput] = useState('');
   const [showInstructions, setShowInstructions] = useState(false);
+  const [scoreRanges, setScoreRanges] = useState([
+    { from: 0, to: 100, feedback: '25' }
+  ]);
+
+  const handleAddRange = () => {
+    const count = scoreRanges.length + 1;
+    const step = Math.floor(100 / count);
+    const newRanges = [];
+    for (let i = 0; i < count; i++) {
+      const from = i === 0 ? 0 : newRanges[i - 1].to + 1;
+      const to = i === count - 1 ? 100 : Math.min(100, (i + 1) * step);
+      const prevFb = scoreRanges[i]?.feedback || (i === 0 ? '25' : '75');
+      newRanges.push({ from, to, feedback: prevFb });
+    }
+    setScoreRanges(newRanges);
+  };
+
+  const handleDistributeEvenly = () => {
+    const count = scoreRanges.length || 1;
+    const step = Math.floor(100 / count);
+    const newRanges = scoreRanges.map((r, i) => {
+      const from = i === 0 ? 0 : Math.min(99, i * step + 1);
+      const to = i === count - 1 ? 100 : Math.min(100, (i + 1) * step);
+      return { ...r, from, to };
+    });
+    setScoreRanges(newRanges);
+  };
+
+  const handleRemoveRange = (index) => {
+    if (scoreRanges.length <= 1) return;
+    const filtered = scoreRanges.filter((_, i) => i !== index);
+    setScoreRanges(filtered);
+  };
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -672,6 +705,72 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                     />
                   </div>
                 )}
+
+                {/* KHUNG THIẾT KẾ SCORE RANGE H5P CHUẨN ẢNH 2 media_1787544664865.png */}
+                <div className="space-y-3 pt-4 border-t border-slate-200">
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-extrabold text-slate-800">Define custom feedback for any score range</h4>
+                    <p className="text-[11px] text-slate-500">
+                      Click the &quot;Add range&quot; button to add as many ranges as you need. Example: 0-20% Bad score, 21-91% Average Score, 91-100% Great Score!
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-2 text-xs font-bold text-slate-700 pt-1">
+                    <div className="col-span-4">Score Range <span className="text-rose-500">*</span></div>
+                    <div className="col-span-8">Feedback for defined score range</div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {scoreRanges.map((range, idx) => (
+                      <div key={idx} className="flex items-center space-x-2 bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs">
+                        <div className="w-28 flex items-center space-x-1.5 font-bold text-slate-700">
+                          <span>{range.from}%</span>
+                          <span>-</span>
+                          <span>{range.to}%</span>
+                        </div>
+                        <input
+                          type="text"
+                          value={range.feedback}
+                          onChange={(e) => {
+                            const updated = [...scoreRanges];
+                            updated[idx].feedback = e.target.value;
+                            setScoreRanges(updated);
+                          }}
+                          placeholder="Feedback text"
+                          className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white font-medium"
+                        />
+                        {scoreRanges.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRange(idx)}
+                            title="Xóa khoảng điểm này"
+                            className="p-1 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center space-x-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleAddRange}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-lg text-xs transition cursor-pointer shadow-xs"
+                    >
+                      <span>ADD RANGE</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDistributeEvenly}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-extrabold rounded-lg text-xs transition cursor-pointer flex items-center space-x-1"
+                    >
+                      <X className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Distribute Evenly</span>
+                    </button>
+                  </div>
+                </div>
 
                 <button
                   type="button"
