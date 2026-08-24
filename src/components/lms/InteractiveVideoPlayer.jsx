@@ -33,7 +33,7 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
-// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN INLINE CSS POINTER-EVENTS & Z-INDEX 99999 V76
+// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN KẾT QUẢ KHI BẤM CHECK V79
 const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback, isSolutionVisible }) => {
   const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
   const isChecked = quizFeedback !== null;
@@ -68,7 +68,7 @@ const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInput
 
             if (isCorrect) {
               return (
-                <span key={`blank_input_${item.index}`} className="inline-flex items-center mx-1 px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold border border-emerald-300 text-sm align-baseline shadow-2xs">
+                <span key={`blank_input_${item.index}`} className="inline-flex items-center mx-1 px-3 py-1 rounded-md bg-emerald-100 text-emerald-900 font-bold border-2 border-emerald-400 text-sm align-baseline shadow-xs">
                   <span>{userVal}</span>
                   <span className="ml-1 text-emerald-600 font-black text-xs">✓</span>
                 </span>
@@ -76,15 +76,19 @@ const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInput
             }
 
             return (
-              <span key={`blank_input_${item.index}`} className="inline-flex items-center mx-1 align-baseline">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-100 text-rose-900 font-medium border border-rose-300 text-sm shadow-2xs">
+              <span key={`blank_input_${item.index}`} className="inline-flex items-center mx-1 align-baseline space-x-1.5">
+                <span className="inline-flex items-center px-3 py-1 rounded-md bg-rose-100 text-rose-900 font-bold border-2 border-rose-400 text-sm shadow-xs">
                   <span className="line-through">{userVal || '___'}</span>
                   <span className="ml-1 text-rose-600 font-black text-xs">✕</span>
                 </span>
-                {isSolutionVisible && (
-                  <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-900 font-bold border border-emerald-300 text-sm animate-scale-up shadow-2xs">
+                {isSolutionVisible ? (
+                  <span className="inline-flex items-center px-3 py-1 rounded-md bg-emerald-100 text-emerald-900 font-bold border-2 border-emerald-400 text-sm animate-scale-up shadow-xs">
                     <span>{correctAns}</span>
                     <span className="ml-1 text-emerald-600 font-black text-xs">✓</span>
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-slate-600 italic">
+                    (Từ đúng: <strong className="text-emerald-700 font-extrabold">{correctAns}</strong>)
                   </span>
                 )}
               </span>
@@ -143,6 +147,18 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const [isSolutionVisible, setIsSolutionVisible] = useState(false);
   const [passedCount, setPassedCount] = useState(0);
 
+  // V79: CHỐNG LỖI STALE CLOSURE TRONG SETINTERVAL BẰNG REFS TRỰC TIẾP
+  const activeQuizRef = useRef(activeQuiz);
+  const quizPassedRef = useRef(quizPassed);
+
+  useEffect(() => {
+    activeQuizRef.current = activeQuiz;
+  }, [activeQuiz]);
+
+  useEffect(() => {
+    quizPassedRef.current = quizPassed;
+  }, [quizPassed]);
+
   const rawVideoUrl = activity?.settings?.videoUrl || activity?.content_url || activity?.content || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
   const youtubeId = extractYoutubeId(rawVideoUrl);
 
@@ -166,7 +182,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     } catch (e) {}
   };
 
-  // V78: CHỈ AUTO-FOCUS VÀO INPUT LẦN ĐẦU TIÊN MỞ POPUP MÀ KHÔNG SELECT() ĐỂ TRÁNH MẤT NỘI DUNG VĂN BẢN
+  // V79: CHỈ AUTO-FOCUS VÀO INPUT LẦN ĐẦU TIÊN MỞ POPUP MÀ KHÔNG SELECT() ĐỂ TRÁNH MẤT NỘI DUNG VĂN BẢN
   useEffect(() => {
     if (activeQuiz) {
       const timer = setTimeout(() => {
@@ -188,6 +204,22 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     window.addEventListener('keydown', handleGlobalKeyDown, true);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
   }, []);
+
+  const checkWaypointTrigger = useCallback((curSec) => {
+    // V79: NẾU ĐANG CÓ POPUP HIỂN THỊ THÌ TUYỆT ĐỐI KHÔNG RESET FEEDBACK HOẶC BÀI LÀM CỦA HỌC SINH
+    if (activeQuizRef.current) return;
+    const wp = waypoints.find((w) => w.timeSec === curSec && !quizPassedRef.current[w.id || w.timeSec]);
+    if (wp) {
+      pauseVideo();
+      setActiveQuiz(wp);
+      setQuizFeedback(null);
+      setIsSolutionVisible(false);
+      setBlankInputs({});
+      setSelectedOpt('');
+      setTrueFalseChoice(null);
+      setSelectedMarkWords([]);
+    }
+  }, [waypoints]);
 
   useEffect(() => {
     if (!youtubeId) return;
@@ -263,21 +295,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       isSubscribed = false;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [youtubeId]);
-
-  const checkWaypointTrigger = (curSec) => {
-    const wp = waypoints.find((w) => w.timeSec === curSec && !quizPassed[w.id || w.timeSec]);
-    if (wp && !activeQuiz) {
-      pauseVideo();
-      setActiveQuiz(wp);
-      setQuizFeedback(null);
-      setIsSolutionVisible(false);
-      setBlankInputs({});
-      setSelectedOpt('');
-      setTrueFalseChoice(null);
-      setSelectedMarkWords([]);
-    }
-  };
+  }, [youtubeId, checkWaypointTrigger]);
 
   const handleHtml5TimeUpdate = () => {
     if (!html5VideoRef.current) return;
