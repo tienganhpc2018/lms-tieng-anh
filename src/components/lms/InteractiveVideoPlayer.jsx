@@ -224,6 +224,11 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     return Object.values(quizPassed).filter(Boolean).length;
   }, [quizPassed]);
 
+  // V84: ĐẾM SỐ CÂU HỌC SINH ĐÃ THỰC HIỆN ĐỂ ĐỒNG BỘ MỞ / KHÓA NÚT XEM BẢNG ĐIỂM
+  const attemptedCount = useMemo(() => {
+    return Object.keys(quizPassed).length;
+  }, [quizPassed]);
+
   // HÀM TÍNH PHẦN TRĂM VÀ TÌM FEEDBACK SCORE RANGE THÍCH HỢP TỪ CẤU HÌNH GIÁO VIÊN V82
   const getScoreRangeFeedback = (percent) => {
     const customRanges = activity?.settings?.scoreRanges;
@@ -557,15 +562,32 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           </h2>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 relative group">
           <button
             type="button"
-            onClick={() => setShowFinalSummary(true)}
-            className="flex items-center space-x-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3.5 py-1.5 rounded-2xl text-xs font-extrabold text-amber-900 transition cursor-pointer shadow-2xs"
+            disabled={attemptedCount === 0}
+            onClick={() => {
+              if (attemptedCount > 0) {
+                setShowFinalSummary(true);
+              }
+            }}
+            title={attemptedCount === 0 ? 'Hãy xem video và làm câu hỏi để mở bảng điểm' : 'Xem Bảng Điểm & Đánh Giá Score Range'}
+            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-2xl text-xs font-extrabold transition shadow-2xs ${
+              attemptedCount === 0
+                ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-80'
+                : 'bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 cursor-pointer'
+            }`}
           >
-            <Award className="w-4 h-4 text-amber-600" />
-            <span>Tiến độ: {passedCount} / {waypoints.length} mốc (Xem Bảng Điểm)</span>
+            {attemptedCount === 0 ? <Lock className="w-3.5 h-3.5 text-slate-400" /> : <Award className="w-4 h-4 text-amber-600" />}
+            <span>Tiến độ: {passedCount} / {waypoints.length} mốc {attemptedCount === 0 ? '(Khóa)' : '(Xem Bảng Điểm)'}</span>
           </button>
+
+          {/* TOOLTIP THÔNG BÁO KHI NÚT BỊ KHÓA V84 */}
+          {attemptedCount === 0 && (
+            <div className="absolute right-0 top-full mt-1.5 hidden group-hover:flex items-center space-x-1 bg-slate-900 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xl z-50 whitespace-nowrap border border-slate-700 animate-fade-in pointer-events-none">
+              <span>🔒 Hãy xem video và làm câu hỏi để mở bảng điểm</span>
+            </div>
+          )}
         </div>
       </div>
 
