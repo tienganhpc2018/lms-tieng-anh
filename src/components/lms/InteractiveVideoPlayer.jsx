@@ -54,31 +54,12 @@ const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInput
                 <input
                   key={`blank_input_${item.index}`}
                   type="text"
-                  value={blankInputs[item.index] || ''}
-                  onChange={(e) => {
-                    e.stopPropagation();
+                  defaultValue={blankInputs[item.index] || ''}
+                  onInput={(e) => {
                     onInputChange(item.index, e.target.value);
-                  }}
-                  onFocus={(e) => {
-                    e.stopPropagation();
-                    window.focus();
-                  }}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    window.focus();
-                    try { e.target.focus(); } catch (err) {}
-                  }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
                   }}
                   onKeyDown={(e) => e.stopPropagation()}
                   onKeyUp={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.focus();
-                    try { e.target.focus(); } catch (err) {}
-                  }}
-                  placeholder=""
                   style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                   className="mx-1 px-3 py-1.5 border-2 border-slate-300 focus:border-blue-600 rounded-md text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none inline-block min-w-[100px] text-center shadow-xs align-baseline select-text cursor-text"
                 />
@@ -185,21 +166,15 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     } catch (e) {}
   };
 
-  // V76: TỰ ĐỘNG THU HỒI FOCUS TỪ YOUTUBE IFRAME VỀ PARENT WINDOW VÀ AUTO-FOCUS INPUT
+  // V78: CHỈ AUTO-FOCUS VÀO INPUT LẦN ĐẦU TIÊN MỞ POPUP MÀ KHÔNG SELECT() ĐỂ TRÁNH MẤT NỘI DUNG VĂN BẢN
   useEffect(() => {
     if (activeQuiz) {
-      window.focus();
-      if (document.activeElement && document.activeElement.tagName === 'IFRAME') {
-        document.activeElement.blur();
-      }
       const timer = setTimeout(() => {
-        window.focus();
         const firstInput = containerRef.current?.querySelector('input[type="text"]');
         if (firstInput) {
           firstInput.focus();
-          try { firstInput.select(); } catch (e) {}
         }
-      }, 150);
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [activeQuiz]);
