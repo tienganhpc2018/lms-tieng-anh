@@ -217,8 +217,12 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const [quizPassed, setQuizPassed] = useState({});
   const [quizFeedback, setQuizFeedback] = useState(null);
   const [isSolutionVisible, setIsSolutionVisible] = useState(false);
-  const [passedCount, setPassedCount] = useState(0);
   const [showFinalSummary, setShowFinalSummary] = useState(false);
+
+  // V83: DYNAMIC PASSED COUNT CHỈ ĐẾM CÁC CÂU HỌC SINH LÀM ĐÚNG CHUẨN XÁC
+  const passedCount = useMemo(() => {
+    return Object.values(quizPassed).filter(Boolean).length;
+  }, [quizPassed]);
 
   // HÀM TÍNH PHẦN TRĂM VÀ TÌM FEEDBACK SCORE RANGE THÍCH HỢP TỪ CẤU HÌNH GIÁO VIÊN V82
   const getScoreRangeFeedback = (percent) => {
@@ -518,8 +522,8 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const handleCloseAndContinue = () => {
     if (activeQuiz) {
       const qKey = activeQuiz.id || activeQuiz.timeSec;
-      setQuizPassed((prev) => ({ ...prev, [qKey]: true }));
-      setPassedCount((prev) => prev + 1);
+      const isPassed = quizFeedback?.success === true;
+      setQuizPassed((prev) => ({ ...prev, [qKey]: isPassed }));
     }
     setActiveQuiz(null);
     setSelectedOpt('');
@@ -1068,7 +1072,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           </div>
         )}
 
-        {/* OVERLAY BẢNG ĐIỂM TỔNG KẾT H5P KÈM SCORE RANGE FEEDBACK V82 */}
+        {/* OVERLAY BẢNG ĐIỂM TỔNG KẾT H5P KÈM SCORE RANGE FEEDBACK V83 CHUẨN KHÔNG BAO GIỜ LỌT KHUNG */}
         {showFinalSummary && (() => {
           const total = waypoints.length || 1;
           const percent = Math.round((passedCount / total) * 100);
@@ -1079,93 +1083,98 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               style={{ zIndex: 99999, pointerEvents: 'auto', position: 'absolute' }}
-              className="inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up"
+              className="inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 text-slate-900 animate-scale-up overflow-hidden"
             >
-              <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-slate-200 max-w-xl w-full shadow-2xl space-y-5 text-center select-text relative">
-                <button
-                  type="button"
-                  onClick={() => setShowFinalSummary(false)}
-                  className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer border border-slate-300"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="space-y-1">
-                  <span className="px-3.5 py-1 bg-amber-100 text-amber-900 font-black text-[11px] rounded-full inline-block">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-200 max-w-md w-full max-h-[94%] flex flex-col shadow-2xl relative overflow-hidden select-text text-center space-y-3">
+                {/* STICKY HEADER KHÔNG BAO GIỜ MẤT NÚT ĐÓNG */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2 flex-shrink-0">
+                  <span className="px-3 py-0.5 bg-amber-100 text-amber-900 font-extrabold text-[10px] rounded-full">
                     🏆 H5P INTERACTIVE VIDEO SUMMARY
                   </span>
-                  <h3 className="text-xl font-black text-slate-900">
+                  <button
+                    type="button"
+                    onClick={() => setShowFinalSummary(false)}
+                    className="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 font-extrabold rounded-lg border border-rose-300 flex items-center space-x-1 text-xs transition cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5 text-rose-700" />
+                    <span>Đóng (Close)</span>
+                  </button>
+                </div>
+
+                {/* NỘI DUNG CUỘN ĐƯỢC BÊN TRONG KHUNG VIDEO */}
+                <div className="flex-1 overflow-y-auto space-y-3 px-1 py-1">
+                  <h3 className="text-base font-black text-slate-900 leading-snug">
                     Báo Cáo Mức Độ Hiểu Bài Học Phù Hợp Score Range
                   </h3>
-                </div>
 
-                {/* THÔNG SỐ % & ĐÁNH GIÁ ĐIỂM */}
-                <div className="flex flex-col items-center justify-center space-y-3 bg-slate-50 border border-slate-200 p-5 rounded-2xl">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex flex-col items-center justify-center shadow-md">
-                    <span className="text-2xl font-black">{percent}%</span>
-                    <span className="text-[10px] font-bold opacity-90">{passedCount}/{total} đúng</span>
+                  {/* THÔNG SỐ % & ĐÁNH GIÁ ĐIỂM */}
+                  <div className="flex flex-col items-center justify-center space-y-2 bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex flex-col items-center justify-center shadow-md">
+                      <span className="text-xl font-black">{percent}%</span>
+                      <span className="text-[9px] font-bold opacity-90">{passedCount}/{total} đúng</span>
+                    </div>
+
+                    <div className="flex items-center space-x-0.5 text-amber-400 text-lg">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <span key={i} className={i < Math.ceil((percent / 100) * 5) ? 'opacity-100' : 'opacity-30'}>★</span>
+                      ))}
+                    </div>
+
+                    {/* NHẬN XẾT CỦA GIÁO VIÊN THEO SCORE RANGE */}
+                    <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-lg text-amber-950 font-extrabold text-xs w-full text-center shadow-2xs">
+                      <p className="text-[10px] text-amber-700 font-bold mb-0.5">💬 Đánh giá theo Thang điểm Giáo viên (Score Range):</p>
+                      <p className="text-xs font-extrabold text-amber-950">{feedbackMsg}</p>
+                    </div>
                   </div>
 
-                  <div className="flex items-center space-x-1 text-amber-400 text-xl">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <span key={i} className={i < Math.ceil((percent / 100) * 5) ? 'opacity-100' : 'opacity-30'}>★</span>
-                    ))}
-                  </div>
-
-                  {/* NHẬN XẾT CỦA GIÁO VIÊN THEO SCORE RANGE */}
-                  <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-amber-950 font-extrabold text-sm w-full text-center shadow-2xs">
-                    <p className="text-[11px] text-amber-700 font-bold mb-0.5">💬 Đánh giá theo Thang điểm Giáo viên (Score Range):</p>
-                    <p className="text-sm font-extrabold text-amber-950">{feedbackMsg}</p>
+                  {/* DANH SÁCH CÁC MỐC CÂU HỎI */}
+                  <div className="space-y-1.5 text-left">
+                    <p className="text-[11px] font-bold text-slate-700">Chi tiết mốc câu hỏi:</p>
+                    {waypoints.map((w, idx) => {
+                      const isPassed = quizPassed[w.id || w.timeSec];
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-2 bg-slate-100 rounded-lg text-[11px] font-semibold">
+                          <span className="truncate max-w-[220px]">Mốc {w.timeSec}s: {w.question}</span>
+                          {isPassed === true ? (
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-black rounded-md flex items-center space-x-1 text-[10px]">
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span>Đúng</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-rose-100 text-rose-800 font-black rounded-md flex items-center space-x-1 text-[10px]">
+                              <X className="w-3 h-3 text-rose-600" />
+                              <span>Chưa đúng</span>
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* DANH SÁCH CÁC MỐC CÂU HỎI */}
-                <div className="space-y-1.5 text-left max-h-36 overflow-y-auto pr-1">
-                  <p className="text-xs font-bold text-slate-700">Chi tiết mốc câu hỏi:</p>
-                  {waypoints.map((w, idx) => {
-                    const isP = quizPassed[w.id || w.timeSec];
-                    return (
-                      <div key={idx} className="flex items-center justify-between p-2 bg-slate-100 rounded-xl text-xs font-semibold">
-                        <span className="truncate max-w-[280px]">Mốc {w.timeSec}s: {w.question}</span>
-                        {isP ? (
-                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-black rounded-md flex items-center space-x-1 text-[11px]">
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Đúng</span>
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 bg-rose-100 text-rose-800 font-black rounded-md flex items-center space-x-1 text-[11px]">
-                            <X className="w-3.5 h-3.5 text-rose-600" />
-                            <span>Chưa đúng</span>
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center space-x-3 pt-1">
+                {/* BOTTOM FOOTER NÚT BẤM DỄ THẤY VÀ ĐÓNG 100% */}
+                <div className="flex items-center space-x-2 pt-2 border-t border-slate-100 flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => {
                       setQuizPassed({});
-                      setPassedCount(0);
                       setShowFinalSummary(false);
                       setCurrentTime(0);
                       playVideo();
                     }}
-                    className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold rounded-2xl text-xs border border-slate-300 transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                    className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold rounded-xl text-xs border border-slate-300 transition flex items-center justify-center space-x-1 cursor-pointer"
                   >
-                    <RotateCcw className="w-4 h-4" />
+                    <RotateCcw className="w-3.5 h-3.5" />
                     <span>Làm lại từ đầu</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setShowFinalSummary(false)}
-                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center justify-center space-x-1 cursor-pointer"
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Hoàn Thành Bài Học</span>
+                    <X className="w-3.5 h-3.5" />
+                    <span>✕ Đóng & Xem Tiếp</span>
                   </button>
                 </div>
               </div>
