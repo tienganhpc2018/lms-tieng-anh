@@ -33,13 +33,13 @@ const parseFillBlanksText = (textWithBlanks = '') => {
   return { parts, answers };
 };
 
-// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN INLINE CSS POINTER-EVENTS & Z-INDEX 9999 V75
+// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN INLINE CSS POINTER-EVENTS & Z-INDEX 99999 V76
 const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback, isSolutionVisible }) => {
   const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
   const isChecked = quizFeedback !== null;
 
   return (
-    <div className="space-y-4 text-left select-text" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+    <div className="space-y-4 text-left select-text" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
       <div className="text-base sm:text-lg text-slate-900 leading-relaxed font-medium select-text">
         {parts.map((item, pIdx) => {
           if (item.type === 'text') {
@@ -79,7 +79,7 @@ const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInput
                     try { e.target.focus(); } catch (err) {}
                   }}
                   placeholder=""
-                  style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                  style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                   className="mx-1 px-3 py-1.5 border-2 border-slate-300 focus:border-blue-600 rounded-md text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none inline-block min-w-[100px] text-center shadow-xs align-baseline select-text cursor-text"
                 />
               );
@@ -185,7 +185,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     } catch (e) {}
   };
 
-  // V75: TỰ ĐỘNG THU HỒI FOCUS TỪ YOUTUBE IFRAME VỀ PARENT WINDOW VÀ AUTO-FOCUS INPUT
+  // V76: TỰ ĐỘNG THU HỒI FOCUS TỪ YOUTUBE IFRAME VỀ PARENT WINDOW VÀ AUTO-FOCUS INPUT
   useEffect(() => {
     if (activeQuiz) {
       window.focus();
@@ -231,7 +231,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             videoId: youtubeId,
             playerVars: {
               autoplay: 0,
-              controls: 1,
+              controls: 0, // AN DUNG THANH TIMELINE NATIVE CUA YOUTUBE DE TRIET TEU THUA TIMELINE 2 HANG V76
               enablejsapi: 1,
               cc_load_policy: 0,
               iv_load_policy: 3,
@@ -468,41 +468,52 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
       {/* VÙNG PHÁT VIDEO CHÍNH KÈM OVERLAY POPUP */}
       <div ref={containerRef} className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
-        {youtubeId ? (
-          <iframe
-            id="yt-interactive-player-iframe"
-            src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&autoplay=0&controls=1&cc_load_policy=0&iv_load_policy=3&modestbranding=1&rel=0`}
-            title="Interactive Video Player"
-            style={{ pointerEvents: activeQuiz ? 'none' : 'auto' }}
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        ) : (
-          <video
-            ref={html5VideoRef}
-            src={rawVideoUrl}
-            onTimeUpdate={handleHtml5TimeUpdate}
-            onLoadedMetadata={() => setDuration(html5VideoRef.current?.duration || 146)}
-            style={{ pointerEvents: activeQuiz ? 'none' : 'auto' }}
-            className="w-full h-full object-contain"
-          />
-        )}
+        {/* WRAPPER KHỚP DÓNG BẰNG VIDEO/IFRAME KHI ACTIVE QUIZ MỞ V76 */}
+        <div
+          className="w-full h-full"
+          style={{
+            pointerEvents: activeQuiz ? 'none' : 'auto',
+            opacity: activeQuiz ? 0.15 : 1,
+            filter: activeQuiz ? 'blur(6px)' : 'none',
+            transition: 'all 0.3s ease',
+          }}
+        >
+          {youtubeId ? (
+            <iframe
+              id="yt-interactive-player-iframe"
+              src={`https://www.youtube.com/embed/${youtubeId}?enablejsapi=1&autoplay=0&controls=0&cc_load_policy=0&iv_load_policy=3&modestbranding=1&rel=0`}
+              title="Interactive Video Player"
+              style={{ pointerEvents: activeQuiz ? 'none' : 'auto' }}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <video
+              ref={html5VideoRef}
+              src={rawVideoUrl}
+              onTimeUpdate={handleHtml5TimeUpdate}
+              onLoadedMetadata={() => setDuration(html5VideoRef.current?.duration || 146)}
+              style={{ pointerEvents: activeQuiz ? 'none' : 'auto' }}
+              className="w-full h-full object-contain"
+            />
+          )}
+        </div>
 
-        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CHẤN CHUẨN Z-INDEX: 9999; POINTER-EVENTS: AUTO; POSITION: RELATIVE THEO CẢI TIẾN THẦY HẢI) */}
+        {/* OVERLAY POP-UP CÂU HỎI TƯƠNG TÁC (CHẤN CHUẨN Z-INDEX: 99999; POINTER-EVENTS: AUTO; POSITION: ABSOLUTE THEO CẢI TIẾN THẦY HẢI) */}
         {activeQuiz && (
           <div
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
-            style={{ zIndex: 9999, pointerEvents: 'auto', position: 'absolute' }}
-            className="inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up"
+            style={{ zIndex: 99999, pointerEvents: 'auto', position: 'absolute' }}
+            className="inset-0 bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up"
           >
             <div
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
-              style={{ zIndex: 9999, pointerEvents: 'auto', position: 'relative' }}
+              style={{ zIndex: 99999, pointerEvents: 'auto', position: 'relative' }}
               className="bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-200 max-w-xl w-full shadow-2xl space-y-4 text-left select-text"
             >
               <button
@@ -513,7 +524,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 }}
                 onMouseDown={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
-                style={{ zIndex: 10000, pointerEvents: 'auto', position: 'absolute' }}
+                style={{ zIndex: 99999, pointerEvents: 'auto', position: 'absolute' }}
                 title="Đóng câu hỏi và tiếp tục xem video"
                 className="top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer border border-slate-300"
               >
@@ -522,7 +533,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
               {/* DẠNG GAP-FILL / FILL IN THE BLANKS CHUẨN H5P */}
               {activeQuiz.type === 'fill_blanks' && (
-                <div className="space-y-4 select-text" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+                <div className="space-y-4 select-text" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                   <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug border-b border-slate-100 pb-3">
                     {activeQuiz.question || 'Fill in the correct ingredients'}
                   </h3>
@@ -544,7 +555,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
                   {/* THANH THỐNG KÊ NGÔI SAO & BỘ NÚT ĐIỀU KHIỂN CHUẨN H5P */}
                   {quizFeedback ? (
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                       <div className="flex items-center space-x-2 bg-slate-100 px-4 py-2 rounded-full border border-slate-200 shadow-2xs">
                         <div className="w-24 bg-slate-200 h-2.5 rounded-full overflow-hidden">
                           <div
@@ -567,7 +578,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                           }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onPointerDown={(e) => e.stopPropagation()}
-                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                           title="Xem / Ẩn đáp án chuẩn"
                           className={`p-3 rounded-full transition cursor-pointer shadow-md ${
                             isSolutionVisible ? 'bg-blue-700 text-white ring-4 ring-blue-300' : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -586,7 +597,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                           }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onPointerDown={(e) => e.stopPropagation()}
-                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                           title="Làm lại bài tập này"
                           className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition cursor-pointer shadow-md"
                         >
@@ -601,7 +612,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                           }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onPointerDown={(e) => e.stopPropagation()}
-                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                           title="Đóng & tiếp tục xem video"
                           className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition cursor-pointer shadow-md animate-pulse"
                         >
@@ -610,7 +621,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -619,7 +630,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                         className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer"
                       >
                         <Check className="w-4 h-4" />
@@ -634,7 +645,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                         className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer"
                       >
                         <Play className="w-4 h-4 fill-current ml-0.5" />
@@ -647,7 +658,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
               {/* DẠNG 1: MULTIPLE CHOICE */}
               {(activeQuiz.type === 'multiple_choice' || (!activeQuiz.type && activeQuiz.options?.length > 0)) && (
-                <div className="space-y-3" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+                <div className="space-y-3" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
                     {activeQuiz.question}
                   </h4>
@@ -665,7 +676,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                           }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onPointerDown={(e) => e.stopPropagation()}
-                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                           className={`w-full p-4 rounded-2xl text-left text-sm font-extrabold border-2 transition cursor-pointer flex items-center justify-between shadow-xs ${
                             isSelected
                               ? 'border-blue-600 bg-blue-50 text-blue-900 ring-4 ring-blue-500/20 scale-[1.01]'
@@ -690,7 +701,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     </div>
                   )}
 
-                  <div className="flex items-center space-x-3 pt-2" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+                  <div className="flex items-center space-x-3 pt-2" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                     {!quizFeedback ? (
                       <button
                         type="button"
@@ -700,7 +711,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <Check className="w-4 h-4" />
@@ -715,7 +726,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <span>Continue (Đóng & Xem Tiếp Video)</span>
@@ -728,7 +739,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
               {/* DẠNG 3: TRUE / FALSE */}
               {activeQuiz.type === 'true_false' && (
-                <div className="space-y-3" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+                <div className="space-y-3" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
                     {activeQuiz.question}
                   </h4>
@@ -741,7 +752,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       }}
                       onMouseDown={(e) => e.stopPropagation()}
                       onPointerDown={(e) => e.stopPropagation()}
-                      style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                      style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                       className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === true
                           ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
@@ -759,7 +770,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       }}
                       onMouseDown={(e) => e.stopPropagation()}
                       onPointerDown={(e) => e.stopPropagation()}
-                      style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                      style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                       className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === false
                           ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
@@ -779,7 +790,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     </div>
                   )}
 
-                  <div className="flex items-center space-x-3 pt-2" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+                  <div className="flex items-center space-x-3 pt-2" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                     {!quizFeedback ? (
                       <button
                         type="button"
@@ -789,7 +800,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <Check className="w-4 h-4" />
@@ -804,7 +815,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <span>Continue (Đóng & Xem Tiếp Video)</span>
@@ -817,7 +828,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
 
               {/* DẠNG 4: HIGHLIGHT / MARK THE WORD */}
               {activeQuiz.type === 'mark_word' && (
-                <div className="space-y-3" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+                <div className="space-y-3" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
                     {activeQuiz.question}
                   </h4>
@@ -834,7 +845,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                           }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onPointerDown={(e) => e.stopPropagation()}
-                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                           className={`px-4 py-2 rounded-xl border text-xs font-extrabold transition cursor-pointer ${
                             isSelected
                               ? 'bg-brand-600 text-white border-brand-700 shadow-md transform scale-105'
@@ -856,7 +867,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     </div>
                   )}
 
-                  <div className="flex items-center space-x-3 pt-2" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}>
+                  <div className="flex items-center space-x-3 pt-2" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                     {!quizFeedback ? (
                       <button
                         type="button"
@@ -866,7 +877,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <Check className="w-4 h-4" />
@@ -881,7 +892,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onPointerDown={(e) => e.stopPropagation()}
-                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10000 }}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                         className="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer"
                       >
                         <span>Continue (Đóng & Xem Tiếp Video)</span>
@@ -895,8 +906,11 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           </div>
         )}
 
-        {/* THANH TIMELINE DÍNH TRỰC TIẾP VÀO BOTTOM KHUNG VIDEO CHUẨN H5P */}
-        <div className="absolute bottom-0 inset-x-0 bg-slate-950/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between text-white text-xs space-x-3 border-t border-slate-800/80 z-30">
+        {/* THANH TIMELINE CHUẨN DUY NHẤT (SINGLE SOURCE OF TRUTH) DÍNH TRỰC TIẾP VÀO BOTTOM KHUNG VIDEO V76 */}
+        <div
+          style={{ pointerEvents: activeQuiz ? 'none' : 'auto', opacity: activeQuiz ? 0.3 : 1 }}
+          className="absolute bottom-0 inset-x-0 bg-slate-950/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between text-white text-xs space-x-3 border-t border-slate-800/80 z-30"
+        >
           <button onClick={togglePlay} className="p-1.5 hover:bg-slate-800 rounded-lg transition cursor-pointer text-white">
             {isPlaying ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-emerald-400 ml-0.5" />}
           </button>
