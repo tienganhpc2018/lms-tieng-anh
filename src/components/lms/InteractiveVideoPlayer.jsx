@@ -218,6 +218,21 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const [quizFeedback, setQuizFeedback] = useState(null);
   const [isSolutionVisible, setIsSolutionVisible] = useState(false);
   const [passedCount, setPassedCount] = useState(0);
+  const [showFinalSummary, setShowFinalSummary] = useState(false);
+
+  // HÀM TÍNH PHẦN TRĂM VÀ TÌM FEEDBACK SCORE RANGE THÍCH HỢP TỪ CẤU HÌNH GIÁO VIÊN V82
+  const getScoreRangeFeedback = (percent) => {
+    const customRanges = activity?.settings?.scoreRanges;
+    if (Array.isArray(customRanges) && customRanges.length > 0) {
+      const matched = customRanges.find((r) => percent >= r.from && percent <= r.to);
+      if (matched && matched.feedback) return matched.feedback;
+    }
+    // MẶC ĐỊNH H5P KHI GIÁO VIÊN CHƯA THIẾT LẬP CUSTOM
+    if (percent >= 90) return '🎉 Xuất sắc! Bạn đã hiểu 100% nội dung video bài học!';
+    if (percent >= 70) return '👍 Tốt! Bạn đã nắm được đa số kiến thức quan trọng trong bài giảng.';
+    if (percent >= 50) return '💪 Khá! Hãy xem lại các mốc câu hỏi chưa chính xác để đạt điểm tuyệt đối nhé.';
+    return '📚 Bạn cần luyện tập thêm! Hãy xem lại video từ đầu để hiểu rõ bài học hơn nhé.';
+  };
 
   // V79: CHỐNG LỖI STALE CLOSURE TRONG SETINTERVAL BẰNG REFS TRỰC TIẾP
   const activeQuizRef = useRef(activeQuiz);
@@ -538,9 +553,15 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
           </h2>
         </div>
 
-        <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 px-3.5 py-1.5 rounded-2xl text-xs font-bold text-amber-900">
-          <Award className="w-4 h-4 text-amber-600" />
-          <span>Tiến độ: {passedCount} / {waypoints.length} mốc câu hỏi</span>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => setShowFinalSummary(true)}
+            className="flex items-center space-x-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-3.5 py-1.5 rounded-2xl text-xs font-extrabold text-amber-900 transition cursor-pointer shadow-2xs"
+          >
+            <Award className="w-4 h-4 text-amber-600" />
+            <span>Tiến độ: {passedCount} / {waypoints.length} mốc (Xem Bảng Điểm)</span>
+          </button>
         </div>
       </div>
 
@@ -734,7 +755,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                 </div>
               )}
 
-              {/* DẠNG 1: MULTIPLE CHOICE */}
+              {/* DẠNG 1: MULTIPLE CHOICE (CUNG CẤP ĐÁP ÁN ĐÚNG NỔI BẬT THEO ẢNH media_1787545462843.png V82) */}
               {(activeQuiz.type === 'multiple_choice' || (!activeQuiz.type && activeQuiz.options?.length > 0)) && (
                 <div className="space-y-3" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
                   <h4 className="text-base font-extrabold text-slate-900 leading-snug">
@@ -743,44 +764,59 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                   <div className="space-y-2.5">
                     {activeQuiz.options?.map((opt, i) => {
                       const isSelected = selectedOpt === opt;
+                      const isCorrectAns = opt === activeQuiz.answer;
                       return (
                         <button
                           key={i}
                           type="button"
                           onClick={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
-                            if (quizFeedback?.success) return;
+                            if (quizFeedback) return;
                             setSelectedOpt(opt);
                           }}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (quizFeedback?.success) return;
-                            setSelectedOpt(opt);
-                          }}
-                          onMouseUp={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (quizFeedback?.success) return;
-                            setSelectedOpt(opt);
-                          }}
-                          onPointerDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (quizFeedback?.success) return;
-                            setSelectedOpt(opt);
-                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
                           style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                           className={`w-full p-4 rounded-2xl text-left text-sm font-extrabold border-2 transition cursor-pointer flex items-center justify-between shadow-xs ${
-                            isSelected
+                            quizFeedback
+                              ? isCorrectAns
+                                ? 'border-emerald-500 bg-emerald-100 text-emerald-900 ring-4 ring-emerald-400/40 shadow-lg scale-[1.02]'
+                                : isSelected
+                                ? 'border-rose-500 bg-rose-100 text-rose-900 ring-4 ring-rose-400/40 shadow-lg'
+                                : 'border-slate-200 bg-slate-50 text-slate-400 opacity-60'
+                              : isSelected
                               ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 scale-[1.02] shadow-lg'
                               : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-800'
                           }`}
                         >
-                          <span>{opt}</span>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-white bg-white text-blue-600' : 'border-slate-300'}`}>
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[4]" />}
+                          <div className="flex items-center space-x-2">
+                            <span>{opt}</span>
+                            {quizFeedback && isCorrectAns && (
+                              <span className="px-2 py-0.5 bg-emerald-200 text-emerald-950 rounded-md text-xs font-black">
+                                ✓ Đáp án đúng
+                              </span>
+                            )}
+                            {quizFeedback && isSelected && !isCorrectAns && (
+                              <span className="px-2 py-0.5 bg-rose-200 text-rose-950 rounded-md text-xs font-black">
+                                ✕ Lựa chọn của bạn - Sai
+                              </span>
+                            )}
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            quizFeedback
+                              ? isCorrectAns
+                                ? 'border-emerald-600 bg-emerald-600 text-white'
+                                : isSelected
+                                ? 'border-rose-600 bg-rose-600 text-white'
+                                : 'border-slate-300'
+                              : isSelected
+                              ? 'border-white bg-white text-blue-600'
+                              : 'border-slate-300'
+                          }`}>
+                            {quizFeedback ? (
+                              isCorrectAns ? <Check className="w-3.5 h-3.5 stroke-[4]" /> : isSelected ? <X className="w-3.5 h-3.5 stroke-[4]" /> : null
+                            ) : (
+                              isSelected && <Check className="w-3.5 h-3.5 stroke-[4]" />
+                            )}
                           </div>
                         </button>
                       );
@@ -788,11 +824,13 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                   </div>
 
                   {quizFeedback && (
-                    <div className={`p-4 rounded-2xl text-xs font-bold space-y-1 border ${
+                    <div className={`p-4 rounded-2xl text-xs font-bold space-y-1.5 border ${
                       quizFeedback.success ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'
                     }`}>
                       <p className="text-sm font-extrabold">{quizFeedback.msg}</p>
-                      {quizFeedback.details && <p className="text-[11px] font-semibold opacity-90">{quizFeedback.details}</p>}
+                      <p className="text-xs font-extrabold opacity-95">
+                        👉 Đáp án đúng chuẩn: <strong className="text-emerald-800 underline font-black text-sm">{activeQuiz.answer}</strong>
+                      </p>
                     </div>
                   )}
 
@@ -1029,6 +1067,111 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             </div>
           </div>
         )}
+
+        {/* OVERLAY BẢNG ĐIỂM TỔNG KẾT H5P KÈM SCORE RANGE FEEDBACK V82 */}
+        {showFinalSummary && (() => {
+          const total = waypoints.length || 1;
+          const percent = Math.round((passedCount / total) * 100);
+          const feedbackMsg = getScoreRangeFeedback(percent);
+
+          return (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{ zIndex: 99999, pointerEvents: 'auto', position: 'absolute' }}
+              className="inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 text-slate-900 animate-scale-up"
+            >
+              <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-slate-200 max-w-xl w-full shadow-2xl space-y-5 text-center select-text relative">
+                <button
+                  type="button"
+                  onClick={() => setShowFinalSummary(false)}
+                  className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer border border-slate-300"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="space-y-1">
+                  <span className="px-3.5 py-1 bg-amber-100 text-amber-900 font-black text-[11px] rounded-full inline-block">
+                    🏆 H5P INTERACTIVE VIDEO SUMMARY
+                  </span>
+                  <h3 className="text-xl font-black text-slate-900">
+                    Báo Cáo Mức Độ Hiểu Bài Học Phù Hợp Score Range
+                  </h3>
+                </div>
+
+                {/* THÔNG SỐ % & ĐÁNH GIÁ ĐIỂM */}
+                <div className="flex flex-col items-center justify-center space-y-3 bg-slate-50 border border-slate-200 p-5 rounded-2xl">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex flex-col items-center justify-center shadow-md">
+                    <span className="text-2xl font-black">{percent}%</span>
+                    <span className="text-[10px] font-bold opacity-90">{passedCount}/{total} đúng</span>
+                  </div>
+
+                  <div className="flex items-center space-x-1 text-amber-400 text-xl">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} className={i < Math.ceil((percent / 100) * 5) ? 'opacity-100' : 'opacity-30'}>★</span>
+                    ))}
+                  </div>
+
+                  {/* NHẬN XẾT CỦA GIÁO VIÊN THEO SCORE RANGE */}
+                  <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-amber-950 font-extrabold text-sm w-full text-center shadow-2xs">
+                    <p className="text-[11px] text-amber-700 font-bold mb-0.5">💬 Đánh giá theo Thang điểm Giáo viên (Score Range):</p>
+                    <p className="text-sm font-extrabold text-amber-950">{feedbackMsg}</p>
+                  </div>
+                </div>
+
+                {/* DANH SÁCH CÁC MỐC CÂU HỎI */}
+                <div className="space-y-1.5 text-left max-h-36 overflow-y-auto pr-1">
+                  <p className="text-xs font-bold text-slate-700">Chi tiết mốc câu hỏi:</p>
+                  {waypoints.map((w, idx) => {
+                    const isP = quizPassed[w.id || w.timeSec];
+                    return (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-slate-100 rounded-xl text-xs font-semibold">
+                        <span className="truncate max-w-[280px]">Mốc {w.timeSec}s: {w.question}</span>
+                        {isP ? (
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-black rounded-md flex items-center space-x-1 text-[11px]">
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Đúng</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-rose-100 text-rose-800 font-black rounded-md flex items-center space-x-1 text-[11px]">
+                            <X className="w-3.5 h-3.5 text-rose-600" />
+                            <span>Chưa đúng</span>
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center space-x-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuizPassed({});
+                      setPassedCount(0);
+                      setShowFinalSummary(false);
+                      setCurrentTime(0);
+                      playVideo();
+                    }}
+                    className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold rounded-2xl text-xs border border-slate-300 transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Làm lại từ đầu</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowFinalSummary(false)}
+                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Hoàn Thành Bài Học</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* THANH TIMELINE CHUẨN DUY NHẤT (SINGLE SOURCE OF TRUTH) DÍNH TRỰC TIẾP VÀO BOTTOM KHUNG VIDEO V76 */}
         <div
