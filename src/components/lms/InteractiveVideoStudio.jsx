@@ -390,7 +390,7 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
             <div className="relative bg-slate-950 rounded-3xl overflow-hidden shadow-2xl aspect-video w-full border-2 border-slate-800 flex items-center justify-center">
               {youtubeId ? (
                 <iframe
-                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&rel=0&cc_load_policy=0&iv_load_policy=3`}
+                  src={`https://www.youtube.com/embed/${youtubeId}?autoplay=0&controls=0&rel=0&cc_load_policy=0&iv_load_policy=3`}
                   title="Interactive Video Editor Player"
                   className="w-full h-full border-0"
                   allowFullScreen
