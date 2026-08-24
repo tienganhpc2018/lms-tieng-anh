@@ -105,68 +105,169 @@ const playSoundEffect = (type = 'correct') => {
   } catch (e) {}
 };
 
-// COMPONENT GAP-FILL / FILL IN THE BLANKS H5P CHUẨN KẾT QUẢ KHI BẤM CHECK V79
-const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs, onInputChange, quizFeedback, isSolutionVisible }) => {
+// COMPONENT H5P "DRAG THE WORDS" CHUẨN 100% THEO ẢNH 3 & ẢNH 4 media_1787547290494.png V85
+const DragTheWordsH5P = React.memo(({ textWithBlanks, extraWords = [], draggedAnswers, setDraggedAnswers, quizFeedback, isSolutionVisible }) => {
   const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
   const isChecked = quizFeedback !== null;
 
+  // DANH SÁCH TẤT CẢ CÁC TỪ DRAGGABLE CHIPS (GỒM ĐÁP ÁN + TỪ GÂY NHIỄU)
+  const allWordChips = useMemo(() => {
+    const combined = [...answers, ...extraWords].filter((w) => w && String(w).trim() !== '');
+    return combined;
+  }, [answers, extraWords]);
+
+  // TỪ CÒN LẠI TRONG NGÂN HÀNG TỪ
+  const availableChips = useMemo(() => {
+    const usedValues = Object.values(draggedAnswers);
+    const available = [];
+    const countMap = {};
+    usedValues.forEach((v) => { if (v) countMap[v] = (countMap[v] || 0) + 1; });
+
+    allWordChips.forEach((word) => {
+      if (countMap[word] > 0) {
+        countMap[word]--;
+      } else {
+        available.push(word);
+      }
+    });
+    return available;
+  }, [allWordChips, draggedAnswers]);
+
+  const [activeSelectedChip, setActiveSelectedChip] = useState(null);
+
+  const handleDropOnBlank = (blankIdx, word) => {
+    if (isChecked) return;
+    setDraggedAnswers((prev) => ({ ...prev, [blankIdx]: word }));
+    setActiveSelectedChip(null);
+  };
+
+  const handleRemoveFromBlank = (blankIdx) => {
+    if (isChecked) return;
+    setDraggedAnswers((prev) => {
+      const updated = { ...prev };
+      delete updated[blankIdx];
+      return updated;
+    });
+  };
+
   return (
-    <div className="space-y-4 text-left select-text" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
-      <div className="text-base sm:text-lg text-slate-900 leading-relaxed font-medium select-text">
-        {parts.map((item, pIdx) => {
-          if (item.type === 'text') {
-            return <span key={`text_${pIdx}`}>{item.content}</span>;
-          } else {
-            const userVal = (blankInputs[item.index] || '').trim();
-            const correctAns = answers[item.index] || item.answer || '';
-            const isCorrect = isChecked && userVal.toLowerCase() === correctAns.toLowerCase();
+    <div className="space-y-5 select-text" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+        {/* BÊN TRÁI: CÁC CÂU CÓ VÙNG THẢ DỰA THEO ẢNH 3 & 4 */}
+        <div className="md:col-span-8 space-y-3.5 text-base sm:text-lg text-slate-900 leading-relaxed font-medium">
+          {parts.map((item, pIdx) => {
+            if (item.type === 'text') {
+              return <span key={`dtw_text_${pIdx}`}>{item.content}</span>;
+            } else {
+              const userVal = draggedAnswers[item.index] || '';
+              const correctAns = answers[item.index] || item.answer || '';
+              const isCorrect = isChecked && userVal.toLowerCase() === correctAns.toLowerCase();
 
-            if (!isChecked) {
-              return (
-                <input
-                  key={`blank_input_${item.index}`}
-                  type="text"
-                  defaultValue={blankInputs[item.index] || ''}
-                  onInput={(e) => {
-                    onInputChange(item.index, e.target.value);
-                  }}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  onKeyUp={(e) => e.stopPropagation()}
-                  style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
-                  className="mx-1 px-3 py-1.5 border-2 border-slate-300 focus:border-blue-600 rounded-md text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none inline-block min-w-[100px] text-center shadow-xs align-baseline select-text cursor-text"
-                />
-              );
-            }
+              if (!isChecked) {
+                return (
+                  <span
+                    key={`dtw_blank_${item.index}`}
+                    onClick={() => {
+                      if (activeSelectedChip) {
+                        handleDropOnBlank(item.index, activeSelectedChip);
+                      } else if (userVal) {
+                        handleRemoveFromBlank(item.index);
+                      }
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const droppedWord = e.dataTransfer.getData('text/plain');
+                      if (droppedWord) handleDropOnBlank(item.index, droppedWord);
+                    }}
+                    className={`inline-flex items-center justify-center mx-1 px-4 py-1.5 rounded-lg border-2 border-dashed transition cursor-pointer text-sm font-bold align-baseline min-w-[110px] shadow-2xs ${
+                      userVal
+                        ? 'bg-blue-100 border-blue-500 text-blue-950 shadow-xs'
+                        : activeSelectedChip
+                        ? 'bg-amber-100 border-amber-400 text-amber-950 animate-pulse'
+                        : 'bg-sky-100/70 border-sky-300 text-sky-700 hover:bg-sky-200/80'
+                    }`}
+                  >
+                    {userVal ? (
+                      <span className="flex items-center space-x-1">
+                        <span>{userVal}</span>
+                        <X className="w-3.5 h-3.5 text-blue-700 hover:text-rose-600 ml-1" />
+                      </span>
+                    ) : (
+                      <span className="text-sky-600 font-normal italic text-xs">Thả từ vào đây...</span>
+                    )}
+                  </span>
+                );
+              }
 
-            if (isCorrect) {
+              if (isCorrect) {
+                return (
+                  <span key={`dtw_blank_${item.index}`} className="inline-flex items-center mx-1 px-3 py-1 rounded-lg bg-emerald-100 text-emerald-900 font-bold border-2 border-emerald-400 text-sm align-baseline shadow-xs">
+                    <span>{userVal}</span>
+                    <span className="ml-1.5 text-emerald-600 font-black text-xs">✓</span>
+                  </span>
+                );
+              }
+
               return (
-                <span key={`blank_input_${item.index}`} className="inline-flex items-center mx-1 px-3 py-1 rounded-md bg-emerald-100 text-emerald-900 font-bold border-2 border-emerald-400 text-sm align-baseline shadow-xs">
-                  <span>{userVal}</span>
-                  <span className="ml-1 text-emerald-600 font-black text-xs">✓</span>
+                <span key={`dtw_blank_${item.index}`} className="inline-flex items-center mx-1 align-baseline space-x-1.5">
+                  <span className="inline-flex items-center px-3 py-1 rounded-lg bg-rose-100 text-rose-900 font-bold border-2 border-rose-400 text-sm shadow-xs">
+                    <span className="line-through">{userVal || '___'}</span>
+                    <span className="ml-1.5 text-rose-600 font-black text-xs">✕</span>
+                  </span>
+                  {isSolutionVisible ? (
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-emerald-100 text-emerald-900 font-bold border-2 border-emerald-400 text-sm animate-scale-up shadow-xs">
+                      <span>{correctAns}</span>
+                      <span className="ml-1.5 text-emerald-600 font-black text-xs">✓</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-slate-600 italic">
+                      (Từ đúng: <strong className="text-emerald-700 font-extrabold">{correctAns}</strong>)
+                    </span>
+                  )}
                 </span>
               );
             }
+          })}
+        </div>
 
-            return (
-              <span key={`blank_input_${item.index}`} className="inline-flex items-center mx-1 align-baseline space-x-1.5">
-                <span className="inline-flex items-center px-3 py-1 rounded-md bg-rose-100 text-rose-900 font-bold border-2 border-rose-400 text-sm shadow-xs">
-                  <span className="line-through">{userVal || '___'}</span>
-                  <span className="ml-1 text-rose-600 font-black text-xs">✕</span>
-                </span>
-                {isSolutionVisible ? (
-                  <span className="inline-flex items-center px-3 py-1 rounded-md bg-emerald-100 text-emerald-900 font-bold border-2 border-emerald-400 text-sm animate-scale-up shadow-xs">
-                    <span>{correctAns}</span>
-                    <span className="ml-1 text-emerald-600 font-black text-xs">✓</span>
-                  </span>
-                ) : (
-                  <span className="text-xs font-bold text-slate-600 italic">
-                    (Từ đúng: <strong className="text-emerald-700 font-extrabold">{correctAns}</strong>)
-                  </span>
-                )}
-              </span>
-            );
-          }
-        })}
+        {/* BÊN PHẢI: KHUNG NGÂN HÀNG CÁC TỪ KÉO THẢ (WORD BANK CHUẨN ẢNH 3 & 4) */}
+        <div className="md:col-span-4 bg-slate-100 p-4 rounded-2xl border border-slate-200 space-y-2.5">
+          <h5 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider text-left">
+            🏷️ Drag Words (Nhấp hoặc Kéo từ)
+          </h5>
+          <div className="flex flex-col space-y-2">
+            {availableChips.length > 0 ? (
+              availableChips.map((word, wIdx) => {
+                const isSelected = activeSelectedChip === word;
+                return (
+                  <div
+                    key={`chip_${wIdx}`}
+                    draggable={!isChecked}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', word);
+                    }}
+                    onClick={() => {
+                      if (isChecked) return;
+                      setActiveSelectedChip(isSelected ? null : word);
+                    }}
+                    className={`px-4 py-2 rounded-xl text-sm font-extrabold border-2 transition cursor-grab active:cursor-grabbing text-center shadow-xs select-none ${
+                      isSelected
+                        ? 'bg-amber-400 border-amber-600 text-slate-950 ring-4 ring-amber-300 scale-105 shadow-md'
+                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-300 hover:border-blue-500'
+                    }`}
+                  >
+                    <span>{word}</span>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-xs font-bold text-slate-400 italic text-center py-2">
+                Đã kéo tất cả các từ vào bài làm
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -206,6 +307,14 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       options: ['Police officer', 'Doctor', 'Vet'],
       answer: 'Police officer',
     },
+    {
+      id: 'wp4',
+      timeSec: 113,
+      type: 'drag_drop',
+      question: 'What are the colors of these berries when they are ripe?',
+      textWithBlanks: 'Blueberries are *blue*.\nStrawberries are *red*.\nCloudberries are *orange*.',
+      options: ['green'],
+    },
   ];
 
   const [activeQuiz, setActiveQuiz] = useState(null);
@@ -213,6 +322,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const [blankInputs, setBlankInputs] = useState({});
   const [trueFalseChoice, setTrueFalseChoice] = useState(null);
   const [selectedMarkWords, setSelectedMarkWords] = useState([]);
+  const [draggedAnswers, setDraggedAnswers] = useState({});
 
   const [quizPassed, setQuizPassed] = useState({});
   const [quizFeedback, setQuizFeedback] = useState(null);
@@ -508,6 +618,31 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
         correctCount,
         totalCount: answers.length || 1,
       });
+    } else if (activeQuiz.type === 'drag_drop') {
+      const { answers } = parseFillBlanksText(activeQuiz.textWithBlanks || '');
+      let isAllCorrect = true;
+      let correctCount = 0;
+
+      answers.forEach((ans, idx) => {
+        const userTyped = (draggedAnswers[idx] || '').trim();
+        if (userTyped.toLowerCase() === ans.toLowerCase()) {
+          correctCount++;
+        } else {
+          isAllCorrect = false;
+        }
+      });
+
+      if (isAllCorrect) {
+        playSoundEffect('correct');
+      } else {
+        playSoundEffect('incorrect');
+      }
+
+      setQuizFeedback({
+        success: isAllCorrect,
+        correctCount,
+        totalCount: answers.length || 1,
+      });
     } else if (activeQuiz.type === 'mark_word') {
       const correctWords = activeQuiz.correctWords || [];
       const isMatch = selectedMarkWords.length === correctWords.length && selectedMarkWords.every((w) => correctWords.includes(w));
@@ -535,6 +670,7 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
     setBlankInputs({});
     setTrueFalseChoice(null);
     setSelectedMarkWords([]);
+    setDraggedAnswers({});
     setQuizFeedback(null);
     setIsSolutionVisible(false);
     playVideo();
@@ -1088,6 +1224,131 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                       </button>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* DẠNG 5: DRAG THE WORDS (KÉO THẢ TỪ VÀO CÂU CHUẨN ẢNH 3 & 4 media_1787547290494.png V85) */}
+              {activeQuiz.type === 'drag_drop' && (
+                <div className="space-y-4 select-text" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
+                  <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug border-b border-slate-100 pb-3">
+                    {activeQuiz.question || 'What are the colors of these berries when they are ripe?'}
+                  </h3>
+
+                  <DragTheWordsH5P
+                    textWithBlanks={activeQuiz.textWithBlanks}
+                    extraWords={activeQuiz.options || []}
+                    draggedAnswers={draggedAnswers}
+                    setDraggedAnswers={setDraggedAnswers}
+                    quizFeedback={quizFeedback}
+                    isSolutionVisible={isSolutionVisible}
+                  />
+
+                  {/* THỐNG KÊ SỐ LỖI ĐÚNG / SAI CÂU KÉO THẢ TỪ */}
+                  {quizFeedback && (
+                    <p className="text-blue-600 font-extrabold text-base pt-1 select-text text-left">
+                      Score: {quizFeedback.correctCount} of {quizFeedback.totalCount}.
+                    </p>
+                  )}
+
+                  {/* THANH THỐNG KÊ NGÔI SAO & BỘ NÚT ĐIỀU KHIỂN CHUẨN H5P ẢNH 4 */}
+                  {quizFeedback ? (
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
+                      <div className="flex items-center space-x-2 bg-slate-100 px-4 py-2 rounded-full border border-slate-200 shadow-2xs">
+                        <div className="w-24 bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-blue-600 h-full transition-all"
+                            style={{ width: `${(quizFeedback.correctCount / quizFeedback.totalCount) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-amber-500 font-black text-lg">⭐</span>
+                        <span className="text-slate-800 font-extrabold text-sm">
+                          {quizFeedback.correctCount}/{quizFeedback.totalCount}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-2.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsSolutionVisible(!isSolutionVisible);
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
+                          className={`px-4 py-2 rounded-full font-extrabold text-xs transition cursor-pointer shadow-md flex items-center space-x-1.5 ${
+                            isSolutionVisible ? 'bg-blue-700 text-white ring-4 ring-blue-300' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          }`}
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>Show Solution</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDraggedAnswers({});
+                            setQuizFeedback(null);
+                            setIsSolutionVisible(false);
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-xs transition cursor-pointer shadow-md flex items-center space-x-1.5"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          <span>Retry</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCloseAndContinue();
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
+                          className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition cursor-pointer shadow-md animate-pulse"
+                        >
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCheckAnswer();
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
+                        className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Check</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseAndContinue();
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
+                        className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-full text-sm shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                        <span>Continue</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
