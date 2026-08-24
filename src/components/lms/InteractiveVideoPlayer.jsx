@@ -670,22 +670,39 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                           key={i}
                           type="button"
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             if (quizFeedback?.success) return;
                             setSelectedOpt(opt);
                           }}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (quizFeedback?.success) return;
+                            setSelectedOpt(opt);
+                          }}
+                          onMouseUp={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (quizFeedback?.success) return;
+                            setSelectedOpt(opt);
+                          }}
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (quizFeedback?.success) return;
+                            setSelectedOpt(opt);
+                          }}
                           style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                           className={`w-full p-4 rounded-2xl text-left text-sm font-extrabold border-2 transition cursor-pointer flex items-center justify-between shadow-xs ${
                             isSelected
-                              ? 'border-blue-600 bg-blue-50 text-blue-900 ring-4 ring-blue-500/20 scale-[1.01]'
-                              : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                              ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 scale-[1.02] shadow-lg'
+                              : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-800'
                           }`}
                         >
                           <span>{opt}</span>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300'}`}>
-                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-white bg-white text-blue-600' : 'border-slate-300'}`}>
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[4]" />}
                           </div>
                         </button>
                       );
@@ -747,16 +764,30 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     <button
                       type="button"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         setTrueFalseChoice(true);
                       }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setTrueFalseChoice(true);
+                      }}
+                      onMouseUp={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setTrueFalseChoice(true);
+                      }}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setTrueFalseChoice(true);
+                      }}
                       style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                       className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === true
                           ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
-                          : 'border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800'
+                          : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-800'
                       }`}
                     >
                       <span>✓ True (Đúng)</span>
@@ -765,16 +796,30 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
                     <button
                       type="button"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         setTrueFalseChoice(false);
                       }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setTrueFalseChoice(false);
+                      }}
+                      onMouseUp={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setTrueFalseChoice(false);
+                      }}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setTrueFalseChoice(false);
+                      }}
                       style={{ pointerEvents: 'auto', position: 'relative', zIndex: 99999 }}
                       className={`p-4 rounded-2xl border-2 font-extrabold text-sm transition cursor-pointer text-center flex items-center justify-center space-x-2 ${
                         trueFalseChoice === false
                           ? 'border-blue-600 bg-blue-600 text-white ring-4 ring-blue-400/40 shadow-lg scale-[1.03]'
-                          : 'border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800'
+                          : 'border-slate-300 bg-white hover:bg-slate-100 text-slate-800'
                       }`}
                     >
                       <span>✕ False (Sai)</span>
