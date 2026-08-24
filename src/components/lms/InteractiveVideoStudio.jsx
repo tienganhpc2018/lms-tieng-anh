@@ -531,65 +531,17 @@ export default function InteractiveVideoStudio({ initialSettings = {}, onSave })
                       />
                     </div>
 
-                    <div className="space-y-3">
-                      <div className="bg-blue-600 text-white px-3 py-2 rounded-t-xl text-xs font-bold flex justify-between items-center">
-                        <span>Line of text</span>
-                        <div className="flex items-center space-x-1">
-                          <button type="button" onClick={() => setTextWithBlanks('')} className="hover:opacity-80">
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* NÚT "i Show instructions" VÀ KHUNG INSTRUCTIONS CÓ NÚT "✖ Hide" CHUẨN ĐÚNG ẢNH 1 & ẢNH 2 */}
-                      {!showInstructions ? (
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => setShowInstructions(true)}
-                            className="px-3 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-950 rounded-lg text-xs font-extrabold transition cursor-pointer flex items-center space-x-1 border border-amber-300 shadow-2xs"
-                          >
-                            <span>ℹ️ Show instructions</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-xs space-y-1.5 text-amber-900 relative animate-fade-in">
-                          <div className="flex justify-between items-center border-b border-amber-200/60 pb-1.5">
-                            <div className="font-extrabold flex items-center space-x-1 text-amber-950">
-                              <span>ℹ️ Important instructions</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setShowInstructions(false)}
-                              className="px-2 py-0.5 bg-amber-200 hover:bg-amber-300 text-amber-950 rounded-md text-[11px] font-extrabold transition cursor-pointer flex items-center space-x-0.5 border border-amber-300"
-                            >
-                              <X className="w-3 h-3" />
-                              <span>Hide</span>
-                            </button>
-                          </div>
-                          <ul className="list-disc list-inside text-[11px] space-y-1 text-amber-850 font-medium pt-1">
-                            <li>Blanks are added with an asterisk (*) in front and behind the correct word/phrase.</li>
-                            <li>Alternative answers are separated with a forward slash (/).</li>
-                            <li>You may add a textual tip, using a colon (:) in front of the tip.</li>
-                          </ul>
-                          <div className="bg-emerald-100 border border-emerald-300 p-2 rounded-lg text-[11px] font-mono text-emerald-900 mt-1">
-                            <strong>Example:</strong> H5P content may be edited using a *browser/web-browser:Something you use every day*.
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-800 mb-1">
-                          Text blocks <span className="text-rose-500">*</span>
-                        </label>
-                        <textarea
-                          rows={3}
-                          value={textWithBlanks}
-                          onChange={(e) => setTextWithBlanks(e.target.value)}
-                          placeholder="Oslo is the capital of *Norway*."
-                          className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-mono bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Text blocks <span className="text-rose-500">*</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={textWithBlanks}
+                        onChange={(e) => setTextWithBlanks(e.target.value)}
+                        placeholder="Oslo is the capital of *Norway*."
+                        className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs font-mono bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      />
                     </div>
                   </div>
                 )}
