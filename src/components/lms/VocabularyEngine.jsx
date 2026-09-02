@@ -1169,36 +1169,54 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
   const [aiStoryData, setAiStoryData] = useState(null);
   const [generatingStory, setGeneratingStory] = useState(false);
-      // HELPER HIGHLIGHT TARGET VOCABULARY WORDS IN AI STORY EN & VI
+      // HELPER HIGHLIGHT TARGET VOCABULARY WORDS IN AI STORY EN & VI (100% NULL-SAFE)
   const renderHighlightedStoryText = (text, list) => {
     if (!text) return null;
-    if (!list || list.length === 0) return text;
+    if (!list || !Array.isArray(list) || list.length === 0) return text;
 
-    const wordList = list.slice(0, 10).map((i) => i.word.toLowerCase().trim()).filter(Boolean);
-    const meaningList = list.slice(0, 10).map((i) => i.meaning.toLowerCase().trim()).filter(Boolean);
+    const wordList = list
+      .slice(0, 10)
+      .map((i) => (i && i.word ? String(i.word).toLowerCase().trim() : ''))
+      .filter(Boolean);
+
+    const meaningList = list
+      .slice(0, 10)
+      .map((i) => (i && i.meaning ? String(i.meaning).toLowerCase().trim() : ''))
+      .filter(Boolean);
+
     const allTargets = [...new Set([...wordList, ...meaningList])];
 
     if (allTargets.length === 0) return text;
 
-    const escaped = allTargets.map((w) => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\const handleGenerateAiVocabStory = async () => {')).join('|');
-    const regex = new RegExp(`(\\b${escaped}\\b)`, 'gi');
+    try {
+      const escaped = allTargets
+        .map((w) => (w ? String(w).replace(/[-/\^$*+?.()|[]{}]/g, '\const handleGenerateAiVocabStory = async () => {') : ''))
+        .filter(Boolean)
+        .join('|');
 
-    const parts = text.split(regex);
+      if (!escaped) return text;
 
-    return parts.map((part, index) => {
-      const isMatch = allTargets.includes(part.toLowerCase());
-      if (isMatch) {
-        return (
-          <mark
-            key={index}
-            className="bg-amber-300 text-slate-950 font-black px-1.5 py-0.5 rounded-md shadow-2xs border border-amber-400 font-mono inline-block mx-0.5 hover:scale-110 transition transform"
-          >
-            {part}
-          </mark>
-        );
-      }
-      return part;
-    });
+      const regex = new RegExp('(' + escaped + ')', 'gi');
+      const parts = text.split(regex);
+
+      return parts.map((part, index) => {
+        if (!part) return null;
+        const isMatch = allTargets.includes(part.toLowerCase());
+        if (isMatch) {
+          return (
+            <mark
+              key={index}
+              className="bg-amber-300 text-slate-950 font-black px-1.5 py-0.5 rounded-md shadow-2xs border border-amber-400 font-mono inline-block mx-0.5 hover:scale-110 transition transform"
+            >
+              {part}
+            </mark>
+          );
+        }
+        return part;
+      });
+    } catch (e) {
+      return text;
+    }
   };
 
   const handleGenerateAiVocabStory = async () => {
@@ -1567,8 +1585,8 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
       return false;
     }
     const matchSearch =
-      item.word.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.meaning.toLowerCase().includes(searchQuery.toLowerCase());
+      (item && item.word ? String(item.word).toLowerCase() : '').includes(searchQuery.toLowerCase()) ||
+      (item && item.meaning ? String(item.meaning).toLowerCase() : '').includes(searchQuery.toLowerCase());
     const matchUnit = selectedUnit === 'All' || item.unit === selectedUnit;
     const matchSection = selectedSection === 'All' || item.section === selectedSection;
     const matchPos = selectedPos === 'All' || item.pos === selectedPos;
@@ -2943,7 +2961,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
       }
       const fallbackClues = activeScopeList.map((item) => ({
         word: item.word,
-        clue: CROSSWORD_CLUES_DICT[item.word.toLowerCase()] || `An important English vocabulary term in our lesson topic: ${item.meaning}.`,
+        clue: CROSSWORD_CLUES_DICT[(item && item.word ? String(item.word).toLowerCase() : '')] || `An important English vocabulary term in our lesson topic: ${item.meaning}.`,
         hint: `(${item.word.replace(/\s+/g, '').length})`,
       }));
       const autoGridClues = buildAutoCrosswordLayout(fallbackClues);
@@ -3602,8 +3620,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     </div>
                     {showPhonetic && (
                       <div className="text-sm font-mono font-bold text-slate-600 pl-1">
-                        {(!currentItem.phonetic || currentItem.phonetic === '/' + currentItem.word + '/' || currentItem.phonetic === '/' + currentItem.word.toLowerCase() + '/')
-                          ? (STATIC_IPA_DICT[currentItem.word.toLowerCase()] || currentItem.phonetic || `/${currentItem.word}/`)
+                        {(!currentItem.phonetic || currentItem.phonetic === '/' + currentItem.word + '/' || currentItem.phonetic === '/' + (currentItem && currentItem.word ? String(currentItem.word).toLowerCase() : '') + '/')
+                          ? (STATIC_IPA_DICT[(currentItem && currentItem.word ? String(currentItem.word).toLowerCase() : '')] || currentItem.phonetic || `/${currentItem.word}/`)
                           : currentItem.phonetic
                         }
                       </div>
@@ -3626,8 +3644,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                       )}
                     {showMeaning && (
                       <div className="p-3.5 bg-amber-50/80 rounded-2xl border-2 border-amber-300 shadow-xs text-slate-900 font-extrabold text-base sm:text-lg">
-                        {(!currentItem.meaning || currentItem.meaning.toLowerCase() === currentItem.word.toLowerCase() || currentItem.meaning.includes('(nghĩa tự động)') || currentItem.meaning.includes('(nghĩa mới)'))
-                          ? (STATIC_VOCAB_DICT[currentItem.word.toLowerCase()] || currentItem.meaning || currentItem.word)
+                        {(!currentItem.meaning || (currentItem && currentItem.meaning ? String(currentItem.meaning).toLowerCase() : '') === (currentItem && currentItem.word ? String(currentItem.word).toLowerCase() : '') || currentItem.meaning.includes('(nghĩa tự động)') || currentItem.meaning.includes('(nghĩa mới)'))
+                          ? (STATIC_VOCAB_DICT[(currentItem && currentItem.word ? String(currentItem.word).toLowerCase() : '')] || currentItem.meaning || currentItem.word)
                           : currentItem.meaning
                         }
                       </div>
@@ -4572,7 +4590,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                               <span>{item.clue}</span>
                               {showTeacherAnswers && (
                                 <span className="ml-1 font-extrabold text-emerald-600 underline decoration-emerald-500 decoration-2">
-                                  {item.word.toLowerCase()}
+                                  {(item && item.word ? String(item.word).toLowerCase() : '')}
                                 </span>
                               )}
                               <span className="font-bold text-sky-600 ml-1">{item.hint}</span>
@@ -4675,7 +4693,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                               <span>{item.clue}</span>
                               {showTeacherAnswers && (
                                 <span className="ml-1 font-extrabold text-emerald-600 underline decoration-emerald-500 decoration-2">
-                                  {item.word.toLowerCase()}
+                                  {(item && item.word ? String(item.word).toLowerCase() : '')}
                                 </span>
                               )}
                               <span className="font-bold text-sky-600 ml-1">{item.hint}</span>
@@ -5478,7 +5496,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
           </div>
         </div>
       )}
-      {/* AI VOCAB STORYTELLER MODAL - V213 HIGHLIGHT + AUDIO UK + REGENERATE */}
+      {/* AI VOCAB STORYTELLER MODAL - V214 HIGHLIGHT + AUDIO UK + REGENERATE + NULL-SAFE */}
       {aiStoryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in">
           <div className="bg-white rounded-3xl p-6 max-w-2xl w-full border-4 border-purple-500 shadow-2xl space-y-5 text-slate-900">
