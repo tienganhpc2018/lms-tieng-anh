@@ -841,8 +841,14 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       });
     }
   };
-        // GRANULAR PER-GAME LOCK CONTROL STATE FOR TEACHER (LOCALSTORAGE PRIORITY 100%)
+          // GRANULAR PER-GAME LOCK CONTROL STATE (SUPABASE DB PRIORITY 100%)
   const [individualGameLocks, setIndividualGameLocks] = useState(() => {
+    if (activity?.settings?.individualGameLocks && typeof activity.settings.individualGameLocks === 'object') {
+      return activity.settings.individualGameLocks;
+    }
+    if (settings?.individualGameLocks && typeof settings.individualGameLocks === 'object') {
+      return settings.individualGameLocks;
+    }
     try {
       const saved = localStorage.getItem('vocab_indiv_locks_' + (activity?.id || 'default'));
       if (saved) {
@@ -850,12 +856,6 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
         if (parsed && typeof parsed === 'object') return parsed;
       }
     } catch (e) {}
-    if (activity?.settings?.individualGameLocks && typeof activity.settings.individualGameLocks === 'object') {
-      return activity.settings.individualGameLocks;
-    }
-    if (settings?.individualGameLocks && typeof settings.individualGameLocks === 'object') {
-      return settings.individualGameLocks;
-    }
     return {
       memory_game: false,
       spelling_game: false,
@@ -908,8 +908,14 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     setActiveTab(tabKey);
   };
   const [isLockConfigModalOpen, setIsLockConfigModalOpen] = useState(false);
-            // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (LOCALSTORAGE PRIORITY 100%)
+              // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (SUPABASE DB PRIORITY 100%)
   const [individualSectionLocks, setIndividualSectionLocks] = useState(() => {
+    if (activity?.settings?.individualSectionLocks && typeof activity.settings.individualSectionLocks === 'object') {
+      return activity.settings.individualSectionLocks;
+    }
+    if (settings?.individualSectionLocks && typeof settings.individualSectionLocks === 'object') {
+      return settings.individualSectionLocks;
+    }
     try {
       const saved = localStorage.getItem('vocab_section_locks_' + (activity?.id || 'default'));
       if (saved) {
@@ -917,12 +923,6 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
         if (parsed && typeof parsed === 'object') return parsed;
       }
     } catch (e) {}
-    if (activity?.settings?.individualSectionLocks && typeof activity.settings.individualSectionLocks === 'object') {
-      return activity.settings.individualSectionLocks;
-    }
-    if (settings?.individualSectionLocks && typeof settings.individualSectionLocks === 'object') {
-      return settings.individualSectionLocks;
-    }
     return {
       'GETTING STARTED': false,
       'A CLOSER LOOK 1': false,
@@ -1136,6 +1136,16 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   };
   
   
+
+    // REAL-TIME SECURITY SYNC FROM SUPABASE DATABASE FOR LOCKS & HIDE STATES
+  useEffect(() => {
+    if (activity?.settings?.individualSectionLocks && typeof activity.settings.individualSectionLocks === 'object') {
+      setIndividualSectionLocks(activity.settings.individualSectionLocks);
+    }
+    if (activity?.settings?.individualGameLocks && typeof activity.settings.individualGameLocks === 'object') {
+      setIndividualGameLocks(activity.settings.individualGameLocks);
+    }
+  }, [JSON.stringify(activity?.settings?.individualSectionLocks), JSON.stringify(activity?.settings?.individualGameLocks)]);
 
   // BOOKMARKED WORDS STATE
   const [bookmarkedIds, setBookmarkedIds] = useState(() => {
