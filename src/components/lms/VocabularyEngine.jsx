@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Clipboard,
-  Camera, BookOpen, Volume2, Mic, Search, ChevronLeft, ChevronRight, Play, Pause, Settings, Plus, Trash2, Edit3, Check, X, Eye, Image as ImageIcon, Sparkles, Filter, RefreshCw, CheckSquare, Square, Star, Award, Zap, Trophy, HelpCircle, Gamepad2, RotateCcw, Flame, CheckCircle, AlertCircle, Bot, Music, Upload, User, UserCheck, Smile, Languages, Grid, Layers, HelpCircle as HelpIcon, ArrowRight, ArrowLeft, Clock, ShieldCheck, Crown, Compass, MapPin, Flag, Swords, Lightbulb, Printer, BookMarked, Sparkle, School, GraduationCap, EyeOff, Copy, Lock, Unlock } from 'lucide-react';
+  Camera, BookOpen, Volume2, Mic, Search, ChevronLeft, ChevronRight, Play, Pause, Settings, Plus, Trash2, Edit3, Check, X, Eye, ImageIcon, Sparkles, Filter, RefreshCw, CheckSquare, Square, Star, Award, Zap, Trophy, HelpCircle, Gamepad2, RotateCcw, Flame, CheckCircle, AlertCircle, Bot, Music, Upload, User, UserCheck, Smile, Languages, Grid, Layers, ArrowRight, ArrowLeft, Clock, ShieldCheck, Crown, Compass, MapPin, Flag, Swords, Lightbulb, Printer, BookMarked, Sparkle, School, GraduationCap, EyeOff, Copy, Lock, Unlock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { uploadLMSFile } from '../../lib/supabase';
 // =============================================================================
@@ -746,8 +746,7 @@ const GLOBAL_SUCCESS_PRESETS = {
     ]
   }
 };
-export default function VocabularyEngine({ activity, isTeacher: isTeacherProp = true, onSaveActivity }) {
-  const isTeacher = !!isTeacherProp;
+export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }) {
   const { user } = useAuth();
   const settings = activity?.settings || {};
   // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
@@ -775,9 +774,21 @@ export default function VocabularyEngine({ activity, isTeacher: isTeacherProp = 
     const firstUnitKey = Object.keys(presetsForGrade)[0];
     return presetsForGrade[firstUnitKey] || GLOBAL_SUCCESS_PRESETS['Lớp 7']['Unit 1: Hobbies'];
   });
-    // TEACHER CONTROLS FOR LOCKING/UNLOCKING GAMES AND LESSON SECTIONS FOR STUDENTS (DEFAULT ALL UNLOCKED)
-  const [lockGamesForStudents, setLockGamesForStudents] = useState(false);
-  const [lockAheadLessonsForStudents, setLockAheadLessonsForStudents] = useState(false);
+  // TEACHER CONTROLS FOR LOCKING/UNLOCKING GAMES AND LESSON SECTIONS FOR STUDENTS
+  const [lockGamesForStudents, setLockGamesForStudents] = useState(() => {
+    try {
+      if (typeof settings.lockGamesForStudents === 'boolean') {
+        return settings.lockGamesForStudents;
+      }
+      const saved = localStorage.getItem(`vocab_lock_all_games_${activity?.id || 'default'}`);
+      return saved ? JSON.parse(saved) : false;
+    } catch (e) {
+      return false;
+    }
+  });
+  const [lockAheadLessonsForStudents, setLockAheadLessonsForStudents] = useState(
+    () => settings.lockAheadLessonsForStudents || false
+  );
   const handleToggleLockGames = () => {
     const nextVal = !lockGamesForStudents;
     setLockGamesForStudents(nextVal);
@@ -866,7 +877,7 @@ export default function VocabularyEngine({ activity, isTeacher: isTeacherProp = 
     setActiveTab(tabKey);
   };
   const [isLockConfigModalOpen, setIsLockConfigModalOpen] = useState(false);
-          // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (ALWAYS UNLOCKED BY DEFAULT)
+        // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (ALWAYS UNLOCKED BY DEFAULT)
   const [individualSectionLocks, setIndividualSectionLocks] = useState({
     'GETTING STARTED': false,
     'A CLOSER LOOK 1': false,
@@ -915,10 +926,15 @@ export default function VocabularyEngine({ activity, isTeacher: isTeacherProp = 
 
   const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
 
-      const isSectionLockedForStudent = (secName) => {
+    const isSectionLockedForStudent = (secName) => {
+    if (effectiveIsTeacher) return false;
     if (!secName || secName === 'All') return false;
+
+    // ONLY lock if Teacher explicitly set individualSectionLocks[secName] === true!
     if (individualSectionLocks[secName] === true) return true;
-    return false; // Default 100% UNLOCKED & OPEN FOR ALL STUDENTS!
+
+    // DEFAULT 100% UNLOCKED AND ACCESSIBLE TO STUDENTS FOR ALL LESSONS!
+    return false;
   };
 
   // FEATURE 2: DUPLICATE GAME PRESET (NHÂN BẢN GAME DỄ DÀNG CHO CÁC LỚP KHÁC)
@@ -1061,7 +1077,7 @@ export default function VocabularyEngine({ activity, isTeacher: isTeacherProp = 
   // OPEN TRANSLATIONS STATE FOR EXAMPLE SENTENCES
   const [openTranslations, setOpenTranslations] = useState({});
   const [asyncTranslations, setAsyncTranslations] = useState({});
-  const toggleTranslation = async (idx, textEn) => {
+  const toggleTranslation = (idx) => {
     setOpenTranslations((prev) => ({
       ...prev,
       [idx]: !prev[idx],
@@ -3911,29 +3927,13 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   )}
                 </button>
 
-                {/* NÚT KHÓA / MỞ NỔI BẬT DÀNH CHO GIÁO VIÊN NẰM TRỰC TIẾP TRÊN NÚT MỖI TIẾT HỌC */}
-                {sec.fullSec !== 'All' && (
-                  <button
-                    type="button"
-                    onClick={(e) => handleToggleIndividualSectionLock(sec.fullSec, e)}
-                    className={`ml-1 px-1.5 py-1 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center space-x-0.5 border shrink-0 ${
-                      isLocked
-                        ? 'bg-rose-600 text-white hover:bg-rose-700 border-rose-400 ring-1 ring-rose-300 shadow-sm'
-                        : 'bg-slate-800 text-amber-300 hover:bg-slate-700 border-slate-600'
-                    }`}
-                    title={isLocked ? `Mở khóa tiết học ${sec.name} cho HS` : `Khóa tiết học ${sec.name} không cho HS xem trước`}                  >
-                    {isLocked ? <Lock className="w-3 h-3 text-white" /> : <Unlock className="w-3 h-3 text-emerald-400" />}
-                    <span>{isLocked ? '🔒 Đã Khóa' : '🔓 Đã Mở'}</span>
-                  </button>
-                )}
               </div>
             );
           })}
         </div>
       </div>
 
-
-      {/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
+{/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
       {(activeTab === 'dictionary' || activeTab === 'bookmarks') && (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-4 lg:col-span-3 bg-amber-100/90 rounded-2xl p-2.5 border-2 border-amber-300 shadow-inner flex flex-col justify-between max-h-[580px]">
