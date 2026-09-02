@@ -269,7 +269,8 @@ export default function AssignmentView() {
       if (error) throw error;
       if (data) {
         setActivity(data);
-        alert('✓ Đã lưu danh sách Từ Vựng Glossary H5P thành công!');
+        // Silent default alert when auto-saving vocabulary settings
+        console.log('Saved vocab settings to DB');
       }
     } catch (err) {
       alert('❌ Lỗi lưu từ vựng: ' + err.message);

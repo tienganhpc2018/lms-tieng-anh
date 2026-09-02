@@ -841,13 +841,15 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
 
   const handleToggleIndividualSectionLock = (secName) => {
+    const willBeLocked = !individualSectionLocks[secName];
     const updatedLocks = {
       ...individualSectionLocks,
-      [secName]: !individualSectionLocks[secName],
+      [secName]: willBeLocked,
     };
     setIndividualSectionLocks(updatedLocks);
     localStorage.setItem(`vocab_section_locks_${activity?.id || 'default'}`, JSON.stringify(updatedLocks));
     playSuccessSound();
+    alert(willBeLocked ? `🔒 Đã KHÓA tiết học '${secName}' thành công cho Học sinh!` : `🔓 Đã MỞ KHÓA tiết học '${secName}' thành công cho Học sinh!`);
     if (onSaveActivity) {
       onSaveActivity({
         ...settings,
@@ -1531,7 +1533,8 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
     return matchSearch && matchUnit && matchSection && matchPos;
   });
   // ACTIVE SCOPE LIST FOR GAMES (MUST FOCUS ONLY ON SELECTED LESSON SECTION ACCORDING TO THẦY HẢI'S REQUEST)
-  const activeScopeList = filteredList.length > 0 ? filteredList : vocabList;
+  // ACTIVE SCOPE LIST FOR GAMES (STRICTLY RESPECT LOCKS FOR STUDENTS - NEVER FALL BACK TO FULL VOCAB LIST)
+  const activeScopeList = isTeacher ? (filteredList.length > 0 ? filteredList : vocabList) : filteredList;
   const currentItem = filteredList[selectedIndex] || filteredList[0] || vocabList[0];
   const availablePos = ['All', ...new Set(vocabList.map((i) => i.pos || 'n'))];
   // VOICE SYNTHESIS PLAYER
