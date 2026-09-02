@@ -840,6 +840,13 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }
   });
 
+    // V233: KEEP SECTION LOCKS IN 100% PERFECT SYNC WITH SETTINGS & LOCALSTORAGE
+  useEffect(() => {
+    if (settings?.individualSectionLocks && typeof settings.individualSectionLocks === 'object') {
+      setIndividualSectionLocks(settings.individualSectionLocks);
+    }
+  }, [JSON.stringify(settings?.individualSectionLocks)]);
+
   const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
   const [isStudentPreviewMode, setIsStudentPreviewMode] = useState(false);
 
@@ -871,10 +878,18 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
 
   const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
 
-  const isSectionLockedForStudent = (secName) => {
+    const isSectionLockedForStudent = (secName) => {
     if (effectiveIsTeacher) return false;
     if (!secName || secName === 'All') return false;
-    if (individualSectionLocks[secName]) return true;
+
+    // Explicit teacher lock/unlock setting has highest priority
+    if (individualSectionLocks[secName] === false) return false; // Explicitly UNLOCKED by Teacher!
+    if (individualSectionLocks[secName] === true) return true;   // Explicitly LOCKED by Teacher!
+
+    // Fallback lock ahead setting if not explicitly set
+    if (lockAheadLessonsForStudents && secName !== 'GETTING STARTED') {
+      return true;
+    }
     return false;
   };
 
