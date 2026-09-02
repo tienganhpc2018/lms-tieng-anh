@@ -789,7 +789,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [lockAheadLessonsForStudents, setLockAheadLessonsForStudents] = useState(
     () => settings.lockAheadLessonsForStudents || false
   );
-    const handleToggleLockGames = () => {
+      const handleToggleLockGames = () => {
     const nextVal = !lockGamesForStudents;
     setLockGamesForStudents(nextVal);
     
@@ -886,6 +886,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   };
   // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT
     // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
+    // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
   const isGameLockedForStudent = (gameKey) => {
     if (effectiveIsTeacher) return false;
     // EXPLICIT INDIVIDUAL UNLOCK TAKES HIGHEST PRIORITY!
@@ -966,6 +967,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
 
         // HELPER CHECK IF A LESSON SECTION IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
+    // HELPER CHECK IF A LESSON SECTION IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
   const isSectionLockedForStudent = (secName) => {
     if (effectiveIsTeacher) return false;
     if (!secName || secName === 'All') return false;
