@@ -3126,6 +3126,27 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             <BookMarked className="w-4 h-4 text-amber-300" />
             <span>📖 AI Truyện Từ Vựng</span>
           </button>
+
+          {isTeacher && (
+            <button
+              type="button"
+              onClick={() => {
+                const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
+                const existing = lessonContexts[targetSec];
+                if (existing) {
+                  setContextCharacters(existing.characters || 'Ann, Linda, Nick');
+                  setContextPlot(existing.plot || '');
+                  setContextGrammar(existing.grammar || '');
+                }
+                setIsContextStudioOpen(true);
+              }}
+              className="px-3.5 py-1.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5 border border-pink-400 animate-pulse"
+              title="Nạp ảnh trang SGK hoặc nhập tên nhân vật Ann, Linda, cốt truyện gốc để AI sinh truyện chuẩn 100% SGK"
+            >
+              <Camera className="w-4 h-4 text-amber-300" />
+              <span>📸 Quản Lý Ngữ Cảnh SGK</span>
+            </button>
+          )}
           {isTeacher && (
             <>
               <button
@@ -5766,6 +5787,27 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                   <RefreshCw className={`w-4 h-4 text-amber-300 ${generatingStory ? 'animate-spin' : ''}`} />
                   <span>🔄 Đổi Truyện Khác</span>
                 </button>
+
+                {isTeacher && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
+                      const existing = lessonContexts[targetSec];
+                      if (existing) {
+                        setContextCharacters(existing.characters || 'Ann, Linda, Nick');
+                        setContextPlot(existing.plot || '');
+                        setContextGrammar(existing.grammar || '');
+                      }
+                      setIsContextStudioOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition cursor-pointer flex items-center space-x-1 border border-pink-300"
+                    title="Nạp ảnh trang SGK hoặc sửa tên nhân vật Ann, Linda..."
+                  >
+                    <Camera className="w-3.5 h-3.5 text-amber-300" />
+                    <span>📸 Sửa Ngữ Cảnh SGK</span>
+                  </button>
+                )}
 
                 <button
                   type="button"
