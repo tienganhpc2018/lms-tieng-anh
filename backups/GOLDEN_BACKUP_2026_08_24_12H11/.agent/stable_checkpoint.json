@@ -1,0 +1,15 @@
+{
+  "checkpoint_name": "STABLE_MILESTONE_FULL_QUIZ_SYSTEM",
+  "timestamp": "2026-08-18T17:20:00+07:00",
+  "version": "1.0.0-stable",
+  "features_verified": [
+    "Khắc phục 100% màn hình trắng trang QuestionBankView (/question-bank)",
+    "Mặc định đồng hồ thời gian đếm tiến (00:00 -> 00:01)",
+    "Menu Select xổ xuống chọn thời gian thi quick-select (5 phút, 15 phút, 45 phút...)",
+    "Cộng dồn tổng thời gian thi tất cả các bài khi gộp chung đề",
+    "Phát âm thanh MP3 THẬT bài nghe của Thầy mượt mà 100% trong mục Thi Thử",
+    "Ẩn hoàn toàn dòng chữ tên file nghe MP3 trong ngoặc (chuyên nghiệp)",
+    "Trình bày khối giải thích 4 phần xuống dòng rõ ràng, bôi đậm Evidence / Dẫn chứng"
+  ],
+  "status": "APPROVED_BY_TEACHER"
+}
