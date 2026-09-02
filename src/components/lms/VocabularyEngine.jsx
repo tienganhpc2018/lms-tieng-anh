@@ -2787,9 +2787,32 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
           }
         }
       }
-      const existingWordsUpper = vocabList.map((v) => v.word.toUpperCase());
-      const newItemsOnly = generatedEntries.filter((v) => !existingWordsUpper.includes(v.word.toUpperCase()));
-      const updatedList = [...vocabList, ...newItemsOnly];
+      // MERGE NEW AI-GENERATED ENTRIES WITH EXISTING VOCABULARY LIST (UPSERT V262)
+      const updatedList = [...vocabList];
+      let processedCount = 0;
+
+      generatedEntries.forEach((newEntry) => {
+        const idx = updatedList.findIndex(
+          (v) => (v.word || '').toLowerCase().trim() === (newEntry.word || '').toLowerCase().trim()
+        );
+        if (idx >= 0) {
+          updatedList[idx] = {
+            ...updatedList[idx],
+            unit: bulkUnit,
+            section: bulkSection,
+            pos: newEntry.pos || updatedList[idx].pos,
+            phonetic: newEntry.phonetic || updatedList[idx].phonetic,
+            meaning: newEntry.meaning || updatedList[idx].meaning,
+            phrases: newEntry.phrases || updatedList[idx].phrases,
+            examples: newEntry.examples || updatedList[idx].examples,
+            imageUrl: newEntry.imageUrl || updatedList[idx].imageUrl,
+          };
+        } else {
+          updatedList.push(newEntry);
+        }
+        processedCount++;
+      });
+
       setVocabList(updatedList);
       setSelectedIndex(0);
       setIsBulkAiModalOpen(false);
@@ -2803,7 +2826,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
           masterAudioUrl: masterAudioUrl,
         });
       }
-      alert(`🎉 AI đã tự động nhập & tạo thành công ${newItemsOnly.length} từ vựng chi tiết vào ${bulkUnit} - ${bulkSection}! Thầy Hải có thể bấm vào từng từ trên danh sách để điều chỉnh, xóa, hoặc sửa tùy ý.`);
+      alert(`🎉 AI đã tự động nhập & tạo thành công ${processedCount} từ vựng chi tiết vào ${bulkUnit} - ${bulkSection}! Thầy Hải có thể bấm vào từng từ trên danh sách để điều chỉnh, xóa, hoặc sửa tùy ý.`);
     } catch (err) {
       alert('Lỗi tạo hàng loạt: ' + err.message);
     } finally {
