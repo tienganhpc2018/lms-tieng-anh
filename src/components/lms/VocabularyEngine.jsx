@@ -789,10 +789,27 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [lockAheadLessonsForStudents, setLockAheadLessonsForStudents] = useState(
     () => settings.lockAheadLessonsForStudents || false
   );
-  const handleToggleLockGames = () => {
+    const handleToggleLockGames = () => {
     const nextVal = !lockGamesForStudents;
     setLockGamesForStudents(nextVal);
-    localStorage.setItem(`vocab_lock_all_games_${activity?.id || 'default'}`, JSON.stringify(nextVal));
+    
+    // Sync all individual game locks to match nextVal
+    const syncedGameLocks = {
+      memory_game: nextVal,
+      spelling_game: nextVal,
+      word_search: nextVal,
+      crossword: nextVal,
+      flashcard: nextVal,
+      dialog_cards: nextVal,
+      quest: nextVal,
+    };
+    setIndividualGameLocks(syncedGameLocks);
+
+    try {
+      localStorage.setItem('vocab_lock_all_games_' + (activity?.id || 'default'), JSON.stringify(nextVal));
+      localStorage.setItem('vocab_indiv_locks_' + (activity?.id || 'default'), JSON.stringify(syncedGameLocks));
+    } catch (e) {}
+
     playSuccessSound();
     if (onSaveActivity) {
       onSaveActivity({
@@ -802,10 +819,12 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
         masterAudioUrl,
         lockGamesForStudents: nextVal,
         lockAheadLessonsForStudents,
-        individualGameLocks,
+        individualGameLocks: syncedGameLocks,
+        individualSectionLocks,
       });
     }
   };
+
   const handleToggleLockAheadLessons = () => {
     const nextVal = !lockAheadLessonsForStudents;
     setLockAheadLessonsForStudents(nextVal);
@@ -866,12 +885,16 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }
   };
   // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT
+    // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
   const isGameLockedForStudent = (gameKey) => {
     if (effectiveIsTeacher) return false;
-    if (lockGamesForStudents) return true;
-    if (gameKey && individualGameLocks[gameKey]) return true;
+    // EXPLICIT INDIVIDUAL UNLOCK TAKES HIGHEST PRIORITY!
+    if (gameKey && individualGameLocks && individualGameLocks[gameKey] === false) return false;
+    if (gameKey && individualGameLocks && individualGameLocks[gameKey] === true) return true;
+    if (lockGamesForStudents === true) return true;
     return false;
   };
+
   const handleGameTabClick = (tabKey, gameLockKey = null) => {
     if (isGameLockedForStudent(gameLockKey)) {
       playSuccessSound();
@@ -942,10 +965,15 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
 
   const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
 
-      const isSectionLockedForStudent = (secName) => {
+        // HELPER CHECK IF A LESSON SECTION IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
+  const isSectionLockedForStudent = (secName) => {
     if (effectiveIsTeacher) return false;
     if (!secName || secName === 'All') return false;
+
+    // EXPLICIT INDIVIDUAL UNLOCK TAKES HIGHEST PRIORITY!
+    if (individualSectionLocks && individualSectionLocks[secName] === false) return false;
     if (individualSectionLocks && individualSectionLocks[secName] === true) return true;
+    if (lockAheadLessonsForStudents === true && secName !== 'GETTING STARTED') return true;
     return false;
   };
 
