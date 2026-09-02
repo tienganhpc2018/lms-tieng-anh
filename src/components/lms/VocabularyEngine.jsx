@@ -1046,6 +1046,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   });
 
   const [selectedCrosswordClueId, setSelectedCrosswordClueId] = useState(null);
+  const [hasCheckedCrossword, setHasCheckedCrossword] = useState(false);
   const [isCrosswordModalOpen, setIsCrosswordModalOpen] = useState(false);
   const [editingCwItem, setEditingCwItem] = useState(null);
   const [cwWord, setCwWord] = useState('');
@@ -4042,7 +4043,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             )}
         </div>
         )}
-      {/* TAB 5: GAME CROSSWORD - GIAO DIỆN CHUẨN MẪU MỚI THẦY HẢI GỬI (CÂU HỎI BÊN TRÁI - MA TRẬN TỐI GIẢN BÊN PHẢI) */}
+      {/* TAB 5: GAME CROSSWORD - GIAO DIỆN CHUẨN MẪU MỚI + PHẢN HỒI KIỂM TRA ĐÚNG/SAI BẰNG MÀU SẮC TRỰC QUAN */}
       {activeTab === 'crossword' && (
         isGameLockedForStudent('crossword') ? (
           <div className="bg-amber-950/90 rounded-2xl p-8 border-2 border-amber-700 text-center space-y-4 animate-fade-in my-4 shadow-2xl">
@@ -4056,6 +4057,23 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           </div>
         ) : (
           <div className="bg-slate-100/90 rounded-3xl p-4 sm:p-6 border-2 border-slate-300 text-slate-900 space-y-5 animate-fade-in shadow-xl">
+            {/* THÔNG BÁO DÀNH CHO GIÁO VIÊN KHI GAME ĐANG KHÓA ĐỐI VỚI HỌC SINH */}
+            {isTeacher && (lockGamesForStudents || individualGameLocks.crossword) && (
+              <div className="bg-rose-50 border border-rose-300 p-3 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm font-bold text-rose-800 shadow-xs">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">🔒</span>
+                  <span>Trò chơi này đang <strong>KHÓA đối với Học Sinh</strong>. Thầy Hải đang xem ở chế độ Quyền Giáo Viên (GV).</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleIndividualGameLock('crossword')}
+                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs cursor-pointer shrink-0"
+                >
+                  🔓 Mở Khóa Cho HS
+                </button>
+              </div>
+            )}
+
             {/* THANH THAO TÁC CỦA GIÁO VIÊN VÀ HỌC SINH */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
               <div className="flex items-center space-x-3">
@@ -4104,16 +4122,33 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   </>
                 )}
 
+                {hasCheckedCrossword && (
+                  <button
+                    type="button"
+                    onClick={() => setHasCheckedCrossword(false)}
+                    className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-sm cursor-pointer border border-slate-600 flex items-center space-x-1"
+                  >
+                    <RotateCcw className="w-4 h-4 text-amber-300" />
+                    <span>🔄 Thử Lại / Làm Tiếp</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
+                    setHasCheckedCrossword(true);
                     let isAllCorrect = true;
                     let missingCount = 0;
+                    let correctCount = 0;
+                    let totalCells = 0;
 
                     Object.entries(crosswordCellMap).forEach(([cellKey, cellData]) => {
                       if (cellData && !cellData.isSpaceBlock && !cellData.isSeparator) {
+                        totalCells++;
                         const typedVal = (crosswordInputs[cellKey] || '').toUpperCase().trim();
-                        if (typedVal !== cellData.letter.toUpperCase()) {
+                        if (typedVal === cellData.letter.toUpperCase()) {
+                          correctCount++;
+                        } else {
                           isAllCorrect = false;
                           missingCount++;
                         }
@@ -4123,17 +4158,45 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     if (isAllCorrect) {
                       playSuccessSound();
                       unlockNextQuestStage(4, 3);
-                      alert('🎉 Chúc mừng bạn đã giải hoàn toàn chính xác toàn bộ Ô Chữ thông minh!');
+                      alert('🎉 XUẤT SẮC! Bạn đã giải chính xác 100% toàn bộ Ô Chữ thông minh!');
                     } else {
-                      alert(`⚠️ Bạn còn ${missingCount} ô chữ chưa điền đúng. Hãy kiểm tra lại các từ vựng nhé!`);
+                      playErrorSound();
+                      alert(`📊 KẾT QUẢ KIỂM TRA:
+- Đúng: ${correctCount}/${totalCells} ô chữ (Xanh lá 🟢)
+- Chưa đúng: ${missingCount} ô chữ (Màu đỏ 🔴)
+
+Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đỏ nhé!`);
                     }
                   }}
-                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer border border-sky-500"
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer border border-sky-500 flex items-center space-x-1.5"
                 >
-                  ✓ Kiểm Tra Ô Chữ
+                  <CheckCircle className="w-4 h-4 text-sky-200" />
+                  <span>✓ Kiểm Tra Ô Chữ</span>
                 </button>
               </div>
             </div>
+
+            {/* BẢNG THỐNG KÊ PHẢN HỒI KHI BẤM KIỂM TRA ĐÁP ÁN */}
+            {hasCheckedCrossword && (
+              <div className="bg-gradient-to-r from-sky-900 via-indigo-900 to-slate-900 text-white p-3.5 rounded-2xl border-2 border-sky-400 shadow-md flex flex-wrap items-center justify-between gap-3 animate-fade-in text-xs sm:text-sm">
+                <div className="flex items-center space-x-2 font-bold">
+                  <span className="text-xl">📊</span>
+                  <span>
+                    Đang hiển thị <strong>Kết quả kiểm tra chi tiết</strong>:
+                    <span className="ml-2 font-black text-emerald-300">🟢 Ô Xanh Lá: Điền Đúng</span> | 
+                    <span className="ml-2 font-black text-rose-300">🔴 Ô Đỏ: Chưa Đúng / Thiếu</span>
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setHasCheckedCrossword(false)}
+                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl cursor-pointer shadow-xs text-xs"
+                >
+                  Sửa Lại Bài Làm ✏️
+                </button>
+              </div>
+            )}
 
             {/* BẢO GỒM 2 CỘT: CÂU HỎI BÊN TRÁI (LEFT) - MA TRẬN Ô CHỮ BÊN PHẢI (RIGHT) */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
@@ -4152,6 +4215,25 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                       .filter((c) => c.direction === 'down')
                       .map((item) => {
                         const isSelected = selectedCrosswordClueId === item.id;
+                        
+                        // ĐÁNH GIÁ XEM CÂU HỎI NÀY ĐÃ ĐƯỢC ĐIỀN ĐÚNG TRỌN VẸN CHƯA
+                        let clueIsCorrect = true;
+                        let clueIsFilled = false;
+                        const wordLen = item.word.replace(/\s+/g, '').length;
+                        let filledCount = 0;
+                        let r = item.row;
+                        let c = item.col;
+                        const cleanW = item.word.replace(/\s+/g, '').toUpperCase();
+
+                        for (let i = 0; i < cleanW.length; i++) {
+                          const cellKey = `${r}-${c}`;
+                          const typedVal = (crosswordInputs[cellKey] || '').toUpperCase().trim();
+                          if (typedVal.length > 0) filledCount++;
+                          if (typedVal !== cleanW[i]) clueIsCorrect = false;
+                          r++;
+                        }
+                        clueIsFilled = filledCount > 0;
+
                         return (
                           <div
                             key={item.id}
@@ -4159,6 +4241,10 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             className={`text-xs sm:text-sm font-semibold p-2.5 rounded-xl border transition cursor-pointer flex items-start justify-between ${
                               isSelected
                                 ? 'bg-amber-100/90 border-amber-400 ring-2 ring-amber-300 shadow-sm font-bold'
+                                : hasCheckedCrossword
+                                ? clueIsCorrect && clueIsFilled
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                                  : 'bg-rose-50 border-rose-200 text-rose-950'
                                 : 'border-slate-100 hover:bg-slate-50 text-slate-800'
                             }`}
                           >
@@ -4173,6 +4259,21 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                                 </span>
                               )}
                               <span className="font-bold text-sky-600 ml-1">{item.hint}</span>
+
+                              {/* NHÃN HIỂN THỊ ĐÚNG / SAI KHI BẤM KIỂM TRA */}
+                              {hasCheckedCrossword && (
+                                <div className="mt-1">
+                                  {clueIsCorrect && clueIsFilled ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-600 text-white font-extrabold text-[11px] shadow-xs">
+                                      ✓ CHÍNH XÁC
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-600 text-white font-extrabold text-[11px] shadow-xs">
+                                      ❌ CHƯA ĐÚNG
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
 
                             {isTeacher && (
@@ -4218,6 +4319,24 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                       .filter((c) => c.direction === 'across')
                       .map((item) => {
                         const isSelected = selectedCrosswordClueId === item.id;
+                        
+                        // ĐÁNH GIÁ XEM CÂU HỎI NÀY ĐÃ ĐƯỢC ĐIỀN ĐÚNG TRỌN VẸN CHƯA
+                        let clueIsCorrect = true;
+                        let clueIsFilled = false;
+                        let filledCount = 0;
+                        let r = item.row;
+                        let c = item.col;
+                        const cleanW = item.word.replace(/\s+/g, '').toUpperCase();
+
+                        for (let i = 0; i < cleanW.length; i++) {
+                          const cellKey = `${r}-${c}`;
+                          const typedVal = (crosswordInputs[cellKey] || '').toUpperCase().trim();
+                          if (typedVal.length > 0) filledCount++;
+                          if (typedVal !== cleanW[i]) clueIsCorrect = false;
+                          c++;
+                        }
+                        clueIsFilled = filledCount > 0;
+
                         return (
                           <div
                             key={item.id}
@@ -4225,6 +4344,10 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             className={`text-xs sm:text-sm font-semibold p-2.5 rounded-xl border transition cursor-pointer flex items-start justify-between ${
                               isSelected
                                 ? 'bg-amber-100/90 border-amber-400 ring-2 ring-amber-300 shadow-sm font-bold'
+                                : hasCheckedCrossword
+                                ? clueIsCorrect && clueIsFilled
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-bold'
+                                  : 'bg-rose-50 border-rose-200 text-rose-950'
                                 : 'border-slate-100 hover:bg-slate-50 text-slate-800'
                             }`}
                           >
@@ -4239,6 +4362,21 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                                 </span>
                               )}
                               <span className="font-bold text-sky-600 ml-1">{item.hint}</span>
+
+                              {/* NHÃN HIỂN THỊ ĐÚNG / SAI KHI BẤM KIỂM TRA */}
+                              {hasCheckedCrossword && (
+                                <div className="mt-1">
+                                  {clueIsCorrect && clueIsFilled ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-600 text-white font-extrabold text-[11px] shadow-xs">
+                                      ✓ CHÍNH XÁC
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-600 text-white font-extrabold text-[11px] shadow-xs">
+                                      ❌ CHƯA ĐÚNG
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
 
                             {isTeacher && (
@@ -4298,7 +4436,6 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     const acrossClueStartingHere = crosswordCluesList.find((clue) => clue.direction === 'across' && clue.row === r && clue.col === c);
 
                     if (!isCellActive) {
-                      // KIỂM TRA XEM CÓ SỐ THỨ TỰ HÀNG NGANG BÊN TRÁI HOẶC HÀNG DỌC PHÍA TRÊN NẰM TRONG Ô NÀY KHÔNG
                       const downClueAbove = crosswordCluesList.find((clue) => clue.direction === 'down' && clue.row === r + 1 && clue.col === c);
                       const acrossClueLeft = crosswordCluesList.find((clue) => clue.direction === 'across' && clue.row === r && clue.col === c + 1);
 
@@ -4325,14 +4462,31 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                       return <div key={i} className="w-8 h-8 sm:w-10 sm:h-10" />;
                     }
 
+                    // KIỂM TRA ĐÚNG / SAI CHO TỪNG Ô CỤ THỂ
+                    const typedValue = (crosswordInputs[cellKey] || '').toUpperCase().trim();
+                    const targetLetter = (cellData.letter || '').toUpperCase().trim();
+                    const isFilled = typedValue.length > 0;
+                    const isCellCorrect = isFilled && typedValue === targetLetter;
+                    const isCellWrong = isFilled && typedValue !== targetLetter;
+
+                    // ĐỊNH DẠNG MÀU SẮC DỰA TRÊN TRẠNG THÁI KIỂM TRA ĐÁP ÁN
+                    let cellBgStyle = 'bg-white text-sky-800 border sm:border-2 border-sky-400 shadow-2xs hover:border-sky-600';
+                    if (isHighlightedClue) {
+                      cellBgStyle = 'bg-amber-100 text-amber-950 ring-4 ring-amber-400 animate-pulse shadow-md z-20 scale-105 border-2 border-amber-500';
+                    } else if (hasCheckedCrossword) {
+                      if (isCellCorrect) {
+                        cellBgStyle = 'bg-emerald-100 text-emerald-950 border-2 border-emerald-500 ring-2 ring-emerald-300 font-black shadow-md z-10';
+                      } else if (isCellWrong) {
+                        cellBgStyle = 'bg-rose-100 text-rose-950 border-2 border-rose-500 ring-2 ring-rose-300 font-black animate-shake z-10';
+                      } else {
+                        cellBgStyle = 'bg-amber-50 text-amber-950 border-2 border-amber-400 font-bold';
+                      }
+                    }
+
                     return (
                       <div
                         key={i}
-                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-sm flex items-center justify-center relative font-bold text-sm sm:text-base transition-all transform ${
-                          isHighlightedClue
-                            ? 'bg-amber-100 text-amber-950 ring-4 ring-amber-400 animate-pulse shadow-md z-20 scale-105 border-2 border-amber-500'
-                            : 'bg-white text-sky-800 border sm:border-2 border-sky-400 shadow-2xs hover:border-sky-600'
-                        }`}
+                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-sm flex items-center justify-center relative font-bold text-sm sm:text-base transition-all transform ${cellBgStyle}`}
                       >
                         {/* HIỂN THỊ SỐ NẾU Ô BẮT ĐẦU LÀ Ô ĐẦU TIÊN CỦA MA TRẬN NÓI CHUNG */}
                         {acrossClueStartingHere && c === 0 && (
@@ -4344,6 +4498,17 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                         {downClueStartingHere && r === 0 && (
                           <span className="absolute -top-5 left-1/2 -translate-x-1/2 font-extrabold text-blue-700 text-sm sm:text-base pointer-events-none">
                             {downClueStartingHere.number}
+                          </span>
+                        )}
+
+                        {/* ĐÁNH DẤU BIỂU TƯỢNG V HOẶC X KHI BẤM KIỂM TRA ĐÁP ÁN */}
+                        {hasCheckedCrossword && isFilled && (
+                          <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black z-30 shadow-xs pointer-events-none text-white font-mono">
+                            {isCellCorrect ? (
+                              <span className="bg-emerald-600 w-full h-full rounded-full flex items-center justify-center">✓</span>
+                            ) : (
+                              <span className="bg-rose-600 w-full h-full rounded-full flex items-center justify-center">✕</span>
+                            )}
                           </span>
                         )}
 
@@ -4392,7 +4557,15 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             }}
                             placeholder={showTeacherAnswers ? cellData.letter.toLowerCase() : ''}
                             className={`w-full h-full text-center lowercase font-bold focus:outline-none rounded-xs text-sm sm:text-base cursor-pointer ${
-                              isHighlightedClue ? 'bg-amber-100 text-amber-950 font-black' : 'text-sky-800 focus:bg-sky-50'
+                              isHighlightedClue
+                                ? 'bg-amber-100 text-amber-950 font-black'
+                                : hasCheckedCrossword
+                                ? isCellCorrect
+                                  ? 'bg-emerald-100 text-emerald-950 font-black'
+                                  : isCellWrong
+                                  ? 'bg-rose-100 text-rose-950 font-black'
+                                  : 'text-sky-800 focus:bg-sky-50'
+                                : 'text-sky-800 focus:bg-sky-50'
                             } ${
                               showTeacherAnswers && !crosswordInputs[cellKey] ? 'placeholder-emerald-600 placeholder-opacity-90 font-black' : ''
                             }`}
