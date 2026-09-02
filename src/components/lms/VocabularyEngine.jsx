@@ -1169,24 +1169,21 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
   const [aiStoryData, setAiStoryData] = useState(null);
   const [generatingStory, setGeneratingStory] = useState(false);
-  const handleGenerateAiVocabStory = async () => {
+    const handleGenerateAiVocabStory = async () => {
     setGeneratingStory(true);
     setAiStoryModalOpen(true);
+
+    const currentWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList).slice(0, 8);
+    const wordsStr = currentWordsList.map((i) => i.word + ' (' + i.meaning + ')').join(', ');
+    const targetWordsOnly = currentWordsList.map((i) => i.word).join(', ');
+    const currentUnitName = selectedUnit !== 'All' ? selectedUnit : (vocabList[0]?.unit || 'Unit 1');
+
     try {
-      const words = vocabList.slice(0, 8).map((i) => i.word).join(', ');
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
       if (apiKey) {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-        const promptText = `
-Bạn là một trợ lý giảng thuật kể chuyện tiếng Anh thông minh cho học sinh Việt Nam.
-Hãy viết một câu chuyện ngắn vui nhộn (3-4 câu tiếng Anh) lồng ghép tự nhiên các từ vựng sau: [${words}].
-YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown):
-{
-  "title": "A Heroic Day in Our Local Community",
-  "storyEn": "Once upon a time in a quiet suburb, a skilled artisan was shaping ceramic vases out of soft clay. Nearby, a brave firefighter and a police officer were helping a community helper save a kitten. Everyone returned home feeling happy after their regular check-up.",
-  "storyVi": "Ngày xửa ngày xưa ở một khu ngoại ô yên bình, một thợ thủ công chăm chỉ đang nặn đồ gốm từ đất sét. Gần đó, một lính cứu hỏa dũng cảm và một sĩ quan cảnh sát đang cùng người trợ giúp cộng đồng giải cứu một chú mèo con. Mọi người trở về nhà vui vẻ sau buổi kiểm tra sức khỏe định kỳ."
-}
-`;
+        const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+        const promptText = "Bạn là một trợ lý giảng thuật kể chuyện tiếng Anh thông minh cho học sinh Việt Nam khối " + activityGrade + ". Hãy viết một câu chuyện ngắn sinh động (3-4 câu tiếng Anh) lồng ghép tự nhiên các từ vựng thuộc chủ đề " + currentUnitName + " (" + activityGrade + ") sau đây: [" + wordsStr + "]. YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown): { \"title\": \"Tên bài viết tiếng Anh ngắn ngọn\", \"storyEn\": \"Câu chuyện tiếng Anh 3-4 câu lồng ghép các từ: " + targetWordsOnly + ".\", \"storyVi\": \"Bản dịch tiếng Việt chuẩn nghĩa cho câu chuyện trên.\" }";
+
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1197,9 +1194,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown):
         if (res.ok) {
           const data = await res.json();
           const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const cleanedText = rawText.replace('```json', '').replace('```', '').trim();
           const aiJson = JSON.parse(cleanedText);
-          if (aiJson) {
+          if (aiJson && aiJson.storyEn) {
             setAiStoryData(aiJson);
             playSuccessSound();
             setGeneratingStory(false);
@@ -1207,12 +1204,22 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown):
           }
         }
       }
-      const fallbackStory = {
-        title: 'A Heroic Day in Our Local Community',
-        storyEn: `Once upon a time in a quiet suburb, a skilled artisan was shaping ceramic vases out of soft clay. Suddenly, a brave firefighter and a police officer arrived to help a community helper near the local craft village. After a long day, they went for a regular check-up and smiled together.`,
-        storyVi: `Ngày xửa ngày xưa tại một khu ngoại ô yên bình, một nghệ nhân tài ba đang tạo hình những chiếc bình gốm từ đất sét mềm. Đột nhiên, một lính cứu hỏa dũng cảm và một sĩ quan cảnh sát đến giúp đỡ một người trợ giúp cộng đồng gần làng nghề thủ công. Sau một ngày dài, họ đi kiểm tra sức khỏe định kỳ và cùng mỉm cười vui vẻ.`
+
+      // THUẬT TOÁN SINH TRUYỆN ĐỘNG THEO ĐÚNG KHỐI LỚP & UNIT CỦA THẦY HẢI (TUYỆT ĐỐI KHÔNG MẶC ĐỊNH LỚP 9)
+      const wObjs = currentWordsList.slice(0, 5);
+      const w1 = wObjs[0] || { word: 'study', meaning: 'học tập' };
+      const w2 = wObjs[1] || { word: 'practice', meaning: 'thực hành' };
+      const w3 = wObjs[2] || { word: 'knowledge', meaning: 'kiến thức' };
+      const w4 = wObjs[3] || { word: 'skill', meaning: 'kỹ năng' };
+      const w5 = wObjs[4] || { word: 'success', meaning: 'thành công' };
+
+      const dynamicStory = {
+        title: "A Great Lesson in " + currentUnitName + " (" + activityGrade + ")",
+        storyEn: "Today in our " + activityGrade + " class for " + currentUnitName + ", we explored new vocabulary together. Students practiced using " + w1.word + " and " + w2.word + " during the interactive lesson. Everyone understood " + w3.word + " and " + w4.word + " very well, achieving great " + w5.word + " in their learning.",
+        storyVi: "Hôm nay trong giờ học " + activityGrade + " thuộc chủ đề " + currentUnitName + ", chúng em đã cùng nhau khám phá từ vựng mới. Các bạn học sinh đã luyện tập sử dụng " + w1.meaning + " (" + w1.word + ") và " + w2.meaning + " (" + w2.word + ") trong bài học tương tác. Mọi người đều hiểu rất rõ về " + w3.meaning + " (" + w3.word + ") cũng như " + w4.meaning + " (" + w4.word + "), đạt được kết quả " + w5.meaning + " (" + w5.word + ") tuyệt vời trong học tập."
       };
-      setAiStoryData(fallbackStory);
+
+      setAiStoryData(dynamicStory);
       playSuccessSound();
     } catch (e) {
       alert('Không thể tạo AI Truyện Từ Vựng!');
