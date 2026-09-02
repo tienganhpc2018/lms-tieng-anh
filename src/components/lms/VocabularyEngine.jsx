@@ -822,15 +822,27 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
       });
     }
   };
-    // GRANULAR PER-GAME LOCK CONTROL STATE FOR TEACHER (DEFAULT ALL UNLOCKED)
-  const [individualGameLocks, setIndividualGameLocks] = useState({
-    memory_game: false,
-    spelling_game: false,
-    word_search: false,
-    crossword: false,
-    flashcard: false,
-    dialog_cards: false,
-    quest: false,
+      // GRANULAR PER-GAME LOCK CONTROL STATE FOR TEACHER (SYNCED WITH CSDL & LOCALSTORAGE)
+  const [individualGameLocks, setIndividualGameLocks] = useState(() => {
+    if (activity?.settings?.individualGameLocks && typeof activity.settings.individualGameLocks === 'object') {
+      return activity.settings.individualGameLocks;
+    }
+    if (settings?.individualGameLocks && typeof settings.individualGameLocks === 'object') {
+      return settings.individualGameLocks;
+    }
+    try {
+      const saved = localStorage.getItem('vocab_indiv_locks_' + (activity?.id || 'default'));
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      memory_game: false,
+      spelling_game: false,
+      word_search: false,
+      crossword: false,
+      flashcard: false,
+      dialog_cards: false,
+      quest: false,
+    };
   });
 
   const handleToggleIndividualGameLock = (gameKey) => {
