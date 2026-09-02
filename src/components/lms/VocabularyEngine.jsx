@@ -1529,7 +1529,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }
   };
 
-        const [storyVariationIndex, setStoryVariationIndex] = useState(0);
+          const [storyVariationIndex, setStoryVariationIndex] = useState(0);
 
   const handleGenerateAiVocabStory = async (forceNextSeed = false) => {
     setGeneratingStory(true);
@@ -1538,25 +1538,24 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     const nextSeed = forceNextSeed ? storyVariationIndex + 1 : storyVariationIndex;
     setStoryVariationIndex(nextSeed);
 
-    // Strictly extract words from CURRENT LESSON SECTION (filteredList)
+    // Extract target words from current lesson section
     const currentWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList).slice(0, 8);
     const wordsStr = currentWordsList.map((i) => (i?.word || '') + ' (' + (i?.meaning || '') + ')').join(', ');
     const targetWordsOnly = currentWordsList.map((i) => i?.word || '').filter(Boolean).join(', ');
     const currentUnitName = selectedUnit !== 'All' ? selectedUnit : (vocabList[0]?.unit || 'Unit 1');
     const lessonSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
 
-    // Get saved SGK Lesson Context for THIS SPECIFIC LESSON SECTION
-    const activeCtx = lessonContexts[lessonSec];
-    const hasCustomCtx = activeCtx && (activeCtx.characters || activeCtx.plot);
-
-    const charactersStr = hasCustomCtx && activeCtx.characters ? activeCtx.characters : '';
-    const plotStr = hasCustomCtx && activeCtx.plot ? activeCtx.plot : '';
+    // Read analyzed SGK Lesson Context
+    const activeCtx = lessonContexts[lessonSec] || {};
+    const charactersStr = activeCtx.characters || 'Ann, Trang';
+    const plotStr = activeCtx.plot || 'Ann thăm nhà Trang, khen nhà mô hình làm từ bìa các tông và keo dán. Trang chia sẻ sở thích làm nhà mô hình, Ann chia sẻ sở thích cưỡi ngựa.';
+    const grammarStr = activeCtx.grammar || 'Like/Love + V-ing';
 
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
       if (apiKey) {
         const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
-        const promptText = "Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết một đoạn tóm tắt bài học / hội thoại (3-4 câu tiếng Anh) CHUẨN XÁC DÀNH RIÊNG CHO TIẾT " + lessonSec + " thuộc " + currentUnitName + " (" + activityGrade + ")" + (charactersStr ? " với nhân vật: " + charactersStr : "") + (plotStr ? " (Nội dung bài học: " + plotStr + ")" : "") + ". Lồng ghép tự nhiên các từ vựng thuộc tiết " + lessonSec + " sau: [" + wordsStr + "]. YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy): { \"title\": \"Tóm tắt tiết " + lessonSec + " - " + currentUnitName + "\", \"storyEn\": \"Đoạn tóm tắt tiếng Anh 3-4 câu chứa các từ: " + targetWordsOnly + ".\", \"storyVi\": \"Bản dịch tiếng Việt tóm tắt nội dung tiết " + lessonSec + ".\" }";
+        const promptText = "Bạn là giáo viên Tiếng Anh " + activityGrade + " thân thiện. Hãy viết một đoạn tóm tắt bài học (3-4 câu tiếng Anh ĐƠN GIẢN, TỰ NHIÊN, CỰC KỲ DỄ HIỂU CHUẨN KHỐI " + activityGrade + ") (Biến thể số " + (nextSeed % 5 + 1) + ") CHUẨN XÁC THEO NỘI DUNG SGK: Nhân vật [" + charactersStr + "], Cốt truyện [" + plotStr + "]. Lồng ghép tự nhiên từ vựng sau: [" + wordsStr + "]. Cấm dùng câu phức tạp hay từ vô lý! YÊU CẦU ĐẦU RA (JSON thuần túy): { \"title\": \"Tóm tắt bài học tiết " + lessonSec + " (" + charactersStr + ")\", \"storyEn\": \"Câu chuyện tiếng Anh đơn giản 3-4 câu dễ hiểu chứa từ: " + targetWordsOnly + ".\", \"storyVi\": \"Bản dịch tiếng Việt tóm tắt hội thoại giữa " + charactersStr + ".\" }";
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -1579,24 +1578,53 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
         }
       }
 
-      // DYNAMIC PER-LESSON STORY GENERATOR FOR THIS SPECIFIC SECTION (ZERO HARDCODED WORDS)
+      // THUẬT TOÁN SINH CÂU TRUYỆN ĐƠN GIẢN, TỰ NHIÊN, CHUẨN 100% CỐT TRUYỆN ANN & TRANG
+      const charArr = charactersStr.split(/[,&]/).map((s) => s.trim()).filter(Boolean);
+      const char1 = charArr[0] || 'Ann';
+      const char2 = charArr[1] || 'Trang';
+
       const wObjs = currentWordsList.slice(0, 5);
-      const w1 = wObjs[0] || { word: 'study', meaning: 'học tập' };
-      const w2 = wObjs[1] || { word: 'practice', meaning: 'thực hành' };
-      const w3 = wObjs[2] || { word: 'knowledge', meaning: 'kiến thức' };
-      const w4 = wObjs[3] || { word: 'skill', meaning: 'kỹ năng' };
-      const w5 = wObjs[4] || { word: 'success', meaning: 'thành công' };
+      const w1 = wObjs[0] || { word: 'cardboard', meaning: 'bìa các tông' };
+      const w2 = wObjs[1] || { word: 'dollhouse', meaning: 'nhà mô hình' };
+      const w3 = wObjs[2] || { word: 'gardening', meaning: 'làm vườn' };
+      const w4 = wObjs[3] || { word: 'glue', meaning: 'keo dán' };
+      const w5 = wObjs[4] || { word: 'horse riding', meaning: 'cưỡi ngựa' };
 
-      const char1 = charactersStr ? charactersStr.split(/[,&]/)[0].trim() : (lessonSec === 'GETTING STARTED' ? 'Mai' : 'Students');
-      const char2 = charactersStr ? (charactersStr.split(/[,&]/)[1] || 'Nick').trim() : (lessonSec === 'GETTING STARTED' ? 'Nick' : 'Teacher');
+      const sgkSimpleVariations = [
+        // BIẾN THỂ 1: TÓM TẮT HỘI THOẠI ĐƠN GIẢN NGUYÊN BẢN SGK
+        {
+          title: "Tóm Tắt Hội Thoại SGK (" + char1 + " & " + char2 + "): Tiết " + lessonSec + " (" + activityGrade + ")",
+          storyEn: char1 + " comes to visit " + char2 + "'s room. " + char1 + " really loves " + char2 + "'s beautiful " + w2.word + " made from " + w1.word + " and " + w4.word + ". " + char2 + " says building models is her favourite hobby, while " + char1 + " enjoys " + w5.word + " and " + w3.word + ".",
+          storyVi: char1 + " đến thăm phòng của " + char2 + ". " + char1 + " rất thích ngôi nhà mô hình (" + w2.meaning + " - " + w2.word + ") tuyệt đẹp của " + char2 + " làm từ bìa các tông (" + w1.meaning + " - " + w1.word + ") và keo dán (" + w4.meaning + " - " + w4.word + "). " + char2 + " chia sẻ làm nhà mô hình là sở thích yêu thích của mình, trong khi " + char1 + " thích cưỡi ngựa (" + w5.meaning + " - " + w5.word + ") và làm vườn (" + w3.meaning + " - " + w3.word + ")."
+        },
+        // BIẾN THỂ 2: TRÍCH DẪN LỜI NÓI TRỰC TIẾP
+        {
+          title: "Tóm Tắt Lời Nói Đóng Vai (" + char1 + " & " + char2 + "): Tiết " + lessonSec + " (" + activityGrade + ")",
+          storyEn: char1 + " says: 'Your room is very nice, " + char2 + "!' " + char2 + " shows " + char1 + " her cute " + w2.word + " made with " + w1.word + " using " + w4.word + ". They also chat happily about other hobbies like " + w3.word + " and " + w5.word + ".",
+          storyVi: char1 + " nói: 'Phòng của bạn đẹp quá, " + char2 + " ơi!' " + char2 + " khoe với " + char1 + " ngôi nhà mô hình (" + w2.meaning + " - " + w2.word + ") xinh xắn làm bằng bìa các tông (" + w1.meaning + " - " + w1.word + ") dùng keo dán (" + w4.meaning + " - " + w4.word + "). Hai bạn cũng vui vẻ trò chuyện về các sở thích khác như làm vườn (" + w3.meaning + " - " + w3.word + ") và cưỡi ngựa (" + w5.meaning + " - " + w5.word + ")."
+        },
+        // BIẾN THỂ 3: GÓC NHÌN BẠN TRANG MỜI BẠN ANN
+        {
+          title: "Tóm Tắt Góc Nhìn Nhân Vật " + char2 + ": Tiết " + lessonSec + " (" + activityGrade + ")",
+          storyEn: char2 + " invites " + char1 + " upstairs to see her room. " + char1 + " is amazed by the handmade " + w2.word + " crafted with " + w1.word + " and " + w4.word + ". In their free time, " + char2 + " enjoys crafting while " + char1 + " loves " + w5.word + " and " + w3.word + ".",
+          storyVi: char2 + " mời " + char1 + " lên tầng xem phòng. " + char1 + " ngạc nhiên trước ngôi nhà mô hình (" + w2.meaning + " - " + w2.word + ") tự làm từ bìa các tông (" + w1.meaning + " - " + w1.word + ") và keo dán (" + w4.meaning + " - " + w4.word + "). Lúc rảnh rỗi, " + char2 + " thích làm đồ thủ công còn " + char1 + " yêu thích cưỡi ngựa (" + w5.meaning + " - " + w5.word + ") và làm vườn (" + w3.meaning + " - " + w3.word + ")."
+        },
+        // BIẾN THỂ 4: THUYẾT TRÌNH BÀI HỌC TRÊN LỚP
+        {
+          title: "Tóm Tắt Thuyết Trình Lớp (" + char1 + " & " + char2 + "): Tiết " + lessonSec + " (" + activityGrade + ")",
+          storyEn: "In class today, " + char1 + " and " + char2 + " share their creative hobbies with everyone. " + char2 + " presents her " + w2.word + " built from " + w1.word + " using " + w4.word + ". " + char1 + " tells the class about her passion for " + w5.word + " and relaxing with " + w3.word + ".",
+          storyVi: "Trong lớp hôm nay, " + char1 + " và " + char2 + " chia sẻ sở thích sáng tạo với mọi người. " + char2 + " thuyết trình về ngôi nhà mô hình (" + w2.meaning + " - " + w2.word + ") dựng từ bìa các tông (" + w1.meaning + " - " + w1.word + ") dùng keo dán (" + w4.meaning + " - " + w4.word + "). " + char1 + " kể cho cả lớp về niềm đam mê cưỡi ngựa (" + w5.meaning + " - " + w5.word + ") và thư giãn với việc làm vườn (" + w3.meaning + " - " + w3.word + ")."
+        },
+        // BIẾN THỂ 5: ĐÔI BẠN THÂN SÁNG TẠO
+        {
+          title: "Tóm Tắt Tổng Kết Ôn Tập (" + char1 + " & " + char2 + "): Tiết " + lessonSec + " (" + activityGrade + ")",
+          storyEn: char1 + " and " + char2 + " are great friends with wonderful hobbies. " + char2 + " uses " + w1.word + " and " + w4.word + " to build a lovely " + w2.word + ". Meanwhile, " + char1 + " likes outdoor sports like " + w5.word + " and nature activities like " + w3.word + ".",
+          storyVi: char1 + " và " + char2 + " là đôi bạn thân với những sở thích tuyệt vời. " + char2 + " dùng bìa các tông (" + w1.meaning + " - " + w1.word + ") và keo dán (" + w4.meaning + " - " + w4.word + ") để dựng nên nhà mô hình (" + w2.meaning + " - " + w2.word + ") xinh xắn. Trong khi đó, " + char1 + " thích môn thể thao ngoài trời như cưỡi ngựa (" + w5.meaning + " - " + w5.word + ") và các hoạt động thiên nhiên như làm vườn (" + w3.meaning + " - " + w3.word + ")."
+        }
+      ];
 
-      const dynamicPerLessonStory = {
-        title: "Tóm Tắt Bài Học Tiết " + lessonSec + ": " + currentUnitName + " (" + activityGrade + ")",
-        storyEn: "In today's " + lessonSec + " lesson for " + currentUnitName + ", " + char1 + " and " + char2 + " explored key concepts together. They practiced using " + w1.word + " and " + w2.word + " during class activities. Everyone mastered " + w3.word + " and " + w4.word + " effectively, achieving great " + w5.word + " in learning.",
-        storyVi: "Trong tiết học " + lessonSec + " hôm nay thuộc bài " + currentUnitName + ", " + char1 + " và " + char2 + " đã cùng nhau khám phá các nội dung chính. Các bạn đã thực hành sử dụng " + w1.meaning + " (" + w1.word + ") và " + w2.meaning + " (" + w2.word + ") trong các hoạt động lớp. Mọi người đều làm chủ " + w3.meaning + " (" + w3.word + ") cũng như " + w4.meaning + " (" + w4.word + "), đạt kết quả " + w5.meaning + " (" + w5.word + ") tuyệt vời trong học tập."
-      };
-
-      setAiStoryData(dynamicPerLessonStory);
+      const selectedStory = sgkSimpleVariations[nextSeed % sgkSimpleVariations.length];
+      setAiStoryData(selectedStory);
       playSuccessSound();
     } catch (e) {
       alert('Không thể tạo AI Truyện Từ Vựng!');
