@@ -841,18 +841,21 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
       });
     }
   };
-      // GRANULAR PER-GAME LOCK CONTROL STATE FOR TEACHER (SYNCED WITH CSDL & LOCALSTORAGE)
+        // GRANULAR PER-GAME LOCK CONTROL STATE FOR TEACHER (LOCALSTORAGE PRIORITY 100%)
   const [individualGameLocks, setIndividualGameLocks] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vocab_indiv_locks_' + (activity?.id || 'default'));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (e) {}
     if (activity?.settings?.individualGameLocks && typeof activity.settings.individualGameLocks === 'object') {
       return activity.settings.individualGameLocks;
     }
     if (settings?.individualGameLocks && typeof settings.individualGameLocks === 'object') {
       return settings.individualGameLocks;
     }
-    try {
-      const saved = localStorage.getItem('vocab_indiv_locks_' + (activity?.id || 'default'));
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
     return {
       memory_game: false,
       spelling_game: false,
@@ -905,18 +908,21 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     setActiveTab(tabKey);
   };
   const [isLockConfigModalOpen, setIsLockConfigModalOpen] = useState(false);
-          // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (DEFAULT ALL UNLOCKED)
+            // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (LOCALSTORAGE PRIORITY 100%)
   const [individualSectionLocks, setIndividualSectionLocks] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vocab_section_locks_' + (activity?.id || 'default'));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (e) {}
     if (activity?.settings?.individualSectionLocks && typeof activity.settings.individualSectionLocks === 'object') {
       return activity.settings.individualSectionLocks;
     }
     if (settings?.individualSectionLocks && typeof settings.individualSectionLocks === 'object') {
       return settings.individualSectionLocks;
     }
-    try {
-      const saved = localStorage.getItem('vocab_section_locks_' + (activity?.id || 'default'));
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
     return {
       'GETTING STARTED': false,
       'A CLOSER LOOK 1': false,
