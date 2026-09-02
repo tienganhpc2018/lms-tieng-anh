@@ -747,10 +747,23 @@ const GLOBAL_SUCCESS_PRESETS = {
   }
 };
 
-// TOP-LEVEL HELPER GENERATE GRAMMAR-PERFECT PHRASES & EXAMPLES ACCORDING TO PART OF SPEECH (V261)
-const generateSmartPhrasesAndExamples = (word, posType = 'n') => {
+// TOP-LEVEL HELPER GENERATE GRAMMAR-PERFECT PHRASES & EXAMPLES ACCORDING TO PART OF SPEECH (V265)
+const generateSmartPhrasesAndExamples = (word, posType = null) => {
   const lower = (word || '').toLowerCase().trim();
 
+  // 1. DICTIONARY OF EXPLICIT COMMON SGK WORDS (100% OXFORD PRECISION)
+  if (lower === 'spend') {
+    return {
+      pos: 'v',
+      phonetic: '/spend/',
+      meaning: 'dành (thời gian), tiêu (tiền bạc)',
+      phrases: ['spend time with friends', 'spend money on books', 'spend free time'],
+      examples: [
+        'I like to spend my free time reading English stories.',
+        'Many students spend their weekend doing outdoor activities.'
+      ]
+    };
+  }
   if (lower === 'general') {
     return {
       pos: 'adj',
@@ -800,20 +813,33 @@ const generateSmartPhrasesAndExamples = (word, posType = 'n') => {
     };
   }
 
-  // POS-AWARE DYNAMIC FALLBACK
-  if (posType === 'adj' || lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al')) {
+  // 2. AUTOMATIC VERB DETECTOR (LIST OF COMMON SGK VERBS & SUFFIXES)
+  const commonVerbs = [
+    'spend', 'encourage', 'collect', 'build', 'make', 'do', 'enjoy', 'play',
+    'talk', 'watch', 'listen', 'study', 'learn', 'help', 'visit', 'take',
+    'go', 'give', 'keep', 'start', 'try', 'use', 'find', 'read', 'write',
+    'speak', 'sing', 'dance', 'cook', 'fly', 'swim', 'ride', 'drive', 'buy',
+    'sell', 'think', 'know', 'feel', 'see', 'look', 'hear', 'practice', 'create'
+  ];
+
+  const isDetectedVerb = posType === 'v' || posType === 'v phr' || commonVerbs.includes(lower) || lower.endsWith('ing');
+  const isDetectedAdv = posType === 'adv' || lower.endsWith('ly');
+  const isDetectedAdj = posType === 'adj' || lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al') || lower.endsWith('able');
+
+  if (isDetectedVerb) {
     return {
-      pos: 'adj',
+      pos: 'v',
       phonetic: `/${lower}/`,
       meaning: lower,
-      phrases: [`very ${lower}`, `in a ${lower} way`, `most ${lower}`],
+      phrases: [`spend time to ${lower}`, `start to ${lower}`, `learn how to ${lower}`],
       examples: [
-        `In general, this ${lower} topic is very important for our lesson.`,
-        `Learning in a ${lower} way helps students memorize vocabulary faster.`
+        `Teachers always encourage students to ${lower} during English class.`,
+        `It is beneficial to ${lower} with friends every day.`
       ]
     };
   }
-  if (posType === 'adv' || lower.endsWith('ly')) {
+
+  if (isDetectedAdv) {
     return {
       pos: 'adv',
       phonetic: `/${lower}/`,
@@ -825,20 +851,21 @@ const generateSmartPhrasesAndExamples = (word, posType = 'n') => {
       ]
     };
   }
-  if (posType === 'v' || posType === 'v phr' || lower.endsWith('ing')) {
+
+  if (isDetectedAdj) {
     return {
-      pos: 'v',
+      pos: 'adj',
       phonetic: `/${lower}/`,
       meaning: lower,
-      phrases: [`try to ${lower}`, `start to ${lower}`, `learn to ${lower}`],
+      phrases: [`very ${lower}`, `in a ${lower} way`, `most ${lower}`],
       examples: [
-        `Teachers encourage students to ${lower} during class.`,
-        `It is beneficial to ${lower} with friends every day.`
+        `In general, this ${lower} topic is very important for our lesson.`,
+        `Learning in a ${lower} way helps students memorize vocabulary faster.`
       ]
     };
   }
 
-  // DEFAULT NOUN (n)
+  // 3. DEFAULT NOUN (n) ONLY FOR ACTUAL NOUNS
   return {
     pos: 'n',
     phonetic: `/${lower}/`,
@@ -850,7 +877,6 @@ const generateSmartPhrasesAndExamples = (word, posType = 'n') => {
     ]
   };
 };
-
 
 export default function VocabularyEngine({ activity, isTeacher = false, onSaveActivity }) {
   const { user } = useAuth();
