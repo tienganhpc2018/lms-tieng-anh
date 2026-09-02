@@ -818,6 +818,57 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     setActiveTab(tabKey);
   };
   const [isLockConfigModalOpen, setIsLockConfigModalOpen] = useState(false);
+  // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (GETTING STARTED, A CLOSER LOOK 1, etc.)
+  const [individualSectionLocks, setIndividualSectionLocks] = useState(() => {
+    try {
+      if (settings?.individualSectionLocks) return settings.individualSectionLocks;
+      const saved = localStorage.getItem(`vocab_section_locks_${activity?.id || 'default'}`);
+      return saved ? JSON.parse(saved) : {
+        'GETTING STARTED': false,
+        'A CLOSER LOOK 1': false,
+        'A CLOSER LOOK 2': false,
+        'COMMUNICATION': false,
+        'SKILLS 1': false,
+        'SKILLS 2': false,
+        'LOOKING BACK': false,
+        'PROJECT': false,
+      };
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
+
+  const handleToggleIndividualSectionLock = (secName) => {
+    const updatedLocks = {
+      ...individualSectionLocks,
+      [secName]: !individualSectionLocks[secName],
+    };
+    setIndividualSectionLocks(updatedLocks);
+    localStorage.setItem(`vocab_section_locks_${activity?.id || 'default'}`, JSON.stringify(updatedLocks));
+    playSuccessSound();
+    if (onSaveActivity) {
+      onSaveActivity({
+        ...settings,
+        vocabularyList: vocabList,
+        voiceOption,
+        masterAudioUrl,
+        lockGamesForStudents,
+        lockAheadLessonsForStudents,
+        individualGameLocks,
+        individualSectionLocks: updatedLocks,
+      });
+    }
+  };
+
+  const isSectionLockedForStudent = (secName) => {
+    if (isTeacher) return false;
+    if (!secName || secName === 'All') return false;
+    if (individualSectionLocks[secName]) return true;
+    return false;
+  };
+
   // FEATURE 2: DUPLICATE GAME PRESET (NHÂN BẢN GAME DỄ DÀNG CHO CÁC LỚP KHÁC)
   const handleDuplicateGamePreset = () => {
     try {
@@ -4015,7 +4066,88 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               </div>
             </div>
             )}
-          {/* POP-UP HẾT THỜI GIAN 5 PHÚT (TIMEOUT MODAL) */}
+    
+      {/* MODAL CẤU HÌNH KHÓA RIÊNG TỪNG TIẾT HỌC / LESSON (V204) */}
+      {isSectionLockConfigModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full border-4 border-amber-500 shadow-2xl space-y-5 text-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">🔒</span>
+                <div>
+                  <h3 className="font-black text-lg text-slate-800">CẤU HÌNH KHÓA RIÊNG TIẾT HỌC / LESSON</h3>
+                  <p className="text-xs text-slate-500 font-medium">Bật khóa để không cho Học sinh mở trước bài mới chưa học</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSectionLockConfigModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-500 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+              {[
+                { name: 'GETTING STARTED', icon: '🚀' },
+                { name: 'A CLOSER LOOK 1', icon: '📖' },
+                { name: 'A CLOSER LOOK 2', icon: '⚡' },
+                { name: 'COMMUNICATION', icon: '💬' },
+                { name: 'SKILLS 1', icon: '📚' },
+                { name: 'SKILLS 2', icon: '✍️' },
+                { name: 'LOOKING BACK', icon: '🔄' },
+                { name: 'PROJECT', icon: '🎨' },
+              ].map((sec) => {
+                const isLocked = !!individualSectionLocks[sec.name];
+                return (
+                  <div
+                    key={sec.name}
+                    className={`p-3 rounded-2xl border transition flex items-center justify-between ${
+                      isLocked ? 'bg-rose-50 border-rose-300' : 'bg-slate-50 border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <span className="text-xl">{sec.icon}</span>
+                      <div>
+                        <div className="font-black text-sm text-slate-800">{sec.name}</div>
+                        <div className="text-[11px] font-bold text-slate-500">
+                          {isLocked ? '🔒 Đang khóa đối với HS' : '🔓 Đang mở cho HS học'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleIndividualSectionLock(sec.name)}
+                      className={`px-3.5 py-1.5 rounded-xl font-extrabold text-xs transition shadow-xs cursor-pointer flex items-center space-x-1 border ${
+                        isLocked
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-500'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500'
+                      }`}
+                    >
+                      {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                      <span>{isLocked ? '🔒 Đang Khóa' : '🔓 Đang Mở'}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-2 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsSectionLockConfigModalOpen(false)}
+                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-xs rounded-2xl shadow-md cursor-pointer"
+              >
+                ✓ Hoàn Tất Cấu Hình
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POP-UP HẾT THỜI GIAN 5 PHÚT (TIMEOUT MODAL) */}
           {showTimeoutModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
               <div className="bg-gradient-to-b from-rose-950 via-slate-950 to-slate-950 text-white max-w-md w-full rounded-3xl p-6 sm:p-8 border-4 border-rose-500 shadow-2xl flex flex-col items-center text-center space-y-5">
@@ -5604,9 +5736,9 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                     onChange={(e) => setEditSection(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 rounded-xl font-extrabold text-xs focus:ring-2 focus:ring-amber-500"
                   >
-                    <option value="GETTING STARTED">GETTING STARTED</option>
-                    <option value="A CLOSER LOOK 1">A CLOSER LOOK 1</option>
-                    <option value="A CLOSER LOOK 2">A CLOSER LOOK 2</option>
+                    <option value="GETTING STARTED">🚀 GETTING STARTED</option>
+                    <option value="A CLOSER LOOK 1">📖 A CLOSER LOOK 1</option>
+                    <option value="A CLOSER LOOK 2">⚡ A CLOSER LOOK 2</option>
                     <option value="COMMUNICATION">COMMUNICATION</option>
                     <option value="SKILLS 1">SKILLS 1</option>
                     <option value="SKILLS 2">SKILLS 2</option>
