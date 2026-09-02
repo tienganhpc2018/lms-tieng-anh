@@ -2482,8 +2482,12 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown):
       let phonetic = `/${lower}/`;
       let meaning = `${lower} (nghĩa tự động)`;
       let img = 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=600&auto=format&fit=crop&q=80';
-      let phrases = [`learn ${lower}`, `use ${lower}`];
-      let examples = [`${lower.charAt(0).toUpperCase() + lower.slice(1)} is very important in learning English.`];
+      const fallbackData = generateSmartPhrasesAndExamples(rawWord, 'n');
+      let phrases = fallbackData.phrases;
+      let examples = fallbackData.examples;
+      if (fallbackData.pos) pos = fallbackData.pos;
+      if (fallbackData.phonetic) phonetic = fallbackData.phonetic;
+      if (fallbackData.meaning) meaning = fallbackData.meaning;
       if (lower.includes('surburb') || lower.includes('suburb')) {
         targetWord = 'suburb'; pos = 'n'; phonetic = '/ˈsʌb.ɜːb/'; meaning = 'khu vực ngoại ô (ngoại thành thành phố)'; img = 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&auto=format&fit=crop&q=80'; phrases = ['quiet suburb', 'in the suburbs of Ha Noi']; examples = ['We live in a quiet suburb of Ha Noi with lots of trees.', 'Many families move to the suburbs for cleaner air.'];
       } else if (lower.includes('police') || lower.includes('officer')) {
@@ -2512,7 +2516,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown):
         targetWord = 'jogging'; pos = 'n'; phonetic = "/'dʒɒɡɪŋ/"; meaning = 'đi bộ thể dục / chạy bộ'; img = 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=80'; phrases = ['go jogging', 'morning jogging']; examples = ['My father goes jogging around the park every morning.'];
       } else if (lower === 'model') {
         targetWord = 'model'; pos = 'n'; phonetic = "/'mɒdl/"; meaning = 'mô hình'; img = 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80'; phrases = ['scale model', 'build a model']; examples = ['He built a beautiful scale model of a sailboat.'];
-      } else if (lower === 'yoga') {
+      } else if (lower === 'general') { pos = 'adj'; phonetic = '/ˈdʒen.ər.əl/'; meaning = 'tổng quát, chung (đúng với hầu hết mọi trường hợp)'; img = 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80'; phrases = ['in general', 'general knowledge', 'general public']; examples = ['In general, most students enjoy interactive English lessons.', 'She has a great general knowledge of English vocabulary.']; }
+          else if (lower === 'yoga') {
         targetWord = 'yoga'; pos = 'n'; phonetic = "/'jəʊɡə/"; meaning = 'tập yoga'; img = 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&auto=format&fit=crop&q=80'; phrases = ['do yoga', 'yoga class']; examples = ['Doing yoga helps improve health and reduce stress.'];
       }
       setEditWord(targetWord);
@@ -2601,8 +2606,12 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
           let phonetic = `/${lower}/`;
           let meaning = lower;
           let img = 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80';
-          let phrases = [`learn ${lower}`, `use ${lower}`];
-          let examples = [`${lower.charAt(0).toUpperCase() + lower.slice(1)} is very useful in daily conversation.`];
+          const fallbackData = generateSmartPhrasesAndExamples(w, 'n');
+          let phrases = fallbackData.phrases;
+          let examples = fallbackData.examples;
+          if (fallbackData.pos) pos = fallbackData.pos;
+          if (fallbackData.phonetic) phonetic = fallbackData.phonetic;
+          if (fallbackData.meaning) meaning = fallbackData.meaning;
           if (lower === 'cardboard') { phonetic = "/'kɑːdboːd/"; meaning = 'bìa các tông'; img = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80'; phrases = ['cardboard boxes', 'a piece of cardboard']; examples = ['She packed her books in cardboard boxes.']; }
           else if (lower === 'dollhouse') { phonetic = "/'dɒlhaʊs/"; meaning = 'nhà mô hình (nhà búp bê)'; img = 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&auto=format&fit=crop&q=80'; phrases = ['wooden dollhouse']; examples = ['My sister loves playing with her dollhouse.']; }
           else if (lower === 'gardening') { phonetic = "/'ɡɑːdnɪŋ/"; meaning = 'làm vườn'; img = 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&auto=format&fit=crop&q=80'; phrases = ['enjoy gardening']; examples = ['My grandmother spends time gardening.']; }
