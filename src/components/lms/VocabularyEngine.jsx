@@ -1014,6 +1014,22 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
       [idx]: !prev[idx],
     }));
   };
+  
+  // SYNC LOCK SETTINGS FROM SUPABASE DATABASE FOR STUDENTS & TEACHERS
+  useEffect(() => {
+    if (activity?.settings) {
+      if (typeof activity.settings.lockGamesForStudents === 'boolean') {
+        setLockGamesForStudents(activity.settings.lockGamesForStudents);
+      }
+      if (activity.settings.individualGameLocks && typeof activity.settings.individualGameLocks === 'object') {
+        setIndividualGameLocks(activity.settings.individualGameLocks);
+      }
+      if (activity.settings.individualSectionLocks && typeof activity.settings.individualSectionLocks === 'object') {
+        setIndividualSectionLocks(activity.settings.individualSectionLocks);
+      }
+    }
+  }, [activity]);
+
   // BOOKMARKED WORDS STATE
   const [bookmarkedIds, setBookmarkedIds] = useState(() => {
     try {
