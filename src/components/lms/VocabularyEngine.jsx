@@ -1223,6 +1223,59 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   }, [isContextStudioOpen]);
 
   // Process image file (from upload, paste, or drop) with Gemini Vision AI OCR
+    // V222: Direct Blob processor (safely avoids browser Illegal constructor errors)
+  const processSgkBlobDirectly = (blob) => {
+    if (!blob) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Data = event.target?.result;
+      setContextImagePreview(base64Data);
+      setIsScanningSgkImage(true);
+
+      try {
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
+        if (apiKey) {
+          const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+          const pureBase64 = String(base64Data).split(',')[1] || '';
+
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: "Bạn là chuyên gia phân tích Sách Giáo Khoa Tiếng Anh. Hãy đọc ảnh trang bài học SGK này và trích xuất JSON thuần túy: { \"characters\": \"Tên nhân vật\", \"plot\": \"Tóm tắt cốt truyện\", \"grammar\": \"Cấu trúc ngữ pháp\" }" },
+                  { inline_data: { mime_type: blob.type || "image/jpeg", data: pureBase64 } }
+                ]
+              }]
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const cleanedText = rawText.replace('```json', '').replace('```', '').replace('```', '').trim();
+            const scannedJson = JSON.parse(cleanedText);
+
+            if (scannedJson) {
+              if (scannedJson.characters) setContextCharacters(scannedJson.characters);
+              if (scannedJson.plot) setContextPlot(scannedJson.plot);
+              if (scannedJson.grammar) setContextGrammar(scannedJson.grammar);
+              playSuccessSound();
+              alert('🎉 Gemini Vision AI đã quét ảnh thành công!');
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('OCR scanning error:', err);
+      } finally {
+        setIsScanningSgkImage(false);
+      }
+    };
+    reader.readAsDataURL(blob);
+  };
+
   const processSgkImageFile = async (file) => {
     if (!file) return;
 
@@ -1295,8 +1348,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
           for (const type of item.types) {
             if (type.startsWith('image/')) {
               const blob = await item.getType(type);
-              const file = new File([blob], 'clipboard.png', { type });
-              processSgkImageFile(file);
+              processSgkBlobDirectly(blob);
               return;
             }
           }
