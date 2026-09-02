@@ -3238,7 +3238,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             }`}
           >
             <Star className="w-3.5 h-3.5 text-amber-950 fill-amber-950" />
-            <span>⭐ Từ Cần Nhớ ({bookmarks.length})</span>
+            <span>⭐ Từ Cần Nhớ ({bookmarkedIds.length})</span>
           </button>
         </div>
 {/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
