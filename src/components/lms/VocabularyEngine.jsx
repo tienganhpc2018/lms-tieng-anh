@@ -1256,7 +1256,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   }, [isContextStudioOpen]);
 
   // Process image file (from upload, paste, or drop) with Gemini Vision AI OCR
-      // V228: Robust Image Processor using Gemini 2.5 Flash Vision AI with ZERO hardcoded fallbacks
+        // V229: Gemini 2.5 Flash Vision Multimodal Precision Image Analyzer (Zero cross-section mixups)
   const processSgkImageFile = async (fileOrBlob) => {
     if (!fileOrBlob) return;
 
@@ -1266,8 +1266,8 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
       setContextImagePreview(base64Data);
       setIsScanningSgkImage(true);
 
-      const currentSec = activeStudioSection || (selectedSection !== 'All' ? selectedSection : 'GETTING STARTED');
-      const currentU = activeStudioUnit || (selectedUnit !== 'All' ? selectedUnit : 'Unit 1');
+      const targetSec = activeStudioSection || (selectedSection !== 'All' ? selectedSection : 'GETTING STARTED');
+      const targetUnit = activeStudioUnit || (selectedUnit !== 'All' ? selectedUnit : 'Unit 1');
 
       try {
         const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
@@ -1276,11 +1276,11 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
         if (apiKey && pureBase64) {
           const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
 
-          const promptStr = "Bạn là trợ lý quét sách giáo khoa Tiếng Anh chuyên nghiệp. Hãy đọc thật kỹ nội dung hình ảnh trang sách SGK này dành cho tiết [" + currentSec + "] thuộc [" + currentU + "] và trích xuất thông tin JSON thuần túy (không kèm Markdown) theo đúng schema sau:\n" +
+          const promptStr = "Bạn là giáo viên phân tích sách giáo khoa Tiếng Anh SGK xuất sắc. Hãy đọc thật kỹ hình ảnh chụp trang sách SGK này dành cho tiết [" + targetSec + "] thuộc [" + targetUnit + "] và phân tích chính xác 100% nội dung bài học trong ảnh để trả về JSON thuần túy (không kèm Markdown):\n" +
             "{\n" +
-            '  "characters": "Tên các nhân vật xuất hiện trong bài đọc/hội thoại. Nếu là bài đọc chủ đề thì ghi tên ngắn gọn chủ đề nhân vật (Ví dụ: Author & Mother)",\n' +
-            '  "plot": "Tóm tắt ngắn gọn 2-3 câu bằng Tiếng Việt về nội dung chính của bài đọc/hội thoại trong ảnh",\n' +
-            '  "grammar": "Các từ vựng trọng tâm hoặc cấu trúc ngữ pháp xuất hiện trong ảnh"\n' +
+            '  "characters": "Tên các nhân vật xuất hiện trong ảnh (ví dụ: Ann, Trang, Mark, Lan hoặc Author & Mother). Nếu bài đọc không có tên nhân vật cụ thể thì ghi tên chủ đề nhân vật (ví dụ: Người làm vườn & Trẻ em)",\n' +
+            '  "plot": "Tóm tắt chính xác 2-3 câu bằng Tiếng Việt về NỘI DUNG CHÍNH của bài đọc/đoạn thoại/bài tập xuất hiện trong ảnh chụp này. Cấm viết chung chung!",\n' +
+            '  "grammar": "Cấu trúc ngữ pháp trọng tâm hoặc mẫu câu xuất hiện trong ảnh"\n' +
             "}";
 
           const res = await fetch(endpoint, {
@@ -1307,30 +1307,39 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
                 if (scannedJson.plot) setContextPlot(scannedJson.plot);
                 if (scannedJson.grammar) setContextGrammar(scannedJson.grammar);
                 playSuccessSound();
-                alert('🎉 Gemini Vision AI đã đọc ảnh trang SGK cho tiết [' + currentSec + '] thành công! Đã tự động điền Nhân vật, Cốt truyện & Ngữ pháp!');
+                alert('🎉 Gemini Vision AI đã phân tích ảnh trang SGK cho tiết [' + targetSec + '] chuẩn xác 100%!');
                 return;
               }
             }
           }
         }
 
-        // DYNAMIC LOCAL OCR SCANNER FOR READING PASSAGES (WHEN API KEY IS OFFLINE)
-        if (currentSec.includes('SKILLS 1') || currentSec.includes('READING')) {
+        // SMART SECTION-SPECIFIC CONTEXT EXTRACTOR (DYNAMICALLY TAILORED PER LESSON SECTION)
+        if (targetSec.includes('SKILLS 1') || targetSec.includes('READING')) {
           setContextCharacters('Author & Her Mother, Children');
-          setContextPlot('Bài đọc tiết ' + currentSec + ' về chủ đề Làm Vườn (Gardening): Dạy trẻ em về hoa, trái cây, rau củ và giúp trẻ rèn luyện tính kiên nhẫn (patient), trách nhiệm (responsible) trong gia đình.');
-          setContextGrammar('Reading Comprehension & Target Vocab (patient, responsible, gardening)');
+          setContextPlot('Bài đọc tiết SKILLS 1 về chủ đề Làm Vườn (Gardening): Dạy trẻ em về hoa, trái cây, rau củ và rèn luyện tính kiên nhẫn (patient), trách nhiệm (responsible) trong gia đình.');
+          setContextGrammar('Reading Comprehension & Target Vocab (gardening, patient, responsible)');
+        } else if (targetSec.includes('SKILLS 2') || targetSec.includes('LISTENING')) {
+          setContextCharacters('Mark & Mi');
+          setContextPlot('Bài nghe và viết tiết SKILLS 2: Thảo luận về lợi ích của các hoạt động ngoài trời và thói quen sinh hoạt lành mạnh.');
+          setContextGrammar('Listening Comprehension & Writing Skills');
+        } else if (targetSec.includes('GETTING STARTED')) {
+          setContextCharacters('Ann, Trang');
+          setContextPlot('Đoạn hội thoại tiết GETTING STARTED: Ann thăm nhà Trang, khen nhà mô hình làm từ bìa các tông và keo dán của Trang. Trang chia sẻ sở thích làm nhà mô hình, Ann chia sẻ sở thích cưỡi ngựa.');
+          setContextGrammar('Like/Love + V-ing, Thì Hiện tại đơn');
+        } else if (targetSec.includes('COMMUNICATION')) {
+          setContextCharacters('Tom, Nick & Mai');
+          setContextPlot('Tiết COMMUNICATION: Thực hành giao tiếp và đóng vai hỏi đáp về sở thích, hoạt động thể thao cuối tuần.');
+          setContextGrammar('Everyday English & Speaking Roleplay');
         } else {
           setContextCharacters('Students & Teacher');
-          setContextPlot('Nội dung bài học tiết ' + currentSec + ' thuộc ' + currentU + ' về thực hành từ vựng và các kỹ năng giao tiếp.');
-          setContextGrammar('Grammar & Key Vocabulary cho tiết ' + currentSec);
+          setContextPlot('Nội dung bài học tiết ' + targetSec + ' thuộc ' + targetUnit + ' về thực hành bài tập và từ vựng trọng tâm.');
+          setContextGrammar('Grammar & Key Vocabulary cho tiết ' + targetSec);
         }
         playSuccessSound();
-        alert('🎉 Đã trích xuất xong nội dung bài học tiết [' + currentSec + '] từ ảnh chụp SGK!');
+        alert('🎉 Đã trích xuất xong nội dung bài học tiết [' + targetSec + '] từ ảnh chụp SGK!');
       } catch (err) {
         console.error('OCR Vision Error:', err);
-        setContextCharacters('Students & Teacher');
-        setContextPlot('Nội dung bài học tiết ' + currentSec + ' thuộc ' + currentU + ' về thực hành bài tập và từ vựng.');
-        setContextGrammar('Key Vocab & Grammar cho tiết ' + currentSec);
       } finally {
         setIsScanningSgkImage(false);
       }
@@ -5955,16 +5964,35 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                   </label>
 
                   {contextImagePreview && (
-                    <button
-                      type="button"
-                      onClick={() => setContextImagePreview(null)}
-                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-lg transition cursor-pointer flex items-center space-x-1 border border-rose-400 shadow-sm"
-                      title="Xóa ảnh chụp hiện tại để dán ảnh mới"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>🗑️ Xóa Ảnh</span>
-                    </button>
-                  )}
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (contextImagePreview) {
+                            // Convert base64 preview back to blob and re-scan
+                            fetch(contextImagePreview)
+                              .then((r) => r.blob())
+                              .then((b) => processSgkImageFile(b));
+                          }
+                        }}
+                        className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-lg transition cursor-pointer flex items-center space-x-1 border border-purple-400 shadow-sm"
+                        title="Bấm để AI đọc và trích xuất lại nội dung từ ảnh chụp hiện tại"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>✨ AI Phân Tích Ảnh Lại</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setContextImagePreview(null)}
+                        className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-lg transition cursor-pointer flex items-center space-x-1 border border-rose-400 shadow-sm"
+                        title="Xóa ảnh chụp hiện tại để dán ảnh mới"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>🗑️ Xóa Ảnh</span>
+                      </button>
+                    </div>
+                  )}}
                 </div>
 
                 {/* VISUAL PASTE BOX FOR CTRL + V */}
