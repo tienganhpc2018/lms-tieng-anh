@@ -5496,15 +5496,15 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
           </div>
         </div>
       )}
-      {/* AI VOCAB STORYTELLER MODAL - V214 HIGHLIGHT + AUDIO UK + REGENERATE + NULL-SAFE */}
+      {/* AI VOCAB STORYTELLER MODAL - V215 HIGH Z-INDEX & TOP NAVBAR PROTECTION */}
       {aiStoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full border-4 border-purple-500 shadow-2xl space-y-5 text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-6 pt-16 sm:pt-20 pb-6 animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-2xl w-full border-4 border-purple-500 shadow-2xl space-y-4 text-slate-900 my-auto max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 shrink-0">
               <div className="flex items-center space-x-3">
                 <span className="text-3xl">📖</span>
                 <div>
-                  <h3 className="font-black text-xl text-purple-900 uppercase tracking-wide">
+                  <h3 className="font-black text-lg sm:text-xl text-purple-900 uppercase tracking-wide">
                     AI TRUYỆN TỪ VỰNG THÔNG MINH ({activityGrade})
                   </h3>
                   <p className="text-xs text-purple-700 font-bold">
@@ -5522,7 +5522,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                   title="Tạo lại một câu chuyện AI mới khác sinh động hơn"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 text-amber-300 ${generatingStory ? 'animate-spin' : ''}`} />
-                  <span>🔄 Đổi Truyện Khác</span>
+                  <span className="hidden sm:inline">🔄 Đổi Truyện Khác</span>
                 </button>
 
                 <button
@@ -5543,14 +5543,14 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                 </p>
               </div>
             ) : aiStoryData ? (
-              <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
+              <div className="space-y-4 overflow-y-auto pr-1 grow">
                 <h4 className="font-black text-lg text-purple-950 border-b border-purple-100 pb-1">
                   {aiStoryData.title}
                 </h4>
 
                 {/* KHUNG CÂU TRUYỆN TIẾNG ANH CÓ HIGHLIGHT TỪ VỰNG MÀU VÀNG PHÁT SÁNG */}
                 <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 space-y-3 relative shadow-inner">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-black text-purple-800 uppercase tracking-wide flex items-center space-x-1">
                       <span>🇬🇧 CÂU TRUYỆN TIẾNG ANH (UK STANDARD):</span>
                     </span>
@@ -5585,7 +5585,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
               </div>
             ) : null}
 
-            <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+            <div className="pt-2 border-t border-slate-200 flex items-center justify-between shrink-0">
               <button
                 type="button"
                 onClick={handleGenerateAiVocabStory}
