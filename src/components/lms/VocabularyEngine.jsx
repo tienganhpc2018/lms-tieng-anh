@@ -191,36 +191,93 @@ const handlePrintCertificate = (
 // =============================================================================
 // VIETNAMESE TRANSLATION HELPER FOR EXAMPLE SENTENCES
 // =============================================================================
-const getVietnameseTranslation = (enText, word = '') => {
-  if (!enText) return '';
-  const lower = enText.toLowerCase();
-  if (lower.includes('garbag') && lower.includes('clean')) {
-    return 'Những nhân viên thu gom rác làm việc chăm chỉ từ sáng sớm để giữ cho đường phố luôn sạch sẽ.';
-  } else if (lower.includes('pack our waste') || lower.includes('help garbage')) {
-    return 'Chúng ta nên đóng gói rác thải gọn gàng để hỗ trợ các nhân viên thu gom rác.';
-  } else if (lower.includes('bat trang') || lower.includes('famous craft')) {
-    return 'Bát Tràng là một trong những làng nghề thủ công nổi tiếng nhất Việt Nam.';
-  } else if (lower.includes('tourist') && lower.includes('handmade')) {
-    return 'Du khách rất thích mua quà lưu niệm làm bằng tay tại các làng nghề thủ công.';
-  } else if (lower.includes('artisan') && lower.includes('vase')) {
-    return 'Nghệ nhân đã dành nhiều giờ đồng hồ để tạo hình chiếc bình gốm tinh xảo.';
-  } else if (lower.includes('artisan') && lower.includes('pottery')) {
-    return 'Nhiều nghệ nhân trong làng nghề này kiếm sống bằng nghề làm gốm thủ công.';
-  } else if (lower.includes('suburb') && lower.includes('trees')) {
-    return 'Chúng tôi sống ở một khu ngoại ô yên bình của Hà Nội với rất nhiều cây xanh.';
-  } else if (lower.includes('suburb') && lower.includes('cleaner air')) {
-    return 'Nhiều gia đình chuyển ra khu vực ngoại ô để tận hưởng không khí trong lành hơn.';
-  } else if (lower.includes('check-up') || lower.includes('regular health')) {
-    return 'Ở độ tuổi của bạn, bạn nên đi kiểm tra sức khỏe định kỳ thường xuyên.';
-  } else if (lower.includes('clay') && lower.includes('making pottery')) {
-    return 'Loại đất sét này được dùng để làm đồ gốm sứ.';
-  } else if (lower.includes('firefighter') && lower.includes('blaze')) {
-    return 'Lính cứu hỏa đã nhanh chóng có mặt để dập tắt đám cháy lớn.';
-  } else if (lower.includes('police officer') && lower.includes('traffic')) {
-    return 'Sĩ quan cảnh sát đã phân luồng giao thông nhịp nhàng trong giờ cao điểm.';
+// TRANSLATION CACHE & REAL GOOGLE TRANSLATE ENGINE FOR EXAMPLE SENTENCES
+const translationCache = new Map();
+
+const fetchRealTranslation = async (textEn) => {
+  if (!textEn) return '';
+  if (translationCache.has(textEn)) return translationCache.get(textEn);
+
+  try {
+    const url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=" + encodeURIComponent(textEn);
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const translated = data?.[0]?.map((item) => item[0]).join('').trim();
+      if (translated && translated !== textEn) {
+        const result = "Dịch: \"" + translated + "\"";
+        translationCache.set(textEn, result);
+        return result;
+      }
+    }
+  } catch (err) {
+    console.error('Translation error:', err);
   }
-  return `👉 Dịch: "${enText}"`;
+  return '';
 };
+
+const getVietnameseTranslation = (enText, targetWord = '') => {
+  if (!enText) return '';
+  if (translationCache.has(enText)) return translationCache.get(enText);
+
+  const lower = enText.toLowerCase();
+
+  // Pattern matching dictionary for Grade 7, 8, 9 vocabulary examples
+  if (lower.includes('she packed her books in cardboard boxes')) {
+    return 'Dịch: "Cô ấy đã đóng gói sách của mình vào các hộp bìa các tông."';
+  } else if (lower.includes('opened the cardboard box') && lower.includes('took out each item')) {
+    return 'Dịch: "Anh ấy đã mở hộp bìa các tông và lấy từng món đồ ra."';
+  } else if (lower.includes('creativity') && (lower.includes('daily') || lower.includes('conversation'))) {
+    return 'Dịch: "Sự sáng tạo rất hữu ích trong giao tiếp hàng ngày."';
+  } else if (lower.includes('cardboard') && lower.includes('dollhouse')) {
+    return 'Dịch: "Trang sử dụng bìa các tông để làm nhà mô hình cho búp bê."';
+  } else if (lower.includes('gardening') && (lower.includes('nature') || lower.includes('plant') || lower.includes('flowers'))) {
+    return 'Dịch: "Làm vườn là một sở thích tuyệt vời giúp kết nối với thiên nhiên."';
+  } else if (lower.includes('gardening')) {
+    return 'Dịch: "Làm vườn mang lại nhiều lợi ích cho sức khỏe và sự thư thái tâm hồn."';
+  } else if (lower.includes('patient') || lower.includes('patience')) {
+    return 'Dịch: "Rèn luyện tính kiên nhẫn giúp bạn vượt qua mọi khó khăn."';
+  } else if (lower.includes('responsibility')) {
+    return 'Dịch: "Trách nhiệm giúp mỗi người trưởng thành hơn trong cuộc sống."';
+  } else if (lower.includes('maturity')) {
+    return 'Dịch: "Sự trưởng thành thể hiện qua thái độ sống tích cực và ứng xử."';
+  } else if (lower.includes('insect') || lower.includes('insects')) {
+    return 'Dịch: "Các loài côn trùng nhỏ đóng vai trò quan trọng trong hệ sinh thái."';
+  } else if (lower.includes('glue')) {
+    return 'Dịch: "Dùng keo dán để gắn kết các chi tiết của sản phẩm thủ công."';
+  } else if (lower.includes('horse riding') || lower.includes('ride a horse')) {
+    return 'Dịch: "Cưỡi ngựa là một môn thể thao rất thú vị và rèn luyện thể lực tốt."';
+  } else if (lower.includes('making models') || lower.includes('build models')) {
+    return 'Dịch: "Làm nhà mô hình là sở thích được nhiều bạn học sinh yêu thích."';
+  } else if (lower.includes('bat trang')) {
+    return 'Dịch: "Bát Tràng là một trong những làng nghề gốm sứ truyền thống nổi tiếng nhất."';
+  } else if (lower.includes('suburb')) {
+    return 'Dịch: "Khu vực ngoại ô rất yên bình với nhiều cây xanh và không khí trong lành."';
+  } else if (lower.includes('clay')) {
+    return 'Dịch: "Đất sét là nguyên liệu chính để tạo nên các sản phẩm gốm sứ độc đáo."';
+  }
+
+  // Trigger background async translation fetch to populate cache for next renders
+  fetchRealTranslation(enText);
+
+  // Smart word-by-word fallback if offline
+  const dict = {
+    'she': 'Cô ấy', 'he': 'Anh ấy', 'packed': 'đóng gói', 'her': 'của cô ấy', 'his': 'của anh ấy',
+    'books': 'sách', 'in': 'trong', 'cardboard': 'bìa các tông', 'boxes': 'các hộp', 'box': 'hộp',
+    'opened': 'đã mở', 'the': '', 'and': 'và', 'took': 'lấy', 'out': 'ra', 'each': 'mỗi',
+    'item': 'món đồ', 'creativity': 'Sự sáng tạo', 'is': 'thì/là', 'very': 'rất', 'useful': 'hữu ích',
+    'daily': 'hàng ngày', 'conversation': 'giao tiếp'
+  };
+
+  const words = enText.split(' ');
+  const translated = words.map(w => {
+    const clean = w.toLowerCase().replace(/[^a-z]/g, '');
+    return dict[clean] || w;
+  }).join(' ');
+
+  return 'Dịch: "' + translated + '"';
+};
+
 // DYNAMIC WORD SEARCH GENERATOR WITH UP TO 10 WORDS & DIAGONAL PLACEMENT
 const generateWordSearchGrid = (list, currentGrade = 'Lớp 7') => {
   let wordCandidates = list
@@ -871,15 +928,15 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
 
   const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
 
-  const isSectionLockedForStudent = (secName) => {
+    const isSectionLockedForStudent = (secName) => {
     if (effectiveIsTeacher) return false;
     if (!secName || secName === 'All') return false;
 
-    // Check explicit teacher lock state
+    // ONLY lock if Teacher explicitly set individualSectionLocks[secName] === true!
     if (individualSectionLocks[secName] === true) return true;
-    if (individualSectionLocks[secName] === false) return false;
 
-    return false; // Default: UNLOCKED!
+    // DEFAULT 100% UNLOCKED AND ACCESSIBLE TO STUDENTS FOR ALL LESSONS!
+    return false;
   };
 
   // FEATURE 2: DUPLICATE GAME PRESET (NHÂN BẢN GAME DỄ DÀNG CHO CÁC LỚP KHÁC)
@@ -4132,7 +4189,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                               </span>
                               <button
                                 type="button"
-                                onClick={() => toggleTranslation(idx)}
+                                onClick={() => toggleTranslation(idx, textEn)}
                                 className={`px-2 py-1 rounded-lg text-xs font-black transition cursor-pointer flex items-center space-x-1 shrink-0 border ${
                                   isOpen
                                     ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs ring-2 ring-amber-400'
@@ -4146,7 +4203,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             {isOpen && (
                               <div className="pl-9 pr-3 py-2 bg-amber-50 rounded-xl border border-amber-300 text-xs font-bold text-amber-950 animate-fade-in flex items-start space-x-2">
                                 <span className="text-amber-600 shrink-0 font-extrabold">👉</span>
-                                <span className="leading-relaxed font-semibold text-amber-900">{textVi}</span>
+                                <span className="leading-relaxed font-semibold text-amber-900">{asyncTranslations[idx] || textVi}</span>
                               </div>
                               )}
                           </div>
