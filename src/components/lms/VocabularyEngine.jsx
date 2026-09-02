@@ -820,48 +820,41 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     setActiveTab(tabKey);
   };
   const [isLockConfigModalOpen, setIsLockConfigModalOpen] = useState(false);
-  // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (GETTING STARTED, A CLOSER LOOK 1, etc.)
+    // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (GETTING STARTED, A CLOSER LOOK 1, etc.)
   const [individualSectionLocks, setIndividualSectionLocks] = useState(() => {
     try {
-      if (settings?.individualSectionLocks) return settings.individualSectionLocks;
       const saved = localStorage.getItem(`vocab_section_locks_${activity?.id || 'default'}`);
-      return saved ? JSON.parse(saved) : {
-        'GETTING STARTED': false,
-        'A CLOSER LOOK 1': false,
-        'A CLOSER LOOK 2': false,
-        'COMMUNICATION': false,
-        'SKILLS 1': false,
-        'SKILLS 2': false,
-        'LOOKING BACK': false,
-        'PROJECT': false,
-      };
+      if (saved) return JSON.parse(saved);
+      if (settings?.individualSectionLocks && typeof settings.individualSectionLocks === 'object') {
+        return settings.individualSectionLocks;
+      }
+      return {};
     } catch (e) {
       return {};
     }
   });
 
-    // V233: KEEP SECTION LOCKS IN 100% PERFECT SYNC WITH SETTINGS & LOCALSTORAGE
-  useEffect(() => {
-    if (settings?.individualSectionLocks && typeof settings.individualSectionLocks === 'object') {
-      setIndividualSectionLocks(settings.individualSectionLocks);
-    }
-  }, [JSON.stringify(settings?.individualSectionLocks)]);
-
   const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
   const [isStudentPreviewMode, setIsStudentPreviewMode] = useState(false);
 
-    const handleToggleIndividualSectionLock = (secName, e) => {
+  const handleToggleIndividualSectionLock = (secName, e) => {
     if (e) e.stopPropagation();
-    const currentlyLocked = !!individualSectionLocks[secName];
-    const newLockState = !currentlyLocked;
+    const isCurrentlyLocked = individualSectionLocks[secName] === true;
+    const newLockState = !isCurrentlyLocked;
+
     const updatedLocks = {
       ...individualSectionLocks,
       [secName]: newLockState,
     };
+
     setIndividualSectionLocks(updatedLocks);
-    localStorage.setItem(`vocab_section_locks_${activity?.id || 'default'}`, JSON.stringify(updatedLocks));
+    try {
+      localStorage.setItem(`vocab_section_locks_${activity?.id || 'default'}`, JSON.stringify(updatedLocks));
+    } catch (err) {}
+
     playSuccessSound();
     alert(newLockState ? `🔒 Đã KHÓA tiết học '${secName}' thành công cho Học sinh!` : `🔓 Đã MỞ KHÓA tiết học '${secName}' thành công cho Học sinh!`);
+
     if (onSaveActivity) {
       onSaveActivity({
         ...settings,
@@ -878,19 +871,15 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
 
   const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
 
-    const isSectionLockedForStudent = (secName) => {
+  const isSectionLockedForStudent = (secName) => {
     if (effectiveIsTeacher) return false;
     if (!secName || secName === 'All') return false;
 
-    // Explicit teacher lock/unlock setting has highest priority
-    if (individualSectionLocks[secName] === false) return false; // Explicitly UNLOCKED by Teacher!
-    if (individualSectionLocks[secName] === true) return true;   // Explicitly LOCKED by Teacher!
+    // Check explicit teacher lock state
+    if (individualSectionLocks[secName] === true) return true;
+    if (individualSectionLocks[secName] === false) return false;
 
-    // Fallback lock ahead setting if not explicitly set
-    if (lockAheadLessonsForStudents && secName !== 'GETTING STARTED') {
-      return true;
-    }
-    return false;
+    return false; // Default: UNLOCKED!
   };
 
   // FEATURE 2: DUPLICATE GAME PRESET (NHÂN BẢN GAME DỄ DÀNG CHO CÁC LỚP KHÁC)
