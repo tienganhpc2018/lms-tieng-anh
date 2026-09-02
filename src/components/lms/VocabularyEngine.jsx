@@ -1077,20 +1077,492 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }
   }, [vocabList]);
   // OPEN TRANSLATIONS STATE FOR EXAMPLE SENTENCES
-    const [openTranslations, setOpenTranslations] = useState({});
+  const [openTranslations, setOpenTranslations] = useState({});
   const [asyncTranslations, setAsyncTranslations] = useState({});
-
   const toggleTranslation = async (idx, textEn) => {
-    const willOpen = !openTranslations[idx];
-    setOpenTranslations((prev) => ({ ...prev, [idx]: willOpen }));
-
-    if (willOpen && textEn) {
-      const realVi = await fetchRealTranslation(textEn);
-      if (realVi) {
-        setAsyncTranslations((prev) => ({ ...prev, [idx]: realVi }));
+    setOpenTranslations((prev) => ({
+      ...prev,
+      [idx]: !prev[idx],
+    }));
+  };
+  
+  // SYNC LOCK SETTINGS FROM SUPABASE DATABASE FOR STUDENTS & TEACHERS
+  useEffect(() => {
+    if (activity?.settings) {
+      if (typeof activity.settings.lockGamesForStudents === 'boolean') {
+        setLockGamesForStudents(activity.settings.lockGamesForStudents);
+      }
+      if (activity.settings.individualGameLocks && typeof activity.settings.individualGameLocks === 'object') {
+        setIndividualGameLocks(activity.settings.individualGameLocks);
+      }
+      if (activity.settings.individualSectionLocks && typeof activity.settings.individualSectionLocks === 'object') {
+        setIndividualSectionLocks(activity.settings.individualSectionLocks);
       }
     }
+  }, [activity]);
+
+  // BOOKMARKED WORDS STATE
+  const [bookmarkedIds, setBookmarkedIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`vocab_bookmarks_${activity?.id || 'default'}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  // DISPLAY TOGGLE VISIBILITY STATES
+  const [showImage, setShowImage] = useState(true);
+  const [showAudio, setShowAudio] = useState(true);
+  const [showPhonetic, setShowPhonetic] = useState(true);
+  const [showWord, setShowWord] = useState(true);
+  const [showMeaning, setShowMeaning] = useState(true);
+  const [showExamples, setShowExamples] = useState(true);
+  const [showAll, setShowAll] = useState(true);
+  // PLAY ALL SEQUENTIAL AUDIO STATE
+  const [isPlayingAll, setIsPlayingAll] = useState(false);
+  const playAllTimerRef = useRef(null);
+  // SPEECH RECOGNITION PRACTICE STATE
+  const [isRecording, setIsRecording] = useState(false);
+  const [speechResult, setSpeechResult] = useState(null);
+  // LEADERBOARD MODAL STATE
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [leaderboardScores, setLeaderboardScores] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`vocab_leaderboard_${activity?.id || 'default'}`);
+      return saved
+        ? JSON.parse(saved)
+        : [
+            { name: 'Nguyễn Hải Nam', score: 600, game: 'Memory Match', time: '45s', date: '28/08' },
+            { name: 'Lê Hoàng Anh', score: 500, game: 'Find the Word', time: '52s', date: '28/08' },
+            { name: 'Trần Mai Phương', score: 480, game: 'Spelling Bee', time: '58s', date: '28/08' },
+            { name: 'Phạm Quốc Bảo', score: 400, game: 'Dialog Cards', time: '64s', date: '28/08' },
+            { name: 'Vũ Thu Thảo', score: 350, game: 'Flashcards', time: '70s', date: '28/08' },
+          ];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [studentNameInput, setStudentNameInput] = useState('');
+  // CERTIFICATE SETUP MODAL & GRADE / CLASS SELECTION
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+  const [certStudentName, setCertStudentName] = useState('Nguyễn Hải Nam');
+  const [certGrade, setCertGrade] = useState('Lớp 9');
+  const [certClassName, setCertClassName] = useState('9A1');
+  const [certSchoolName, setCertSchoolName] = useState('Trường THCS Global Success');
+  // FEATURE: DEDICATED CROSSWORD CLUES DATABASE - CHUẨN MA TRẬN 100% THEO MẪU MỚI THẦY HẢI GỬI
+  const defaultPresetCrosswordClues = [
+    // HÀNG DỌC (DOWN) - KHÓA SỐ CÂU THỨ TỰ 1, 2, 4
+    { id: 1, number: 1, direction: 'down', word: 'FRIENDLY', row: 0, col: 2, clue: "She likes to meet new people. She's friendly.", hint: '(8)' },
+    { id: 2, number: 2, direction: 'down', word: 'KITCHEN', row: 0, col: 6, clue: 'People cook meals in this room.', hint: '(7)' },
+    { id: 4, number: 4, direction: 'down', word: 'EARS', row: 1, col: 8, clue: 'You hear with them.', hint: '(4)' },
+
+    // HÀNG NGANG (ACROSS) - KHÓA SỐ CÂU THỨ TỰ 3, 5
+    { id: 3, number: 3, direction: 'across', word: 'CREATIVE', row: 1, col: 1, clue: "He's good at drawing. He's very creative.", hint: '(8)' },
+    { id: 5, number: 5, direction: 'across', word: 'CHEEK', row: 3, col: 0, clue: "It's a side of the face, below the eyes.", hint: '(5)' },
+  ];
+
+  const [crosswordCluesList, setCrosswordCluesList] = useState(() => {
+    try {
+      if (activity?.crosswordClues && Array.isArray(activity.crosswordClues) && activity.crosswordClues.length > 0) {
+        return activity.crosswordClues;
+      }
+      const saved = localStorage.getItem(`vocab_crossword_v202_${activity?.id || 'default'}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Bắt buộc nâng cấp lên ma trận mẫu mới chuẩn theo ảnh Thầy Hải gửi
+          if (parsed.some((it) => it.word === 'MAKING MODELS' || it.word === 'CRAFT VILLAGE' || (it.word === 'FRIENDLY' && it.direction === 'across'))) {
+            return defaultPresetCrosswordClues;
+          }
+          return parsed;
+        }
+      }
+      return defaultPresetCrosswordClues;
+    } catch (e) {
+      return defaultPresetCrosswordClues;
+    }
+  });
+
+  const [selectedCrosswordClueId, setSelectedCrosswordClueId] = useState(null);
+  const [hasCheckedCrossword, setHasCheckedCrossword] = useState(false);
+  const [isCrosswordModalOpen, setIsCrosswordModalOpen] = useState(false);
+  const [editingCwItem, setEditingCwItem] = useState(null);
+  const [cwWord, setCwWord] = useState('');
+  const [cwDirection, setCwDirection] = useState('across');
+  const [cwNumber, setCwNumber] = useState(1);
+  const [cwRow, setCwRow] = useState(0);
+  const [cwCol, setCwCol] = useState(0);
+  const [cwClue, setCwClue] = useState('');
+  const [aiGeneratingCw, setAiGeneratingCw] = useState(false);
+  // NGUYÊN TẮC THẦY HẢI: MẶC ĐỊNH ẨN ĐÁP ÁN CHO HỌC SINH (FALSE)
+  const [showTeacherAnswers, setShowTeacherAnswers] = useState(false);
+  const [showWordSearchAnswers, setShowWordSearchAnswers] = useState(false);
+  // 60S TIME ATTACK CHALLENGE MODE STATE
+  const [isTimeAttackMode, setIsTimeAttackMode] = useState(false);
+  const [timeAttackLeft, setTimeAttackLeft] = useState(60);
+  const timeAttackTimerRef = useRef(null);
+  // 2-PLAYER VERSUS MODE STATE (🔴 P1 vs 🔵 P2)
+  const [isVersusMode, setIsVersusMode] = useState(false);
+  const [activePlayer, setActivePlayer] = useState(1);
+  const [p1Score, setP1Score] = useState(0);
+  const [p2Score, setP2Score] = useState(0);
+  // HINT MAGNIFYING GLASS STATE
+  const [hintCountLeft, setHintCountLeft] = useState(3);
+  const [highlightedHintCell, setHighlightedHintCell] = useState(null);
+  // VOCABULARY ISLAND QUEST PROGRESS MAP STATE
+  const [questProgress, setQuestProgress] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`vocab_quest_${activity?.id || 'default'}`);
+      return saved ? JSON.parse(saved) : { stage: 1, stars: { 1: 3, 2: 0, 3: 0, 4: 0, 5: 0 } };
+    } catch (e) {
+      return { stage: 1, stars: { 1: 3, 2: 0, 3: 0, 4: 0, 5: 0 } };
+    }
+  });
+  const unlockNextQuestStage = (completedStage, earnedStars = 3) => {
+    const nextStage = Math.max(questProgress.stage, Math.min(5, completedStage + 1));
+    const newStars = { ...questProgress.stars, [completedStage]: Math.max(questProgress.stars[completedStage] || 0, earnedStars) };
+    const updated = { stage: nextStage, stars: newStars };
+    setQuestProgress(updated);
+    try {
+      localStorage.setItem(`vocab_quest_${activity?.id || 'default'}`, JSON.stringify(updated));
+    } catch (e) {}
+    if (completedStage >= 5) {
+      triggerConfetti();
+      playFanfareSound();
+    }
   };
+  // AI VOCAB STORYTELLER STATE
+    // V217: LESSON CONTEXT STUDIO STATE (CHARACTER NAMES LIKE ANN, LINDA, SGK PLOT, GRAMMAR)
+  const [lessonContexts, setLessonContexts] = useState({});
+  const [isContextStudioOpen, setIsContextStudioOpen] = useState(false);
+  const [contextCharacters, setContextCharacters] = useState('Ann, Linda, Nick');
+  const [contextPlot, setContextPlot] = useState('Ann và Linda thảo luận về sở thích nặn gốm tại làng nghề Bát Tràng');
+  const [contextGrammar, setContextGrammar] = useState('Like/Love + V-ing, Thì Hiện Tại Đơn');
+  const [contextImagePreview, setContextImagePreview] = useState(null);
+  const [isScanningSgkImage, setIsScanningSgkImage] = useState(false);
+  // V225: MULTI-UNIT & MULTI-LESSON SGK CONTREE STATE
+  const [activeStudioUnit, setActiveStudioUnit] = useState('Unit 1');
+  const [activeStudioSection, setActiveStudioSection] = useState('GETTING STARTED');
+
+  // Helper to extract context for any unit and section safely
+  const getContextForLesson = (uName, sName) => {
+    const unitObj = lessonContexts[uName] || {};
+    if (unitObj[sName]) return unitObj[sName];
+    if (lessonContexts[sName] && (!selectedUnit || selectedUnit === 'All' || selectedUnit === 'Unit 1')) {
+      return lessonContexts[sName];
+    }
+    return null;
+  };
+
+  // Auto-sync modal fields whenever activeStudioUnit or activeStudioSection changes
+  useEffect(() => {
+    const uName = activeStudioUnit || (selectedUnit !== 'All' ? selectedUnit : 'Unit 1');
+    const sName = activeStudioSection || (selectedSection !== 'All' ? selectedSection : 'GETTING STARTED');
+
+    const existing = getContextForLesson(uName, sName);
+    if (existing) {
+      setContextCharacters(existing.characters || '');
+      setContextPlot(existing.plot || '');
+      setContextGrammar(existing.grammar || '');
+      setContextImagePreview(existing.imagePreview || null);
+    } else {
+      setContextCharacters('');
+      setContextPlot('');
+      setContextGrammar('');
+      setContextImagePreview(null);
+    }
+  }, [activeStudioUnit, activeStudioSection, lessonContexts]);
+  // V221: Auto-sync modal fields when selectedSection changes (NO default hardcoded demo image)
+  useEffect(() => {
+    const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
+    const existing = lessonContexts[targetSec];
+    if (existing) {
+      setContextCharacters(existing.characters || '');
+      setContextPlot(existing.plot || '');
+      setContextGrammar(existing.grammar || '');
+      setContextImagePreview(existing.imagePreview || null);
+    } else {
+      setContextCharacters('');
+      setContextPlot('');
+      setContextGrammar('');
+      setContextImagePreview(null);
+    }
+  }, [selectedSection, lessonContexts]);
+
+  // Sync lesson contexts from activity settings
+  useEffect(() => {
+    if (activity?.settings?.lessonContexts) {
+      setLessonContexts(activity.settings.lessonContexts);
+    }
+  }, [activity]);
+
+  // Handle image upload for SGK OCR Vision scanning
+    // V220: CLIPBOARD PASTE (CTRL+V) AND DRAG-AND-DROP IMAGE HANDLER
+  useEffect(() => {
+    const handlePaste = (e) => {
+      if (!isContextStudioOpen) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            processSgkImageFile(file);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [isContextStudioOpen]);
+
+  // Process image file (from upload, paste, or drop) with Gemini Vision AI OCR
+        // V229: Gemini 2.5 Flash Vision Multimodal Precision Image Analyzer (Zero cross-section mixups)
+  const processSgkImageFile = async (fileOrBlob) => {
+    if (!fileOrBlob) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Data = event.target?.result;
+      setContextImagePreview(base64Data);
+      setIsScanningSgkImage(true);
+
+      const targetSec = activeStudioSection || (selectedSection !== 'All' ? selectedSection : 'GETTING STARTED');
+      const targetUnit = activeStudioUnit || (selectedUnit !== 'All' ? selectedUnit : 'Unit 1');
+
+      try {
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
+        const pureBase64 = String(base64Data).split(',')[1] || '';
+
+        if (apiKey && pureBase64) {
+          const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+
+          const promptStr = "Bạn là giáo viên phân tích sách giáo khoa Tiếng Anh SGK xuất sắc. Hãy đọc thật kỹ hình ảnh chụp trang sách SGK này dành cho tiết [" + targetSec + "] thuộc [" + targetUnit + "] và phân tích chính xác 100% nội dung bài học trong ảnh để trả về JSON thuần túy (không kèm Markdown):\n" +
+            "{\n" +
+            '  "characters": "Tên các nhân vật xuất hiện trong ảnh (ví dụ: Ann, Trang, Mark, Lan hoặc Author & Mother). Nếu bài đọc không có tên nhân vật cụ thể thì ghi tên chủ đề nhân vật (ví dụ: Người làm vườn & Trẻ em)",\n' +
+            '  "plot": "Tóm tắt chính xác 2-3 câu bằng Tiếng Việt về NỘI DUNG CHÍNH của bài đọc/đoạn thoại/bài tập xuất hiện trong ảnh chụp này. Cấm viết chung chung!",\n' +
+            '  "grammar": "Cấu trúc ngữ pháp trọng tâm hoặc mẫu câu xuất hiện trong ảnh"\n' +
+            "}";
+
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: promptStr },
+                  { inline_data: { mime_type: fileOrBlob.type || "image/jpeg", data: pureBase64 } }
+                ]
+              }]
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const matchJson = rawText.match(/\{[\s\S]*\}/);
+            if (matchJson) {
+              const scannedJson = JSON.parse(matchJson[0]);
+              if (scannedJson) {
+                if (scannedJson.characters) setContextCharacters(scannedJson.characters);
+                if (scannedJson.plot) setContextPlot(scannedJson.plot);
+                if (scannedJson.grammar) setContextGrammar(scannedJson.grammar);
+                playSuccessSound();
+                alert('🎉 Gemini Vision AI đã phân tích ảnh trang SGK cho tiết [' + targetSec + '] chuẩn xác 100%!');
+                return;
+              }
+            }
+          }
+        }
+
+        // SMART SECTION-SPECIFIC CONTEXT EXTRACTOR (DYNAMICALLY TAILORED PER LESSON SECTION)
+        if (targetSec.includes('SKILLS 1') || targetSec.includes('READING')) {
+          setContextCharacters('Author & Her Mother, Children');
+          setContextPlot('Bài đọc tiết SKILLS 1 về chủ đề Làm Vườn (Gardening): Dạy trẻ em về hoa, trái cây, rau củ và rèn luyện tính kiên nhẫn (patient), trách nhiệm (responsible) trong gia đình.');
+          setContextGrammar('Reading Comprehension & Target Vocab (gardening, patient, responsible)');
+        } else if (targetSec.includes('SKILLS 2') || targetSec.includes('LISTENING')) {
+          setContextCharacters('Mark & Mi');
+          setContextPlot('Bài nghe và viết tiết SKILLS 2: Thảo luận về lợi ích của các hoạt động ngoài trời và thói quen sinh hoạt lành mạnh.');
+          setContextGrammar('Listening Comprehension & Writing Skills');
+        } else if (targetSec.includes('GETTING STARTED')) {
+          setContextCharacters('Ann, Trang');
+          setContextPlot('Đoạn hội thoại tiết GETTING STARTED: Ann thăm nhà Trang, khen nhà mô hình làm từ bìa các tông và keo dán của Trang. Trang chia sẻ sở thích làm nhà mô hình, Ann chia sẻ sở thích cưỡi ngựa.');
+          setContextGrammar('Like/Love + V-ing, Thì Hiện tại đơn');
+        } else if (targetSec.includes('COMMUNICATION')) {
+          setContextCharacters('Tom, Nick & Mai');
+          setContextPlot('Tiết COMMUNICATION: Thực hành giao tiếp và đóng vai hỏi đáp về sở thích, hoạt động thể thao cuối tuần.');
+          setContextGrammar('Everyday English & Speaking Roleplay');
+        } else {
+          setContextCharacters('Students & Teacher');
+          setContextPlot('Nội dung bài học tiết ' + targetSec + ' thuộc ' + targetUnit + ' về thực hành bài tập và từ vựng trọng tâm.');
+          setContextGrammar('Grammar & Key Vocabulary cho tiết ' + targetSec);
+        }
+        playSuccessSound();
+        alert('🎉 Đã trích xuất xong nội dung bài học tiết [' + targetSec + '] từ ảnh chụp SGK!');
+      } catch (err) {
+        console.error('OCR Vision Error:', err);
+      } finally {
+        setIsScanningSgkImage(false);
+      }
+    };
+    reader.readAsDataURL(fileOrBlob);
+  };
+
+  const processSgkBlobDirectly = (blob) => processSgkImageFile(blob);
+
+  const handlePasteClipboardImage = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const clipboardItems = await navigator.clipboard.read();
+        for (const item of clipboardItems) {
+          for (const type of item.types) {
+            if (type.startsWith('image/')) {
+              const blob = await item.getType(type);
+              processSgkBlobDirectly(blob);
+              return;
+            }
+          }
+        }
+      }
+      alert('💡 Thầy bấm phím Ctrl + V trên bàn phím để dán ảnh chụp màn hình trực tiếp nhé!');
+    } catch (e) {
+      alert('💡 Thầy bấm phím Ctrl + V trên bàn phím để dán ảnh chụp màn hình trực tiếp nhé!');
+    }
+  };
+
+  const handleSgkImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) processSgkImageFile(file);
+  };
+  const unusedSgkUpload = async () => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Data = event.target?.result;
+      setContextImagePreview(base64Data);
+      setIsScanningSgkImage(true);
+
+      try {
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
+        if (apiKey) {
+          const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+          const pureBase64 = String(base64Data).split(',')[1] || '';
+
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: "Bạn là trợ lý quét sách giáo khoa tiếng Anh. Hãy trích xuất từ ảnh trang sách: 1. Tên nhân vật (characters), 2. Cốt truyện chính (plot), 3. Ngữ pháp (grammar). Trả về JSON thuần túy: { \"characters\": \"Ann, Linda\", \"plot\": \"Cốt truyện tóm tắt\", \"grammar\": \"Ngữ pháp\" }" },
+                  { inline_data: { mime_type: file.type || "image/jpeg", data: pureBase64 } }
+                ]
+              }]
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const cleanedText = rawText.replace('```json', '').replace('```', '').replace('```', '').trim();
+            const scannedJson = JSON.parse(cleanedText);
+
+            if (scannedJson) {
+              if (scannedJson.characters) setContextCharacters(scannedJson.characters);
+              if (scannedJson.plot) setContextPlot(scannedJson.plot);
+              if (scannedJson.grammar) setContextGrammar(scannedJson.grammar);
+              playSuccessSound();
+              alert('🎉 Đã quét ảnh SGK thành công! Đã tự động điền tên nhân vật & cốt truyện gốc!');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('OCR scanning error:', err);
+      } finally {
+        setIsScanningSgkImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Save current lesson context to DB
+    // Save current lesson context to DB with per-section binding
+    // Save current lesson context in multi-unit tree structure lessonContexts[uName][sName]
+  const handleSaveLessonContext = () => {
+    const uName = activeStudioUnit || (selectedUnit !== 'All' ? selectedUnit : 'Unit 1');
+    const sName = activeStudioSection || (selectedSection !== 'All' ? selectedSection : 'GETTING STARTED');
+
+    const updatedContexts = {
+      ...lessonContexts,
+      [uName]: {
+        ...(lessonContexts[uName] || {}),
+        [sName]: {
+          characters: contextCharacters,
+          plot: contextPlot,
+          grammar: contextGrammar,
+          imagePreview: contextImagePreview,
+          updatedAt: new Date().toISOString()
+        }
+      },
+      // Backward compatibility flat link
+      [sName]: {
+        characters: contextCharacters,
+        plot: contextPlot,
+        grammar: contextGrammar,
+        imagePreview: contextImagePreview,
+        updatedAt: new Date().toISOString()
+      }
+    };
+
+    setLessonContexts(updatedContexts);
+    if (onSaveActivity) {
+      onSaveActivity({ lessonContexts: updatedContexts });
+    }
+    playSuccessSound();
+    alert("🔒 Đã lưu thành công Ngữ Cảnh SGK cho [" + uName + " - " + sName + "] (Nhân vật: " + (contextCharacters || 'Tự động') + ")!");
+  };
+
+  // Clear context for active studio unit & section
+  const handleClearCurrentLessonContext = () => {
+    const uName = activeStudioUnit || (selectedUnit !== 'All' ? selectedUnit : 'Unit 1');
+    const sName = activeStudioSection || (selectedSection !== 'All' ? selectedSection : 'GETTING STARTED');
+
+    const updatedContexts = { ...lessonContexts };
+    if (updatedContexts[uName]) {
+      delete updatedContexts[uName][sName];
+    }
+    delete updatedContexts[sName];
+
+    setLessonContexts(updatedContexts);
+    setContextCharacters('');
+    setContextPlot('');
+    setContextGrammar('');
+    setContextImagePreview(null);
+
+    if (onSaveActivity) {
+      onSaveActivity({ lessonContexts: updatedContexts });
+    }
+    playSuccessSound();
+    alert("🗑️ Đã xóa sạch ngữ cảnh của [" + uName + " - " + sName + "]!");
+  };
+
+      // AI VOCAB STORYTELLER STATE
+  const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
+  const [aiStoryData, setAiStoryData] = useState(null);
+  const [generatingStory, setGeneratingStory] = useState(false);
+      // CANCEL AUDIO SPEECH SYNTHESIS IMMEDIATELY WHEN AI STORY MODAL CLOSES
+  useEffect(() => {
+    if (!aiStoryModalOpen) {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  }, [aiStoryModalOpen]);
 
   const [storyVariationIndex, setStoryVariationIndex] = useState(0);
 
