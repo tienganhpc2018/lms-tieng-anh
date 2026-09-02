@@ -1511,7 +1511,11 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     alert("🗑️ Đã xóa sạch ngữ cảnh của [" + uName + " - " + sName + "]!");
   };
 
-    const [storyVariationIndex, setStoryVariationIndex] = useState(0);
+      // AI VOCAB STORYTELLER STATE
+  const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
+  const [aiStoryData, setAiStoryData] = useState(null);
+  const [generatingStory, setGeneratingStory] = useState(false);
+  const [storyVariationIndex, setStoryVariationIndex] = useState(0);
 
   const handleGenerateAiVocabStory = async (forceNextSeed = false) => {
     setGeneratingStory(true);
