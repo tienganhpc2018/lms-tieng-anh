@@ -746,7 +746,7 @@ const GLOBAL_SUCCESS_PRESETS = {
     ]
   }
 };
-export default function VocabularyEngine({ activity, isTeacher = true, onSaveActivity }) {
+export default function VocabularyEngine({ activity, isTeacher = false, onSaveActivity }) {
   const { user } = useAuth();
   const settings = activity?.settings || {};
   // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
