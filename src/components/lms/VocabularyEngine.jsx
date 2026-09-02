@@ -774,21 +774,9 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     const firstUnitKey = Object.keys(presetsForGrade)[0];
     return presetsForGrade[firstUnitKey] || GLOBAL_SUCCESS_PRESETS['Lớp 7']['Unit 1: Hobbies'];
   });
-  // TEACHER CONTROLS FOR LOCKING/UNLOCKING GAMES AND LESSON SECTIONS FOR STUDENTS
-  const [lockGamesForStudents, setLockGamesForStudents] = useState(() => {
-    try {
-      if (typeof settings.lockGamesForStudents === 'boolean') {
-        return settings.lockGamesForStudents;
-      }
-      const saved = localStorage.getItem(`vocab_lock_all_games_${activity?.id || 'default'}`);
-      return saved ? JSON.parse(saved) : false;
-    } catch (e) {
-      return false;
-    }
-  });
-  const [lockAheadLessonsForStudents, setLockAheadLessonsForStudents] = useState(
-    () => settings.lockAheadLessonsForStudents || false
-  );
+    // TEACHER CONTROLS FOR LOCKING/UNLOCKING GAMES AND LESSON SECTIONS FOR STUDENTS (DEFAULT ALL UNLOCKED)
+  const [lockGamesForStudents, setLockGamesForStudents] = useState(false);
+  const [lockAheadLessonsForStudents, setLockAheadLessonsForStudents] = useState(false);
   const handleToggleLockGames = () => {
     const nextVal = !lockGamesForStudents;
     setLockGamesForStudents(nextVal);
@@ -877,15 +865,12 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     setActiveTab(tabKey);
   };
   const [isLockConfigModalOpen, setIsLockConfigModalOpen] = useState(false);
-      // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (DEFAULT ALL UNLOCKED)
+        // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (DEFAULT ALL UNLOCKED)
   const [individualSectionLocks, setIndividualSectionLocks] = useState(() => {
     try {
       const actId = activity?.id || 'global';
-      const saved = localStorage.getItem('vocab_section_locks_' + actId);
+      const saved = localStorage.getItem('vocab_section_locks_v238_' + actId);
       if (saved) return JSON.parse(saved);
-      if (settings?.individualSectionLocks && typeof settings.individualSectionLocks === 'object') {
-        return settings.individualSectionLocks;
-      }
     } catch (e) {}
     return {
       'GETTING STARTED': false,
@@ -936,15 +921,10 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
 
   const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
 
-    const isSectionLockedForStudent = (secName) => {
-    if (effectiveIsTeacher) return false;
+      const isSectionLockedForStudent = (secName) => {
     if (!secName || secName === 'All') return false;
-
-    // ONLY lock if Teacher explicitly set individualSectionLocks[secName] === true!
     if (individualSectionLocks[secName] === true) return true;
-
-    // DEFAULT 100% UNLOCKED AND ACCESSIBLE TO STUDENTS FOR ALL LESSONS!
-    return false;
+    return false; // Default 100% UNLOCKED & OPEN FOR ALL STUDENTS!
   };
 
   // FEATURE 2: DUPLICATE GAME PRESET (NHÂN BẢN GAME DỄ DÀNG CHO CÁC LỚP KHÁC)
