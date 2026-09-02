@@ -1833,98 +1833,71 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
         }
       }
 
-      // THUẬT TOÁN SINH 5 VERSION CÂU TRUYỆN ĐƠN GIẢN NĂNG ĐỘNG CẤP A1-A2 CHO LỚP 6, 7, 8, 9 (V263)
+      // THUẬT TOÁN SINH 5 VERSION CÂU TRUYỆN HỘI THOẠI GETTING STARTED LỒNG GHÉP 6 TOÀN BỘ 6-10 TỪ VỰNG (V264)
       const currentWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList) || [];
-      const wObjs = currentWordsList.slice(0, 6);
       
-      // BỘ CHUYỂN ĐỔI NGỮ PHÁP TỰ NHIÊN ĐƠN GIẢN CHO HỌC SINH THCS
       const getSimpleGradePhrase = (item, defaultWord, defaultMeaning) => {
         const word = (item?.word || defaultWord).toLowerCase().trim();
         const meaning = (item?.meaning || defaultMeaning).trim();
         const pos = (item?.pos || '').toLowerCase();
 
-        if (word === 'especially') {
-          return {
-            enText: 'especially when we study together',
-            viText: 'đặc biệt là (especially) khi chúng tôi cùng nhau học tập',
-            advText: 'especially',
-            advVi: 'đặc biệt là (especially)'
-          };
-        }
-        if (word === 'exercise') {
-          return { enText: 'doing exercise', viText: 'tập thể dục (exercise)' };
-        }
-        if (word === 'science') {
-          return { enText: 'science lessons', viText: 'các bài học khoa học (science)' };
-        }
-        if (word === 'general') {
-          return { enText: 'in general', viText: 'nói chung (general)' };
-        }
-        if (word === 'regular') {
-          return { enText: 'regular practice', viText: 'luyện tập thường xuyên (regular)' };
-        }
-        if (word === 'set') {
-          return { enText: 'setting goals', viText: 'đặt mục tiêu (set)' };
-        }
-        if (word === 'gardening') {
-          return { enText: 'gardening', viText: 'làm vườn (gardening)' };
-        }
-        if (word === 'model') {
-          return { enText: 'building models', viText: 'lắp ráp mô hình (model)' };
-        }
-        if (word === 'jogging') {
-          return { enText: 'morning jogging', viText: 'chạy bộ thể dục (jogging)' };
-        }
-        if (word === 'yoga') {
-          return { enText: 'practicing yoga', viText: 'tập yoga (yoga)' };
-        }
+        if (word === 'cardboard') { return { enText: 'cardboard', viText: 'bìa các tông (cardboard)' }; }
+        if (word === 'dollhouse') { return { enText: 'a dollhouse', viText: 'nhà mô hình (dollhouse)' }; }
+        if (word === 'gardening') { return { enText: 'gardening', viText: 'làm vườn (gardening)' }; }
+        if (word === 'glue') { return { enText: 'glue', viText: 'keo dán (glue)' }; }
+        if (word === 'horse riding') { return { enText: 'horse riding', viText: 'cưỡi ngựa (horse riding)' }; }
+        if (word === 'making models') { return { enText: 'making models', viText: 'làm mô hình (making models)' }; }
+        if (word === 'popular') { return { enText: 'popular', viText: 'phổ biến (popular)' }; }
+        if (word === 'unusual') { return { enText: 'unusual', viText: 'độc lạ (unusual)' }; }
+        if (word === 'coin') { return { enText: 'collecting coins', viText: 'sưu tầm tiền xu (coin)' }; }
+        if (word === 'jogging') { return { enText: 'jogging', viText: 'chạy bộ (jogging)' }; }
+        if (word === 'yoga') { return { enText: 'yoga', viText: 'tập yoga (yoga)' }; }
+        if (word === 'especially') { return { enText: 'especially', viText: 'đặc biệt là (especially)' }; }
+        if (word === 'exercise') { return { enText: 'doing exercise', viText: 'tập thể dục (exercise)' }; }
+        if (word === 'science') { return { enText: 'science lessons', viText: 'khoa học (science)' }; }
 
-        if (pos === 'adv' || word.endsWith('ly')) {
-          return { enText: word, viText: meaning + ' (' + word + ')' };
-        }
-        if (pos === 'adj') {
-          return { enText: word + ' activities', viText: 'hoạt động ' + meaning + ' (' + word + ')' };
-        }
+        if (pos === 'adv' || word.endsWith('ly')) { return { enText: word, viText: meaning + ' (' + word + ')' }; }
+        if (pos === 'adj') { return { enText: word, viText: meaning + ' (' + word + ')' }; }
         return { enText: word, viText: meaning + ' (' + word + ')' };
       };
 
-      const w1 = getSimpleGradePhrase(wObjs[0], 'exercise', 'tập thể dục');
-      const w2 = getSimpleGradePhrase(wObjs[1], 'science', 'khoa học');
-      const w3 = getSimpleGradePhrase(wObjs[2], 'especially', 'đặc biệt là');
-      const w4 = getSimpleGradePhrase(wObjs[3], 'gardening', 'làm vườn');
-      const w5 = getSimpleGradePhrase(wObjs[4], 'model', 'mô hình');
-      const w6 = getSimpleGradePhrase(wObjs[5], 'jogging', 'chạy bộ');
-
-      const espEn = w3.advText ? w3.advText : w3.enText;
-      const espVi = w3.advVi ? w3.advVi : w3.viText;
+      // LẤY ĐỦ TOÀN BỘ DANH SÁCH TỪ VỰNG TIẾT HỌC (TỪ 6 ĐẾN 10 TỪ VỰNG)
+      const w1 = getSimpleGradePhrase(currentWordsList[0], 'cardboard', 'bìa các tông');
+      const w2 = getSimpleGradePhrase(currentWordsList[1], 'dollhouse', 'nhà mô hình');
+      const w3 = getSimpleGradePhrase(currentWordsList[2], 'gardening', 'làm vườn');
+      const w4 = getSimpleGradePhrase(currentWordsList[3], 'glue', 'keo dán');
+      const w5 = getSimpleGradePhrase(currentWordsList[4], 'horse riding', 'cưỡi ngựa');
+      const w6 = getSimpleGradePhrase(currentWordsList[5], 'making models', 'làm mô hình');
+      const w7 = getSimpleGradePhrase(currentWordsList[6], 'popular', 'phổ biến');
+      const w8 = getSimpleGradePhrase(currentWordsList[7], 'unusual', 'độc lạ');
 
       const storyVersionIndex = ((storySeed % 5) + 5) % 5;
 
       const dynamicStories = [
         {
-          title: 'Truyện Từ Vựng (Version 1 - Sở Thích Hàng Ngày): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Learning English vocabulary is fun and easy for students. ' + w1.enText.charAt(0).toUpperCase() + w1.enText.slice(1) + ' and learning ' + w2.enText + ' helps us grow every day. I like studying with my friends, ' + espEn + ' when we play vocabulary games together.',
-          storyVi: 'Học từ vựng tiếng Anh rất vui và dễ dàng cho học sinh. ' + w1.viText.charAt(0).toUpperCase() + w1.viText.slice(1) + ' và học ' + w2.viText + ' giúp chúng ta phát triển mỗi ngày. Tôi thích học cùng bạn bè, ' + espVi + ' khi chúng tôi cùng nhau chơi các trò chơi từ vựng.'
+          title: 'Truyện Từ Vựng (Version 1 - Tóm Tắt Hội Thoại Ann & Trang): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Ann and Trang are happily discussing their favorite hobbies in class. Ann loves using ' + w1.enText + ' and building ' + w2.enText + '. Trang enjoys ' + w3.enText + ' and using ' + w4.enText + ' to stick pieces together. They also talk about ' + w5.enText + ' and ' + w6.enText + ', which are very ' + w7.enText + ' and ' + w8.enText + ' activities for students.',
+          storyVi: 'Ann và Trang đang vui vẻ thảo luận về các sở thích yêu thích trong lớp. Ann thích dùng ' + w1.viText + ' và làm ' + w2.viText + '. Trang thích ' + w3.viText + ' và dùng ' + w4.viText + ' để dán các mảnh lại với nhau. Hai bạn cũng trò chuyện về ' + w5.viText + ' và ' + w6.viText + ', những hoạt động rất ' + w7.viText + ' và ' + w8.viText + ' cho học sinh.'
         },
         {
-          title: 'Truyện Từ Vựng (Version 2 - Thói Quen Lớp Học): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Our class has many interesting activities every day. Students like ' + w1.enText + ' to stay healthy and strong. We also enjoy ' + w2.enText + ', ' + espEn + ' when we work in groups.',
-          storyVi: 'Lớp học của chúng tôi có nhiều hoạt động thú vị mỗi ngày. Học sinh thích ' + w1.viText + ' để luôn khỏe mạnh và dẻo dai. Chúng tôi cũng thích ' + w2.viText + ', ' + espVi + ' khi làm việc theo nhóm.'
+          title: 'Truyện Từ Vựng (Version 2 - Hội Thoại Mi & Nick): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'During the Getting Started lesson, students share how they spend their free time. Mi likes working with ' + w1.enText + ' and making ' + w2.enText + ' at home. Nick prefers ' + w3.enText + ' outdoors with ' + w4.enText + '. They agree that hobbies like ' + w5.enText + ' and ' + w6.enText + ' are ' + w7.enText + ' ways to relax, while ' + w8.enText + ' brings great joy.',
+          storyVi: 'Trong tiết Getting Started, các em học sinh chia sẻ cách mình dành thời gian rảnh rỗi. Mi thích làm việc với ' + w1.viText + ' và tạo nên ' + w2.viText + ' ở nhà. Nick thích ' + w3.viText + ' ngoài trời với ' + w4.viText + '. Các bạn đồng ý rằng các sở thích như ' + w5.viText + ' và ' + w6.viText + ' là những cách ' + w7.viText + ' để thư giãn, trong khi ' + w8.viText + ' mang lại niềm vui lớn.'
         },
         {
-          title: 'Truyện Từ Vựng (Version 3 - Chia Sẻ & Luyện Nói): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'In our lesson, we share our favorite hobbies with classmates. ' + w1.enText.charAt(0).toUpperCase() + w1.enText.slice(1) + ' helps us relax after study hours. We learn about ' + w2.enText + ' and practice speaking English together every week, ' + espEn + ' in class.',
-          storyVi: 'Trong bài học, chúng tôi chia sẻ sở thích yêu thích với bạn cùng lớp. ' + w1.viText.charAt(0).toUpperCase() + w1.viText.slice(1) + ' giúp chúng tôi thư giãn sau giờ học. Chúng tôi học về ' + w2.viText + ' và cùng nhau luyện nói tiếng Anh mỗi tuần, ' + espVi + ' ở trên lớp.'
+          title: 'Truyện Từ Vựng (Version 3 - Hội Thoại Elena & Bạn Bè): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'In class, Ann shows her creative project to Elena. She used ' + w1.enText + ' to craft a neat ' + w2.enText + '. Elena likes ' + w3.enText + ' and fixing crafts with ' + w4.enText + '. They think ' + w5.enText + ' and ' + w6.enText + ' are ' + w7.enText + ' hobbies, while ' + w8.enText + ' keeps everyone happy and active.',
+          storyVi: 'Ở trên lớp, Ann khoe dự án sáng tạo của mình với Elena. Bạn ấy đã dùng ' + w1.viText + ' để làm một ' + w2.viText + ' gọn gàng. Elena thích ' + w3.viText + ' và sửa đồ thủ công bằng ' + w4.viText + '. Hai bạn cho rằng ' + w5.viText + ' và ' + w6.viText + ' là những sở thích ' + w7.viText + ', trong khi ' + w8.viText + ' giúp mọi người luôn vui vẻ và năng động.'
         },
         {
-          title: 'Truyện Từ Vựng (Version 4 - Học Tập Vui Vẻ): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Students work together to complete simple learning tasks. ' + w1.enText.charAt(0).toUpperCase() + w1.enText.slice(1) + ' gives us good energy for the day. Studying ' + w2.enText + ' is exciting, ' + espEn + ' when we discover new things.',
-          storyVi: 'Học sinh cùng nhau làm việc để hoàn thành các bài tập đơn giản. ' + w1.viText.charAt(0).toUpperCase() + w1.viText.slice(1) + ' mang lại năng lượng tốt cho cả ngày. Học ' + w2.viText + ' rất thú vị, ' + espVi + ' khi chúng tôi khám phá những điều mới.'
+          title: 'Truyện Từ Vựng (Version 4 - Khám Phá Sở Thích Cuối Tuần): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'The teacher asks students about their favorite weekend hobbies. Some enjoy using ' + w1.enText + ' and decorating ' + w2.enText + '. Others prefer ' + w3.enText + ' or applying ' + w4.enText + ' for paper models. Activities like ' + w5.enText + ' and ' + w6.enText + ' are very ' + w7.enText + ', making ' + w8.enText + ' a wonderful habit.',
+          storyVi: 'Thầy giáo hỏi học sinh về các sở thích cuối tuần yêu thích. Một số bạn thích dùng ' + w1.viText + ' và trang trí ' + w2.viText + '. Những bạn khác thích ' + w3.viText + ' hoặc dùng ' + w4.viText + ' cho các mô hình giấy. Các hoạt động như ' + w5.viText + ' và ' + w6.viText + ' rất ' + w7.viText + ', biến ' + w8.viText + ' thành một thói quen tuyệt vời.'
         },
         {
-          title: 'Truyện Từ Vựng (Version 5 - Luyện Tập Hàng Ngày): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Practicing English every day makes students more confident. We love ' + w1.enText + ' and studying ' + w2.enText + '. Group work helps us learn faster, ' + espEn + ' when we support each other.',
-          storyVi: 'Luyện tập tiếng Anh mỗi ngày giúp học sinh tự tin hơn. Chúng tôi yêu thích ' + w1.viText + ' và học ' + w2.viText + '. Làm việc nhóm giúp chúng tôi học nhanh hơn, ' + espVi + ' khi chúng tôi giúp đỡ lẫn nhau.'
+          title: 'Truyện Từ Vựng (Version 5 - Dự Án Đội Nhóm Lớp Học): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Working in groups helps students share interesting ideas. Trang likes collecting ' + w1.enText + ' and making a mini ' + w2.enText + '. Nick enjoys ' + w3.enText + ' and using ' + w4.enText + ' neatly. Together, they practice ' + w5.enText + ' and ' + w6.enText + ', finding them ' + w7.enText + ' and ' + w8.enText + ' for everyone.',
+          storyVi: 'Làm việc nhóm giúp học sinh chia sẻ nhiều ý tưởng thú vị. Trang thích thu thập ' + w1.viText + ' và làm một ' + w2.viText + ' thu nhỏ. Nick thích ' + w3.viText + ' và dùng ' + w4.viText + ' gọn gàng. Cùng nhau, các bạn thực hành ' + w5.viText + ' và ' + w6.viText + ', nhận thấy chúng rất ' + w7.viText + ' và ' + w8.viText + ' cho tất cả mọi người.'
         }
       ];
 
