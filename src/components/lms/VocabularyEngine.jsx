@@ -932,7 +932,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
   const [isStudentPreviewMode, setIsStudentPreviewMode] = useState(false);
 
-  const handleToggleIndividualSectionLock = (secName, e) => {
+    const handleToggleIndividualSectionLock = (secName, e) => {
     if (e) e.stopPropagation();
     const isCurrentlyLocked = individualSectionLocks[secName] === true;
     const newLockState = !isCurrentlyLocked;
@@ -944,11 +944,11 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
 
     setIndividualSectionLocks(updatedLocks);
     try {
-      localStorage.setItem(`vocab_section_locks_${activity?.id || 'default'}`, JSON.stringify(updatedLocks));
+      localStorage.setItem('vocab_section_locks_' + (activity?.id || 'default'), JSON.stringify(updatedLocks));
     } catch (err) {}
 
     playSuccessSound();
-    alert(newLockState ? `🔒 Đã KHÓA tiết học '${secName}' thành công cho Học sinh!` : `🔓 Đã MỞ KHÓA tiết học '${secName}' thành công cho Học sinh!`);
+    alert(newLockState ? `🔒 Đã ẨN tiết học '${secName}' thành công đối với Học sinh!` : `👁️ Đã HIỆN tiết học '${secName}' thành công cho Học sinh vào học!`);
 
     if (onSaveActivity) {
       onSaveActivity({
@@ -3943,15 +3943,34 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
                   <span>{sec.num}{sec.name}</span>
 
-                  {isSelected && (
-                    <span className="bg-slate-950 text-amber-300 text-[10px] px-1.5 py-0.5 rounded-md font-mono font-black ml-1 border border-amber-400">
-                      LINKED ✓
+                                    {/* THAY CHỮ LINK BẰNG NÚT HIDE / SHOW ĐẨY ẨN/HIỆN TIẾT HỌC CHO GIÁO VIÊN */}
+                  {isTeacher && sec.fullSec !== 'All' && (
+                    <span
+                      onClick={(e) => handleToggleIndividualSectionLock(sec.fullSec, e)}
+                      title={isLocked ? 'Nhấp để HIỆN tiết học này cho HS' : 'Nhấp để ẨN tiết học này với HS'}
+                      className={`ml-1.5 px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center space-x-1 border shadow-xs shrink-0 ${
+                        isLocked
+                          ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-300 ring-1 ring-rose-300'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-300 ring-1 ring-emerald-300'
+                      }`}
+                    >
+                      {isLocked ? (
+                        <>
+                          <Lock className="w-3 h-3 text-white" />
+                          <span>🔒 HIDE (Ẩn)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3 h-3 text-white" />
+                          <span>👁️ SHOW (Hiện)</span>
+                        </>
+                      )}
                     </span>
                   )}
 
-                  {isLockedForStudent && (
-                    <span className="bg-rose-600 text-white text-[9px] px-1 rounded font-mono font-black ml-1">
-                      🔒 ĐÃ KHÓA
+                  {!isTeacher && isLockedForStudent && (
+                    <span className="bg-rose-600 text-white text-[9px] px-1.5 py-0.5 rounded font-mono font-black ml-1 border border-rose-400">
+                      🔒 ĐÃ ẨN
                     </span>
                   )}
                 </button>
