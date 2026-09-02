@@ -250,11 +250,11 @@ export default function AssignmentView() {
     }
   };
 
-  const handleSaveVocabularySettings = async (vocabSettings) => {
+    const handleSaveVocabularySettings = async (vocabSettings) => {
     try {
       const updatedSettings = {
         ...(activity?.settings || {}),
-        vocabularyList: vocabSettings.vocabularyList,
+        ...vocabSettings,
       };
 
       const { data, error } = await supabase
@@ -269,8 +269,7 @@ export default function AssignmentView() {
       if (error) throw error;
       if (data) {
         setActivity(data);
-        // Silent default alert when auto-saving vocabulary settings
-        console.log('Saved vocab settings to DB');
+        console.log('Saved vocab settings to DB:', updatedSettings);
       }
     } catch (err) {
       alert('❌ Lỗi lưu từ vựng: ' + err.message);
