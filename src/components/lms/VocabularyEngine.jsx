@@ -1166,6 +1166,96 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }
   };
   // AI VOCAB STORYTELLER STATE
+    // V217: LESSON CONTEXT STUDIO STATE (CHARACTER NAMES LIKE ANN, LINDA, SGK PLOT, GRAMMAR)
+  const [lessonContexts, setLessonContexts] = useState({});
+  const [isContextStudioOpen, setIsContextStudioOpen] = useState(false);
+  const [contextCharacters, setContextCharacters] = useState('Ann, Linda, Nick');
+  const [contextPlot, setContextPlot] = useState('Ann và Linda thảo luận về sở thích nặn gốm tại làng nghề Bát Tràng');
+  const [contextGrammar, setContextGrammar] = useState('Like/Love + V-ing, Thì Hiện Tại Đơn');
+  const [contextImagePreview, setContextImagePreview] = useState(null);
+  const [isScanningSgkImage, setIsScanningSgkImage] = useState(false);
+
+  // Sync lesson contexts from activity settings
+  useEffect(() => {
+    if (activity?.settings?.lessonContexts) {
+      setLessonContexts(activity.settings.lessonContexts);
+    }
+  }, [activity]);
+
+  // Handle image upload for SGK OCR Vision scanning
+  const handleSgkImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Data = event.target?.result;
+      setContextImagePreview(base64Data);
+      setIsScanningSgkImage(true);
+
+      try {
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
+        if (apiKey) {
+          const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
+          const pureBase64 = String(base64Data).split(',')[1] || '';
+
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: "Bạn là trợ lý quét sách giáo khoa tiếng Anh. Hãy trích xuất từ ảnh trang sách: 1. Tên nhân vật (characters), 2. Cốt truyện chính (plot), 3. Ngữ pháp (grammar). Trả về JSON thuần túy: { \"characters\": \"Ann, Linda\", \"plot\": \"Cốt truyện tóm tắt\", \"grammar\": \"Ngữ pháp\" }" },
+                  { inline_data: { mime_type: file.type || "image/jpeg", data: pureBase64 } }
+                ]
+              }]
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const cleanedText = rawText.replace('```json', '').replace('```', '').replace('```', '').trim();
+            const scannedJson = JSON.parse(cleanedText);
+
+            if (scannedJson) {
+              if (scannedJson.characters) setContextCharacters(scannedJson.characters);
+              if (scannedJson.plot) setContextPlot(scannedJson.plot);
+              if (scannedJson.grammar) setContextGrammar(scannedJson.grammar);
+              playSuccessSound();
+              alert('🎉 Đã quét ảnh SGK thành công! Đã tự động điền tên nhân vật & cốt truyện gốc!');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('OCR scanning error:', err);
+      } finally {
+        setIsScanningSgkImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Save current lesson context to DB
+  const handleSaveLessonContext = () => {
+    const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
+    const updatedContexts = {
+      ...lessonContexts,
+      [targetSec]: {
+        characters: contextCharacters,
+        plot: contextPlot,
+        grammar: contextGrammar,
+        updatedAt: new Date().toISOString()
+      }
+    };
+    setLessonContexts(updatedContexts);
+    if (onSaveActivity) {
+      onSaveActivity({ lessonContexts: updatedContexts });
+    }
+    setIsContextStudioOpen(false);
+    playSuccessSound();
+    alert("🔒 Đã lưu thành công Ngữ Cảnh SGK cho tiết '" + targetSec + "' (Nhân vật: " + contextCharacters + ")!");
+  };
   const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
   const [aiStoryData, setAiStoryData] = useState(null);
   const [generatingStory, setGeneratingStory] = useState(false);
@@ -1219,7 +1309,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }
   };
 
-    const [storyVariationIndex, setStoryVariationIndex] = useState(0);
+      const [storyVariationIndex, setStoryVariationIndex] = useState(0);
 
   const handleGenerateAiVocabStory = async (forceNextSeed = false) => {
     setGeneratingStory(true);
@@ -1234,11 +1324,21 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     const currentUnitName = selectedUnit !== 'All' ? selectedUnit : (vocabList[0]?.unit || 'Unit 1');
     const lessonSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
 
+    // Get saved SGK Lesson Context for current section
+    const activeCtx = lessonContexts[lessonSec] || {
+      characters: 'Ann, Linda, Nick',
+      plot: 'Ann và Linda thảo luận về sở thích nặn gốm tại làng Bát Tràng',
+      grammar: 'Like/Love + V-ing'
+    };
+
+    const charactersStr = activeCtx.characters || 'Ann & Linda';
+    const plotStr = activeCtx.plot || 'Hội thoại bài học SGK';
+
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
       if (apiKey) {
         const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
-        const promptText = "Bạn là một giáo viên Tiếng Anh xuất sắc giảng dạy khối " + activityGrade + ". Hãy viết một đoạn tóm tắt bài học (3-4 câu tiếng Anh) dạng TÓM TẮT ĐOẠN HỘI THOẠI / NỘI DUNG CHÍNH của tiết học " + lessonSec + " thuộc " + currentUnitName + " (" + activityGrade + ") (Biến thể số " + (nextSeed % 5 + 1) + "). Lồng ghép tự nhiên các từ vựng sau: [" + wordsStr + "]. YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown): { \"title\": \"Tóm tắt tiết " + lessonSec + " - " + currentUnitName + "\", \"storyEn\": \"Đoạn tóm tắt tiếng Anh 3-4 câu chứa các từ: " + targetWordsOnly + ".\", \"storyVi\": \"Bản dịch tiếng Việt tóm tắt nội dung hội thoại trên.\" }";
+        const promptText = "Bạn là giáo viên Tiếng Anh. Hãy viết một đoạn tóm tắt bài học / hội thoại (3-4 câu tiếng Anh) CHUẨN 100% THEO CỐT TRUYỆN SGK VÀ ĐÚNG NHÂN VẬT GỐC (" + charactersStr + ") cho tiết " + lessonSec + " thuộc " + currentUnitName + " (" + activityGrade + ") (Cốt truyện: " + plotStr + "). Lồng ghép các từ vựng sau: [" + wordsStr + "]. YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy): { \"title\": \"Tóm tắt hội thoại SGK " + lessonSec + " (" + charactersStr + ")\", \"storyEn\": \"Câu chuyện tiếng Anh 3-4 câu chứa các từ: " + targetWordsOnly + " với nhân vật " + charactersStr + ".\", \"storyVi\": \"Bản dịch tiếng Việt tóm tắt hội thoại giữa " + charactersStr + ".\" }";
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -1261,7 +1361,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
         }
       }
 
-      // THUẬT TOÁN SINH ĐOẠN TÓM TẮT HỘI THOẠI & ĐỔI TRUYỆN ĐỘNG 5 BIẾN THỂ THEO ĐÚNG CHỈ ĐẠO CỦA THẦY HẢI
+      // THUẬT TOÁN SINH TRUYỆN CHUẨN 100% SGK VỚI NHÂN VẬT ANN & LINDA VÀ NỘI DUNG SGK GỐC
       const wObjs = currentWordsList.slice(0, 5);
       const w1 = wObjs[0] || { word: 'hobby', meaning: 'sở thích' };
       const w2 = wObjs[1] || { word: 'cardboard', meaning: 'bìa các tông' };
@@ -1269,40 +1369,32 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
       const w4 = wObjs[3] || { word: 'gardening', meaning: 'làm vườn' };
       const w5 = wObjs[4] || { word: 'glue', meaning: 'keo dán' };
 
-      const variations = [
-        // BIẾN THỂ 1: TÓM TẮT HỘI THOẠI NGHỆ THUẬT (GETTING STARTED)
+      const charArr = charactersStr.split(/[,&]/).map((s) => s.trim()).filter(Boolean);
+      const char1 = charArr[0] || 'Ann';
+      const char2 = charArr[1] || 'Linda';
+
+      const sgkVariations = [
+        // VAR 1: HỘI THOẠI ĐÓNG VAI TRỰC TIẾP NHÂN VẬT ANN & LINDA
         {
-          title: "Tóm Tắt Nội Dung Hội Thoại: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
-          storyEn: "In the " + lessonSec + " dialogue for " + currentUnitName + ", Mai and Nick are happily discussing their favourite hobbies. Mai shows her amazing " + w3.word + " made from " + w2.word + " using " + w5.word + ". Meanwhile, Nick shares his passion for " + w4.word + " and how much joy his " + w1.word + " brings him every day.",
-          storyVi: "Trong đoạn hội thoại tiết " + lessonSec + " thuộc bài " + currentUnitName + ", bạn Mai và Nick đang vui vẻ thảo luận về những sở thích yêu thích của mình. Mai khoe ngôi nhà mô hình (" + w3.meaning + " - " + w3.word + ") tuyệt đẹp làm từ bìa các tông (" + w2.meaning + " - " + w2.word + ") dùng keo dán (" + w5.meaning + " - " + w5.word + "). Trong khi đó, Nick chia sẻ niềm đam mê làm vườn (" + w4.meaning + " - " + w4.word + ") và niềm vui từ sở thích (" + w1.meaning + " - " + w1.word + ") mang lại mỗi ngày."
+          title: "Tóm Tắt Hội Thoại SGK (" + char1 + " & " + char2 + "): " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
+          storyEn: "In the " + lessonSec + " dialogue for " + currentUnitName + ", " + char1 + " and " + char2 + " are happily discussing their favourite hobbies. " + char1 + " shows her amazing " + w3.word + " made from " + w2.word + " using " + w5.word + ". Meanwhile, " + char2 + " shares her passion for " + w4.word + " and how much joy her " + w1.word + " brings her every day.",
+          storyVi: "Trong đoạn hội thoại tiết " + lessonSec + " thuộc bài " + currentUnitName + ", bạn " + char1 + " và " + char2 + " đang vui vẻ thảo luận về những sở thích yêu thích của mình. " + char1 + " khoe ngôi nhà mô hình (" + w3.meaning + " - " + w3.word + ") tuyệt đẹp làm từ bìa các tông (" + w2.meaning + " - " + w2.word + ") dùng keo dán (" + w5.meaning + " - " + w5.word + "). Trong khi đó, " + char2 + " chia sẻ niềm đam mê làm vườn (" + w4.meaning + " - " + w4.word + ") và niềm vui từ sở thích (" + w1.meaning + " - " + w1.word + ") mang lại mỗi ngày."
         },
-        // BIẾN THỂ 2: THẢO LUẬN NHÓM TRÊN LỚP (CLASSROOM GROUP DISCUSSION)
+        // VAR 2: THẢO LUẬN TRÊN LỚP ĐÓNG VAI ANN & LINDA
         {
-          title: "Tóm Tắt Bài Học Thảo Luận: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
-          storyEn: "During our " + activityGrade + " lesson in " + lessonSec + ", the teacher asked students to present their class project. Phong demonstrated how to create a " + w3.word + " with " + w2.word + " and strong " + w5.word + ". The whole class learned valuable tips about " + w4.word + " and developed a creative " + w1.word + " together.",
-          storyVi: "Trong giờ học " + activityGrade + " tiết " + lessonSec + ", giáo viên yêu cầu các bạn học sinh thuyết trình dự án học tập. Bạn Phong đã trình bày cách tạo một nhà mô hình (" + w3.meaning + " - " + w3.word + ") bằng bìa các tông (" + w2.meaning + " - " + w2.word + ") và keo dán (" + w5.meaning + " - " + w5.word + ") chắc chắn. Cả lớp đã học được nhiều mẹo hay về làm vườn (" + w4.meaning + " - " + w4.word + ") và cùng phát triển sở thích (" + w1.meaning + " - " + w1.word + ") sáng tạo."
+          title: "Tóm Tắt Thảo Luận Lớp (" + char1 + " & " + char2 + "): " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
+          storyEn: "During our " + activityGrade + " lesson in " + lessonSec + ", the teacher asked " + char1 + " and " + char2 + " to present their class project. " + char1 + " demonstrated how to create a " + w3.word + " with " + w2.word + " and strong " + w5.word + ". " + char2 + " shared valuable tips about " + w4.word + " and developed a creative " + w1.word + " together.",
+          storyVi: "Trong giờ học " + activityGrade + " tiết " + lessonSec + ", giáo viên yêu cầu bạn " + char1 + " và " + char2 + " thuyết trình dự án học tập. " + char1 + " đã trình bày cách tạo một nhà mô hình (" + w3.meaning + " - " + w3.word + ") bằng bìa các tông (" + w2.meaning + " - " + w2.word + ") và keo dán (" + w5.meaning + " - " + w5.word + ") chắc chắn. " + char2 + " đã học được nhiều mẹo hay về làm vườn (" + w4.meaning + " - " + w4.word + ") và cùng phát triển sở thích (" + w1.meaning + " - " + w1.word + ") sáng tạo."
         },
-        // BIẾN THỂ 3: TRẢI NGHIỆM THỰC TẾ CUỘC SỐNG (REAL-LIFE PRACTICE)
+        // VAR 3: LỰA CHỌN GÓC NHÌN BẠN ANN KỂ TÓM TẮT
         {
-          title: "Tóm Tắt Ngữ Cảnh Thực Tế: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
-          storyEn: "On the weekend, Trang and Lan spent their free time practicing the vocabulary of " + lessonSec + ". Trang carefully assembled a " + w3.word + " out of recycled " + w2.word + " and " + w5.word + ". Lan joined her grandmother in the garden for " + w4.word + ", turning learning into an enjoyable " + w1.word + ".",
-          storyVi: "Vào cuối tuần, Trang và Lan dành thời gian rảnh rỗi thực hành từ vựng tiết " + lessonSec + ". Trang cẩn thận lắp ráp nhà mô hình (" + w3.meaning + " - " + w3.word + ") từ bìa các tông (" + w2.meaning + " - " + w2.word + ") tái chế và keo dán (" + w5.meaning + " - " + w5.word + "). Lan cùng bà tham gia làm vườn (" + w4.meaning + " - " + w4.word + "), biến việc học thành một sở thích (" + w1.meaning + " - " + w1.word + ") thú vị."
-        },
-        // BIẾN THỂ 4: DỰ ÁN NHÓM VÀ THỬ THÁCH (TEAM PROJECT & CHALLENGE)
-        {
-          title: "Tóm Tắt Thử Thách Dự Án Nhóm: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
-          storyEn: "Our team worked together on the " + lessonSec + " assignment for " + currentUnitName + ". We collected " + w2.word + " and " + w5.word + " to build a detailed " + w3.word + ". After finishing, we explored outdoor activities like " + w4.word + " to expand our " + w1.word + " knowledge.",
-          storyVi: "Nhóm chúng em đã cùng làm việc trong bài tập tiết " + lessonSec + " thuộc bài " + currentUnitName + ". Chúng em thu thập bìa các tông (" + w2.meaning + " - " + w2.word + ") và keo dán (" + w5.meaning + " - " + w5.word + ") để dựng nên một nhà mô hình (" + w3.meaning + " - " + w3.word + ") chi tiết. Sau khi hoàn thành, nhóm cùng khám phá các hoạt động ngoài trời như làm vườn (" + w4.meaning + " - " + w4.word + ") để mở rộng hiểu biết về sở thích (" + w1.meaning + " - " + w1.word + ")."
-        },
-        // BIẾN THỂ 5: GHI NHỚ VÀ ĐỔI MỚI (CREATIVE REVIEW SUMMARY)
-        {
-          title: "Tóm Tắt Tổng Kết Bài Học: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
-          storyEn: "To review " + lessonSec + " in " + currentUnitName + ", students shared how they use new English words. Everyone loved making a " + w3.word + " using " + w2.word + " stuck with " + w5.word + ". They also discussed " + w4.word + " as a meaningful " + w1.word + " for students.",
-          storyVi: "Để ôn tập tiết " + lessonSec + " thuộc bài " + currentUnitName + ", các bạn học sinh đã chia sẻ cách dùng các từ tiếng Anh mới. Mọi người đều thích làm nhà mô hình (" + w3.meaning + " - " + w3.word + ") bằng bìa các tông (" + w2.meaning + " - " + w2.word + ") dán bằng keo dán (" + w5.meaning + " - " + w5.word + "). Các bạn cũng thảo luận về làm vườn (" + w4.meaning + " - " + w4.word + ") như một sở thích (" + w1.meaning + " - " + w1.word + ") bổ ích cho học sinh."
+          title: "Tóm Tắt Góc Nhìn Nhân Vật " + char1 + ": " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
+          storyEn: "On the weekend, " + char1 + " and " + char2 + " spent their free time practicing the vocabulary of " + lessonSec + ". " + char1 + " carefully assembled a " + w3.word + " out of recycled " + w2.word + " and " + w5.word + ". " + char2 + " joined her grandmother in the garden for " + w4.word + ", turning learning into an enjoyable " + w1.word + ".",
+          storyVi: "Vào cuối tuần, " + char1 + " và " + char2 + " dành thời gian rảnh rỗi thực hành từ vựng tiết " + lessonSec + ". " + char1 + " cẩn thận lắp ráp nhà mô hình (" + w3.meaning + " - " + w3.word + ") từ bìa các tông (" + w2.meaning + " - " + w2.word + ") tái chế và keo dán (" + w5.meaning + " - " + w5.word + "). " + char2 + " cùng bà tham gia làm vườn (" + w4.meaning + " - " + w4.word + "), biến việc học thành một sở thích (" + w1.meaning + " - " + w1.word + ") thú vị."
         }
       ];
 
-      const selectedStory = variations[nextSeed % variations.length];
+      const selectedStory = sgkVariations[nextSeed % sgkVariations.length];
       setAiStoryData(selectedStory);
       playSuccessSound();
     } catch (e) {
@@ -5531,6 +5623,121 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
           </div>
         </div>
       )}
+      {/* MODAL QUẢN LÝ NGỮ CẢNH BÀI HỌC SGK GỐC (V217) DÀNH CHO GIÁO VIÊN */}
+      {isContextStudioOpen && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-xl w-full border-4 border-pink-500 shadow-2xl space-y-5 text-slate-900 my-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center space-x-3">
+                <span className="text-3xl">📸</span>
+                <div>
+                  <h3 className="font-black text-lg text-pink-900 uppercase tracking-wide">
+                    QUẢN LÝ NGỮ CẢNH SGK GỐC ({selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'})
+                  </h3>
+                  <p className="text-xs text-pink-700 font-bold">
+                    Nạp ảnh trang SGK hoặc nhập nhân vật Ann, Linda... để AI sinh truyện chuẩn 100% SGK
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsContextStudioOpen(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-500 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs font-bold text-slate-800">
+              {/* KHUNG QUÉT ẢNH TRANG SGK BẰNG VISION AI */}
+              <div className="bg-pink-50 p-4 rounded-2xl border-2 border-dashed border-pink-300 space-y-2">
+                <label className="block text-pink-900 font-black text-xs uppercase tracking-wide">
+                  🖼️ NẠP / DÁN ẢNH TRANG SÁCH GIÁO KHOA SGK (GEMINI VISION AI QUÉT):
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSgkImageUpload}
+                  className="block w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-pink-600 file:text-white hover:file:bg-pink-700 cursor-pointer"
+                />
+                {isScanningSgkImage && (
+                  <p className="text-pink-600 font-black animate-pulse flex items-center space-x-1 pt-1">
+                    <Sparkles className="w-4 h-4 animate-spin text-pink-500" />
+                    <span>Gemini Vision AI đang quét ảnh trang SGK trích xuất nhân vật Ann & Linda...</span>
+                  </p>
+                )}
+                {contextImagePreview && (
+                  <div className="mt-2 relative max-h-36 overflow-hidden rounded-xl border border-pink-300">
+                    <img src={contextImagePreview} alt="SGK Preview" className="w-full object-cover" />
+                  </div>
+                )}
+              </div>
+
+              {/* TÊN NHÂN VẬT SGK GỐC */}
+              <div className="space-y-1">
+                <label className="block text-slate-900 font-black">
+                  👥 TÊN CÁC NHÂN VẬT CHÍNH SGK (Ví dụ: Ann, Linda, Nick, Mi...):
+                </label>
+                <input
+                  type="text"
+                  value={contextCharacters}
+                  onChange={(e) => setContextCharacters(e.target.value)}
+                  placeholder="Ví dụ: Ann, Linda, Nick"
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-pink-500 text-xs font-black text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              {/* CỐT TRUYỆN GỐC & NỘI DUNG TÓM TẮT */}
+              <div className="space-y-1">
+                <label className="block text-slate-900 font-black">
+                  📝 CỐT TRUYỆN GỐC & Ý CHÍNH CỦA LESSON:
+                </label>
+                <textarea
+                  rows={3}
+                  value={contextPlot}
+                  onChange={(e) => setContextPlot(e.target.value)}
+                  placeholder="Ví dụ: Ann và Linda thảo luận về việc nặn đồ gốm bằng đất sét tại làng nghề Bát Tràng..."
+                  className="w-full px-3.5 py-2 rounded-xl border-2 border-slate-300 focus:border-pink-500 text-xs font-semibold text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              {/* CẤU TRÚC NGỮ PHÁP TRỌNG TÂM */}
+              <div className="space-y-1">
+                <label className="block text-slate-900 font-black">
+                  ⚡ CẤU TRÚC NGỮ PHÁP / SPEAKING CHUẨN:
+                </label>
+                <input
+                  type="text"
+                  value={contextGrammar}
+                  onChange={(e) => setContextGrammar(e.target.value)}
+                  placeholder="Ví dụ: Like/Love + V-ing, Thì Hiện tại đơn"
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-pink-500 text-xs font-semibold text-slate-900 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setIsContextStudioOpen(false)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold text-xs rounded-xl"
+              >
+                Hủy
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveLessonContext}
+                className="px-6 py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-2xl shadow-md cursor-pointer flex items-center space-x-1.5"
+              >
+                <span>💾 Lưu Ngữ Cảnh SGK</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* AI VOCAB STORYTELLER MODAL - V216 HIGH Z-INDEX + DIALOGUE SUMMARY + HIGHLIGHT + AUDIO UK */}
       {aiStoryModalOpen && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-6 pt-16 sm:pt-20 pb-6 animate-fade-in overflow-y-auto">
