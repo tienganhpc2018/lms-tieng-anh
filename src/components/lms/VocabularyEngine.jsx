@@ -3912,7 +3912,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 </button>
 
                 {/* NÚT KHÓA / MỞ NỔI BẬT DÀNH CHO GIÁO VIÊN NẰM TRỰC TIẾP TRÊN NÚT MỖI TIẾT HỌC */}
-                {isTeacher && sec.fullSec !== 'All' && (
+                {sec.fullSec !== 'All' && (
                   <button
                     type="button"
                     onClick={(e) => handleToggleIndividualSectionLock(sec.fullSec, e)}
