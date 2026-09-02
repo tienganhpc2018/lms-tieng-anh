@@ -1169,7 +1169,39 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
   const [aiStoryData, setAiStoryData] = useState(null);
   const [generatingStory, setGeneratingStory] = useState(false);
-    const handleGenerateAiVocabStory = async () => {
+      // HELPER HIGHLIGHT TARGET VOCABULARY WORDS IN AI STORY EN & VI
+  const renderHighlightedStoryText = (text, list) => {
+    if (!text) return null;
+    if (!list || list.length === 0) return text;
+
+    const wordList = list.slice(0, 10).map((i) => i.word.toLowerCase().trim()).filter(Boolean);
+    const meaningList = list.slice(0, 10).map((i) => i.meaning.toLowerCase().trim()).filter(Boolean);
+    const allTargets = [...new Set([...wordList, ...meaningList])];
+
+    if (allTargets.length === 0) return text;
+
+    const escaped = allTargets.map((w) => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\const handleGenerateAiVocabStory = async () => {')).join('|');
+    const regex = new RegExp(`(\\b${escaped}\\b)`, 'gi');
+
+    const parts = text.split(regex);
+
+    return parts.map((part, index) => {
+      const isMatch = allTargets.includes(part.toLowerCase());
+      if (isMatch) {
+        return (
+          <mark
+            key={index}
+            className="bg-amber-300 text-slate-950 font-black px-1.5 py-0.5 rounded-md shadow-2xs border border-amber-400 font-mono inline-block mx-0.5 hover:scale-110 transition transform"
+          >
+            {part}
+          </mark>
+        );
+      }
+      return part;
+    });
+  };
+
+  const handleGenerateAiVocabStory = async () => {
     setGeneratingStory(true);
     setAiStoryModalOpen(true);
 
@@ -5446,63 +5478,109 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
           </div>
         </div>
       )}
-      {/* AI VOCAB STORYTELLER MODAL */}
+      {/* AI VOCAB STORYTELLER MODAL - V213 HIGHLIGHT + AUDIO UK + REGENERATE */}
       {aiStoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-xl w-full space-y-4 relative shadow-2xl animate-scale-up text-slate-900 border-4 border-purple-500">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full border-4 border-purple-500 shadow-2xl space-y-5 text-slate-900">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="text-lg font-black text-slate-900 flex items-center space-x-2">
-                <BookMarked className="w-6 h-6 text-purple-600" />
-                <span>📖 AI TRUYỆN TỪ VỰNG THÔNG MINH</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setAiStoryModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 font-bold px-2 text-sm cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            {generatingStory ? (
-              <div className="p-8 text-center space-y-3">
-                <Sparkles className="w-10 h-10 text-purple-600 animate-spin mx-auto" />
-                <div className="font-extrabold text-sm text-purple-900">
-                  AI đang sáng tạo câu chuyện từ vựng vui nhộn cho bài học...
+              <div className="flex items-center space-x-3">
+                <span className="text-3xl">📖</span>
+                <div>
+                  <h3 className="font-black text-xl text-purple-900 uppercase tracking-wide">
+                    AI TRUYỆN TỪ VỰNG THÔNG MINH ({activityGrade})
+                  </h3>
+                  <p className="text-xs text-purple-700 font-bold">
+                    Truyện ngắn lồng ghép từ vựng thuộc bài học {selectedUnit !== 'All' ? selectedUnit : 'Unit 1'}
+                  </p>
                 </div>
               </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={handleGenerateAiVocabStory}
+                  disabled={generatingStory}
+                  className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition cursor-pointer flex items-center space-x-1 border border-purple-400 disabled:opacity-50"
+                  title="Tạo lại một câu chuyện AI mới khác sinh động hơn"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-amber-300 ${generatingStory ? 'animate-spin' : ''}`} />
+                  <span>🔄 Đổi Truyện Khác</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAiStoryModalOpen(false)}
+                  className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-500 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {generatingStory ? (
+              <div className="py-12 text-center space-y-3">
+                <Sparkles className="w-10 h-10 text-purple-600 animate-spin mx-auto" />
+                <p className="font-extrabold text-sm text-purple-900 animate-pulse">
+                  AI đang dệt câu chuyện thông minh cho {activityGrade} ({selectedUnit !== 'All' ? selectedUnit : 'Unit 1'})...
+                </p>
+              </div>
             ) : aiStoryData ? (
-              <div className="space-y-4">
-                <h4 className="font-black text-base text-purple-900 border-b pb-1">
+              <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
+                <h4 className="font-black text-lg text-purple-950 border-b border-purple-100 pb-1">
                   {aiStoryData.title}
                 </h4>
-                <div className="p-4 bg-purple-50 rounded-2xl border border-purple-200 space-y-3">
-                  <div className="flex items-start space-x-3">
+
+                {/* KHUNG CÂU TRUYỆN TIẾNG ANH CÓ HIGHLIGHT TỪ VỰNG MÀU VÀNG PHÁT SÁNG */}
+                <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 space-y-3 relative shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-purple-800 uppercase tracking-wide flex items-center space-x-1">
+                      <span>🇬🇧 CÂU TRUYỆN TIẾNG ANH (UK STANDARD):</span>
+                    </span>
+
                     <button
                       type="button"
                       onClick={() => speakText(aiStoryData.storyEn)}
-                      className="w-10 h-10 rounded-xl bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center shadow-md transition cursor-pointer shrink-0 border border-purple-500 active:scale-95 mt-0.5"
-                      title="Bấm để nghe AI đọc toàn bộ câu chuyện từ vựng"
+                      className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5 border border-purple-400"
                     >
-                      <Volume2 className="w-5 h-5" />
+                      <Volume2 className="w-4 h-4 text-amber-300 animate-bounce" />
+                      <span>🔊 Nghe Giọng Đọc AI (UK Oxford)</span>
                     </button>
-                    <div className="text-sm font-bold text-slate-900 leading-relaxed">
-                      {aiStoryData.storyEn}
-                    </div>
                   </div>
-                  <div className="p-3 bg-white rounded-xl border border-purple-200 text-xs font-semibold text-purple-950 leading-relaxed">
-                    👉 <strong>Dịch tiếng Việt:</strong> {aiStoryData.storyVi}
+
+                  <p className="text-sm sm:text-base font-semibold text-slate-800 leading-relaxed pt-1">
+                    {renderHighlightedStoryText(aiStoryData.storyEn, filteredList.length > 0 ? filteredList : vocabList)}
+                  </p>
+
+                  {/* BẢN DỊCH TIẾNG VIỆT CÓ HIGHLIGHT NGHĨA TỪ VỰNG */}
+                  <div className="bg-white/90 p-3 rounded-xl border border-purple-200 text-xs sm:text-sm text-purple-950 font-medium leading-relaxed mt-2 shadow-xs">
+                    <strong className="text-purple-800 font-extrabold block mb-1">👉 Dịch tiếng Việt:</strong>
+                    {renderHighlightedStoryText(aiStoryData.storyVi, filteredList.length > 0 ? filteredList : vocabList)}
                   </div>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs font-bold text-amber-900">
-                  💡 Học sinh nghe câu chuyện trên để ghi nhớ ngữ cảnh dùng của cả 10 từ vựng trước khi vào chơi Game nhé!
+
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-xs font-bold text-amber-900 flex items-center space-x-2">
+                  <span className="text-lg">💡</span>
+                  <span>
+                    Các từ vựng trọng tâm trong bài được tô <strong>màu vàng phát sáng 🟡</strong>. Học sinh nghe câu chuyện để ghi nhớ ngữ cảnh từ vựng nhé!
+                  </span>
                 </div>
               </div>
             ) : null}
-            <div className="flex justify-end pt-2 border-t border-slate-200">
+
+            <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={handleGenerateAiVocabStory}
+                className="px-3.5 py-2 bg-purple-100 hover:bg-purple-200 text-purple-900 font-extrabold text-xs rounded-xl border border-purple-300 transition cursor-pointer flex items-center space-x-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-purple-700" />
+                <span>🔄 Sinh Truyện Mới</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setAiStoryModalOpen(false)}
-                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer"
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-2xl shadow-md cursor-pointer"
               >
                 Đóng
               </button>
@@ -5510,6 +5588,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
           </div>
         </div>
       )}
+
       {/* LEADERBOARD MODAL WITH PRINT CERTIFICATE PDF BUTTON */}
       {isLeaderboardOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs">
