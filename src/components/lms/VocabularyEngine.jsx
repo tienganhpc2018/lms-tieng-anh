@@ -881,16 +881,28 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     setActiveTab(tabKey);
   };
   const [isLockConfigModalOpen, setIsLockConfigModalOpen] = useState(false);
-        // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (ALWAYS UNLOCKED BY DEFAULT)
-  const [individualSectionLocks, setIndividualSectionLocks] = useState({
-    'GETTING STARTED': false,
-    'A CLOSER LOOK 1': false,
-    'A CLOSER LOOK 2': false,
-    'COMMUNICATION': false,
-    'SKILLS 1': false,
-    'SKILLS 2': false,
-    'LOOKING BACK': false,
-    'PROJECT': false,
+          // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (DEFAULT ALL UNLOCKED)
+  const [individualSectionLocks, setIndividualSectionLocks] = useState(() => {
+    if (activity?.settings?.individualSectionLocks && typeof activity.settings.individualSectionLocks === 'object') {
+      return activity.settings.individualSectionLocks;
+    }
+    if (settings?.individualSectionLocks && typeof settings.individualSectionLocks === 'object') {
+      return settings.individualSectionLocks;
+    }
+    try {
+      const saved = localStorage.getItem('vocab_section_locks_' + (activity?.id || 'default'));
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      'GETTING STARTED': false,
+      'A CLOSER LOOK 1': false,
+      'A CLOSER LOOK 2': false,
+      'COMMUNICATION': false,
+      'SKILLS 1': false,
+      'SKILLS 2': false,
+      'LOOKING BACK': false,
+      'PROJECT': false,
+    };
   });
 
   const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
@@ -930,14 +942,10 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
 
   const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
 
-    const isSectionLockedForStudent = (secName) => {
+      const isSectionLockedForStudent = (secName) => {
     if (effectiveIsTeacher) return false;
     if (!secName || secName === 'All') return false;
-
-    // ONLY lock if Teacher explicitly set individualSectionLocks[secName] === true!
-    if (individualSectionLocks[secName] === true) return true;
-
-    // DEFAULT 100% UNLOCKED AND ACCESSIBLE TO STUDENTS FOR ALL LESSONS!
+    if (individualSectionLocks && individualSectionLocks[secName] === true) return true;
     return false;
   };
 
