@@ -822,25 +822,17 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
       });
     }
   };
-  // GRANULAR PER-GAME LOCK CONTROL STATE FOR TEACHER
-  const [individualGameLocks, setIndividualGameLocks] = useState(() => {
-    try {
-      if (settings.individualGameLocks && typeof settings.individualGameLocks === 'object') {
-        return settings.individualGameLocks;
-      }
-      const saved = localStorage.getItem(`vocab_indiv_locks_${activity?.id || 'default'}`);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return {
-      memory_game: false,
-      spelling_game: false,
-      word_search: false,
-      crossword: false,
-      flashcard: false,
-      dialog_cards: false,
-      quest: false,
-    };
+    // GRANULAR PER-GAME LOCK CONTROL STATE FOR TEACHER (DEFAULT ALL UNLOCKED)
+  const [individualGameLocks, setIndividualGameLocks] = useState({
+    memory_game: false,
+    spelling_game: false,
+    word_search: false,
+    crossword: false,
+    flashcard: false,
+    dialog_cards: false,
+    quest: false,
   });
+
   const handleToggleIndividualGameLock = (gameKey) => {
     const updatedLocks = {
       ...individualGameLocks,
@@ -1084,20 +1076,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }));
   };
   
-  // SYNC LOCK SETTINGS FROM SUPABASE DATABASE FOR STUDENTS & TEACHERS
-  useEffect(() => {
-    if (activity?.settings) {
-      if (typeof activity.settings.lockGamesForStudents === 'boolean') {
-        setLockGamesForStudents(activity.settings.lockGamesForStudents);
-      }
-      if (activity.settings.individualGameLocks && typeof activity.settings.individualGameLocks === 'object') {
-        setIndividualGameLocks(activity.settings.individualGameLocks);
-      }
-      if (activity.settings.individualSectionLocks && typeof activity.settings.individualSectionLocks === 'object') {
-        setIndividualSectionLocks(activity.settings.individualSectionLocks);
-      }
-    }
-  }, [activity]);
+  
 
   // BOOKMARKED WORDS STATE
   const [bookmarkedIds, setBookmarkedIds] = useState(() => {
