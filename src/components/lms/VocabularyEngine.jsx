@@ -843,16 +843,18 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
   const [isStudentPreviewMode, setIsStudentPreviewMode] = useState(false);
 
-  const handleToggleIndividualSectionLock = (secName) => {
-    const willBeLocked = !individualSectionLocks[secName];
+    const handleToggleIndividualSectionLock = (secName, e) => {
+    if (e) e.stopPropagation();
+    const currentlyLocked = !!individualSectionLocks[secName];
+    const newLockState = !currentlyLocked;
     const updatedLocks = {
       ...individualSectionLocks,
-      [secName]: willBeLocked,
+      [secName]: newLockState,
     };
     setIndividualSectionLocks(updatedLocks);
     localStorage.setItem(`vocab_section_locks_${activity?.id || 'default'}`, JSON.stringify(updatedLocks));
     playSuccessSound();
-    alert(willBeLocked ? `🔒 Đã KHÓA tiết học '${secName}' thành công cho Học sinh!` : `🔓 Đã MỞ KHÓA tiết học '${secName}' thành công cho Học sinh!`);
+    alert(newLockState ? `🔒 Đã KHÓA tiết học '${secName}' thành công cho Học sinh!` : `🔓 Đã MỞ KHÓA tiết học '${secName}' thành công cho Học sinh!`);
     if (onSaveActivity) {
       onSaveActivity({
         ...settings,
@@ -1491,7 +1493,16 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
   const [aiStoryData, setAiStoryData] = useState(null);
   const [generatingStory, setGeneratingStory] = useState(false);
-    const [storyVariationIndex, setStoryVariationIndex] = useState(0);
+      // CANCEL AUDIO SPEECH SYNTHESIS IMMEDIATELY WHEN AI STORY MODAL CLOSES
+  useEffect(() => {
+    if (!aiStoryModalOpen) {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  }, [aiStoryModalOpen]);
+
+  const [storyVariationIndex, setStoryVariationIndex] = useState(0);
 
     // HELPER HIGHLIGHT TARGET VOCABULARY WORDS IN AI STORY EN & VI (100% NULL-SAFE & CLEAN MEANING)
   const renderHighlightedStoryText = (text, list) => {
