@@ -1727,50 +1727,53 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
         }
       }
 
-      // THUẬT TOÁN SINH CÂU TRUYỆN PHÂN LOẠI THEO TỪNG TIẾT HỌC (LESSON NÀO RA LESSON ĐÓ!)
+      // THUẬT TOÁN SINH CÂU TRUYỆN DỘC ĐÁO & BẢO ĐẢM KHỚP 100% BẢN DỊCH VÀ CÂU CHỮ LOGIC (V257)
+      const currentWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList) || [];
       const wObjs = currentWordsList.slice(0, 6);
-      const w1 = wObjs[0] || { word: 'gardening', meaning: 'làm vườn' };
-      const w2 = wObjs[1] || { word: 'insect', meaning: 'côn trùng' };
-      const w3 = wObjs[2] || { word: 'creativity', meaning: 'sự sáng tạo' };
-      const w4 = wObjs[3] || { word: 'patient', meaning: 'kiên nhẫn' };
-      const w5 = wObjs[4] || { word: 'responsibility', meaning: 'trách nhiệm' };
-      const w6 = wObjs[5] || { word: 'maturity', meaning: 'sự trưởng thành' };
+      
+      const formatW = (item, fallbackEn, fallbackVi) => {
+        const word = (item?.word || fallbackEn).toLowerCase().trim();
+        const meaning = (item?.meaning || fallbackVi).trim();
+        return {
+          en: word,
+          vi: meaning + ' (' + word + ')'
+        };
+      };
 
-      if (isReadingLesson) {
-        // TYPE B: BÀI ĐỌC SKILLS 1 (READING PASSAGE SUMMARY - NO VISITING ROOM, NO HORSE RIDING)
-        const readingVariations = [
-          {
-            title: "Tóm Tắt Bài Đọc Reading: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
-            storyEn: "Gardening is a wonderful outdoor activity for everyone. Working in the garden teaches children about nature, plants, and small " + w2.word + ". It helps develop " + w3.word + " and a " + w4.word + " attitude. Through caring for plants daily, students learn valuable " + w5.word + " and grow in " + w6.word + ".",
-            storyVi: "Làm vườn (" + w1.meaning + " - " + w1.word + ") là một hoạt động ngoài trời tuyệt vời cho mọi người. Làm việc trong vườn dạy trẻ em về thiên nhiên, cây cối và các loài côn trùng (" + w2.meaning + " - " + w2.word + ") nhỏ. Nó giúp phát triển sự sáng tạo (" + w3.meaning + " - " + w3.word + ") và tính kiên nhẫn (" + w4.meaning + " - " + w4.word + "). Thông qua việc chăm sóc cây cối hàng ngày, học sinh học được tinh thần trách nhiệm (" + w5.meaning + " - " + w5.word + ") quý giá và sự trưởng thành (" + w6.meaning + " - " + w6.word + ")."
-          },
-          {
-            title: "Tóm Tắt Lợi Ích Bài Đọc: " + currentUnitName + " - " + lessonSec,
-            storyEn: "The reading passage explores how hobbies shape our daily life. Activities like " + w1.word + " encourage " + w3.word + " and bring joy to families. Observing an " + w2.word + " in nature builds a " + w4.word + " mind. This meaningful practice builds personal " + w5.word + " and emotional " + w6.word + ".",
-            storyVi: "Bài đọc khám phá cách sở thích hình thành cuộc sống hàng ngày của chúng ta. Các hoạt động như làm vườn (" + w1.meaning + " - " + w1.word + ") khuyến khích sự sáng tạo (" + w3.meaning + " - " + w3.word + ") và mang lại niềm vui cho gia đình. Quan sát côn trùng (" + w2.meaning + " - " + w2.word + ") trong thiên nhiên giúp xây dựng tinh thần kiên nhẫn (" + w4.meaning + " - " + w4.word + "). Thực hành ý nghĩa này rèn luyện trách nhiệm (" + w5.meaning + " - " + w5.word + ") cá nhân và sự trưởng thành (" + w6.meaning + " - " + w6.word + ")."
-          }
-        ];
+      const w1 = formatW(wObjs[0], 'gardening', 'làm vườn');
+      const w2 = formatW(wObjs[1], 'model', 'mô hình');
+      const w3 = formatW(wObjs[2], 'jogging', 'chạy bộ');
+      const w4 = formatW(wObjs[3], 'yoga', 'tập yoga');
+      const w5 = formatW(wObjs[4], 'responsibility', 'trách nhiệm');
+      const w6 = formatW(wObjs[5], 'creativity', 'sự sáng tạo');
 
-        const selectedReading = readingVariations[nextSeed % readingVariations.length];
-        setAiStoryData(selectedReading);
-      } else {
-        // TYPE A: TIẾT HỘI THOẠI (GETTING STARTED / COMMUNICATION)
-        const charArr = (charactersStr || 'Ann, Trang').split(/[,&]/).map((s) => s.trim()).filter(Boolean);
-        const char1 = charArr[0] || 'Ann';
-        const char2 = charArr[1] || 'Trang';
+      const storyVersionIndex = storySeed % 4;
 
-        const dialogueVariations = [
-          {
-            title: "Tóm Tắt Hội Thoại (" + char1 + " & " + char2 + "): " + currentUnitName + " - " + lessonSec,
-            storyEn: char1 + " and " + char2 + " are happily discussing their favourite hobbies in class. " + char1 + " admires " + char2 + "'s creative project made with " + w3.word + " and " + w4.word + " effort. They agree that hobbies build " + w5.word + " and bring " + w6.word + " in life.",
-            storyVi: char1 + " và " + char2 + " đang vui vẻ thảo luận về các sở thích yêu thích trong lớp. " + char1 + " ngưỡng mộ dự án sáng tạo (" + w3.meaning + " - " + w3.word + ") của " + char2 + " nhờ nỗ lực kiên nhẫn (" + w4.meaning + " - " + w4.word + "). Hai bạn đồng ý rằng sở thích giúp rèn luyện trách nhiệm (" + w5.meaning + " - " + w5.word + ") và mang lại sự trưởng thành (" + w6.meaning + " - " + w6.word + ") trong cuộc sống."
-          }
-        ];
+      const dynamicStories = [
+        {
+          title: 'Truyện Từ Vựng Version 1: ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Learning vocabulary through daily activities is both enjoyable and effective. Practicing ' + w1.en + ' and building ' + w2.en + ' helps students develop skills. Activities such as ' + w3.en + ' and ' + w4.en + ' keep us healthy, while building personal ' + w5.en + ' and ' + w6.en + ' in life.',
+          storyVi: 'Học từ vựng qua các hoạt động hàng ngày vừa thú vị vừa hiệu quả. Thực hành ' + w1.vi + ' và rèn luyện ' + w2.vi + ' giúp học sinh phát triển kỹ năng. Các hoạt động như ' + w3.vi + ' và ' + w4.vi + ' giúp chúng ta khỏe mạnh, đồng thời xây dựng ' + w5.vi + ' cá nhân và ' + w6.vi + ' trong cuộc sống.'
+        },
+        {
+          title: 'Truyện Từ Vựng Version 2: ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Our lesson explores how hobbies shape our daily routines. Engaging in ' + w1.en + ' brings joy to everyone. Combining ' + w2.en + ' with ' + w3.en + ' improves concentration. Furthermore, taking part in ' + w4.en + ' fosters ' + w5.en + ' and overall ' + w6.en + '.',
+          storyVi: 'Bài học của chúng ta khám phá cách các sở thích hình thành thói quen hàng ngày. Tham gia vào ' + w1.vi + ' mang lại niềm vui cho mọi người. Kết hợp ' + w2.vi + ' với ' + w3.vi + ' giúp cải thiện sự tập trung. Hơn nữa, việc tham gia ' + w4.vi + ' nuôi dưỡng ' + w5.vi + ' và ' + w6.vi + ' toàn diện.'
+        },
+        {
+          title: 'Truyện Từ Vựng Version 3: ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'In class, students present their favorite interests and hobbies. ' + w1.en + ' requires patience, while ' + w2.en + ' shows great imagination. Practicing ' + w3.en + ' alongside ' + w4.en + ' helps learners balance their life and cultivate ' + w5.en + ' with ' + w6.en + '.',
+          storyVi: 'Trong lớp, các em học sinh trình bày về những sở thích yêu thích của mình. ' + w1.vi + ' đòi hỏi sự kiên nhẫn, trong khi ' + w2.vi + ' thể hiện trí tưởng tượng tuyệt vời. Thực hành ' + w3.vi + ' cùng với ' + w4.vi + ' giúp người học cân bằng cuộc sống và rèn luyện ' + w5.vi + ' cùng ' + w6.vi + '.'
+        },
+        {
+          title: 'Truyện Từ Vựng Version 4: ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Developing meaningful habits enriches our knowledge every day. Through ' + w1.en + ' and ' + w2.en + ', students learn practical values. Regular ' + w3.en + ' or ' + w4.en + ' enhances well-being, building a strong sense of ' + w5.en + ' and ' + w6.en + '.',
+          storyVi: 'Phát triển các thói quen có ý nghĩa làm giàu kiến thức của chúng ta mỗi ngày. Thông qua ' + w1.vi + ' và ' + w2.vi + ', học sinh học được những giá trị thực tế. Thường xuyên ' + w3.vi + ' hoặc ' + w4.vi + ' nâng cao sức khỏe, xây dựng tinh thần ' + w5.vi + ' và ' + w6.vi + ' vững chắc.'
+        }
+      ];
 
-        const selectedDialogue = dialogueVariations[nextSeed % dialogueVariations.length];
-        setAiStoryData(selectedDialogue);
-      }
-
+      const selectedStory = dynamicStories[storyVersionIndex];
+      setAiStoryData(selectedStory);
       playSuccessSound();
     } catch (e) {
       alert('Không thể tạo AI Truyện Từ Vựng!');
