@@ -1727,64 +1727,31 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
         }
       }
 
-      // THUẬT TOÁN SINH CÂU TRUYỆN CHUẨN NGỮ PHÁP 100% TIẾNG ANH & BẢN DỊCH KHỚP TUYỆT ĐỐI (V259)
+      // THUẬT TOÁN SINH 5 VERSION CÂU TRUYỆN DỘC ĐÁO & CHUẨN NGỮ PHÁP 100% (V260)
       const currentWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList) || [];
       const wObjs = currentWordsList.slice(0, 6);
       
-      // BỘ CHUYỂN ĐỔI NGỮ PHÁP THÔNG MINH (CHỐNG LỖI PRACTICING GENERAL, BUILDING REGULAR...)
       const getGrammarSmartPhrase = (item, defaultWord, defaultMeaning) => {
         const word = (item?.word || defaultWord).toLowerCase().trim();
         const meaning = (item?.meaning || defaultMeaning).trim();
         const pos = (item?.pos || '').toLowerCase();
 
-        // TỪ ĐIỂN CỤM TỪ NGỮ PHÁP CHUẨN ĐÃ ĐƯỢC CHUẨN HÓA
-        if (word === 'general') {
-          return { en: 'in general', vi: 'nói chung (general)' };
-        }
-        if (word === 'regular') {
-          return { en: 'regular habits', vi: 'thói quen thường xuyên (regular)' };
-        }
-        if (word === 'set') {
-          return { en: 'watching the sun set', vi: 'ngắm mặt trời lặn (set)' };
-        }
-        if (word === 'gardening') {
-          return { en: 'gardening', vi: 'làm vườn (gardening)' };
-        }
-        if (word === 'model') {
-          return { en: 'building models', vi: 'lắp ráp mô hình (model)' };
-        }
-        if (word === 'jogging') {
-          return { en: 'morning jogging', vi: 'chạy bộ thể dục (jogging)' };
-        }
-        if (word === 'yoga') {
-          return { en: 'practicing yoga', vi: 'tập yoga (yoga)' };
-        }
-        if (word === 'popular') {
-          return { en: 'popular hobbies', vi: 'sở thích phổ biến (popular)' };
-        }
-        if (word === 'unusual') {
-          return { en: 'unusual activities', vi: 'hoạt động độc lạ (unusual)' };
-        }
-        if (word === 'responsibility') {
-          return { en: 'personal responsibility', vi: 'trách nhiệm cá nhân (responsibility)' };
-        }
-        if (word === 'creativity') {
-          return { en: 'creative thinking', vi: 'sự sáng tạo (creativity)' };
-        }
-        if (word === 'maturity') {
-          return { en: 'emotional maturity', vi: 'sự trưởng thành (maturity)' };
-        }
-        if (word === 'patient') {
-          return { en: 'a patient mind', vi: 'tinh thần kiên nhẫn (patient)' };
-        }
+        if (word === 'general') { return { en: 'in general', vi: 'nói chung (general)' }; }
+        if (word === 'regular') { return { en: 'regular habits', vi: 'thói quen thường xuyên (regular)' }; }
+        if (word === 'set') { return { en: 'watching the sun set', vi: 'ngắm mặt trời lặn (set)' }; }
+        if (word === 'gardening') { return { en: 'gardening', vi: 'làm vườn (gardening)' }; }
+        if (word === 'model') { return { en: 'building models', vi: 'lắp ráp mô hình (model)' }; }
+        if (word === 'jogging') { return { en: 'morning jogging', vi: 'chạy bộ thể dục (jogging)' }; }
+        if (word === 'yoga') { return { en: 'practicing yoga', vi: 'tập yoga (yoga)' }; }
+        if (word === 'popular') { return { en: 'popular hobbies', vi: 'sở thích phổ biến (popular)' }; }
+        if (word === 'unusual') { return { en: 'unusual activities', vi: 'hoạt động độc lạ (unusual)' }; }
+        if (word === 'responsibility') { return { en: 'personal responsibility', vi: 'trách nhiệm cá nhân (responsibility)' }; }
+        if (word === 'creativity') { return { en: 'creative thinking', vi: 'sự sáng tạo (creativity)' }; }
+        if (word === 'maturity') { return { en: 'emotional maturity', vi: 'sự trưởng thành (maturity)' }; }
+        if (word === 'patient') { return { en: 'a patient mind', vi: 'tinh thần kiên nhẫn (patient)' }; }
 
-        // TỰ ĐỘNG THÍCH ỨNG THEO TỪ LOẠI NẾU KHÔNG CÓ TRONG BẢNG TRÊN
-        if (pos === 'adj') {
-          return { en: word + ' skills', vi: meaning + ' (' + word + ')' };
-        }
-        if (pos === 'v') {
-          return { en: word + 'ing regularly', vi: 'việc ' + meaning + ' (' + word + ')' };
-        }
+        if (pos === 'adj') { return { en: word + ' skills', vi: meaning + ' (' + word + ')' }; }
+        if (pos === 'v') { return { en: word + 'ing regularly', vi: 'việc ' + meaning + ' (' + word + ')' }; }
         return { en: word, vi: meaning + ' (' + word + ')' };
       };
 
@@ -1795,28 +1762,33 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       const w5 = getGrammarSmartPhrase(wObjs[4], 'responsibility', 'trách nhiệm');
       const w6 = getGrammarSmartPhrase(wObjs[5], 'creativity', 'sự sáng tạo');
 
-      const storyVersionIndex = storySeed % 4;
+      const storyVersionIndex = ((storySeed % 5) + 5) % 5;
 
       const dynamicStories = [
         {
-          title: 'Truyện Từ Vựng Version 1: ' + currentUnitName + ' - ' + lessonSec,
+          title: 'Truyện Từ Vựng (Version 1 - Sở Thích Hàng Ngày): ' + currentUnitName + ' - ' + lessonSec,
           storyEn: 'Learning vocabulary through daily activities is both enjoyable and effective. Practicing ' + w1.en + ' and building ' + w2.en + ' helps students develop skills. Activities such as ' + w3.en + ' and ' + w4.en + ' keep us healthy, while building ' + w5.en + ' and ' + w6.en + ' in life.',
           storyVi: 'Học từ vựng qua các hoạt động hàng ngày vừa thú vị vừa hiệu quả. Thực hành ' + w1.vi + ' và rèn luyện ' + w2.vi + ' giúp học sinh phát triển kỹ năng. Các hoạt động như ' + w3.vi + ' và ' + w4.vi + ' giúp chúng ta khỏe mạnh, đồng thời xây dựng ' + w5.vi + ' và ' + w6.vi + ' trong cuộc sống.'
         },
         {
-          title: 'Truyện Từ Vựng Version 2: ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Our lesson explores how hobbies shape our daily routines. Engaging in ' + w1.en + ' brings joy to everyone. Combining ' + w2.en + ' with ' + w3.en + ' improves concentration. Furthermore, taking part in ' + w4.en + ' fosters ' + w5.en + ' and overall ' + w6.en + '.',
-          storyVi: 'Bài học của chúng ta khám phá cách các sở thích hình thành thói quen hàng ngày. Tham gia vào ' + w1.vi + ' mang lại niềm vui cho mọi người. Kết hợp ' + w2.vi + ' với ' + w3.vi + ' giúp cải thiện sự tập trung. Hơn nữa, việc tham gia ' + w4.vi + ' nuôi dưỡng ' + w5.vi + ' và ' + w6.vi + ' toàn diện.'
+          title: 'Truyện Từ Vựng (Version 2 - Sáng Tạo & Thói Quen): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Our lesson explores how meaningful hobbies shape our daily routines. Engaging in ' + w1.en + ' brings joy to everyone. Combining ' + w2.en + ' with ' + w3.en + ' improves concentration and patience. Furthermore, taking part in ' + w4.en + ' fosters ' + w5.en + ' and overall ' + w6.en + '.',
+          storyVi: 'Bài học của chúng ta khám phá cách các sở thích ý nghĩa hình thành thói quen hàng ngày. Tham gia vào ' + w1.vi + ' mang lại niềm vui cho mọi người. Kết hợp ' + w2.vi + ' với ' + w3.vi + ' giúp cải thiện sự tập trung và kiên nhẫn. Hơn nữa, việc tham gia ' + w4.vi + ' nuôi dưỡng ' + w5.vi + ' và ' + w6.vi + ' toàn diện.'
         },
         {
-          title: 'Truyện Từ Vựng Version 3: ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'In class, students present their favorite interests and hobbies. ' + w1.en + ' requires focus, while ' + w2.en + ' shows great imagination. Practicing ' + w3.en + ' alongside ' + w4.en + ' helps learners balance their life and cultivate ' + w5.en + ' with ' + w6.en + '.',
-          storyVi: 'Trong lớp, các em học sinh trình bày về những sở thích yêu thích của mình. ' + w1.vi + ' đòi hỏi sự tập trung, trong khi ' + w2.vi + ' thể hiện trí tưởng tượng tuyệt vời. Thực hành ' + w3.vi + ' cùng với ' + w4.vi + ' giúp người học cân bằng cuộc sống và rèn luyện ' + w5.vi + ' cùng ' + w6.vi + '.'
+          title: 'Truyện Từ Vựng (Version 3 - Thảo Luận Lớp Học): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'In class, students present their favorite interests and hobbies enthusiastically. ' + w1.en + ' requires focus, while ' + w2.en + ' shows great imagination. Practicing ' + w3.en + ' alongside ' + w4.en + ' helps learners balance their life and cultivate ' + w5.en + ' with ' + w6.en + '.',
+          storyVi: 'Trong lớp, các em học sinh hăng hái trình bày về những sở thích yêu thích của mình. ' + w1.vi + ' đòi hỏi sự tập trung, trong khi ' + w2.vi + ' thể hiện trí tưởng tượng tuyệt vời. Thực hành ' + w3.vi + ' cùng với ' + w4.vi + ' giúp người học cân bằng cuộc sống và rèn luyện ' + w5.vi + ' cùng ' + w6.vi + '.'
         },
         {
-          title: 'Truyện Từ Vựng Version 4: ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Developing meaningful habits enriches our knowledge every day. Through ' + w1.en + ' and ' + w2.en + ', students learn practical values. Regular ' + w3.en + ' or ' + w4.en + ' enhances well-being, building a strong sense of ' + w5.en + ' and ' + w6.en + '.',
-          storyVi: 'Phát triển các thói quen có ý nghĩa làm giàu kiến thức của chúng ta mỗi ngày. Thông qua ' + w1.vi + ' và ' + w2.vi + ', học sinh học được những giá trị thực tế. Thường xuyên ' + w3.vi + ' hoặc ' + w4.vi + ' nâng cao sức khỏe, xây dựng tinh thần ' + w5.vi + ' và ' + w6.vi + ' vững chắc.'
+          title: 'Truyện Từ Vựng (Version 4 - Kiến Thức & Sức Khỏe): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Developing meaningful habits enriches our knowledge every single day. Through ' + w1.en + ' and ' + w2.en + ', students learn practical real-world values. Regular ' + w3.en + ' or ' + w4.en + ' enhances physical well-being, building a strong sense of ' + w5.en + ' and ' + w6.en + '.',
+          storyVi: 'Phát triển các thói quen có ý nghĩa làm giàu kiến thức của chúng ta mỗi ngày. Thông qua ' + w1.vi + ' và ' + w2.vi + ', học sinh học được những giá trị thực tế. Thường xuyên ' + w3.vi + ' hoặc ' + w4.vi + ' nâng cao sức khỏe thể chất, xây dựng tinh thần ' + w5.vi + ' và ' + w6.vi + ' vững chắc.'
+        },
+        {
+          title: 'Truyện Từ Vựng (Version 5 - Tinh Thần Đồng Đội & Tương Lai): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Working together on educational projects inspires students to achieve success. Trying ' + w1.en + ' encourages active participation, whereas ' + w2.en + ' strengthens problem-solving ability. Sharing experiences in ' + w3.en + ' and ' + w4.en + ' motivates everyone to demonstrate ' + w5.en + ' and remarkable ' + w6.en + '.',
+          storyVi: 'Cùng nhau làm việc trong các dự án giáo dục truyền cảm hứng cho học sinh đạt thành công. Thử sức với ' + w1.vi + ' khuyến khích sự tham gia tích cực, trong khi ' + w2.vi + ' củng cố khả năng giải quyết vấn đề. Chia sẻ trải nghiệm về ' + w3.vi + ' và ' + w4.vi + ' động viên mọi người thể hiện ' + w5.vi + ' và ' + w6.vi + ' đáng kinh ngạc.'
         }
       ];
 
@@ -6424,6 +6396,28 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
               </div>
             ) : aiStoryData ? (
               <div className="space-y-4 overflow-y-auto pr-1 grow">
+                {/* THANH CHỌN 5 VERSION TRUYỆN DỄ DÀNG CHO HỌC SINH (V260) */}
+                <div className="flex flex-wrap items-center gap-1.5 mb-2 bg-purple-100/70 p-2 rounded-2xl border border-purple-200 shadow-xs">
+                  <span className="text-xs font-black text-purple-900 px-1">Chuyển Nhanh 5 Version Truyện:</span>
+                  {[1, 2, 3, 4, 5].map((vNum) => (
+                    <button
+                      key={vNum}
+                      type="button"
+                      onClick={() => {
+                        setStorySeed(vNum - 1);
+                        handleGenerateAiStory();
+                      }}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-1 shadow-xs ${
+                        ((storySeed % 5) + 5) % 5 === vNum - 1
+                          ? 'bg-purple-700 text-white ring-2 ring-purple-400 scale-105 shadow-sm'
+                          : 'bg-white text-purple-950 hover:bg-purple-200 border border-purple-300'
+                      }`}
+                    >
+                      <span>📖 Version {vNum}</span>
+                    </button>
+                  ))}
+                </div>
+
                 <h4 className="font-black text-lg text-purple-950 border-b border-purple-100 pb-1">
                   {aiStoryData.title}
                 </h4>
