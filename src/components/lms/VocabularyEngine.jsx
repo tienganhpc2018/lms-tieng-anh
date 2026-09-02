@@ -1109,6 +1109,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [aiGeneratingCw, setAiGeneratingCw] = useState(false);
   // NGUYÊN TẮC THẦY HẢI: MẶC ĐỊNH ẨN ĐÁP ÁN CHO HỌC SINH (FALSE)
   const [showTeacherAnswers, setShowTeacherAnswers] = useState(false);
+  const [showWordSearchAnswers, setShowWordSearchAnswers] = useState(false);
   // 60S TIME ATTACK CHALLENGE MODE STATE
   const [isTimeAttackMode, setIsTimeAttackMode] = useState(false);
   const [timeAttackLeft, setTimeAttackLeft] = useState(60);
@@ -3293,7 +3294,70 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             <span>⭐ Từ Cần Nhớ ({bookmarkedIds.length})</span>
           </button>
         </div>
-{/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
+
+      {/* BAR TAB NGANG CHỌN CÁC TIẾT HỌC / LESSONS (GETTING STARTED, A CLOSER LOOK 1, A CLOSER LOOK 2...) */}
+      <div className="bg-amber-950/70 p-2.5 rounded-2xl border border-amber-700/80 flex flex-wrap items-center justify-between gap-2 shadow-inner my-3">
+        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto py-0.5">
+          <span className="text-xs font-black text-amber-300 uppercase tracking-wide mr-1 flex items-center space-x-1 shrink-0">
+            <span>📚 TIẾT HỌC:</span>
+          </span>
+
+          {[
+            { id: 'All', label: 'Tất cả tiết', icon: '✨' },
+            { id: 'GETTING STARTED', label: 'GETTING STARTED', icon: '🚀' },
+            { id: 'A CLOSER LOOK 1', label: 'A CLOSER LOOK 1', icon: '📖' },
+            { id: 'A CLOSER LOOK 2', label: 'A CLOSER LOOK 2', icon: '⚡' },
+            { id: 'COMMUNICATION', label: 'COMMUNICATION', icon: '💬' },
+            { id: 'SKILLS 1', label: 'SKILLS 1', icon: '📚' },
+            { id: 'SKILLS 2', label: 'SKILLS 2', icon: '✍️' },
+            { id: 'LOOKING BACK', label: 'LOOKING BACK', icon: '🔄' },
+            { id: 'PROJECT', label: 'PROJECT', icon: '🎨' },
+          ].map((sec) => {
+            const isSelected = selectedSection === sec.id;
+            const isLocked = !!individualSectionLocks[sec.id];
+            return (
+              <button
+                key={sec.id}
+                type="button"
+                onClick={() => {
+                  if (isSectionLockedForStudent(sec.id)) {
+                    playSuccessSound();
+                    alert(`🔒 Tiết học '${sec.label}' đang được Giáo viên tạm khóa. Hãy học các tiết trước hoặc chờ Thầy Mở Khóa nhé!`);
+                    return;
+                  }
+                  setSelectedSection(sec.id);
+                  setSelectedIndex(0);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs transition cursor-pointer flex items-center space-x-1.5 border font-extrabold shadow-2xs shrink-0 ${
+                  isSelected
+                    ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md ring-2 ring-amber-300 scale-105'
+                    : isLocked
+                    ? 'bg-rose-950/80 text-rose-200 border-rose-500/80 hover:bg-rose-900'
+                    : 'bg-amber-900/40 text-amber-200 border-amber-700/60 hover:bg-amber-800/80 hover:text-white'
+                }`}
+              >
+                {isLocked && <Lock className="w-3.5 h-3.5 text-rose-400 animate-pulse" />}
+                <span>{sec.icon} {sec.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {isTeacher && (
+          <button
+            type="button"
+            onClick={() => setIsSectionLockConfigModalOpen(true)}
+            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-sm cursor-pointer border border-rose-500 flex items-center space-x-1 shrink-0"
+            title="Khóa/mở từng tiết học riêng biệt cho Học sinh"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>⚙️ Cấu Hình Khóa Tiết Học</span>
+          </button>
+        )}
+      </div>
+
+
+      {/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
       {(activeTab === 'dictionary' || activeTab === 'bookmarks') && (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-4 lg:col-span-3 bg-amber-100/90 rounded-2xl p-2.5 border-2 border-amber-300 shadow-inner flex flex-col justify-between max-h-[580px]">
