@@ -746,6 +746,112 @@ const GLOBAL_SUCCESS_PRESETS = {
     ]
   }
 };
+
+// TOP-LEVEL HELPER GENERATE GRAMMAR-PERFECT PHRASES & EXAMPLES ACCORDING TO PART OF SPEECH (V261)
+const generateSmartPhrasesAndExamples = (word, posType = 'n') => {
+  const lower = (word || '').toLowerCase().trim();
+
+  if (lower === 'general') {
+    return {
+      pos: 'adj',
+      phonetic: '/ˈdʒen.ər.əl/',
+      meaning: 'tổng quát, chung (đúng với hầu hết mọi trường hợp)',
+      phrases: ['in general', 'general knowledge', 'general public'],
+      examples: [
+        'In general, most students enjoy interactive English lessons.',
+        'She has a great general knowledge of English vocabulary.'
+      ]
+    };
+  }
+  if (lower === 'especially') {
+    return {
+      pos: 'adv',
+      phonetic: '/ɪˈspeʃ.əl.i/',
+      meaning: 'đặc biệt là, nhất là',
+      phrases: ['especially for students', 'especially in summer', 'especially important'],
+      examples: [
+        'I love reading books, especially English stories.',
+        'This game is especially useful for memorizing vocabulary.'
+      ]
+    };
+  }
+  if (lower === 'exercise') {
+    return {
+      pos: 'n',
+      phonetic: '/ˈek.sə.saɪz/',
+      meaning: 'bài tập, sự tập thể dục',
+      phrases: ['do exercise', 'morning exercise', 'grammar exercise'],
+      examples: [
+        'Doing regular exercise keeps our body healthy and strong.',
+        'We complete a grammar exercise at the start of every lesson.'
+      ]
+    };
+  }
+  if (lower === 'science') {
+    return {
+      pos: 'n',
+      phonetic: '/ˈsaɪ.əns/',
+      meaning: 'khoa học',
+      phrases: ['science project', 'science lesson', 'natural science'],
+      examples: [
+        'Science is my favorite subject at school.',
+        'They are working on a science experiment together.'
+      ]
+    };
+  }
+
+  // POS-AWARE DYNAMIC FALLBACK
+  if (posType === 'adj' || lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al')) {
+    return {
+      pos: 'adj',
+      phonetic: `/${lower}/`,
+      meaning: lower,
+      phrases: [`very ${lower}`, `in a ${lower} way`, `most ${lower}`],
+      examples: [
+        `In general, this ${lower} topic is very important for our lesson.`,
+        `Learning in a ${lower} way helps students memorize vocabulary faster.`
+      ]
+    };
+  }
+  if (posType === 'adv' || lower.endsWith('ly')) {
+    return {
+      pos: 'adv',
+      phonetic: `/${lower}/`,
+      meaning: lower,
+      phrases: [`work ${lower}`, `speak ${lower}`, `act ${lower}`],
+      examples: [
+        `She ${lower} completes all her assignments before class.`,
+        `Students should practice speaking English ${lower}.`
+      ]
+    };
+  }
+  if (posType === 'v' || posType === 'v phr' || lower.endsWith('ing')) {
+    return {
+      pos: 'v',
+      phonetic: `/${lower}/`,
+      meaning: lower,
+      phrases: [`try to ${lower}`, `start to ${lower}`, `learn to ${lower}`],
+      examples: [
+        `Teachers encourage students to ${lower} during class.`,
+        `It is beneficial to ${lower} with friends every day.`
+      ]
+    };
+  }
+
+  // DEFAULT NOUN (n)
+  return {
+    pos: 'n',
+    phonetic: `/${lower}/`,
+    meaning: lower,
+    phrases: [`important ${lower}`, `great ${lower}`, `study of ${lower}`],
+    examples: [
+      `Learning about ${lower} is very useful in daily conversation.`,
+      `The teacher introduced the topic of ${lower} to the whole class.`
+    ]
+  };
+};
+
+
 export default function VocabularyEngine({ activity, isTeacher = false, onSaveActivity }) {
   const { user } = useAuth();
   const settings = activity?.settings || {};
