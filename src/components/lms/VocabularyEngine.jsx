@@ -968,14 +968,17 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
 
         // HELPER CHECK IF A LESSON SECTION IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
     // HELPER CHECK IF A LESSON SECTION IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
+    // HELPER CHECK IF A LESSON SECTION IS HIDDEN FOR STUDENT (MATCHING IMAGE 1 100%)
   const isSectionLockedForStudent = (secName) => {
     if (effectiveIsTeacher) return false;
     if (!secName || secName === 'All') return false;
 
-    // EXPLICIT INDIVIDUAL UNLOCK TAKES HIGHEST PRIORITY!
-    if (individualSectionLocks && individualSectionLocks[secName] === false) return false;
-    if (individualSectionLocks && individualSectionLocks[secName] === true) return true;
-    if (lockAheadLessonsForStudents === true && secName !== 'GETTING STARTED') return true;
+    // ONLY hide if Teacher EXPLICITLY set individualSectionLocks[secName] === true!
+    if (individualSectionLocks && individualSectionLocks[secName] === true) {
+      return true;
+    }
+
+    // DEFAULT: ALL LESSONS ARE 100% OPEN & VISIBLE TO STUDENTS!
     return false;
   };
 
