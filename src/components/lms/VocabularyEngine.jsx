@@ -1190,7 +1190,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
 
     try {
       const escaped = allTargets
-        .map((w) => (w ? String(w).replace(/[-/\^$*+?.()|[]{}]/g, '\const handleGenerateAiVocabStory = async () => {') : ''))
+        .map((w) => (w ? String(w).replace(/[-\/\\^$*+?.()|[\]{}]/g, '') : ''))
         .filter(Boolean)
         .join('|');
 
@@ -1219,20 +1219,26 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }
   };
 
-  const handleGenerateAiVocabStory = async () => {
+    const [storyVariationIndex, setStoryVariationIndex] = useState(0);
+
+  const handleGenerateAiVocabStory = async (forceNextSeed = false) => {
     setGeneratingStory(true);
     setAiStoryModalOpen(true);
 
+    const nextSeed = forceNextSeed ? storyVariationIndex + 1 : storyVariationIndex;
+    setStoryVariationIndex(nextSeed);
+
     const currentWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList).slice(0, 8);
-    const wordsStr = currentWordsList.map((i) => i.word + ' (' + i.meaning + ')').join(', ');
-    const targetWordsOnly = currentWordsList.map((i) => i.word).join(', ');
+    const wordsStr = currentWordsList.map((i) => (i?.word || '') + ' (' + (i?.meaning || '') + ')').join(', ');
+    const targetWordsOnly = currentWordsList.map((i) => i?.word || '').filter(Boolean).join(', ');
     const currentUnitName = selectedUnit !== 'All' ? selectedUnit : (vocabList[0]?.unit || 'Unit 1');
+    const lessonSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
 
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
       if (apiKey) {
         const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
-        const promptText = "Bạn là một trợ lý giảng thuật kể chuyện tiếng Anh thông minh cho học sinh Việt Nam khối " + activityGrade + ". Hãy viết một câu chuyện ngắn sinh động (3-4 câu tiếng Anh) lồng ghép tự nhiên các từ vựng thuộc chủ đề " + currentUnitName + " (" + activityGrade + ") sau đây: [" + wordsStr + "]. YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown): { \"title\": \"Tên bài viết tiếng Anh ngắn ngọn\", \"storyEn\": \"Câu chuyện tiếng Anh 3-4 câu lồng ghép các từ: " + targetWordsOnly + ".\", \"storyVi\": \"Bản dịch tiếng Việt chuẩn nghĩa cho câu chuyện trên.\" }";
+        const promptText = "Bạn là một giáo viên Tiếng Anh xuất sắc giảng dạy khối " + activityGrade + ". Hãy viết một đoạn tóm tắt bài học (3-4 câu tiếng Anh) dạng TÓM TẮT ĐOẠN HỘI THOẠI / NỘI DUNG CHÍNH của tiết học " + lessonSec + " thuộc " + currentUnitName + " (" + activityGrade + ") (Biến thể số " + (nextSeed % 5 + 1) + "). Lồng ghép tự nhiên các từ vựng sau: [" + wordsStr + "]. YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown): { \"title\": \"Tóm tắt tiết " + lessonSec + " - " + currentUnitName + "\", \"storyEn\": \"Đoạn tóm tắt tiếng Anh 3-4 câu chứa các từ: " + targetWordsOnly + ".\", \"storyVi\": \"Bản dịch tiếng Việt tóm tắt nội dung hội thoại trên.\" }";
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -1244,7 +1250,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
         if (res.ok) {
           const data = await res.json();
           const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const cleanedText = rawText.replace('```json', '').replace('```', '').trim();
+          const cleanedText = rawText.replace('```json', '').replace('```', '').replace('```', '').trim();
           const aiJson = JSON.parse(cleanedText);
           if (aiJson && aiJson.storyEn) {
             setAiStoryData(aiJson);
@@ -1255,21 +1261,49 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
         }
       }
 
-      // THUẬT TOÁN SINH TRUYỆN ĐỘNG THEO ĐÚNG KHỐI LỚP & UNIT CỦA THẦY HẢI (TUYỆT ĐỐI KHÔNG MẶC ĐỊNH LỚP 9)
+      // THUẬT TOÁN SINH ĐOẠN TÓM TẮT HỘI THOẠI & ĐỔI TRUYỆN ĐỘNG 5 BIẾN THỂ THEO ĐÚNG CHỈ ĐẠO CỦA THẦY HẢI
       const wObjs = currentWordsList.slice(0, 5);
-      const w1 = wObjs[0] || { word: 'study', meaning: 'học tập' };
-      const w2 = wObjs[1] || { word: 'practice', meaning: 'thực hành' };
-      const w3 = wObjs[2] || { word: 'knowledge', meaning: 'kiến thức' };
-      const w4 = wObjs[3] || { word: 'skill', meaning: 'kỹ năng' };
-      const w5 = wObjs[4] || { word: 'success', meaning: 'thành công' };
+      const w1 = wObjs[0] || { word: 'hobby', meaning: 'sở thích' };
+      const w2 = wObjs[1] || { word: 'cardboard', meaning: 'bìa các tông' };
+      const w3 = wObjs[2] || { word: 'dollhouse', meaning: 'nhà mô hình' };
+      const w4 = wObjs[3] || { word: 'gardening', meaning: 'làm vườn' };
+      const w5 = wObjs[4] || { word: 'glue', meaning: 'keo dán' };
 
-      const dynamicStory = {
-        title: "A Great Lesson in " + currentUnitName + " (" + activityGrade + ")",
-        storyEn: "Today in our " + activityGrade + " class for " + currentUnitName + ", we explored new vocabulary together. Students practiced using " + w1.word + " and " + w2.word + " during the interactive lesson. Everyone understood " + w3.word + " and " + w4.word + " very well, achieving great " + w5.word + " in their learning.",
-        storyVi: "Hôm nay trong giờ học " + activityGrade + " thuộc chủ đề " + currentUnitName + ", chúng em đã cùng nhau khám phá từ vựng mới. Các bạn học sinh đã luyện tập sử dụng " + w1.meaning + " (" + w1.word + ") và " + w2.meaning + " (" + w2.word + ") trong bài học tương tác. Mọi người đều hiểu rất rõ về " + w3.meaning + " (" + w3.word + ") cũng như " + w4.meaning + " (" + w4.word + "), đạt được kết quả " + w5.meaning + " (" + w5.word + ") tuyệt vời trong học tập."
-      };
+      const variations = [
+        // BIẾN THỂ 1: TÓM TẮT HỘI THOẠI NGHỆ THUẬT (GETTING STARTED)
+        {
+          title: "Tóm Tắt Nội Dung Hội Thoại: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
+          storyEn: "In the " + lessonSec + " dialogue for " + currentUnitName + ", Mai and Nick are happily discussing their favourite hobbies. Mai shows her amazing " + w3.word + " made from " + w2.word + " using " + w5.word + ". Meanwhile, Nick shares his passion for " + w4.word + " and how much joy his " + w1.word + " brings him every day.",
+          storyVi: "Trong đoạn hội thoại tiết " + lessonSec + " thuộc bài " + currentUnitName + ", bạn Mai và Nick đang vui vẻ thảo luận về những sở thích yêu thích của mình. Mai khoe ngôi nhà mô hình (" + w3.meaning + " - " + w3.word + ") tuyệt đẹp làm từ bìa các tông (" + w2.meaning + " - " + w2.word + ") dùng keo dán (" + w5.meaning + " - " + w5.word + "). Trong khi đó, Nick chia sẻ niềm đam mê làm vườn (" + w4.meaning + " - " + w4.word + ") và niềm vui từ sở thích (" + w1.meaning + " - " + w1.word + ") mang lại mỗi ngày."
+        },
+        // BIẾN THỂ 2: THẢO LUẬN NHÓM TRÊN LỚP (CLASSROOM GROUP DISCUSSION)
+        {
+          title: "Tóm Tắt Bài Học Thảo Luận: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
+          storyEn: "During our " + activityGrade + " lesson in " + lessonSec + ", the teacher asked students to present their class project. Phong demonstrated how to create a " + w3.word + " with " + w2.word + " and strong " + w5.word + ". The whole class learned valuable tips about " + w4.word + " and developed a creative " + w1.word + " together.",
+          storyVi: "Trong giờ học " + activityGrade + " tiết " + lessonSec + ", giáo viên yêu cầu các bạn học sinh thuyết trình dự án học tập. Bạn Phong đã trình bày cách tạo một nhà mô hình (" + w3.meaning + " - " + w3.word + ") bằng bìa các tông (" + w2.meaning + " - " + w2.word + ") và keo dán (" + w5.meaning + " - " + w5.word + ") chắc chắn. Cả lớp đã học được nhiều mẹo hay về làm vườn (" + w4.meaning + " - " + w4.word + ") và cùng phát triển sở thích (" + w1.meaning + " - " + w1.word + ") sáng tạo."
+        },
+        // BIẾN THỂ 3: TRẢI NGHIỆM THỰC TẾ CUỘC SỐNG (REAL-LIFE PRACTICE)
+        {
+          title: "Tóm Tắt Ngữ Cảnh Thực Tế: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
+          storyEn: "On the weekend, Trang and Lan spent their free time practicing the vocabulary of " + lessonSec + ". Trang carefully assembled a " + w3.word + " out of recycled " + w2.word + " and " + w5.word + ". Lan joined her grandmother in the garden for " + w4.word + ", turning learning into an enjoyable " + w1.word + ".",
+          storyVi: "Vào cuối tuần, Trang và Lan dành thời gian rảnh rỗi thực hành từ vựng tiết " + lessonSec + ". Trang cẩn thận lắp ráp nhà mô hình (" + w3.meaning + " - " + w3.word + ") từ bìa các tông (" + w2.meaning + " - " + w2.word + ") tái chế và keo dán (" + w5.meaning + " - " + w5.word + "). Lan cùng bà tham gia làm vườn (" + w4.meaning + " - " + w4.word + "), biến việc học thành một sở thích (" + w1.meaning + " - " + w1.word + ") thú vị."
+        },
+        // BIẾN THỂ 4: DỰ ÁN NHÓM VÀ THỬ THÁCH (TEAM PROJECT & CHALLENGE)
+        {
+          title: "Tóm Tắt Thử Thách Dự Án Nhóm: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
+          storyEn: "Our team worked together on the " + lessonSec + " assignment for " + currentUnitName + ". We collected " + w2.word + " and " + w5.word + " to build a detailed " + w3.word + ". After finishing, we explored outdoor activities like " + w4.word + " to expand our " + w1.word + " knowledge.",
+          storyVi: "Nhóm chúng em đã cùng làm việc trong bài tập tiết " + lessonSec + " thuộc bài " + currentUnitName + ". Chúng em thu thập bìa các tông (" + w2.meaning + " - " + w2.word + ") và keo dán (" + w5.meaning + " - " + w5.word + ") để dựng nên một nhà mô hình (" + w3.meaning + " - " + w3.word + ") chi tiết. Sau khi hoàn thành, nhóm cùng khám phá các hoạt động ngoài trời như làm vườn (" + w4.meaning + " - " + w4.word + ") để mở rộng hiểu biết về sở thích (" + w1.meaning + " - " + w1.word + ")."
+        },
+        // BIẾN THỂ 5: GHI NHỚ VÀ ĐỔI MỚI (CREATIVE REVIEW SUMMARY)
+        {
+          title: "Tóm Tắt Tổng Kết Bài Học: " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
+          storyEn: "To review " + lessonSec + " in " + currentUnitName + ", students shared how they use new English words. Everyone loved making a " + w3.word + " using " + w2.word + " stuck with " + w5.word + ". They also discussed " + w4.word + " as a meaningful " + w1.word + " for students.",
+          storyVi: "Để ôn tập tiết " + lessonSec + " thuộc bài " + currentUnitName + ", các bạn học sinh đã chia sẻ cách dùng các từ tiếng Anh mới. Mọi người đều thích làm nhà mô hình (" + w3.meaning + " - " + w3.word + ") bằng bìa các tông (" + w2.meaning + " - " + w2.word + ") dán bằng keo dán (" + w5.meaning + " - " + w5.word + "). Các bạn cũng thảo luận về làm vườn (" + w4.meaning + " - " + w4.word + ") như một sở thích (" + w1.meaning + " - " + w1.word + ") bổ ích cho học sinh."
+        }
+      ];
 
-      setAiStoryData(dynamicStory);
+      const selectedStory = variations[nextSeed % variations.length];
+      setAiStoryData(selectedStory);
       playSuccessSound();
     } catch (e) {
       alert('Không thể tạo AI Truyện Từ Vựng!');
@@ -1277,6 +1311,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
       setGeneratingStory(false);
     }
   };
+
   // TEACHER STUDIO EDIT MODAL STATE (FOR DICTIONARY WORDS)
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -5496,7 +5531,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
           </div>
         </div>
       )}
-      {/* AI VOCAB STORYTELLER MODAL - V215 HIGH Z-INDEX & TOP NAVBAR PROTECTION */}
+      {/* AI VOCAB STORYTELLER MODAL - V216 HIGH Z-INDEX + DIALOGUE SUMMARY + HIGHLIGHT + AUDIO UK */}
       {aiStoryModalOpen && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-6 pt-16 sm:pt-20 pb-6 animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-2xl w-full border-4 border-purple-500 shadow-2xl space-y-4 text-slate-900 my-auto max-h-[85vh] flex flex-col">
@@ -5508,7 +5543,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                     AI TRUYỆN TỪ VỰNG THÔNG MINH ({activityGrade})
                   </h3>
                   <p className="text-xs text-purple-700 font-bold">
-                    Truyện ngắn lồng ghép từ vựng thuộc bài học {selectedUnit !== 'All' ? selectedUnit : 'Unit 1'}
+                    Tóm tắt bài học & lồng ghép từ vựng: {selectedUnit !== 'All' ? selectedUnit : 'Unit 1'} ({selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'})
                   </p>
                 </div>
               </div>
@@ -5516,13 +5551,13 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
-                  onClick={handleGenerateAiVocabStory}
+                  onClick={() => handleGenerateAiVocabStory(true)}
                   disabled={generatingStory}
-                  className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition cursor-pointer flex items-center space-x-1 border border-purple-400 disabled:opacity-50"
-                  title="Tạo lại một câu chuyện AI mới khác sinh động hơn"
+                  className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5 border border-purple-400 disabled:opacity-50"
+                  title="Tạo lại một câu chuyện tóm tắt hội thoại khác"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 text-amber-300 ${generatingStory ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">🔄 Đổi Truyện Khác</span>
+                  <RefreshCw className={`w-4 h-4 text-amber-300 ${generatingStory ? 'animate-spin' : ''}`} />
+                  <span>🔄 Đổi Truyện Khác</span>
                 </button>
 
                 <button
@@ -5539,7 +5574,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
               <div className="py-12 text-center space-y-3">
                 <Sparkles className="w-10 h-10 text-purple-600 animate-spin mx-auto" />
                 <p className="font-extrabold text-sm text-purple-900 animate-pulse">
-                  AI đang dệt câu chuyện thông minh cho {activityGrade} ({selectedUnit !== 'All' ? selectedUnit : 'Unit 1'})...
+                  AI đang dệt câu chuyện tóm tắt hội thoại cho {activityGrade} ({selectedUnit !== 'All' ? selectedUnit : 'Unit 1'})...
                 </p>
               </div>
             ) : aiStoryData ? (
@@ -5571,7 +5606,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
 
                   {/* BẢN DỊCH TIẾNG VIỆT CÓ HIGHLIGHT NGHĨA TỪ VỰNG */}
                   <div className="bg-white/90 p-3 rounded-xl border border-purple-200 text-xs sm:text-sm text-purple-950 font-medium leading-relaxed mt-2 shadow-xs">
-                    <strong className="text-purple-800 font-extrabold block mb-1">👉 Dịch tiếng Việt:</strong>
+                    <strong className="text-purple-800 font-extrabold block mb-1">👉 Dịch tiếng Việt (Tóm tắt hội thoại):</strong>
                     {renderHighlightedStoryText(aiStoryData.storyVi, filteredList.length > 0 ? filteredList : vocabList)}
                   </div>
                 </div>
@@ -5579,7 +5614,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                 <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-xs font-bold text-amber-900 flex items-center space-x-2">
                   <span className="text-lg">💡</span>
                   <span>
-                    Các từ vựng trọng tâm trong bài được tô <strong>màu vàng phát sáng 🟡</strong>. Học sinh nghe câu chuyện để ghi nhớ ngữ cảnh từ vựng nhé!
+                    Truyện tóm tắt nội dung hội thoại chính của bài học. Các từ vựng trọng tâm được tô <strong>màu vàng phát sáng 🟡</strong>.
                   </span>
                 </div>
               </div>
@@ -5588,17 +5623,17 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
             <div className="pt-2 border-t border-slate-200 flex items-center justify-between shrink-0">
               <button
                 type="button"
-                onClick={handleGenerateAiVocabStory}
-                className="px-3.5 py-2 bg-purple-100 hover:bg-purple-200 text-purple-900 font-extrabold text-xs rounded-xl border border-purple-300 transition cursor-pointer flex items-center space-x-1"
+                onClick={() => handleGenerateAiVocabStory(true)}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl border border-purple-400 transition cursor-pointer flex items-center space-x-1.5 shadow-md"
               >
-                <RefreshCw className="w-3.5 h-3.5 text-purple-700" />
+                <RefreshCw className="w-4 h-4 text-amber-300" />
                 <span>🔄 Sinh Truyện Mới</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setAiStoryModalOpen(false)}
-                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-2xl shadow-md cursor-pointer"
+                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-2xl shadow-md cursor-pointer"
               >
                 Đóng
               </button>
