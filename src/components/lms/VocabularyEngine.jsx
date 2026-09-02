@@ -746,7 +746,8 @@ const GLOBAL_SUCCESS_PRESETS = {
     ]
   }
 };
-export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }) {
+export default function VocabularyEngine({ activity, isTeacher: isTeacherProp = true, onSaveActivity }) {
+  const isTeacher = !!isTeacherProp;
   const { user } = useAuth();
   const settings = activity?.settings || {};
   // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
@@ -3929,7 +3930,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     }`}
                     title={isLocked ? `Mở khóa tiết học ${sec.name} cho HS` : `Khóa tiết học ${sec.name} không cho HS xem trước`}                  >
                     {isLocked ? <Lock className="w-3 h-3 text-white" /> : <Unlock className="w-3 h-3 text-emerald-400" />}
-                    <span>{isLocked ? 'Khóa' : 'Mở'}</span>
+                    <span>{isLocked ? '🔒 Đã Khóa' : '🔓 Đã Mở'}</span>
                   </button>
                 )}
               </div>
