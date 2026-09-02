@@ -747,11 +747,59 @@ const GLOBAL_SUCCESS_PRESETS = {
   }
 };
 
-// TOP-LEVEL HELPER GENERATE GRAMMAR-PERFECT PHRASES & EXAMPLES ACCORDING TO PART OF SPEECH (V265)
+// TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V267)
 const generateSmartPhrasesAndExamples = (word, posType = null) => {
   const lower = (word || '').toLowerCase().trim();
 
-  // 1. DICTIONARY OF EXPLICIT COMMON SGK WORDS (100% OXFORD PRECISION)
+  // 1. BUILT-IN DICTIONARY OF EXPLICIT SGK WORDS (MATCHING IMAGE 2 OXFORD STANDARD 100%)
+  if (lower === 'campaign') {
+    return {
+      pos: 'n',
+      phonetic: '/kæmˈpeɪn/',
+      meaning: 'chiến dịch',
+      phrases: ['campaign for something', 'campaign to do something', 'launch a campaign'],
+      examples: [
+        'Please join our campaign for a greener living environment.',
+        'We will start our campaign to clean the school campus this weekend.'
+      ]
+    };
+  }
+  if (lower === 'illustrate') {
+    return {
+      pos: 'v',
+      phonetic: '/ˈɪl.ə.streɪt/',
+      meaning: 'minh họa, làm rõ ý',
+      phrases: ['illustrate a point', 'illustrate a concept', 'clearly illustrate'],
+      examples: [
+        'The diagrams clearly illustrate how the water cycle works.',
+        'She drew pictures to illustrate her story for the class.'
+      ]
+    };
+  }
+  if (lower === 'poster') {
+    return {
+      pos: 'n',
+      phonetic: '/ˈpəʊ.stər/',
+      meaning: 'áp phích, tranh thông báo',
+      phrases: ['design a poster', 'hang a poster', 'poster presentation'],
+      examples: [
+        'Students made a colorful poster about environmental protection.',
+        'The teacher hung an English vocabulary poster on the wall.'
+      ]
+    };
+  }
+  if (lower === 'tip') {
+    return {
+      pos: 'n',
+      phonetic: '/tɪp/',
+      meaning: 'mẹo, lời khuyên hữu ích',
+      phrases: ['useful tip', 'study tips', 'tips for learning English'],
+      examples: [
+        'Here are five useful tips for learning new vocabulary words.',
+        'She shared a great tip on how to practice pronunciation at home.'
+      ]
+    };
+  }
   if (lower === 'spend') {
     return {
       pos: 'v',
@@ -813,28 +861,28 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
     };
   }
 
-  // 2. AUTOMATIC VERB DETECTOR (LIST OF COMMON SGK VERBS & SUFFIXES)
+  // 2. DETECT POS AUTOMATICALLY FROM VERBS / ADJECTIVES / ADVERBS / NOUNS
   const commonVerbs = [
-    'spend', 'encourage', 'collect', 'build', 'make', 'do', 'enjoy', 'play',
+    'illustrate', 'spend', 'encourage', 'collect', 'build', 'make', 'do', 'enjoy', 'play',
     'talk', 'watch', 'listen', 'study', 'learn', 'help', 'visit', 'take',
     'go', 'give', 'keep', 'start', 'try', 'use', 'find', 'read', 'write',
     'speak', 'sing', 'dance', 'cook', 'fly', 'swim', 'ride', 'drive', 'buy',
     'sell', 'think', 'know', 'feel', 'see', 'look', 'hear', 'practice', 'create'
   ];
 
-  const isDetectedVerb = posType === 'v' || posType === 'v phr' || commonVerbs.includes(lower) || lower.endsWith('ing');
+  const isDetectedVerb = posType === 'v' || posType === 'v phr' || commonVerbs.includes(lower) || lower.endsWith('ate') || lower.endsWith('ise') || lower.endsWith('ize');
   const isDetectedAdv = posType === 'adv' || lower.endsWith('ly');
   const isDetectedAdj = posType === 'adj' || lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al') || lower.endsWith('able');
 
   if (isDetectedVerb) {
     return {
       pos: 'v',
-      phonetic: `/${lower}/`,
+      phonetic: '/' + lower + '/',
       meaning: lower,
-      phrases: [`spend time to ${lower}`, `start to ${lower}`, `learn how to ${lower}`],
+      phrases: [lower + ' a concept', lower + ' for students', 'learn how to ' + lower],
       examples: [
-        `Teachers always encourage students to ${lower} during English class.`,
-        `It is beneficial to ${lower} with friends every day.`
+        'Teachers often use diagrams to ' + lower + ' important points clearly.',
+        'Students are encouraged to ' + lower + ' during group work in class.'
       ]
     };
   }
@@ -842,12 +890,12 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (isDetectedAdv) {
     return {
       pos: 'adv',
-      phonetic: `/${lower}/`,
+      phonetic: '/' + lower + '/',
       meaning: lower,
-      phrases: [`work ${lower}`, `speak ${lower}`, `act ${lower}`],
+      phrases: ['work ' + lower, 'speak ' + lower, 'act ' + lower],
       examples: [
-        `She ${lower} completes all her assignments before class.`,
-        `Students should practice speaking English ${lower}.`
+        'She ' + lower + ' completes all her assignments before class.',
+        'Students should practice speaking English ' + lower + '.'
       ]
     };
   }
@@ -855,25 +903,25 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (isDetectedAdj) {
     return {
       pos: 'adj',
-      phonetic: `/${lower}/`,
+      phonetic: '/' + lower + '/',
       meaning: lower,
-      phrases: [`very ${lower}`, `in a ${lower} way`, `most ${lower}`],
+      phrases: ['very ' + lower, 'a ' + lower + ' approach', 'remain ' + lower],
       examples: [
-        `In general, this ${lower} topic is very important for our lesson.`,
-        `Learning in a ${lower} way helps students memorize vocabulary faster.`
+        'This ' + lower + ' method helps students learn vocabulary effectively.',
+        'It is ' + lower + ' for everyone to practice speaking English every day.'
       ]
     };
   }
 
-  // 3. DEFAULT NOUN (n) ONLY FOR ACTUAL NOUNS
+  // 3. DEFAULT NOUN (OXFORD STYLE - NO DUMMY IMPORTANT/GREAT/STUDY OF)
   return {
     pos: 'n',
-    phonetic: `/${lower}/`,
+    phonetic: '/' + lower + '/',
     meaning: lower,
-    phrases: [`important ${lower}`, `great ${lower}`, `study of ${lower}`],
+    phrases: [lower + ' for something', lower + ' project', 'key ' + lower],
     examples: [
-      `Learning about ${lower} is very useful in daily conversation.`,
-      `The teacher introduced the topic of ${lower} to the whole class.`
+      'Please join our ' + lower + ' to make our school environment better.',
+      'Understanding the concept of ' + lower + ' is essential for our lesson.'
     ]
   };
 };
