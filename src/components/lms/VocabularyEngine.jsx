@@ -866,23 +866,16 @@ export default function VocabularyEngine({ activity, isTeacher: isTeacherProp = 
     setActiveTab(tabKey);
   };
   const [isLockConfigModalOpen, setIsLockConfigModalOpen] = useState(false);
-        // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (DEFAULT ALL UNLOCKED)
-  const [individualSectionLocks, setIndividualSectionLocks] = useState(() => {
-    try {
-      const actId = activity?.id || 'global';
-      const saved = localStorage.getItem('vocab_section_locks_v238_' + actId);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return {
-      'GETTING STARTED': false,
-      'A CLOSER LOOK 1': false,
-      'A CLOSER LOOK 2': false,
-      'COMMUNICATION': false,
-      'SKILLS 1': false,
-      'SKILLS 2': false,
-      'LOOKING BACK': false,
-      'PROJECT': false,
-    };
+          // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (ALWAYS UNLOCKED BY DEFAULT)
+  const [individualSectionLocks, setIndividualSectionLocks] = useState({
+    'GETTING STARTED': false,
+    'A CLOSER LOOK 1': false,
+    'A CLOSER LOOK 2': false,
+    'COMMUNICATION': false,
+    'SKILLS 1': false,
+    'SKILLS 2': false,
+    'LOOKING BACK': false,
+    'PROJECT': false,
   });
 
   const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
