@@ -3318,7 +3318,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
         </div>
 
       
-      {/* 🔗 SƠ ĐỒ LIÊN KẾT TỪ VỰNG TIẾT HỌC (UNIT LESSON MATRIX) - CHUẨN 100% THEO ẢNH CỦA THẦY HẢI */}
+      
+      {/* 🔗 FRAME 2: SƠ ĐỒ LIÊN KẾT TỪ VỰNG TIẾT HỌC (UNIT LESSON MATRIX) - CÓ NÚT KHÓA NỔI BẬT NẰM TRỰC TIẾP TRÊN MỖI TIẾT HỌC */}
       <div className="bg-amber-950/80 rounded-2xl p-4 border-2 border-amber-700/80 shadow-xl space-y-3 my-4 animate-fade-in">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-800/80 pb-2.5">
           <div className="flex items-center space-x-2 text-amber-300 font-black text-xs sm:text-sm uppercase tracking-wide">
@@ -3334,8 +3335,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           </div>
         </div>
 
-        {/* DÃY NÚT CÁC TIẾT HỌC (GETTING STARTED, A CLOSER LOOK 1, A CLOSER LOOK 2...) CÓ Ổ KHÓA CỦA THẦY HẢI */}
-        <div className="flex flex-wrap items-center gap-2 overflow-x-auto py-1">
+        {/* DÃY NÚT CÁC TIẾT HỌC (1. GETTING STARTED, 2. A CLOSER LOOK 1...) NỔI BẬT NÚT KHÓA */}
+        <div className="flex flex-wrap items-center gap-2.5 overflow-x-auto py-1">
           {[
             { id: 'All', num: '', name: 'ALL (Tất Cả)', fullSec: 'All', icon: '🌐' },
             { id: 'GETTING STARTED', num: '1. ', name: 'GETTING STARTED', fullSec: 'GETTING STARTED', icon: '🚀' },
@@ -3368,13 +3369,13 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     isSelected
                       ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 border-amber-300 ring-2 ring-amber-300 scale-105 shadow-md'
                       : isLockedForStudent
-                      ? 'bg-rose-950/80 text-rose-200 border-rose-500/80 opacity-70'
+                      ? 'bg-rose-950/80 text-rose-200 border-rose-500/80 opacity-75'
                       : isLocked
                       ? 'bg-amber-950/90 text-amber-200 border-rose-500/70 hover:bg-rose-950/60'
                       : 'bg-slate-900/80 text-amber-200 border-amber-700/60 hover:bg-amber-900/60 hover:text-white'
                   }`}
                 >
-                  {isLocked ? (
+                  {isLockedForStudent || isLocked ? (
                     <Lock className="w-3.5 h-3.5 text-rose-400 animate-pulse shrink-0" />
                   ) : (
                     <span className="text-sm shrink-0">{sec.icon}</span>
@@ -3387,21 +3388,27 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                       LINKED ✓
                     </span>
                   )}
+
+                  {isLockedForStudent && (
+                    <span className="bg-rose-600 text-white text-[9px] px-1 rounded font-mono font-black ml-1">
+                      🔒 ĐÃ KHÓA
+                    </span>
+                  )}
                 </button>
 
-                {/* NÚT KHÓA / MỞ DÀNH CHO GIÁO VIÊN NẰM TRỰC TIẾP TRÊN NÚT LESSON */}
+                {/* NÚT KHÓA / MỞ NỔI BẬT DÀNH CHO GIÁO VIÊN NẰM TRỰC TIẾP TRÊN NÚT MỖI TIẾT HỌC */}
                 {isTeacher && sec.fullSec !== 'All' && (
                   <button
                     type="button"
                     onClick={(e) => handleToggleIndividualSectionLock(sec.fullSec, e)}
-                    className={`ml-1 p-1 rounded-lg transition cursor-pointer shrink-0 ${
+                    className={`ml-1 px-1.5 py-1 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center space-x-0.5 border shrink-0 ${
                       isLocked
-                        ? 'bg-rose-600 text-white hover:bg-rose-700 ring-1 ring-rose-300'
-                        : 'bg-slate-800 text-amber-300 hover:bg-slate-700'
+                        ? 'bg-rose-600 text-white hover:bg-rose-700 border-rose-400 ring-1 ring-rose-300 shadow-sm'
+                        : 'bg-slate-800 text-amber-300 hover:bg-slate-700 border-slate-600'
                     }`}
-                    title={isLocked ? `Mở khóa tiết học ${sec.name} cho HS` : `Khóa tiết học ${sec.name} không cho HS xem trước`}
-                  >
-                    {isLocked ? <Lock className="w-3 h-3 text-rose-200" /> : <Unlock className="w-3 h-3 text-emerald-400" />}
+                    title={isLocked ? `Mở khóa tiết học ${sec.name} cho HS` : `Khóa tiết học ${sec.name} không cho HS xem trước`}                  >
+                    {isLocked ? <Lock className="w-3 h-3 text-white" /> : <Unlock className="w-3 h-3 text-emerald-400" />}
+                    <span>{isLocked ? 'Khóa' : 'Mở'}</span>
                   </button>
                 )}
               </div>
