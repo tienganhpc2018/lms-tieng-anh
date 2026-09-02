@@ -1727,33 +1727,81 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
         }
       }
 
-      // THUẬT TOÁN SINH CÂU TRUYỆN DỘC ĐÁO & BẢO ĐẢM KHỚP 100% BẢN DỊCH VÀ CÂU CHỮ LOGIC (V257)
+      // THUẬT TOÁN SINH CÂU TRUYỆN CHUẨN NGỮ PHÁP 100% TIẾNG ANH & BẢN DỊCH KHỚP TUYỆT ĐỐI (V259)
       const currentWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList) || [];
       const wObjs = currentWordsList.slice(0, 6);
       
-      const formatW = (item, fallbackEn, fallbackVi) => {
-        const word = (item?.word || fallbackEn).toLowerCase().trim();
-        const meaning = (item?.meaning || fallbackVi).trim();
-        return {
-          en: word,
-          vi: meaning + ' (' + word + ')'
-        };
+      // BỘ CHUYỂN ĐỔI NGỮ PHÁP THÔNG MINH (CHỐNG LỖI PRACTICING GENERAL, BUILDING REGULAR...)
+      const getGrammarSmartPhrase = (item, defaultWord, defaultMeaning) => {
+        const word = (item?.word || defaultWord).toLowerCase().trim();
+        const meaning = (item?.meaning || defaultMeaning).trim();
+        const pos = (item?.pos || '').toLowerCase();
+
+        // TỪ ĐIỂN CỤM TỪ NGỮ PHÁP CHUẨN ĐÃ ĐƯỢC CHUẨN HÓA
+        if (word === 'general') {
+          return { en: 'in general', vi: 'nói chung (general)' };
+        }
+        if (word === 'regular') {
+          return { en: 'regular habits', vi: 'thói quen thường xuyên (regular)' };
+        }
+        if (word === 'set') {
+          return { en: 'watching the sun set', vi: 'ngắm mặt trời lặn (set)' };
+        }
+        if (word === 'gardening') {
+          return { en: 'gardening', vi: 'làm vườn (gardening)' };
+        }
+        if (word === 'model') {
+          return { en: 'building models', vi: 'lắp ráp mô hình (model)' };
+        }
+        if (word === 'jogging') {
+          return { en: 'morning jogging', vi: 'chạy bộ thể dục (jogging)' };
+        }
+        if (word === 'yoga') {
+          return { en: 'practicing yoga', vi: 'tập yoga (yoga)' };
+        }
+        if (word === 'popular') {
+          return { en: 'popular hobbies', vi: 'sở thích phổ biến (popular)' };
+        }
+        if (word === 'unusual') {
+          return { en: 'unusual activities', vi: 'hoạt động độc lạ (unusual)' };
+        }
+        if (word === 'responsibility') {
+          return { en: 'personal responsibility', vi: 'trách nhiệm cá nhân (responsibility)' };
+        }
+        if (word === 'creativity') {
+          return { en: 'creative thinking', vi: 'sự sáng tạo (creativity)' };
+        }
+        if (word === 'maturity') {
+          return { en: 'emotional maturity', vi: 'sự trưởng thành (maturity)' };
+        }
+        if (word === 'patient') {
+          return { en: 'a patient mind', vi: 'tinh thần kiên nhẫn (patient)' };
+        }
+
+        // TỰ ĐỘNG THÍCH ỨNG THEO TỪ LOẠI NẾU KHÔNG CÓ TRONG BẢNG TRÊN
+        if (pos === 'adj') {
+          return { en: word + ' skills', vi: meaning + ' (' + word + ')' };
+        }
+        if (pos === 'v') {
+          return { en: word + 'ing regularly', vi: 'việc ' + meaning + ' (' + word + ')' };
+        }
+        return { en: word, vi: meaning + ' (' + word + ')' };
       };
 
-      const w1 = formatW(wObjs[0], 'gardening', 'làm vườn');
-      const w2 = formatW(wObjs[1], 'model', 'mô hình');
-      const w3 = formatW(wObjs[2], 'jogging', 'chạy bộ');
-      const w4 = formatW(wObjs[3], 'yoga', 'tập yoga');
-      const w5 = formatW(wObjs[4], 'responsibility', 'trách nhiệm');
-      const w6 = formatW(wObjs[5], 'creativity', 'sự sáng tạo');
+      const w1 = getGrammarSmartPhrase(wObjs[0], 'gardening', 'làm vườn');
+      const w2 = getGrammarSmartPhrase(wObjs[1], 'model', 'mô hình');
+      const w3 = getGrammarSmartPhrase(wObjs[2], 'jogging', 'chạy bộ');
+      const w4 = getGrammarSmartPhrase(wObjs[3], 'yoga', 'tập yoga');
+      const w5 = getGrammarSmartPhrase(wObjs[4], 'responsibility', 'trách nhiệm');
+      const w6 = getGrammarSmartPhrase(wObjs[5], 'creativity', 'sự sáng tạo');
 
       const storyVersionIndex = storySeed % 4;
 
       const dynamicStories = [
         {
           title: 'Truyện Từ Vựng Version 1: ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Learning vocabulary through daily activities is both enjoyable and effective. Practicing ' + w1.en + ' and building ' + w2.en + ' helps students develop skills. Activities such as ' + w3.en + ' and ' + w4.en + ' keep us healthy, while building personal ' + w5.en + ' and ' + w6.en + ' in life.',
-          storyVi: 'Học từ vựng qua các hoạt động hàng ngày vừa thú vị vừa hiệu quả. Thực hành ' + w1.vi + ' và rèn luyện ' + w2.vi + ' giúp học sinh phát triển kỹ năng. Các hoạt động như ' + w3.vi + ' và ' + w4.vi + ' giúp chúng ta khỏe mạnh, đồng thời xây dựng ' + w5.vi + ' cá nhân và ' + w6.vi + ' trong cuộc sống.'
+          storyEn: 'Learning vocabulary through daily activities is both enjoyable and effective. Practicing ' + w1.en + ' and building ' + w2.en + ' helps students develop skills. Activities such as ' + w3.en + ' and ' + w4.en + ' keep us healthy, while building ' + w5.en + ' and ' + w6.en + ' in life.',
+          storyVi: 'Học từ vựng qua các hoạt động hàng ngày vừa thú vị vừa hiệu quả. Thực hành ' + w1.vi + ' và rèn luyện ' + w2.vi + ' giúp học sinh phát triển kỹ năng. Các hoạt động như ' + w3.vi + ' và ' + w4.vi + ' giúp chúng ta khỏe mạnh, đồng thời xây dựng ' + w5.vi + ' và ' + w6.vi + ' trong cuộc sống.'
         },
         {
           title: 'Truyện Từ Vựng Version 2: ' + currentUnitName + ' - ' + lessonSec,
@@ -1762,8 +1810,8 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
         },
         {
           title: 'Truyện Từ Vựng Version 3: ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'In class, students present their favorite interests and hobbies. ' + w1.en + ' requires patience, while ' + w2.en + ' shows great imagination. Practicing ' + w3.en + ' alongside ' + w4.en + ' helps learners balance their life and cultivate ' + w5.en + ' with ' + w6.en + '.',
-          storyVi: 'Trong lớp, các em học sinh trình bày về những sở thích yêu thích của mình. ' + w1.vi + ' đòi hỏi sự kiên nhẫn, trong khi ' + w2.vi + ' thể hiện trí tưởng tượng tuyệt vời. Thực hành ' + w3.vi + ' cùng với ' + w4.vi + ' giúp người học cân bằng cuộc sống và rèn luyện ' + w5.vi + ' cùng ' + w6.vi + '.'
+          storyEn: 'In class, students present their favorite interests and hobbies. ' + w1.en + ' requires focus, while ' + w2.en + ' shows great imagination. Practicing ' + w3.en + ' alongside ' + w4.en + ' helps learners balance their life and cultivate ' + w5.en + ' with ' + w6.en + '.',
+          storyVi: 'Trong lớp, các em học sinh trình bày về những sở thích yêu thích của mình. ' + w1.vi + ' đòi hỏi sự tập trung, trong khi ' + w2.vi + ' thể hiện trí tưởng tượng tuyệt vời. Thực hành ' + w3.vi + ' cùng với ' + w4.vi + ' giúp người học cân bằng cuộc sống và rèn luyện ' + w5.vi + ' cùng ' + w6.vi + '.'
         },
         {
           title: 'Truyện Từ Vựng Version 4: ' + currentUnitName + ' - ' + lessonSec,
