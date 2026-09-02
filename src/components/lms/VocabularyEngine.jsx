@@ -804,7 +804,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   };
   // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT
   const isGameLockedForStudent = (gameKey) => {
-    if (isTeacher) return false;
+    if (effectiveIsTeacher) return false;
     if (lockGamesForStudents) return true;
     if (gameKey && individualGameLocks[gameKey]) return true;
     return false;
@@ -839,6 +839,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   });
 
   const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
+  const [isStudentPreviewMode, setIsStudentPreviewMode] = useState(false);
 
   const handleToggleIndividualSectionLock = (secName) => {
     const willBeLocked = !individualSectionLocks[secName];
@@ -864,8 +865,10 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }
   };
 
+  const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
+
   const isSectionLockedForStudent = (secName) => {
-    if (isTeacher) return false;
+    if (effectiveIsTeacher) return false;
     if (!secName || secName === 'All') return false;
     if (individualSectionLocks[secName]) return true;
     return false;
@@ -4203,6 +4206,27 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               </button>
             </div>
 
+            
+            <div className="flex items-center justify-between gap-2 p-2 bg-slate-100 rounded-2xl border border-slate-200">
+              <span className="text-xs font-bold text-slate-600">Thao tác 1-Click:</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => handleLockAllSections(true)}
+                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-xs cursor-pointer border border-rose-500"
+                >
+                  🔒 Khóa Tất Cả
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLockAllSections(false)}
+                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-xs cursor-pointer border border-emerald-500"
+                >
+                  🔓 Mở Tất Cả
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
               {[
                 { name: 'GETTING STARTED', icon: '🚀' },
@@ -4790,6 +4814,25 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                               }
                             }}
                             onKeyDown={(e) => {
+                              // PHÍM MŨI TÊN ĐIỀU HƯỚNG Ô CHỮ (⬆️ ⬇️ ⬅️ ➡️)
+                              let targetR = r;
+                              let targetC = c;
+                              if (e.key === 'ArrowRight') targetC = c + 1;
+                              else if (e.key === 'ArrowLeft') targetC = c - 1;
+                              else if (e.key === 'ArrowDown') targetR = r + 1;
+                              else if (e.key === 'ArrowUp') targetR = r - 1;
+
+                              if (targetR !== r || targetC !== c) {
+                                e.preventDefault();
+                                let targetEl = document.getElementById(`cw-cell-${targetR}-${targetC}`);
+                                if (!targetEl && e.key === 'ArrowRight' && c + 2 < 11) targetEl = document.getElementById(`cw-cell-${r}-${c + 2}`);
+                                if (!targetEl && e.key === 'ArrowLeft' && c - 2 >= 0) targetEl = document.getElementById(`cw-cell-${r}-${c - 2}`);
+                                if (!targetEl && e.key === 'ArrowDown' && r + 2 < 9) targetEl = document.getElementById(`cw-cell-${r + 2}-${c}`);
+                                if (!targetEl && e.key === 'ArrowUp' && r - 2 >= 0) targetEl = document.getElementById(`cw-cell-${r - 2}-${c}`);
+                                if (targetEl) targetEl.focus();
+                                return;
+                              }
+
                               if (e.key === 'Backspace' && !crosswordInputs[cellKey]) {
                                 let step = 1;
                                 let prevEl = document.getElementById(`cw-cell-${r}-${c - step}`);
