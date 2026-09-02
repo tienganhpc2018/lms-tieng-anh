@@ -1517,6 +1517,56 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [generatingStory, setGeneratingStory] = useState(false);
   const [storyVariationIndex, setStoryVariationIndex] = useState(0);
 
+    // HELPER HIGHLIGHT TARGET VOCABULARY WORDS IN AI STORY EN & VI (100% NULL-SAFE)
+  const renderHighlightedStoryText = (text, list) => {
+    if (!text) return null;
+    if (!list || !Array.isArray(list) || list.length === 0) return text;
+
+    const wordList = list
+      .slice(0, 10)
+      .map((i) => (i && i.word ? String(i.word).toLowerCase().trim() : ''))
+      .filter(Boolean);
+
+    const meaningList = list
+      .slice(0, 10)
+      .map((i) => (i && i.meaning ? String(i.meaning).toLowerCase().trim() : ''))
+      .filter(Boolean);
+
+    const allTargets = [...new Set([...wordList, ...meaningList])];
+
+    if (allTargets.length === 0) return text;
+
+    try {
+      const escaped = allTargets
+        .map((w) => (w ? String(w).replace(/[-\/\\^$*+?.()|[\]{}]/g, '') : ''))
+        .filter(Boolean)
+        .join('|');
+
+      if (!escaped) return text;
+
+      const regex = new RegExp('(' + escaped + ')', 'gi');
+      const parts = text.split(regex);
+
+      return parts.map((part, index) => {
+        if (!part) return null;
+        const isMatch = allTargets.includes(part.toLowerCase());
+        if (isMatch) {
+          return (
+            <mark
+              key={index}
+              className="bg-amber-300 text-slate-950 font-black px-1.5 py-0.5 rounded-md shadow-2xs border border-amber-400 font-mono inline-block mx-0.5 hover:scale-110 transition transform"
+            >
+              {part}
+            </mark>
+          );
+        }
+        return part;
+      });
+    } catch (e) {
+      return text;
+    }
+  };
+
   const handleGenerateAiVocabStory = async (forceNextSeed = false) => {
     setGeneratingStory(true);
     setAiStoryModalOpen(true);
