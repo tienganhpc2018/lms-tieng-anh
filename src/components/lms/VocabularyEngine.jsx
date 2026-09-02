@@ -1175,6 +1175,22 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   const [contextGrammar, setContextGrammar] = useState('Like/Love + V-ing, Thì Hiện Tại Đơn');
   const [contextImagePreview, setContextImagePreview] = useState(null);
   const [isScanningSgkImage, setIsScanningSgkImage] = useState(false);
+  // V221: Auto-sync modal fields when selectedSection changes (NO default hardcoded demo image)
+  useEffect(() => {
+    const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
+    const existing = lessonContexts[targetSec];
+    if (existing) {
+      setContextCharacters(existing.characters || '');
+      setContextPlot(existing.plot || '');
+      setContextGrammar(existing.grammar || '');
+      setContextImagePreview(existing.imagePreview || null);
+    } else {
+      setContextCharacters('');
+      setContextPlot('');
+      setContextGrammar('');
+      setContextImagePreview(null);
+    }
+  }, [selectedSection, lessonContexts]);
 
   // Sync lesson contexts from activity settings
   useEffect(() => {
@@ -1350,7 +1366,45 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
   };
 
   // Save current lesson context to DB
+    // Save current lesson context to DB with per-section binding
   const handleSaveLessonContext = () => {
+    const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
+    const updatedContexts = {
+      ...lessonContexts,
+      [targetSec]: {
+        characters: contextCharacters,
+        plot: contextPlot,
+        grammar: contextGrammar,
+        imagePreview: contextImagePreview,
+        updatedAt: new Date().toISOString()
+      }
+    };
+    setLessonContexts(updatedContexts);
+    if (onSaveActivity) {
+      onSaveActivity({ lessonContexts: updatedContexts });
+    }
+    setIsContextStudioOpen(false);
+    playSuccessSound();
+    alert("🔒 Đã lưu thành công Ngữ Cảnh SGK cho tiết '" + targetSec + "' (Nhân vật: " + (contextCharacters || 'Tự động') + ")!");
+  };
+
+  // Clear context for current section
+  const handleClearCurrentLessonContext = () => {
+    const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
+    const updatedContexts = { ...lessonContexts };
+    delete updatedContexts[targetSec];
+    setLessonContexts(updatedContexts);
+    setContextCharacters('');
+    setContextPlot('');
+    setContextGrammar('');
+    setContextImagePreview(null);
+    if (onSaveActivity) {
+      onSaveActivity({ lessonContexts: updatedContexts });
+    }
+    playSuccessSound();
+    alert("🗑️ Đã xóa sạch ngữ cảnh của tiết '" + targetSec + "'!");
+  };
+  const unusedSaveContext = () => {
     const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
     const updatedContexts = {
       ...lessonContexts,
@@ -1422,7 +1476,7 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     }
   };
 
-      const [storyVariationIndex, setStoryVariationIndex] = useState(0);
+        const [storyVariationIndex, setStoryVariationIndex] = useState(0);
 
   const handleGenerateAiVocabStory = async (forceNextSeed = false) => {
     setGeneratingStory(true);
@@ -1431,27 +1485,25 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
     const nextSeed = forceNextSeed ? storyVariationIndex + 1 : storyVariationIndex;
     setStoryVariationIndex(nextSeed);
 
+    // Strictly extract words from CURRENT LESSON SECTION (filteredList)
     const currentWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList).slice(0, 8);
     const wordsStr = currentWordsList.map((i) => (i?.word || '') + ' (' + (i?.meaning || '') + ')').join(', ');
     const targetWordsOnly = currentWordsList.map((i) => i?.word || '').filter(Boolean).join(', ');
     const currentUnitName = selectedUnit !== 'All' ? selectedUnit : (vocabList[0]?.unit || 'Unit 1');
     const lessonSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
 
-    // Get saved SGK Lesson Context for current section
-    const activeCtx = lessonContexts[lessonSec] || {
-      characters: 'Ann, Linda, Nick',
-      plot: 'Ann và Linda thảo luận về sở thích nặn gốm tại làng Bát Tràng',
-      grammar: 'Like/Love + V-ing'
-    };
+    // Get saved SGK Lesson Context for THIS SPECIFIC LESSON SECTION
+    const activeCtx = lessonContexts[lessonSec];
+    const hasCustomCtx = activeCtx && (activeCtx.characters || activeCtx.plot);
 
-    const charactersStr = activeCtx.characters || 'Ann & Linda';
-    const plotStr = activeCtx.plot || 'Hội thoại bài học SGK';
+    const charactersStr = hasCustomCtx && activeCtx.characters ? activeCtx.characters : '';
+    const plotStr = hasCustomCtx && activeCtx.plot ? activeCtx.plot : '';
 
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
       if (apiKey) {
         const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
-        const promptText = "Bạn là giáo viên Tiếng Anh. Hãy viết một đoạn tóm tắt bài học / hội thoại (3-4 câu tiếng Anh) CHUẨN 100% THEO CỐT TRUYỆN SGK VÀ ĐÚNG NHÂN VẬT GỐC (" + charactersStr + ") cho tiết " + lessonSec + " thuộc " + currentUnitName + " (" + activityGrade + ") (Cốt truyện: " + plotStr + "). Lồng ghép các từ vựng sau: [" + wordsStr + "]. YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy): { \"title\": \"Tóm tắt hội thoại SGK " + lessonSec + " (" + charactersStr + ")\", \"storyEn\": \"Câu chuyện tiếng Anh 3-4 câu chứa các từ: " + targetWordsOnly + " với nhân vật " + charactersStr + ".\", \"storyVi\": \"Bản dịch tiếng Việt tóm tắt hội thoại giữa " + charactersStr + ".\" }";
+        const promptText = "Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết một đoạn tóm tắt bài học / hội thoại (3-4 câu tiếng Anh) CHUẨN XÁC DÀNH RIÊNG CHO TIẾT " + lessonSec + " thuộc " + currentUnitName + " (" + activityGrade + ")" + (charactersStr ? " với nhân vật: " + charactersStr : "") + (plotStr ? " (Nội dung bài học: " + plotStr + ")" : "") + ". Lồng ghép tự nhiên các từ vựng thuộc tiết " + lessonSec + " sau: [" + wordsStr + "]. YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy): { \"title\": \"Tóm tắt tiết " + lessonSec + " - " + currentUnitName + "\", \"storyEn\": \"Đoạn tóm tắt tiếng Anh 3-4 câu chứa các từ: " + targetWordsOnly + ".\", \"storyVi\": \"Bản dịch tiếng Việt tóm tắt nội dung tiết " + lessonSec + ".\" }";
 
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -1474,41 +1526,24 @@ export default function VocabularyEngine({ activity, isTeacher, onSaveActivity }
         }
       }
 
-      // THUẬT TOÁN SINH TRUYỆN CHUẨN 100% SGK VỚI NHÂN VẬT ANN & LINDA VÀ NỘI DUNG SGK GỐC
+      // DYNAMIC PER-LESSON STORY GENERATOR FOR THIS SPECIFIC SECTION (ZERO HARDCODED WORDS)
       const wObjs = currentWordsList.slice(0, 5);
-      const w1 = wObjs[0] || { word: 'hobby', meaning: 'sở thích' };
-      const w2 = wObjs[1] || { word: 'cardboard', meaning: 'bìa các tông' };
-      const w3 = wObjs[2] || { word: 'dollhouse', meaning: 'nhà mô hình' };
-      const w4 = wObjs[3] || { word: 'gardening', meaning: 'làm vườn' };
-      const w5 = wObjs[4] || { word: 'glue', meaning: 'keo dán' };
+      const w1 = wObjs[0] || { word: 'study', meaning: 'học tập' };
+      const w2 = wObjs[1] || { word: 'practice', meaning: 'thực hành' };
+      const w3 = wObjs[2] || { word: 'knowledge', meaning: 'kiến thức' };
+      const w4 = wObjs[3] || { word: 'skill', meaning: 'kỹ năng' };
+      const w5 = wObjs[4] || { word: 'success', meaning: 'thành công' };
 
-      const charArr = charactersStr.split(/[,&]/).map((s) => s.trim()).filter(Boolean);
-      const char1 = charArr[0] || 'Ann';
-      const char2 = charArr[1] || 'Linda';
+      const char1 = charactersStr ? charactersStr.split(/[,&]/)[0].trim() : (lessonSec === 'GETTING STARTED' ? 'Mai' : 'Students');
+      const char2 = charactersStr ? (charactersStr.split(/[,&]/)[1] || 'Nick').trim() : (lessonSec === 'GETTING STARTED' ? 'Nick' : 'Teacher');
 
-      const sgkVariations = [
-        // VAR 1: HỘI THOẠI ĐÓNG VAI TRỰC TIẾP NHÂN VẬT ANN & LINDA
-        {
-          title: "Tóm Tắt Hội Thoại SGK (" + char1 + " & " + char2 + "): " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
-          storyEn: "In the " + lessonSec + " dialogue for " + currentUnitName + ", " + char1 + " and " + char2 + " are happily discussing their favourite hobbies. " + char1 + " shows her amazing " + w3.word + " made from " + w2.word + " using " + w5.word + ". Meanwhile, " + char2 + " shares her passion for " + w4.word + " and how much joy her " + w1.word + " brings her every day.",
-          storyVi: "Trong đoạn hội thoại tiết " + lessonSec + " thuộc bài " + currentUnitName + ", bạn " + char1 + " và " + char2 + " đang vui vẻ thảo luận về những sở thích yêu thích của mình. " + char1 + " khoe ngôi nhà mô hình (" + w3.meaning + " - " + w3.word + ") tuyệt đẹp làm từ bìa các tông (" + w2.meaning + " - " + w2.word + ") dùng keo dán (" + w5.meaning + " - " + w5.word + "). Trong khi đó, " + char2 + " chia sẻ niềm đam mê làm vườn (" + w4.meaning + " - " + w4.word + ") và niềm vui từ sở thích (" + w1.meaning + " - " + w1.word + ") mang lại mỗi ngày."
-        },
-        // VAR 2: THẢO LUẬN TRÊN LỚP ĐÓNG VAI ANN & LINDA
-        {
-          title: "Tóm Tắt Thảo Luận Lớp (" + char1 + " & " + char2 + "): " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
-          storyEn: "During our " + activityGrade + " lesson in " + lessonSec + ", the teacher asked " + char1 + " and " + char2 + " to present their class project. " + char1 + " demonstrated how to create a " + w3.word + " with " + w2.word + " and strong " + w5.word + ". " + char2 + " shared valuable tips about " + w4.word + " and developed a creative " + w1.word + " together.",
-          storyVi: "Trong giờ học " + activityGrade + " tiết " + lessonSec + ", giáo viên yêu cầu bạn " + char1 + " và " + char2 + " thuyết trình dự án học tập. " + char1 + " đã trình bày cách tạo một nhà mô hình (" + w3.meaning + " - " + w3.word + ") bằng bìa các tông (" + w2.meaning + " - " + w2.word + ") và keo dán (" + w5.meaning + " - " + w5.word + ") chắc chắn. " + char2 + " đã học được nhiều mẹo hay về làm vườn (" + w4.meaning + " - " + w4.word + ") và cùng phát triển sở thích (" + w1.meaning + " - " + w1.word + ") sáng tạo."
-        },
-        // VAR 3: LỰA CHỌN GÓC NHÌN BẠN ANN KỂ TÓM TẮT
-        {
-          title: "Tóm Tắt Góc Nhìn Nhân Vật " + char1 + ": " + currentUnitName + " - " + lessonSec + " (" + activityGrade + ")",
-          storyEn: "On the weekend, " + char1 + " and " + char2 + " spent their free time practicing the vocabulary of " + lessonSec + ". " + char1 + " carefully assembled a " + w3.word + " out of recycled " + w2.word + " and " + w5.word + ". " + char2 + " joined her grandmother in the garden for " + w4.word + ", turning learning into an enjoyable " + w1.word + ".",
-          storyVi: "Vào cuối tuần, " + char1 + " và " + char2 + " dành thời gian rảnh rỗi thực hành từ vựng tiết " + lessonSec + ". " + char1 + " cẩn thận lắp ráp nhà mô hình (" + w3.meaning + " - " + w3.word + ") từ bìa các tông (" + w2.meaning + " - " + w2.word + ") tái chế và keo dán (" + w5.meaning + " - " + w5.word + "). " + char2 + " cùng bà tham gia làm vườn (" + w4.meaning + " - " + w4.word + "), biến việc học thành một sở thích (" + w1.meaning + " - " + w1.word + ") thú vị."
-        }
-      ];
+      const dynamicPerLessonStory = {
+        title: "Tóm Tắt Bài Học Tiết " + lessonSec + ": " + currentUnitName + " (" + activityGrade + ")",
+        storyEn: "In today's " + lessonSec + " lesson for " + currentUnitName + ", " + char1 + " and " + char2 + " explored key concepts together. They practiced using " + w1.word + " and " + w2.word + " during class activities. Everyone mastered " + w3.word + " and " + w4.word + " effectively, achieving great " + w5.word + " in learning.",
+        storyVi: "Trong tiết học " + lessonSec + " hôm nay thuộc bài " + currentUnitName + ", " + char1 + " và " + char2 + " đã cùng nhau khám phá các nội dung chính. Các bạn đã thực hành sử dụng " + w1.meaning + " (" + w1.word + ") và " + w2.meaning + " (" + w2.word + ") trong các hoạt động lớp. Mọi người đều làm chủ " + w3.meaning + " (" + w3.word + ") cũng như " + w4.meaning + " (" + w4.word + "), đạt kết quả " + w5.meaning + " (" + w5.word + ") tuyệt vời trong học tập."
+      };
 
-      const selectedStory = sgkVariations[nextSeed % sgkVariations.length];
-      setAiStoryData(selectedStory);
+      setAiStoryData(dynamicPerLessonStory);
       playSuccessSound();
     } catch (e) {
       alert('Không thể tạo AI Truyện Từ Vựng!');
@@ -5757,7 +5792,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
           </div>
         </div>
       )}
-      {/* MODAL QUẢN LÝ NGỮ CẢNH BÀI HỌC SGK GỐC (V220) - CTRL+V DÁN ẢNH & VISION AI AUTO EXTRACT */}
+      {/* MODAL QUẢN LÝ NGỮ CẢNH BÀI HỌC SGK GỐC (V221) - KHUNG DÁN ẢNH TRỐNG, NÚT XÓA ẢNH & CHI TIẾT THEO TỪNG TIẾT */}
       {isContextStudioOpen && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 max-w-xl w-full border-4 border-pink-500 shadow-2xl space-y-5 text-slate-900 my-auto">
@@ -5767,12 +5802,12 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                 <div>
                   <h3 className="font-black text-lg text-pink-900 uppercase tracking-wide flex items-center space-x-2">
                     <span>QUẢN LÝ NGỮ CẢNH SGK GỐC</span>
-                    <span className="bg-pink-100 text-pink-700 text-xs px-2 py-0.5 rounded-md border border-pink-300">
+                    <span className="bg-pink-600 text-white text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-sm">
                       {selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'}
                     </span>
                   </h3>
                   <p className="text-xs text-pink-700 font-bold">
-                    Dán ảnh chụp SGK (Ctrl + V) ➔ AI tự động trích xuất nhân vật (Ann, Trang...), cốt truyện gốc & ngữ pháp
+                    Tùy chỉnh ngữ cảnh riêng cho tiết {selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'} (Dán ảnh Ctrl+V hoặc nhập trực tiếp)
                   </p>
                 </div>
               </div>
@@ -5787,22 +5822,50 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
             </div>
 
             <div className="space-y-4 text-xs font-bold text-slate-800">
-              {/* KHUNG DÁN ẢNH CHỤP MÀN HÌNH (CTRL + V) VÀ UPLOAD ẢNH */}
+              {/* KHUNG TRỐNG INTERACTIVE DÁN ẢNH CHỤP MÀN HÌNH (CTRL + V) VÀ XÓA ẢNH */}
               <div className="bg-gradient-to-br from-pink-50 to-purple-50 p-4 rounded-2xl border-2 border-dashed border-pink-400 space-y-3 relative shadow-inner">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="text-pink-950 font-black text-xs uppercase tracking-wide flex items-center space-x-1.5">
                     <Camera className="w-4 h-4 text-pink-600" />
-                    <span>🖼️ NẠP / DÁN ẢNH TRANG SGK (GEMINI VISION AI QUÉT):</span>
+                    <span>🖼️ DÁN / NẠP ẢNH TRANG SGK CHO TIẾT {selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'}:</span>
                   </label>
 
-                  <button
-                    type="button"
-                    onClick={handlePasteClipboardImage}
-                    className="px-3 py-1.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1 border border-pink-300"
-                    title="Bấm để dán ảnh chụp màn hình từ bộ nhớ tạm"
-                  >
-                    <span>📋 Dán Ảnh Chụp Màn Hình (Ctrl + V)</span>
-                  </button>
+                  {contextImagePreview && (
+                    <button
+                      type="button"
+                      onClick={() => setContextImagePreview(null)}
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-lg transition cursor-pointer flex items-center space-x-1 border border-rose-400 shadow-sm"
+                      title="Xóa ảnh chụp hiện tại để dán ảnh mới"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>🗑️ Xóa Ảnh</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* VISUAL PASTE BOX FOR CTRL + V */}
+                <div
+                  tabIndex={0}
+                  onPaste={(e) => {
+                    const items = e.clipboardData?.items;
+                    if (items) {
+                      for (let i = 0; i < items.length; i++) {
+                        if (items[i].type.indexOf('image') !== -1) {
+                          const file = items[i].getAsFile();
+                          if (file) processSgkImageFile(file);
+                        }
+                      }
+                    }
+                  }}
+                  className="bg-white/90 p-4 rounded-xl border-2 border-dashed border-pink-300 text-center space-y-2 cursor-pointer hover:bg-pink-100/50 transition focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-xs"
+                >
+                  <div className="flex items-center justify-center space-x-2 text-pink-700 font-black">
+                    <Clipboard className="w-5 h-5 text-pink-600 animate-bounce" />
+                    <span>📋 BẤM PHÍM CTRL + V TẠI ĐÂY ĐỂ DÁN ẢNH CHỤP SGK</span>
+                  </div>
+                  <p className="text-[11px] text-pink-900/80 font-bold">
+                    Hoặc chọn file ảnh chụp bên dưới ➔ AI sẽ tự động đọc và điền dữ liệu 3 ô!
+                  </p>
                 </div>
 
                 <div className="flex items-center space-x-2 pt-1">
@@ -5817,81 +5880,82 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                   />
                 </div>
 
-                <div className="bg-white/80 p-2 rounded-xl border border-pink-200 text-[11px] text-pink-900 font-bold flex items-center space-x-2">
-                  <span className="text-sm">💡</span>
-                  <span>
-                    Thầy chỉ cần chụp màn hình trang sách SGK ➔ Mở khung này và nhấn <strong>Ctrl + V</strong> (hoặc bấm nút Dán Ảnh) ➔ AI sẽ tự động sinh nội dung cho cả 3 ô bên dưới!
-                  </span>
-                </div>
-
                 {isScanningSgkImage && (
                   <p className="text-pink-700 font-black animate-pulse flex items-center space-x-1.5 pt-1">
                     <Sparkles className="w-4 h-4 animate-spin text-pink-600" />
-                    <span>Gemini Vision AI đang đọc ảnh SGK & tự động trích xuất nhân vật (Ann, Trang...), cốt truyện gốc...</span>
+                    <span>Gemini Vision AI đang đọc ảnh SGK & tự động điền nhân vật, cốt truyện cho tiết {selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'}...</span>
                   </p>
                 )}
 
                 {contextImagePreview && (
-                  <div className="mt-2 relative max-h-40 overflow-hidden rounded-xl border-2 border-pink-400 shadow-md">
+                  <div className="mt-2 relative max-h-48 overflow-hidden rounded-xl border-2 border-pink-400 shadow-md group">
                     <img src={contextImagePreview} alt="SGK Preview" className="w-full object-contain bg-slate-900/10" />
+                    <button
+                      type="button"
+                      onClick={() => setContextImagePreview(null)}
+                      className="absolute top-2 right-2 px-2.5 py-1 bg-rose-600 text-white font-extrabold text-xs rounded-lg shadow-md hover:bg-rose-700 cursor-pointer flex items-center space-x-1 border border-white"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>🗑️ Xóa Ảnh Này</span>
+                    </button>
                   </div>
                 )}
               </div>
 
-              {/* TÊN NHÂN VẬT SGK GỐC - AI TỰ ĐỘNG ĐIỀN */}
+              {/* TÊN NHÂN VẬT SGK GỐC */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="block text-slate-900 font-black">
-                    👥 TÊN CÁC NHÂN VẬT CHÍNH SGK (AI TỰ ĐỘNG ĐIỀN TỪ ẢNH):
+                    👥 TÊN CÁC NHÂN VẬT CHÍNH SGK (TIẾT {selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'}):
                   </label>
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 font-mono px-1.5 py-0.5 rounded font-black">
-                    AI Auto-Fill ✓
+                    Tùy chỉnh / AI Auto-Fill ✓
                   </span>
                 </div>
                 <input
                   type="text"
                   value={contextCharacters}
                   onChange={(e) => setContextCharacters(e.target.value)}
-                  placeholder="Ví dụ: Ann, Trang"
-                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-pink-500 text-xs font-black text-slate-900 focus:outline-none bg-pink-50/50"
+                  placeholder="Để trống hoặc gõ tên nhân vật (Ví dụ: Ann, Trang, Mi...)"
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-pink-500 text-xs font-black text-slate-900 focus:outline-none bg-pink-50/30"
                 />
               </div>
 
-              {/* CỐT TRUYỆN GỐC & NỘI DUNG TÓM TẮT - AI TỰ ĐỘNG ĐIỀN */}
+              {/* CỐT TRUYỆN GỐC & NỘI DUNG TÓM TẮT */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="block text-slate-900 font-black">
-                    📝 CỐT TRUYỆN GỐC & Ý CHÍNH CỦA LESSON (AI TỰ ĐỘNG ĐIỀN TỪ ẢNH):
+                    📝 CỐT TRUYỆN GỐC & Ý CHÍNH CỦA TIẾT {selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'}:
                   </label>
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 font-mono px-1.5 py-0.5 rounded font-black">
-                    AI Auto-Fill ✓
+                    Tùy chỉnh / AI Auto-Fill ✓
                   </span>
                 </div>
                 <textarea
                   rows={3}
                   value={contextPlot}
                   onChange={(e) => setContextPlot(e.target.value)}
-                  placeholder="Ví dụ: Ann khen nhà của Trang đẹp. Trang dẫn Ann lên xem phòng. Ann khen nhà mô hình làm từ bìa các tông và keo dán của Trang..."
-                  className="w-full px-3.5 py-2 rounded-xl border-2 border-slate-300 focus:border-pink-500 text-xs font-semibold text-slate-900 focus:outline-none bg-pink-50/50"
+                  placeholder="Để trống hoặc nhập tóm tắt cốt truyện riêng cho tiết này..."
+                  className="w-full px-3.5 py-2 rounded-xl border-2 border-slate-300 focus:border-pink-500 text-xs font-semibold text-slate-900 focus:outline-none bg-pink-50/30"
                 />
               </div>
 
-              {/* CẤU TRÚC NGỮ PHÁP TRỌNG TÂM - AI TỰ ĐỘNG ĐIỀN */}
+              {/* CẤU TRÚC NGỮ PHÁP TRỌNG TÂM */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="block text-slate-900 font-black">
-                    ⚡ CẤU TRÚC NGỮ PHÁP / SPEAKING CHUẨN (AI TỰ ĐỘNG ĐIỀN TỪ ẢNH):
+                    ⚡ CẤU TRÚC NGỮ PHÁP / SPEAKING CHUẨN TIẾT {selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'}:
                   </label>
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 font-mono px-1.5 py-0.5 rounded font-black">
-                    AI Auto-Fill ✓
+                    Tùy chỉnh / AI Auto-Fill ✓
                   </span>
                 </div>
                 <input
                   type="text"
                   value={contextGrammar}
                   onChange={(e) => setContextGrammar(e.target.value)}
-                  placeholder="Ví dụ: Like/Love + V-ing, Thì Hiện tại đơn"
-                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-pink-500 text-xs font-semibold text-slate-900 focus:outline-none bg-pink-50/50"
+                  placeholder="Ví dụ: Like/Love + V-ing, Thì Hiện tại đơn..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-pink-500 text-xs font-semibold text-slate-900 focus:outline-none bg-pink-50/30"
                 />
               </div>
             </div>
@@ -5899,19 +5963,31 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
             <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
               <button
                 type="button"
-                onClick={() => setIsContextStudioOpen(false)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold text-xs rounded-xl"
+                onClick={handleClearCurrentLessonContext}
+                className="px-3.5 py-2 bg-rose-100 hover:bg-rose-200 text-rose-900 font-extrabold text-xs rounded-xl border border-rose-300 transition cursor-pointer flex items-center space-x-1"
+                title="Xóa bỏ ngữ cảnh của tiết này để dùng chế độ tự động của AI"
               >
-                Hủy
+                <Trash2 className="w-3.5 h-3.5 text-rose-700" />
+                <span>🗑️ Xóa Ngữ Cảnh Tiết Này</span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleSaveLessonContext}
-                className="px-6 py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-2xl shadow-md cursor-pointer flex items-center space-x-1.5"
-              >
-                <span>💾 Lưu Ngữ Cảnh SGK ({selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'})</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsContextStudioOpen(false)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold text-xs rounded-xl"
+                >
+                  Hủy
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveLessonContext}
+                  className="px-6 py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-2xl shadow-md cursor-pointer flex items-center space-x-1.5"
+                >
+                  <span>💾 Lưu Ngữ Cảnh Tiết ({selectedSection !== 'All' ? selectedSection : 'GETTING STARTED'})</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
