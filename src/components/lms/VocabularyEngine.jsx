@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  Clipboard,
   Camera, BookOpen, Volume2, Mic, Search, ChevronLeft, ChevronRight, Play, Pause, Settings, Plus, Trash2, Edit3, Check, X, Eye, Image as ImageIcon, Sparkles, Filter, RefreshCw, CheckSquare, Square, Star, Award, Zap, Trophy, HelpCircle, Gamepad2, RotateCcw, Flame, CheckCircle, AlertCircle, Bot, Music, Upload, User, UserCheck, Smile, Languages, Grid, Layers, HelpCircle as HelpIcon, ArrowRight, ArrowLeft, Clock, ShieldCheck, Crown, Compass, MapPin, Flag, Swords, Lightbulb, Printer, BookMarked, Sparkle, School, GraduationCap, EyeOff, Copy, Lock, Unlock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { uploadLMSFile } from '../../lib/supabase';
