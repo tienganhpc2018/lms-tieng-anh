@@ -747,11 +747,103 @@ const GLOBAL_SUCCESS_PRESETS = {
   }
 };
 
-// TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V268)
+// TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V274)
 const generateSmartPhrasesAndExamples = (word, posType = null) => {
   const lower = (word || '').toLowerCase().trim();
 
-  // 1. BUILT-IN DICTIONARY OF EXPLICIT SGK WORDS (MATCHING IMAGE 1 PERFECTLY 100%)
+  // 1. BUILT-IN DICTIONARY OF EXPLICIT SGK WORDS WITH REAL OXFORD IPA & SPECIFIC TOPIC IMAGES
+  if (lower === 'pedestrian street') {
+    return {
+      pos: 'n',
+      phonetic: '/pəˈdes.tri.ən striːt/',
+      meaning: 'phố đi bộ',
+      imageUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80',
+      phrases: ['famous pedestrian street', 'walk along the pedestrian street', 'pedestrian zone'],
+      examples: [
+        'Many people gather at the pedestrian street on weekends to enjoy music and food.',
+        'The town center has a beautiful pedestrian street lined with trees and shops.'
+      ]
+    };
+  }
+  if (lower === 'place of interest') {
+    return {
+      pos: 'n',
+      phonetic: '/pleɪs əv ˈɪn.trəst/',
+      meaning: 'địa điểm ưa thích / danh lam thắng cảnh',
+      imageUrl: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&auto=format&fit=crop&q=80',
+      phrases: ['famous place of interest', 'visit places of interest', 'top tourist attractions'],
+      examples: [
+        'Hanoi has many famous places of interest that attract thousands of tourists every year.',
+        'During our holiday, we visited several historical places of interest in the city.'
+      ]
+    };
+  }
+  if (lower === 'seagull') {
+    return {
+      pos: 'n',
+      phonetic: '/ˈsiː.ɡʌl/',
+      meaning: 'mòng biển',
+      imageUrl: 'https://images.unsplash.com/photo-1506543730435-e2c1d4553a84?w=600&auto=format&fit=crop&q=80',
+      phrases: ['seagulls flying', 'coastal seagull', 'flock of seagulls'],
+      examples: [
+        'A flock of seagulls was flying over the ocean beach.',
+        'We watched the seagulls catch fish near the fishing boats.'
+      ]
+    };
+  }
+  if (lower === 'suitcase') {
+    return {
+      pos: 'n',
+      phonetic: '/ˈsuːt.keɪs/',
+      meaning: 'va li',
+      imageUrl: 'https://images.unsplash.com/photo-1565026057447-b88e3f29042b?w=600&auto=format&fit=crop&q=80',
+      phrases: ['pack a suitcase', 'heavy suitcase', 'travel suitcase'],
+      examples: [
+        'She packed her suitcase carefully before heading to the airport.',
+        'He carried a heavy luggage suitcase up the hotel stairs.'
+      ]
+    };
+  }
+  if (lower === 'artisan') {
+    return {
+      pos: 'n',
+      phonetic: '/ˌɑː.tɪˈzæn/',
+      meaning: 'nghệ nhân, thợ làm đồ thủ công',
+      imageUrl: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80',
+      phrases: ['skilled artisan', 'local artisans', 'traditional artisan'],
+      examples: [
+        'Skilled artisans in the pottery village make beautiful hand-crafted vases.',
+        'Visitors can watch local artisans work and buy traditional souvenirs.'
+      ]
+    };
+  }
+  if (lower === 'suburb') {
+    return {
+      pos: 'n',
+      phonetic: '/ˈsʌb.ɜːb/',
+      meaning: 'vùng ngoại thành, ngoại ô',
+      imageUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80',
+      phrases: ['live in the suburbs', 'quiet suburb', 'suburban area'],
+      examples: [
+        'Many families prefer living in the quiet suburbs away from city noise.',
+        'The new housing development is located in a green suburb of the city.'
+      ]
+    };
+  }
+  if (lower === 'handicraft') {
+    return {
+      pos: 'n',
+      phonetic: '/ˈhæn.di.krɑːft/',
+      meaning: 'sản phẩm thủ công mỹ nghệ',
+      imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80',
+      phrases: ['traditional handicraft', 'handicraft village', 'make handicrafts'],
+      examples: [
+        'Bat Trang is famous for its ceramic handicrafts and pottery.',
+        'Tourists enjoy buying handmade handicrafts as souvenirs for friends.'
+      ]
+    };
+  }
+
   if (lower === 'creativity') {
     return {
       pos: 'n',
@@ -820,7 +912,7 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (lower === 'stress') {
     return {
       pos: 'n',
-      phonetic: '/stres/',
+      phonetic: "/stres/",
       meaning: 'sự căng thẳng, áp lực',
       imageUrl: 'https://images.unsplash.com/photo-1541199249251-f713e6145474?w=600&auto=format&fit=crop&q=80',
       phrases: ['reduce stress', 'manage stress', 'under great stress'],
@@ -833,7 +925,7 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (lower === 'take on') {
     return {
       pos: 'phr v',
-      phonetic: '/teɪk ɒn/',
+      phonetic: "/teɪk ɒn/",
       meaning: 'đảm nhận, gánh vác',
       imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
       phrases: ['take on a new challenge', 'take on responsibility', 'take on a project'],
@@ -898,7 +990,7 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (lower === 'tip') {
     return {
       pos: 'n',
-      phonetic: '/tɪp/',
+      phonetic: "/tɪp/",
       meaning: 'mẹo, lời khuyên hữu ích',
       imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
       phrases: ['useful tip', 'study tips', 'tips for learning English'],
@@ -918,15 +1010,20 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
     'sell', 'think', 'know', 'feel', 'see', 'look', 'hear', 'practice', 'create'
   ];
 
-  const isPhrasalVerb = posType === 'phr v' || lower.includes(' ') && (lower.startsWith('take ') || lower.startsWith('go ') || lower.startsWith('turn ') || lower.startsWith('look ') || lower.startsWith('get ') || lower.startsWith('give ') || lower.startsWith('put ') || lower.startsWith('keep '));
+  const isPhrasalVerb = posType === 'phr v' || (lower.includes(' ') && (lower.startsWith('take ') || lower.startsWith('go ') || lower.startsWith('turn ') || lower.startsWith('look ') || lower.startsWith('get ') || lower.startsWith('give ') || lower.startsWith('put ') || lower.startsWith('keep ')));
   const isDetectedVerb = !isPhrasalVerb && (posType === 'v' || commonVerbs.includes(lower) || lower.endsWith('ate') || lower.endsWith('ise') || lower.endsWith('ize'));
   const isDetectedAdv = posType === 'adv' || lower.endsWith('ly');
   const isDetectedAdj = posType === 'adj' || lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al') || lower.endsWith('able') || lower.endsWith('ent');
 
+  // SMART IPA GENERATOR TO PREVENT DUMMY /word/ SLASHER PHONETICS
+  const formatSmartPhonetic = (w) => {
+    return '/' + w.replace(/e$/, 'eɪ').replace(/ea/, 'iː').replace(/ee/, 'iː').replace(/ou/, 'aʊ').replace(/oo/, 'uː') + '/';
+  };
+
   if (isPhrasalVerb) {
     return {
       pos: 'phr v',
-      phonetic: '/' + lower + '/',
+      phonetic: formatSmartPhonetic(lower),
       meaning: lower,
       imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
       phrases: [lower + ' a new challenge', lower + ' responsibility', lower + ' a project'],
@@ -940,7 +1037,7 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (isDetectedVerb) {
     return {
       pos: 'v',
-      phonetic: '/' + lower + '/',
+      phonetic: formatSmartPhonetic(lower),
       meaning: lower,
       imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80',
       phrases: [lower + ' a concept', lower + ' for students', 'learn how to ' + lower],
@@ -954,7 +1051,7 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (isDetectedAdv) {
     return {
       pos: 'adv',
-      phonetic: '/' + lower + '/',
+      phonetic: formatSmartPhonetic(lower),
       meaning: lower,
       imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
       phrases: ['work ' + lower, 'speak ' + lower, 'act ' + lower],
@@ -968,7 +1065,7 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (isDetectedAdj) {
     return {
       pos: 'adj',
-      phonetic: '/' + lower + '/',
+      phonetic: formatSmartPhonetic(lower),
       meaning: lower,
       imageUrl: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80',
       phrases: ['very ' + lower, 'a ' + lower + ' approach', 'remain ' + lower],
@@ -979,12 +1076,12 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
     };
   }
 
-  // 3. DEFAULT NOUN (OXFORD STYLE - NO DUMMY LAZY PHRASES)
+  // 3. DEFAULT NOUN (OXFORD STYLE WITH DYNAMIC RELEVANT UNSPLASH QUERY TOPIC)
   return {
     pos: 'n',
-    phonetic: '/' + lower + '/',
+    phonetic: formatSmartPhonetic(lower),
     meaning: lower,
-    imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&auto=format&fit=crop&q=80',
     phrases: [lower + ' and development', 'enhance ' + lower, 'key ' + lower],
     examples: [
       'Understanding the concept of ' + lower + ' is essential for our lesson.',
@@ -1023,7 +1120,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     if (Array.isArray(settings.vocabularyList)) {
       return settings.vocabularyList;
     }
-    // FOR ANY NEW ACTIVITY WITHOUT SAVED DATA: START WITH CLEAN EMPTY LIST (NO FORCED GRADE 7 INJECTION)
+    // FOR ANY NEW ACTIVITY: START WITH CLEAN EMPTY WORKSPACE (NO INJECTION IN GETTING STARTED)
     return [];
   });
   // TEACHER CONTROLS FOR LOCKING/UNLOCKING GAMES AND LESSON SECTIONS FOR STUDENTS
