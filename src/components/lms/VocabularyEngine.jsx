@@ -1891,9 +1891,9 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
           const promptStr = "Bạn là chuyên gia phân tích sách giáo khoa Tiếng Anh SGK xuất sắc. Hãy phân tích hình ảnh trang SGK tiết [" + targetSec + "] thuộc [" + targetUnit + "] và trả về JSON thuần túy (không kèm Markdown):\n" +
             "{\n" +
-            '  "characters": "Tên các nhân vật trong hội thoại (ví dụ: Ann, Mi). NẾU BÀI HỌC LÀ BÀI TẬP/BÀI ĐỌC KHÔNG CÓ HỘI THOẠI THÌ ĐỂ RỖNG CHUỖI KHÔNG GHI TÊN NHÂN VẬT",\n' +
-            '  "plot": "Yêu cầu cần đạt & Nội dung chính bằng Tiếng Việt: Tóm tắt rõ 2-3 câu mục tiêu học sinh cần đạt và nhiệm vụ bài tập xuất hiện trong ảnh chụp này. CẤM viết từ \'Đoạn hội thoại\' nếu ảnh là bài tập nối/điền từ!",\n' +
-            '  "grammar": "Cấu trúc ngữ pháp trọng tâm hoặc danh mục từ vựng bài tập trong ảnh"\n' +
+            '  "characters": "Tên các nhân vật trong hội thoại. NẾU BÀI HỌC KHÔNG CÓ HỘI THOẠI THÌ ĐỂ RỖNG CHUỖI KHÔNG GHI TÊN NHÂN VẬT",\n' +
+            '  "plot": "Mục tiêu bài học & Ý chính bằng Tiếng Việt: Nêu cụ thể bài học dạy kiến thức gì. CẤM viết các câu chung chung như \'nắm vững cấu trúc ngữ pháp trọng tâm\'!",\n' +
+            '  "grammar": "TÊN CỤ THỂ CỦA CÁC ĐIỂM NGỮ PHÁP VÀ LƯU Ý CÁCH DÙNG (ví dụ: 1. Question words + to-infinitive: how/where/what/when/who + to V. 2. Phrasal verbs: look around, hand down, find out... CẤM viết chung chung \'Grammar structures\')"\n' +
             "}";
 
           const res = await fetch(endpoint, {
@@ -1947,8 +1947,8 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
             setContextPlot('Yêu cầu cần đạt tiết A CLOSER LOOK 1: Học sinh nhận biết và nối đúng tên các nghề nghiệp phục vụ cộng đồng (police officer, electrician, firefighter, garbage collector, delivery person) với định nghĩa nhiệm vụ tương ứng. Nắm vững vai trò của các nhân sự cộng đồng.');
             setContextGrammar('Từ vựng các nghề nghiệp cộng đồng (police officer, electrician, firefighter, delivery person, garbage collector).');
           } else if (targetSec.toUpperCase().includes('A CLOSER LOOK 2')) {
-            setContextPlot('Yêu cầu cần đạt tiết A CLOSER LOOK 2: Học sinh nắm vững cấu trúc ngữ pháp trọng tâm và hoàn thành các bài tập ứng dụng ngôn ngữ.');
-            setContextGrammar('Grammar Structures & Language Practice cho tiết ' + targetSec);
+            setContextPlot('Mục tiêu tiết A CLOSER LOOK 2: Học sinh thành thạo cấu trúc Từ hỏi đi với động từ nguyên thể có to (Question words + to-infinitive) và ghi nhớ nghĩa, cách dùng các Phrasal Verbs thông dụng (hand down, find out, take care of, look around, come back).');
+            setContextGrammar('1. Từ hỏi + to-infinitive (Question words before to-infinitives: how / where / what / when / who + to V). 2. Cụm động từ (Phrasal Verbs: hand down, find out, take care of, pass down, cut down on). *Lưu ý: Question word + to V dùng để rút gọn mệnh đề danh từ; Phrasal verb có nghĩa đặc biệt theo tiểu từ đi kèm.');
           } else {
             setContextPlot('Yêu cầu cần đạt tiết ' + targetSec + ': Thực hành bài tập tổng hợp và rèn luyện từ vựng trọng tâm (' + (currentWordsStr || 'từ vựng bài học') + ').');
             setContextGrammar('Key Vocabulary & Exercises cho tiết ' + targetSec);
