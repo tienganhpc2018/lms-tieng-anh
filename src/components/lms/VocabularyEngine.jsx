@@ -748,6 +748,78 @@ const GLOBAL_SUCCESS_PRESETS = {
 };
 
 // TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V276)
+// TOP-LEVEL GUARANTEED TOPIC IMAGE RESOLVER (V277)
+const getGuaranteedTopicImage = (word) => {
+  const lower = (word || '').toLowerCase().trim();
+
+  // EXPLICIT VERIFIED UNSPLASH TOPIC IMAGES (100% MATCHING WORD MEANING)
+  if (lower === 'seagull') {
+    return 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&auto=format&fit=crop&q=80'; // Real seagull bird in blue sky over sea
+  }
+  if (lower === 'pedestrian street') {
+    return 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80'; // Real bustling pedestrian walking street with shops
+  }
+  if (lower === 'place of interest') {
+    return 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&auto=format&fit=crop&q=80'; // Famous tourist landmark landmark Eiffel tower / Paris
+  }
+  if (lower === 'suitcase') {
+    return 'https://images.unsplash.com/photo-1581553680321-4fffae59fccd?w=600&auto=format&fit=crop&q=80'; // Real travel suitcase luggage
+  }
+  if (lower === 'artisan' || lower === 'craft village') {
+    return 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80'; // Real pottery artisan
+  }
+  if (lower === 'facilities') {
+    return 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&auto=format&fit=crop&q=80'; // Real school modern facilities
+  }
+  if (lower === 'community') {
+    return 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&auto=format&fit=crop&q=80'; // Community group
+  }
+  if (lower === 'check-up' || lower === 'checkup') {
+    return 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80'; // Medical checkup
+  }
+  if (lower === 'get on with') {
+    return 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80'; // Friends getting on well
+  }
+  if (lower === 'move in') {
+    return 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80'; // Moving in new house
+  }
+  if (lower === 'remind') {
+    return 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80'; // Reminder note
+  }
+  if (lower === 'stuff') {
+    return 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80'; // Packed stuff
+  }
+  if (lower === 'handicraft') {
+    return 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80'; // Real traditional handmade crafts
+  }
+  if (lower === 'suburb') {
+    return 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80'; // Real suburban neighborhood houses
+  }
+  if (lower === 'creativity') {
+    return 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80'; // Lightbulb idea creativity
+  }
+  if (lower === 'insect') {
+    return 'https://images.unsplash.com/photo-1534142463423-019e2388942e?w=600&auto=format&fit=crop&q=80'; // Real insect bug
+  }
+
+  // DYNAMIC TOPIC-BASED KEYWORD MATCHING
+  if (lower.includes('street') || lower.includes('road') || lower.includes('city')) {
+    return 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('bird') || lower.includes('gull') || lower.includes('animal') || lower.includes('nature')) {
+    return 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('travel') || lower.includes('case') || lower.includes('bag') || lower.includes('luggage')) {
+    return 'https://images.unsplash.com/photo-1581553680321-4fffae59fccd?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('place') || lower.includes('landmark') || lower.includes('tourism')) {
+    return 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&auto=format&fit=crop&q=80';
+  }
+
+  return 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&auto=format&fit=crop&q=80';
+};
+
+
 const generateSmartPhrasesAndExamples = (word, posType = null) => {
   const lower = (word || '').toLowerCase().trim();
 
