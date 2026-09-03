@@ -1010,28 +1010,21 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   };
   const activityGrade = detectActivityGrade(activity);
   // MAIN VOCABULARY LIST (STRICTLY SCOPED BY GRADE ACCORDING TO THẦY HẢI)
+  
+  // ALWAYS KEEP VOCABLIST SYNCED WITH SAVED ACTIVITY SETTINGS
+  useEffect(() => {
+    if (Array.isArray(activity?.settings?.vocabularyList)) {
+      setVocabList(activity.settings.vocabularyList);
+    }
+  }, [activity?.settings?.vocabularyList]);
+
   const [vocabList, setVocabList] = useState(() => {
-    // 1. IF ACTIVITY HAS SAVED VOCABULARY LIST (INCLUDING EMPTY ARRAY WHEN TEACHER CLEARED IT)
+    // ALWAYS RESPECT SAVED VOCABULARY LIST IN DATABASE OR SETTINGS
     if (Array.isArray(settings.vocabularyList)) {
-      // IF NON-EMPTY, USE SAVED VOCABULARY LIST
-      if (settings.vocabularyList.length > 0) {
-        const hasGrade9InGrade7 = activityGrade === 'Lớp 7' && settings.vocabularyList.some((item) => item.word === 'artisan' || item.word === 'suburb');
-        if (!hasGrade9InGrade7) {
-          return settings.vocabularyList;
-        }
-      } else {
-        // TEACHER EXPLICITLY SAVED EMPTY LIST -> KEEP IT EMPTY
-        return [];
-      }
+      return settings.vocabularyList;
     }
-
-    // 2. FOR NEW ACTIVITIES: IF GRADE IS NOT GRADE 7, START WITH EMPTY LIST SO TEACHERS CAN CREATE THEIR OWN
-    if (activityGrade && activityGrade !== 'Lớp 7') {
-      return [];
-    }
-
-    // 3. ONLY DEFAULT TO GRADE 7 SAMPLE IF IT IS EXPLICITLY A GRADE 7 ACTIVITY WITHOUT ANY SAVED DATA
-    return GLOBAL_SUCCESS_PRESETS['Lớp 7']['Unit 1: Hobbies'] || [];
+    // FOR ANY NEW ACTIVITY WITHOUT SAVED DATA: START WITH CLEAN EMPTY LIST (NO FORCED GRADE 7 INJECTION)
+    return [];
   });
   // TEACHER CONTROLS FOR LOCKING/UNLOCKING GAMES AND LESSON SECTIONS FOR STUDENTS
   const [lockGamesForStudents, setLockGamesForStudents] = useState(() => {
@@ -1356,31 +1349,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       }
     }
   }, [activity]);
-  // AUTO-REPAIR VOCABULARY LIST TO MATCH SPECIFIC GRADE ACCORDING TO THẦY HẢI
-  useEffect(() => {
-    if (activity) {
-      const actGrade = detectActivityGrade(activity);
-      if (Array.isArray(vocabList) && vocabList.length > 0) {
-        const hasGrade9InGrade7 = actGrade === 'Lớp 7' && vocabList.some((item) => item.word === 'artisan' || item.word === 'suburb');
-        if (hasGrade9InGrade7) {
-          const correctPreset = GLOBAL_SUCCESS_PRESETS[actGrade] || GLOBAL_SUCCESS_PRESETS['Lớp 7'];
-          const firstUnitKey = Object.keys(correctPreset)[0];
-          const newGradeList = correctPreset[firstUnitKey];
-          if (newGradeList) {
-            setVocabList(newGradeList);
-            if (onSaveActivity) {
-              onSaveActivity({
-                ...settings,
-                vocabularyList: newGradeList,
-                voiceOption,
-                masterAudioUrl,
-              });
-            }
-          }
-        }
-      }
-    }
-  }, [activity]);
+// REMOVED AUTO-REPAIR EFFECT (NEVER OVERWRITE TEACHER VOCABULARY LIST WITH GRADE 7 PRESET)
   // AUTO REPAIR UNTRANSLATED VOCABULARY MEANINGS & FALLBACK IPA PHONETICS
   useEffect(() => {
     if (Array.isArray(vocabList) && vocabList.length > 0) {
