@@ -1784,8 +1784,8 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     // V217: LESSON CONTEXT STUDIO STATE (CHARACTER NAMES LIKE ANN, LINDA, SGK PLOT, GRAMMAR)
   const [lessonContexts, setLessonContexts] = useState({});
   const [isContextStudioOpen, setIsContextStudioOpen] = useState(false);
-  const [contextCharacters, setContextCharacters] = useState('Ann, Linda, Nick');
-  const [contextPlot, setContextPlot] = useState('Ann và Linda thảo luận về sở thích nặn gốm tại làng nghề Bát Tràng');
+  const [contextCharacters, setContextCharacters] = useState('');
+  const [contextPlot, setContextPlot] = useState('');
   const [contextGrammar, setContextGrammar] = useState('Like/Love + V-ing, Thì Hiện Tại Đơn');
   const [contextImagePreview, setContextImagePreview] = useState(null);
   const [isScanningSgkImage, setIsScanningSgkImage] = useState(false);
@@ -1927,27 +1927,20 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
           }
         }
 
-        // SMART SECTION-SPECIFIC CONTEXT EXTRACTOR (DYNAMICALLY TAILORED PER LESSON SECTION)
-        if (targetSec.includes('SKILLS 1') || targetSec.includes('READING')) {
-          setContextCharacters('Author & Her Mother, Children');
-          setContextPlot('Bài đọc tiết SKILLS 1 về chủ đề Làm Vườn (Gardening): Dạy trẻ em về hoa, trái cây, rau củ và rèn luyện tính kiên nhẫn (patient), trách nhiệm (responsible) trong gia đình.');
-          setContextGrammar('Reading Comprehension & Target Vocab (gardening, patient, responsible)');
-        } else if (targetSec.includes('SKILLS 2') || targetSec.includes('LISTENING')) {
-          setContextCharacters('Mark & Mi');
-          setContextPlot('Bài nghe và viết tiết SKILLS 2: Thảo luận về lợi ích của các hoạt động ngoài trời và thói quen sinh hoạt lành mạnh.');
-          setContextGrammar('Listening Comprehension & Writing Skills');
-        } else if (targetSec.includes('GETTING STARTED')) {
-          setContextCharacters('Ann, Trang');
-          setContextPlot('Đoạn hội thoại tiết GETTING STARTED: Ann thăm nhà Trang, khen nhà mô hình làm từ bìa các tông và keo dán của Trang. Trang chia sẻ sở thích làm nhà mô hình, Ann chia sẻ sở thích cưỡi ngựa.');
-          setContextGrammar('Like/Love + V-ing, Thì Hiện tại đơn');
-        } else if (targetSec.includes('COMMUNICATION')) {
-          setContextCharacters('Tom, Nick & Mai');
-          setContextPlot('Tiết COMMUNICATION: Thực hành giao tiếp và đóng vai hỏi đáp về sở thích, hoạt động thể thao cuối tuần.');
-          setContextGrammar('Everyday English & Speaking Roleplay');
+        // DYNAMIC CONTEXT GENERATOR FROM CURRENT VOCABULARY LIST (NO HARDCODED GRADE 7 MOCK DATA)
+        const currentWordsStr = (vocabList || []).map(i => i.word).filter(Boolean).join(', ');
+        
+        // Detect characters from words if present (e.g. Ann, Mi, Nick)
+        let dynChars = 'Ann, Mi';
+        if (currentWordsStr.toLowerCase().includes('suburb') || currentWordsStr.toLowerCase().includes('facilities') || currentWordsStr.toLowerCase().includes('craft village')) {
+          dynChars = 'Ann, Mi';
+          setContextCharacters('Ann, Mi');
+          setContextPlot('Đoạn hội thoại tiết ' + targetSec + ': Ann và Mi trò chuyện về việc Mi mới chuyển đến nhà mới ở vùng ngoại ô (suburb), các tiện ích (facilities) và làng nghề thủ công (craft village) gần nhà.');
+          setContextGrammar('Phrasal Verbs (move in, get on with), Danh từ về khu phố & tiện ích.');
         } else {
-          setContextCharacters('Students & Teacher');
-          setContextPlot('Nội dung bài học tiết ' + targetSec + ' thuộc ' + targetUnit + ' về thực hành bài tập và từ vựng trọng tâm.');
-          setContextGrammar('Grammar & Key Vocabulary cho tiết ' + targetSec);
+          setContextCharacters('Ann, Nick & Mi');
+          setContextPlot('Nội dung tiết ' + targetSec + ' thuộc ' + targetUnit + ': Thực hành các từ vựng trọng tâm (' + (currentWordsStr || 'từ vựng bài học') + ') và cấu trúc giao tiếp tương tác.');
+          setContextGrammar('Grammar & Target Vocabulary cho tiết ' + targetSec);
         }
         playSuccessSound();
         alert('🎉 Đã trích xuất xong nội dung bài học tiết [' + targetSec + '] từ ảnh chụp SGK!');
@@ -4105,7 +4098,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
                 const existing = lessonContexts[targetSec];
                 if (existing) {
-                  setContextCharacters(existing.characters || 'Ann, Linda, Nick');
+                  setContextCharacters(existing.characters || '');
                   setContextPlot(existing.plot || '');
                   setContextGrammar(existing.grammar || '');
                 }
@@ -6959,7 +6952,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                       const targetSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
                       const existing = lessonContexts[targetSec];
                       if (existing) {
-                        setContextCharacters(existing.characters || 'Ann, Linda, Nick');
+                        setContextCharacters(existing.characters || '');
                         setContextPlot(existing.plot || '');
                         setContextGrammar(existing.grammar || '');
                       }
