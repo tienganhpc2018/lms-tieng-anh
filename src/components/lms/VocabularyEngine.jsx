@@ -1011,15 +1011,27 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const activityGrade = detectActivityGrade(activity);
   // MAIN VOCABULARY LIST (STRICTLY SCOPED BY GRADE ACCORDING TO THẦY HẢI)
   const [vocabList, setVocabList] = useState(() => {
-    if (Array.isArray(settings.vocabularyList) && settings.vocabularyList.length > 0) {
-      const hasGrade9InGrade7 = activityGrade === 'Lớp 7' && settings.vocabularyList.some((item) => item.word === 'artisan' || item.word === 'suburb');
-      if (!hasGrade9InGrade7) {
-        return settings.vocabularyList;
+    // 1. IF ACTIVITY HAS SAVED VOCABULARY LIST (INCLUDING EMPTY ARRAY WHEN TEACHER CLEARED IT)
+    if (Array.isArray(settings.vocabularyList)) {
+      // IF NON-EMPTY, USE SAVED VOCABULARY LIST
+      if (settings.vocabularyList.length > 0) {
+        const hasGrade9InGrade7 = activityGrade === 'Lớp 7' && settings.vocabularyList.some((item) => item.word === 'artisan' || item.word === 'suburb');
+        if (!hasGrade9InGrade7) {
+          return settings.vocabularyList;
+        }
+      } else {
+        // TEACHER EXPLICITLY SAVED EMPTY LIST -> KEEP IT EMPTY
+        return [];
       }
     }
-    const presetsForGrade = GLOBAL_SUCCESS_PRESETS[activityGrade] || GLOBAL_SUCCESS_PRESETS['Lớp 7'];
-    const firstUnitKey = Object.keys(presetsForGrade)[0];
-    return presetsForGrade[firstUnitKey] || GLOBAL_SUCCESS_PRESETS['Lớp 7']['Unit 1: Hobbies'];
+
+    // 2. FOR NEW ACTIVITIES: IF GRADE IS NOT GRADE 7, START WITH EMPTY LIST SO TEACHERS CAN CREATE THEIR OWN
+    if (activityGrade && activityGrade !== 'Lớp 7') {
+      return [];
+    }
+
+    // 3. ONLY DEFAULT TO GRADE 7 SAMPLE IF IT IS EXPLICITLY A GRADE 7 ACTIVITY WITHOUT ANY SAVED DATA
+    return GLOBAL_SUCCESS_PRESETS['Lớp 7']['Unit 1: Hobbies'] || [];
   });
   // TEACHER CONTROLS FOR LOCKING/UNLOCKING GAMES AND LESSON SECTIONS FOR STUDENTS
   const [lockGamesForStudents, setLockGamesForStudents] = useState(() => {
