@@ -3900,6 +3900,15 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               </button>
               <button
                 type="button"
+                onClick={handleClearAllVocabulary}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5 border border-rose-400"
+                title="Xóa sạch toàn bộ từ vựng trong bài học này để soạn lại bài mới cho Lớp 9"
+              >
+                <Trash2 className="w-4 h-4 text-rose-200" />
+                <span>🗑️ Xóa Toàn Bộ Từ Vựng</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => handleOpenStudio()}
                 className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5 border border-emerald-400"
                 title="Thêm/Sửa/Xóa từ vựng cho Từ Điển"
