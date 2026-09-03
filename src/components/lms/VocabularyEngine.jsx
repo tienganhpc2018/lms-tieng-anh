@@ -2294,13 +2294,53 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
       const storyVersionIndex = ((storySeed % 5) + 5) % 5;
 
-      // HIGH-LEVEL GRADE 9 NATURAL STORY ENGINE (V282 - ZERO "learning about" REPETITIONS)
-      const rawWordsText = currentWordsList.map(item => (typeof item === 'string' ? item : (item && item.word ? item.word : ''))).join(' ').toLowerCase();
-      const isGrade9Unit1 = rawWordsText.includes('suburb') || rawWordsText.includes('facilities') || rawWordsText.includes('craft') || rawWordsText.includes('community') || rawWordsText.includes('move in') || rawWordsText.includes('get on with') || rawWordsText.includes('check-up') || rawWordsText.includes('stuff') || rawWordsText.includes('remind');
+      // LESSON-SECTION SPECIFIC AI STORY ENGINE INTEGRATING SGK CONTEXT (V284)
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+
+      const activeLessonWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList).map(i => (i.word || '').toLowerCase().trim());
+      const activeSecUpper = (lessonSec || selectedSection || '').toUpperCase();
 
       let dynamicStories = [];
 
-      if (isGrade9Unit1) {
+      // A CLOSER LOOK 1: COMMUNITY OCCUPATIONS & HELPERS
+      if (activeSecUpper.includes('CLOSER LOOK 1') || activeLessonWordsList.some(w => w.includes('police') || w.includes('electrician') || w.includes('firefighter') || w.includes('collector') || w.includes('delivery'))) {
+        dynamicStories = [
+          {
+            title: 'Truyện Từ Vựng (Version 1 - Nghề Nghiệp Phục Vụ Cộng Đồng): ' + currentUnitName + ' - A CLOSER LOOK 1',
+            storyEn: 'Every day, dedicated workers support our local community in different ways. A brave firefighter puts out fires and saves people from dangerous situations, while a police officer protects property and keeps the neighborhood safe. When electrical wires need repair, an electrician checks the equipment carefully. Meanwhile, a garbage collector takes rubbish away to keep streets clean, and a delivery person brings goods to people\'s houses.',
+            storyVi: 'Mỗi ngày, những người lao động tận tụy hỗ trợ cộng đồng địa phương theo nhiều cách khác nhau. Một lính chữa cháy (firefighter) dũng cảm dập tắt các đám cháy và giải cứu mọi người khỏi nguy hiểm, trong khi một sĩ quan cảnh sát (police officer) bảo vệ tài sản và giữ gìn an ninh khu phố. Khi đường dây điện cần sửa chữa, một thợ điện (electrician) kiểm tra thiết bị cẩn thận. Trong khi đó, người thu gom rác (garbage collector) dọn dẹp rác thải để giữ phố phường sạch sẽ, và người giao hàng (delivery person) mang hàng hóa đến tận nhà cho mọi người.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 2 - Đóng Vai Tìm Hiểu Ngành Nghề): ' + currentUnitName + ' - A CLOSER LOOK 1',
+            storyEn: 'In our class roleplay activity, students learn about important jobs in society. One student acts as a firefighter responding to emergencies, while another portrays a police officer maintaining law and order. An electrician explains how power lines work safely. Students also express gratitude to the garbage collector for maintaining hygiene and the delivery person for delivering packages on time.',
+            storyVi: 'Trong hoạt động đóng vai ở lớp, học sinh tìm hiểu về các công việc quan trọng trong xã hội. Một học sinh đóng vai lính chữa cháy (firefighter) ứng phó với các tình huống khẩn cấp, trong khi bạn khác thể hiện vai sĩ quan cảnh sát (police officer) duy trì trật tự pháp luật. Một thợ điện (electrician) giải thích cách vận hành đường dây điện an toàn. Học sinh cũng bày tỏ lòng biết ơn tới người thu gom rác (garbage collector) vì giữ gìn vệ sinh và người giao hàng (delivery person) vì giao kiện hàng đúng giờ.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 3 - Dự Án Biết Ơn Nhân Sự Cộng Đồng): ' + currentUnitName + ' - A CLOSER LOOK 1',
+            storyEn: 'Our community project celebrates the everyday heroes around us. We interviewed a police officer about neighborhood safety and a firefighter about fire prevention. We also watched an electrician install solar panels for local families. The hard work of every garbage collector and delivery person helps our city run smoothly and remain a pleasant place to live.',
+            storyVi: 'Dự án cộng đồng của chúng em tôn vinh những người hùng thầm lặng xung quanh. Chúng em phỏng vấn một sĩ quan cảnh sát (police officer) về an toàn khu phố và một lính chữa cháy (firefighter) về phòng cháy chữa cháy. Chúng em cũng quan sát một thợ điện (electrician) lắp đặt pin năng lượng mặt trời cho các gia đình địa phương. Sự chăm chỉ của người thu gom rác (garbage collector) và người giao hàng (delivery person) giúp thành phố vận hành mượt mà và luôn là nơi đáng sống.'
+          }
+        ];
+      }
+      // A CLOSER LOOK 2: GRAMMAR & PHRASAL VERBS (QUESTION WORDS + TO-INFINITIVE & PHRASAL VERBS)
+      else if (activeSecUpper.includes('CLOSER LOOK 2') || activeLessonWordsList.some(w => w.includes('hand down') || w.includes('find out') || w.includes('take care') || w.includes('look around') || w.includes('come back'))) {
+        dynamicStories = [
+          {
+            title: 'Truyện Từ Vựng (Version 1 - Ngữ Pháp & Cụm Động Từ Trọng Tâm): ' + currentUnitName + ' - A CLOSER LOOK 2',
+            storyEn: 'When moving to a new community, students often wonder what to do and how to deal with daily challenges. Older artisans hand down traditional crafts to younger generations so the heritage lives on. Students visit local sites to find out information about history, while neighbors take care of each other during tough times. Visitors love to look around the village before they come back home with beautiful memories.',
+            storyVi: 'Khi chuyển đến một cộng đồng mới, học sinh thường băn khoăn làm gì (what to do) và làm thế nào để giải quyết (how to deal with) các thử thách hàng ngày. Các nghệ nhân lớn tuổi truyền lại (hand down) nghề truyền thống cho thế hệ trẻ để di sản tiếp tục sống mãi. Học sinh ghé thăm các di tích địa phương để tìm hiểu (find out) thông tin về lịch sử, trong khi hàng xóm chăm sóc (take care of) lẫn nhau trong những lúc khó khăn. Du khách thích đi xung quanh ngắm nhìn (look around) ngôi làng trước khi họ trở về (come back) nhà với những kỷ niệm đẹp.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 2 - Thực Hành Cấu Trúc Từ Hỏi & Phrasal Verbs): ' + currentUnitName + ' - A CLOSER LOOK 2',
+            storyEn: 'Our teacher explains where to go and who to talk to when working on group assignments. Students work together to find out interesting facts about local crafts that masters hand down over centuries. Members learn to take care of shared equipment and look around the workshop carefully. After finishing their tasks, everyone is happy to come back to class and present their results.',
+            storyVi: 'Giáo viên hướng dẫn đi đâu (where to go) và nói chuyện với ai (who to talk to) khi làm bài tập nhóm. Học sinh cùng nhau tìm hiểu (find out) những sự thật thú vị về nghề thủ công địa phương mà các bậc thầy truyền lại (hand down) qua nhiều thế kỷ. Các thành viên học cách chăm sóc (take care of) thiết bị chung và quan sát xung quanh (look around) xưởng sản xuất cẩn thận. Sau khi hoàn thành nhiệm vụ, mọi người đều vui vẻ trở về (come back) lớp học và trình bày kết quả.'
+          }
+        ];
+      }
+      // GETTING STARTED (SUBURBS, FACILITIES, CRAFT VILLAGE, COMMUNITY, MOVE IN, GET ON WITH)
+      else {
         dynamicStories = [
           {
             title: 'Truyện Từ Vựng (Version 1 - Tóm Tắt Hội Thoại Ann & Mi): Unit 1 - GETTING STARTED',
@@ -2316,45 +2356,6 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
             title: 'Truyện Từ Vựng (Version 3 - Dự Án Khám Phá Khu Phố Mới): Unit 1 - GETTING STARTED',
             storyEn: 'Our class project focuses on discovering community life in the neighbourhood. Last week, a new family decided to move in next door and unpack their personal stuff. The neighbourhood offers modern sports facilities and a famous craft village nearby. Living here makes it simple to get on with neighbours and build a strong local community. Health workers also visit regularly to provide a medical check-up for residents and remind everyone to stay healthy and active.',
             storyVi: 'Dự án của lớp chúng em tập trung vào việc khám phá cuộc sống cộng đồng ở khu phố. Tuần trước, một gia đình mới đã quyết định chuyển đến (move in) sống bên cạnh và mở đồ đạc (stuff) cá nhân của họ. Khu phố cung cấp cơ sở vật chất (facilities) thể thao hiện đại và có một làng nghề thủ công (craft village) nổi tiếng gần đó. Sống ở đây giúp mọi người dễ dàng hòa hợp (get on with) với hàng xóm và xây dựng một cộng đồng (community) địa phương vững mạnh. Cán bộ y tế cũng thường xuyên đến thăm để khám sức khỏe (check-up) cho cư dân và nhắc nhở (remind) mọi người giữ gìn sức khỏe.'
-          },
-          {
-            title: 'Truyện Từ Vựng (Version 4 - Trải Nghiệm Thực Tế Cuộc Sống Mới): Unit 1 - GETTING STARTED',
-            storyEn: 'Starting life in a new area is a memorable experience for Grade 9 students. When families move in, they spend time organizing household stuff and getting used to new facilities. Visiting a traditional craft village helps students appreciate local culture and artistry. Being open-minded makes it easy to get on with neighbours and contribute to the community. Friends often remind one another to balance studying with regular health check-up activities.',
-            storyVi: 'Bắt đầu cuộc sống tại một khu vực mới là một trải nghiệm đáng nhớ cho học sinh Lớp 9. Khi các gia đình chuyển đến (move in), họ dành thời gian sắp xếp đồ đạc (stuff) gia đình và làm quen với cơ sở vật chất (facilities) mới. Ghé thăm một làng nghề thủ công (craft village) truyền thống giúp học sinh trân trọng văn hóa và nghệ thuật địa phương. Cởi mở giúp mọi người dễ dàng hòa hợp (get on with) với hàng xóm và đóng góp cho cộng đồng (community). Bạn bè thường nhắc nhở (remind) nhau cân bằng việc học với các hoạt động khám sức khỏe (check-up) định kỳ.'
-          },
-          {
-            title: 'Truyện Từ Vựng (Version 5 - Tổng Kết Kiến Thức Bài Học): Unit 1 - GETTING STARTED',
-            storyEn: 'Grade 9 Unit 1 connects essential vocabulary through a meaningful story of community life. Students learn how residents move in, arrange their stuff, and make use of neighborhood facilities. They explore the cultural value of a local craft village and learn how to get on with people around them. Through group activities, students build a caring community, remind each other of important goals, and maintain health with a regular check-up.',
-            storyVi: 'Unit 1 Tiếng Anh 9 kết nối các từ vựng trọng tâm thông qua câu chuyện ý nghĩa về cuộc sống cộng đồng. Học sinh tìm hiểu cách cư dân chuyển đến (move in), sắp xếp đồ đạc (stuff) và sử dụng cơ sở vật chất (facilities) trong khu phố. Các bạn khám phá giá trị văn hóa của làng nghề thủ công (craft village) địa phương và học cách hòa hợp (get on with) với mọi người xung quanh. Thông qua các hoạt động nhóm, học sinh xây dựng một cộng đồng (community) quan tâm lẫn nhau, nhắc nhở (remind) nhau về các mục tiêu quan trọng và giữ gìn sức khỏe bằng việc khám sức khỏe (check-up) định kỳ.'
-          }
-        ];
-      } else {
-        const storyCharPrefix = (contextCharacters && contextCharacters.length > 0 && !contextCharacters.includes('Trang')) ? ('Hội Thoại ' + contextCharacters) : 'Tóm Tắt Bài Học';
-        dynamicStories = [
-          {
-            title: 'Truyện Từ Vựng (Version 1 - ' + storyCharPrefix + '): ' + currentUnitName + ' - ' + lessonSec,
-            storyEn: 'In our ' + lessonSec + ' lesson, students explore key topics in ' + currentUnitName + '. They practice ' + w1.en + ' and ' + w2.en + '. Furthermore, they focus on ' + w3.en + ' alongside ' + w4.en + '. Working together, students learn to ' + w5.en + ' and ' + w6.en + ', finding these activities ' + w7.en + ' and ' + w8.en + ' for their study.',
-            storyVi: 'Trong bài học ' + lessonSec + ', học sinh khám phá các chủ đề trọng tâm của ' + currentUnitName + '. Các bạn thực hành ' + w1.vi + ' và ' + w2.vi + '. Hơn nữa, học sinh tập trung vào ' + w3.vi + ' cùng với ' + w4.vi + '. Cùng nhau làm việc, các bạn học cách ' + w5.vi + ' và ' + w6.vi + ', nhận thấy những kiến thức này rất ' + w7.vi + ' và ' + w8.vi + ' cho việc học tập.'
-          },
-          {
-            title: 'Truyện Từ Vựng (Version 2 - Thảo Luận Nhóm Lớp Học): ' + currentUnitName + ' - ' + lessonSec,
-            storyEn: 'During the group discussion, students talk about ' + currentUnitName + '. They share insights on ' + w1.en + ' while ' + w2.en + '. Everyone agrees that ' + w3.en + ' and ' + w4.en + ' are essential. They also practice ' + w5.en + ' and ' + w6.en + ', making ' + w7.en + ' and ' + w8.en + ' meaningful.',
-            storyVi: 'Trong buổi thảo luận nhóm, học sinh trao đổi về chủ đề ' + currentUnitName + '. Các bạn chia sẻ góc nhìn về ' + w1.vi + ' trong khi ' + w2.vi + '. Mọi người đồng ý rằng ' + w3.vi + ' và ' + w4.vi + ' rất quan trọng. Các bạn cũng thực hành ' + w5.vi + ' và ' + w6.vi + ', làm cho ' + w7.vi + ' và ' + w8.vi + ' trở nên thật ý nghĩa.'
-          },
-          {
-            title: 'Truyện Từ Vựng (Version 3 - Dự Án Thực Hành Ngôn Ngữ): ' + currentUnitName + ' - ' + lessonSec,
-            storyEn: 'Students present their class project on ' + currentUnitName + '. The project highlights ' + w1.en + ' and ' + w2.en + '. Group members focus on ' + w3.en + ' alongside ' + w4.en + '. They believe ' + w5.en + ' and ' + w6.en + ' provide ' + w7.en + ' knowledge for ' + w8.en + '.',
-            storyVi: 'Học sinh trình bày dự án học tập về ' + currentUnitName + '. Dự án làm nổi bật ' + w1.vi + ' và ' + w2.vi + '. Các thành viên tập trung vào ' + w3.vi + ' cùng với ' + w4.vi + '. Các bạn tin rằng ' + w5.vi + ' và ' + w6.vi + ' mang lại kiến thức ' + w7.vi + ' cho ' + w8.vi + '.'
-          },
-          {
-            title: 'Truyện Từ Vựng (Version 4 - Trải Nghiệm Thực Tế Bài Học): ' + currentUnitName + ' - ' + lessonSec,
-            storyEn: 'The teacher guides the class through real-life applications of ' + currentUnitName + '. Students discuss ' + w1.en + ' and ' + w2.en + '. Others practice ' + w3.en + ' and ' + w4.en + '. Engaging in ' + w5.en + ' and ' + w6.en + ' offers ' + w7.en + ' skills, enriching ' + w8.en + ' for everyone.',
-            storyVi: 'Giáo viên hướng dẫn cả lớp thông qua các ứng dụng thực tế của ' + currentUnitName + '. Học sinh thảo luận về ' + w1.vi + ' và ' + w2.vi + '. Những bạn khác thực hành ' + w3.vi + ' và ' + w4.vi + '. Tham gia vào ' + w5.vi + ' và ' + w6.vi + ' mang lại kỹ năng ' + w7.vi + ', làm phong phú thêm ' + w8.vi + ' cho mọi người.'
-          },
-          {
-            title: 'Truyện Từ Vựng (Version 5 - Tổng Kết Kiến Thức Trọng Tâm): ' + currentUnitName + ' - ' + lessonSec,
-            storyEn: 'Working together in small groups inspires everyone in class. Group members practice ' + w1.en + ' and ' + w2.en + '. They also explore ' + w3.en + ' with ' + w4.en + '. Through ' + w5.en + ' and ' + w6.en + ', students build ' + w7.en + ' competencies and gain ' + w8.en + '.',
-            storyVi: 'Cùng nhau làm việc trong các nhóm nhỏ truyền cảm hứng cho tất cả mọi người trong lớp. Các thành viên nhóm thực hành ' + w1.vi + ' và ' + w2.vi + '. Các bạn cũng khám phá ' + w3.vi + ' với ' + w4.vi + '. Thông qua ' + w5.vi + ' và ' + w6.vi + ', học sinh phát triển năng lực ' + w7.vi + ' và tích lũy ' + w8.vi + '.'
           }
         ];
       }
@@ -7056,8 +7057,11 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                       key={vNum}
                       type="button"
                       onClick={() => {
+                        if (typeof window !== 'undefined' && window.speechSynthesis) {
+                          window.speechSynthesis.cancel();
+                        }
                         setStorySeed(vNum - 1);
-                        handleGenerateAiStory();
+                        handleGenerateAiVocabStory(true);
                       }}
                       className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-1 shadow-xs ${
                         ((storySeed % 5) + 5) % 5 === vNum - 1
