@@ -1049,19 +1049,29 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     () => settings.lockAheadLessonsForStudents || false
   );
         const handleClearAllVocabulary = () => {
-    if (window.confirm('Thầy Hải có chắc chắn muốn xóa toàn bộ từ vựng trong bài học này để soạn lại bài mới không?')) {
+    if (window.confirm('Thầy Hải có chắc chắn muốn xóa toàn bộ từ vựng trong bài học này để soạn lại bài mới từ đầu không?')) {
       const emptyList = [];
       setVocabList(emptyList);
       setSelectedIndex(0);
+      
+      // Clear local caches for this activity
+      try {
+        if (activity?.id) {
+          localStorage.removeItem(`vocab_list_${activity.id}`);
+        }
+      } catch (e) {}
+
       if (onSaveActivity) {
         onSaveActivity({
           ...settings,
           vocabularyList: emptyList,
+          individualSectionLocks: {},
+          individualGameLocks: {},
           voiceOption: voiceOption,
           masterAudioUrl: masterAudioUrl,
         });
       }
-      alert('⚡ Đã xóa toàn bộ từ vựng thành công! Bài học hiện tại đã trở về không gian trống sạch sẽ.');
+      alert('⚡ Đã xóa sạch toàn bộ từ vựng của tất cả các tiết học! Màn hình bài học hiện tại đã trở về khung trống tinh tươm.');
     }
   };
 
@@ -2404,8 +2414,9 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
   });
   // ACTIVE SCOPE LIST FOR GAMES (MUST FOCUS ONLY ON SELECTED LESSON SECTION ACCORDING TO THẦY HẢI'S REQUEST)
   // ACTIVE SCOPE LIST FOR GAMES (STRICTLY RESPECT LOCKS FOR STUDENTS - NEVER FALL BACK TO FULL VOCAB LIST)
-  const activeScopeList = isTeacher ? (filteredList.length > 0 ? filteredList : vocabList) : filteredList;
-  const currentItem = filteredList[selectedIndex] || filteredList[0] || vocabList[0];
+  // ACTIVE SCOPE LIST (STRICTLY ISOLATED BY SELECTED LESSON SECTION - NEVER BLEED OLD WORDS)
+  const activeScopeList = filteredList;
+  const currentItem = filteredList[selectedIndex] || filteredList[0] || null;
   const availablePos = ['All', ...new Set(vocabList.map((i) => i.pos || 'n'))];
   // VOICE SYNTHESIS PLAYER
   const getSystemVoice = (opt) => {
@@ -4380,7 +4391,35 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-4 lg:col-span-3 bg-amber-100/90 rounded-2xl p-2.5 border-2 border-amber-300 shadow-inner flex flex-col justify-between max-h-[580px]">
             <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 max-h-[500px]">
-              {filteredList.length > 0 ? (
+              {filteredList.length === 0 ? (
+                <div className="p-6 text-center bg-amber-950/40 rounded-xl border border-amber-500/30 my-4">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 text-2xl font-black">
+                    ✨
+                  </div>
+                  <h4 className="text-amber-200 font-extrabold text-sm mb-1">
+                    Bài học hiện chưa có từ vựng
+                  </h4>
+                  <p className="text-amber-300/80 text-xs mb-4">
+                    Thầy Hải có thể bấm nút dưới đây để nạp từ vựng mới hoặc dùng AI sinh tự động trọn bộ cho tiết học này!
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsBulkAiModalOpen(true)}
+                      className="px-3.5 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      <span>✨ 🤖 AI Nhập Hàng Loạt Từ</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenStudio()}
+                      className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      <span>➕ Soạn Từ Vựng Studio</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
                 filteredList.map((item, idx) => {
                   const isSelected = selectedIndex === idx;
                   const isStaimed = bookmarkedIds.includes(item.id);
@@ -4422,12 +4461,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     </button>
                   );
                 })
-              ) : (
-                <div className="p-4 text-center text-xs text-slate-500 font-medium">
-                  {activeTab === 'bookmarks' ? 'Chưa có từ vựng nào được đánh dấu ⭐' : 'Không tìm thấy từ vựng khớp tìm kiếm...'}
-                </div>
-              )}
-            </div>
+              )}</div>
             <div className="pt-2 border-t border-amber-300/80 mt-2 space-y-1.5">
               <button
                 type="button"
