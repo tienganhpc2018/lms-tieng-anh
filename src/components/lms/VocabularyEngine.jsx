@@ -2294,36 +2294,70 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
       const storyVersionIndex = ((storySeed % 5) + 5) % 5;
 
-      // GRADE-AWARE DYNAMIC STORIES (NO HARDCODED GRADE 7 CHARACTERS OR HOBBIES FOR GRADE 9)
-      const storyCharPrefix = (contextCharacters && contextCharacters.length > 0 && !contextCharacters.includes('Trang')) ? ('Hội Thoại ' + contextCharacters) : 'Tóm Tắt Bài Học';
+      // HIGH-LEVEL GRADE 9 NATURAL STORY ENGINE (V282 - ZERO "learning about" REPETITIONS)
+      const isGrade9Unit1 = currentWordsList.some(w => w.includes('suburb') || w.includes('facilities') || w.includes('craft') || w.includes('community'));
 
-      const dynamicStories = [
-        {
-          title: 'Truyện Từ Vựng (Version 1 - ' + storyCharPrefix + '): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'In our ' + lessonSec + ' lesson, students explore key topics in ' + currentUnitName + '. They practice ' + w1.en + ' and ' + w2.en + '. Furthermore, they focus on ' + w3.en + ' alongside ' + w4.en + '. Working together, students learn to ' + w5.en + ' and ' + w6.en + ', finding these activities ' + w7.en + ' and ' + w8.en + ' for their study.',
-          storyVi: 'Trong bài học ' + lessonSec + ', học sinh khám phá các chủ đề trọng tâm của ' + currentUnitName + '. Các bạn thực hành ' + w1.vi + ' và ' + w2.vi + '. Hơn nữa, học sinh tập trung vào ' + w3.vi + ' cùng với ' + w4.vi + '. Cùng nhau làm việc, các bạn học cách ' + w5.vi + ' và ' + w6.vi + ', nhận thấy những kiến thức này rất ' + w7.vi + ' và ' + w8.vi + ' cho việc học tập.'
-        },
-        {
-          title: 'Truyện Từ Vựng (Version 2 - Thảo Luận Nhóm Lớp Học): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'During the group discussion, students talk about ' + currentUnitName + '. They share insights on ' + w1.en + ' while ' + w2.en + '. Everyone agrees that ' + w3.en + ' and ' + w4.en + ' are essential. They also practice ' + w5.en + ' and ' + w6.en + ', making ' + w7.en + ' and ' + w8.en + ' meaningful.',
-          storyVi: 'Trong buổi thảo luận nhóm, học sinh trao đổi về chủ đề ' + currentUnitName + '. Các bạn chia sẻ góc nhìn về ' + w1.vi + ' trong khi ' + w2.vi + '. Mọi người đồng ý rằng ' + w3.vi + ' và ' + w4.vi + ' rất quan trọng. Các bạn cũng thực hành ' + w5.vi + ' và ' + w6.vi + ', làm cho ' + w7.vi + ' và ' + w8.vi + ' trở nên thật ý nghĩa.'
-        },
-        {
-          title: 'Truyện Từ Vựng (Version 3 - Dự Án Thực Hành Ngôn Ngữ): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Students present their class project on ' + currentUnitName + '. The project highlights ' + w1.en + ' and ' + w2.en + '. Group members focus on ' + w3.en + ' alongside ' + w4.en + '. They believe ' + w5.en + ' and ' + w6.en + ' provide ' + w7.en + ' knowledge for ' + w8.en + '.',
-          storyVi: 'Học sinh trình bày dự án học tập về ' + currentUnitName + '. Dự án làm nổi bật ' + w1.vi + ' và ' + w2.vi + '. Các thành viên tập trung vào ' + w3.vi + ' cùng với ' + w4.vi + '. Các bạn tin rằng ' + w5.vi + ' và ' + w6.vi + ' mang lại kiến thức ' + w7.vi + ' cho ' + w8.vi + '.'
-        },
-        {
-          title: 'Truyện Từ Vựng (Version 4 - Trải Nghiệm Thực Tế Bài Học): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'The teacher guides the class through real-life applications of ' + currentUnitName + '. Students discuss ' + w1.en + ' and ' + w2.en + '. Others practice ' + w3.en + ' and ' + w4.en + '. Engaging in ' + w5.en + ' and ' + w6.en + ' offers ' + w7.en + ' skills, enriching ' + w8.en + ' for everyone.',
-          storyVi: 'Giáo viên hướng dẫn cả lớp thông qua các ứng dụng thực tế của ' + currentUnitName + '. Học sinh thảo luận về ' + w1.vi + ' và ' + w2.vi + '. Những bạn khác thực hành ' + w3.vi + ' và ' + w4.vi + '. Tham gia vào ' + w5.vi + ' và ' + w6.vi + ' mang lại kỹ năng ' + w7.vi + ', làm phong phú thêm ' + w8.vi + ' cho mọi người.'
-        },
-        {
-          title: 'Truyện Từ Vựng (Version 5 - Tổng Kết Kiến Thức Trọng Tâm): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Working together in small groups inspires everyone in class. Group members practice ' + w1.en + ' and ' + w2.en + '. They also explore ' + w3.en + ' with ' + w4.en + '. Through ' + w5.en + ' and ' + w6.en + ', students build ' + w7.en + ' competencies and gain ' + w8.en + '.',
-          storyVi: 'Cùng nhau làm việc trong các nhóm nhỏ truyền cảm hứng cho tất cả mọi người trong lớp. Các thành viên nhóm thực hành ' + w1.vi + ' và ' + w2.vi + '. Các bạn cũng khám phá ' + w3.vi + ' với ' + w4.vi + '. Thông qua ' + w5.vi + ' và ' + w6.vi + ', học sinh phát triển năng lực ' + w7.vi + ' và tích lũy ' + w8.vi + '.'
-        }
-      ];
+      let dynamicStories = [];
+
+      if (isGrade9Unit1) {
+        dynamicStories = [
+          {
+            title: 'Truyện Từ Vựng (Version 1 - Tóm Tắt Hội Thoại Ann & Mi): Unit 1 - GETTING STARTED',
+            storyEn: 'Ann and Mi are chatting about Mi\'s new life in the suburbs. Mi shares that her family is still busy moving in to a new house. She loves living near a traditional craft village where local artisans make pottery. The neighbourhood has great public facilities such as parks and shopping centers. Mi finds it easy to get on with her new neighbours, who are always friendly. They often remind each other to keep the environment clean and support the local community. After packing all her household stuff, Mi enjoys having a health check-up and taking weekend walks around the area.',
+            storyVi: 'Ann và Mi đang trò chuyện về cuộc sống mới của Mi ở vùng ngoại ô. Mi chia sẻ rằng gia đình bạn ấy vẫn đang bận rộn chuyển đến (move in) nhà mới. Bạn ấy thích sống gần một làng nghề thủ công (craft village) nơi các nghệ nhân địa phương làm gốm. Khu phố có cơ sở vật chất (facilities) công cộng rất tuyệt vời như công viên và trung tâm thương mại. Mi cảm thấy dễ dàng hòa hợp (get on with) với những người hàng xóm mới rất thân thiện. Họ thường nhắc nhở (remind) nhau giữ gìn môi trường sạch đẹp và hỗ trợ cộng đồng (community) địa phương. Sau khi dọn dẹp xong toàn bộ đồ đạc (stuff) gia đình, Mi thoải mái đi khám sức khỏe (check-up) và đi dạo cuối tuần quanh khu vực.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 2 - Thảo Luận Nhóm Lớp Học Về Cộng Đồng): Unit 1 - GETTING STARTED',
+            storyEn: 'During the English class discussion, Grade 9 students present their ideas on local community development. Group members talk about the excitement of moving in to new residential areas and improving public facilities for everyone. They emphasize the importance of visiting a local craft village to learn about traditional heritage. Students also discuss ways to get on with people in the area and support their local community. To prepare for the new school year, students remind each other to organize their school stuff and schedule a regular health check-up.',
+            storyVi: 'Trong buổi thảo luận lớp Tiếng Anh, học sinh Lớp 9 trình bày ý tưởng về phát triển cộng đồng địa phương. Các thành viên trong nhóm nói về niềm vui khi chuyển đến (move in) khu dân cư mới và nâng cấp cơ sở vật chất (facilities) công cộng cho mọi người. Học sinh nhấn mạnh tầm quan trọng của việc ghé thăm làng nghề thủ công (craft village) để tìm hiểu di sản truyền thống. Các bạn cũng thảo luận về cách hòa hợp (get on with) với mọi người xung quanh và hỗ trợ cộng đồng (community) địa phương. Để chuẩn bị cho năm học mới, học sinh nhắc nhở (remind) nhau dọn dẹp đồ đạc (stuff) học tập và lên lịch đi khám sức khỏe (check-up) định kỳ.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 3 - Dự Án Khám Phá Khu Phố Mới): Unit 1 - GETTING STARTED',
+            storyEn: 'Our class project focuses on discovering community life in the neighbourhood. Last week, a new family decided to move in next door and unpack their personal stuff. The neighbourhood offers modern sports facilities and a famous craft village nearby. Living here makes it simple to get on with neighbours and build a strong local community. Health workers also visit regularly to provide a medical check-up for residents and remind everyone to stay healthy and active.',
+            storyVi: 'Dự án của lớp chúng em tập trung vào việc khám phá cuộc sống cộng đồng ở khu phố. Tuần trước, một gia đình mới đã quyết định chuyển đến (move in) sống bên cạnh và mở đồ đạc (stuff) cá nhân của họ. Khu phố cung cấp cơ sở vật chất (facilities) thể thao hiện đại và có một làng nghề thủ công (craft village) nổi tiếng gần đó. Sống ở đây giúp mọi người dễ dàng hòa hợp (get on with) với hàng xóm và xây dựng một cộng đồng (community) địa phương vững mạnh. Cán bộ y tế cũng thường xuyên đến thăm để khám sức khỏe (check-up) cho cư dân và nhắc nhở (remind) mọi người giữ gìn sức khỏe.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 4 - Trải Nghiệm Thực Tế Cuộc Sống Mới): Unit 1 - GETTING STARTED',
+            storyEn: 'Starting life in a new area is a memorable experience for Grade 9 students. When families move in, they spend time organizing household stuff and getting used to new facilities. Visiting a traditional craft village helps students appreciate local culture and artistry. Being open-minded makes it easy to get on with neighbours and contribute to the community. Friends often remind one another to balance studying with regular health check-up activities.',
+            storyVi: 'Bắt đầu cuộc sống tại một khu vực mới là một trải nghiệm đáng nhớ cho học sinh Lớp 9. Khi các gia đình chuyển đến (move in), họ dành thời gian sắp xếp đồ đạc (stuff) gia đình và làm quen với cơ sở vật chất (facilities) mới. Ghé thăm một làng nghề thủ công (craft village) truyền thống giúp học sinh trân trọng văn hóa và nghệ thuật địa phương. Cởi mở giúp mọi người dễ dàng hòa hợp (get on with) với hàng xóm và đóng góp cho cộng đồng (community). Bạn bè thường nhắc nhở (remind) nhau cân bằng việc học với các hoạt động khám sức khỏe (check-up) định kỳ.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 5 - Tổng Kết Kiến Thức Bài Học): Unit 1 - GETTING STARTED',
+            storyEn: 'Grade 9 Unit 1 connects essential vocabulary through a meaningful story of community life. Students learn how residents move in, arrange their stuff, and make use of neighborhood facilities. They explore the cultural value of a local craft village and learn how to get on with people around them. Through group activities, students build a caring community, remind each other of important goals, and maintain health with a regular check-up.',
+            storyVi: 'Unit 1 Tiếng Anh 9 kết nối các từ vựng trọng tâm thông qua câu chuyện ý nghĩa về cuộc sống cộng đồng. Học sinh tìm hiểu cách cư dân chuyển đến (move in), sắp xếp đồ đạc (stuff) và sử dụng cơ sở vật chất (facilities) trong khu phố. Các bạn khám phá giá trị văn hóa của làng nghề thủ công (craft village) địa phương và học cách hòa hợp (get on with) với mọi người xung quanh. Thông qua các hoạt động nhóm, học sinh xây dựng một cộng đồng (community) quan tâm lẫn nhau, nhắc nhở (remind) nhau về các mục tiêu quan trọng và giữ gìn sức khỏe bằng việc khám sức khỏe (check-up) định kỳ.'
+          }
+        ];
+      } else {
+        const storyCharPrefix = (contextCharacters && contextCharacters.length > 0 && !contextCharacters.includes('Trang')) ? ('Hội Thoại ' + contextCharacters) : 'Tóm Tắt Bài Học';
+        dynamicStories = [
+          {
+            title: 'Truyện Từ Vựng (Version 1 - ' + storyCharPrefix + '): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'In our ' + lessonSec + ' lesson, students explore key topics in ' + currentUnitName + '. They practice ' + w1.en + ' and ' + w2.en + '. Furthermore, they focus on ' + w3.en + ' alongside ' + w4.en + '. Working together, students learn to ' + w5.en + ' and ' + w6.en + ', finding these activities ' + w7.en + ' and ' + w8.en + ' for their study.',
+            storyVi: 'Trong bài học ' + lessonSec + ', học sinh khám phá các chủ đề trọng tâm của ' + currentUnitName + '. Các bạn thực hành ' + w1.vi + ' và ' + w2.vi + '. Hơn nữa, học sinh tập trung vào ' + w3.vi + ' cùng với ' + w4.vi + '. Cùng nhau làm việc, các bạn học cách ' + w5.vi + ' và ' + w6.vi + ', nhận thấy những kiến thức này rất ' + w7.vi + ' và ' + w8.vi + ' cho việc học tập.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 2 - Thảo Luận Nhóm Lớp Học): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'During the group discussion, students talk about ' + currentUnitName + '. They share insights on ' + w1.en + ' while ' + w2.en + '. Everyone agrees that ' + w3.en + ' and ' + w4.en + ' are essential. They also practice ' + w5.en + ' and ' + w6.en + ', making ' + w7.en + ' and ' + w8.en + ' meaningful.',
+            storyVi: 'Trong buổi thảo luận nhóm, học sinh trao đổi về chủ đề ' + currentUnitName + '. Các bạn chia sẻ góc nhìn về ' + w1.vi + ' trong khi ' + w2.vi + '. Mọi người đồng ý rằng ' + w3.vi + ' và ' + w4.vi + ' rất quan trọng. Các bạn cũng thực hành ' + w5.vi + ' và ' + w6.vi + ', làm cho ' + w7.vi + ' và ' + w8.vi + ' trở nên thật ý nghĩa.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 3 - Dự Án Thực Hành Ngôn Ngữ): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'Students present their class project on ' + currentUnitName + '. The project highlights ' + w1.en + ' and ' + w2.en + '. Group members focus on ' + w3.en + ' alongside ' + w4.en + '. They believe ' + w5.en + ' and ' + w6.en + ' provide ' + w7.en + ' knowledge for ' + w8.en + '.',
+            storyVi: 'Học sinh trình bày dự án học tập về ' + currentUnitName + '. Dự án làm nổi bật ' + w1.vi + ' và ' + w2.vi + '. Các thành viên tập trung vào ' + w3.vi + ' cùng với ' + w4.vi + '. Các bạn tin rằng ' + w5.vi + ' và ' + w6.vi + ' mang lại kiến thức ' + w7.vi + ' cho ' + w8.vi + '.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 4 - Trải Nghiệm Thực Tế Bài Học): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'The teacher guides the class through real-life applications of ' + currentUnitName + '. Students discuss ' + w1.en + ' and ' + w2.en + '. Others practice ' + w3.en + ' and ' + w4.en + '. Engaging in ' + w5.en + ' and ' + w6.en + ' offers ' + w7.en + ' skills, enriching ' + w8.en + ' for everyone.',
+            storyVi: 'Giáo viên hướng dẫn cả lớp thông qua các ứng dụng thực tế của ' + currentUnitName + '. Học sinh thảo luận về ' + w1.vi + ' và ' + w2.vi + '. Những bạn khác thực hành ' + w3.vi + ' và ' + w4.vi + '. Tham gia vào ' + w5.vi + ' và ' + w6.vi + ' mang lại kỹ năng ' + w7.vi + ', làm phong phú thêm ' + w8.vi + ' cho mọi người.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 5 - Tổng Kết Kiến Thức Trọng Tâm): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'Working together in small groups inspires everyone in class. Group members practice ' + w1.en + ' and ' + w2.en + '. They also explore ' + w3.en + ' with ' + w4.en + '. Through ' + w5.en + ' and ' + w6.en + ', students build ' + w7.en + ' competencies and gain ' + w8.en + '.',
+            storyVi: 'Cùng nhau làm việc trong các nhóm nhỏ truyền cảm hứng cho tất cả mọi người trong lớp. Các thành viên nhóm thực hành ' + w1.vi + ' và ' + w2.vi + '. Các bạn cũng khám phá ' + w3.vi + ' với ' + w4.vi + '. Thông qua ' + w5.vi + ' và ' + w6.vi + ', học sinh phát triển năng lực ' + w7.vi + ' và tích lũy ' + w8.vi + '.'
+          }
+        ];
+      }
+
 
       const selectedStory = dynamicStories[storyVersionIndex];
       setAiStoryData(selectedStory);
