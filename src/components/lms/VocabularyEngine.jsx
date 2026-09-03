@@ -2295,7 +2295,8 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       const storyVersionIndex = ((storySeed % 5) + 5) % 5;
 
       // HIGH-LEVEL GRADE 9 NATURAL STORY ENGINE (V282 - ZERO "learning about" REPETITIONS)
-      const isGrade9Unit1 = currentWordsList.some(w => w.includes('suburb') || w.includes('facilities') || w.includes('craft') || w.includes('community'));
+      const rawWordsText = currentWordsList.map(item => (typeof item === 'string' ? item : (item && item.word ? item.word : ''))).join(' ').toLowerCase();
+      const isGrade9Unit1 = rawWordsText.includes('suburb') || rawWordsText.includes('facilities') || rawWordsText.includes('craft') || rawWordsText.includes('community') || rawWordsText.includes('move in') || rawWordsText.includes('get on with') || rawWordsText.includes('check-up') || rawWordsText.includes('stuff') || rawWordsText.includes('remind');
 
       let dynamicStories = [];
 
