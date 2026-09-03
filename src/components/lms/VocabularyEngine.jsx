@@ -1889,11 +1889,11 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
         if (apiKey && pureBase64) {
           const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
 
-          const promptStr = "Bạn là giáo viên phân tích sách giáo khoa Tiếng Anh SGK xuất sắc. Hãy đọc thật kỹ hình ảnh chụp trang sách SGK này dành cho tiết [" + targetSec + "] thuộc [" + targetUnit + "] và phân tích chính xác 100% nội dung bài học trong ảnh để trả về JSON thuần túy (không kèm Markdown):\n" +
+          const promptStr = "Bạn là chuyên gia phân tích sách giáo khoa Tiếng Anh SGK xuất sắc. Hãy phân tích hình ảnh trang SGK tiết [" + targetSec + "] thuộc [" + targetUnit + "] và trả về JSON thuần túy (không kèm Markdown):\n" +
             "{\n" +
-            '  "characters": "Tên các nhân vật xuất hiện trong ảnh (ví dụ: Ann, Trang, Mark, Lan hoặc Author & Mother). Nếu bài đọc không có tên nhân vật cụ thể thì ghi tên chủ đề nhân vật (ví dụ: Người làm vườn & Trẻ em)",\n' +
-            '  "plot": "Tóm tắt chính xác 2-3 câu bằng Tiếng Việt về NỘI DUNG CHÍNH của bài đọc/đoạn thoại/bài tập xuất hiện trong ảnh chụp này. Cấm viết chung chung!",\n' +
-            '  "grammar": "Cấu trúc ngữ pháp trọng tâm hoặc mẫu câu xuất hiện trong ảnh"\n' +
+            '  "characters": "Tên các nhân vật trong hội thoại (ví dụ: Ann, Mi). NẾU BÀI HỌC LÀ BÀI TẬP/BÀI ĐỌC KHÔNG CÓ HỘI THOẠI THÌ ĐỂ RỖNG CHUỖI KHÔNG GHI TÊN NHÂN VẬT",\n' +
+            '  "plot": "Yêu cầu cần đạt & Nội dung chính bằng Tiếng Việt: Tóm tắt rõ 2-3 câu mục tiêu học sinh cần đạt và nhiệm vụ bài tập xuất hiện trong ảnh chụp này. CẤM viết từ \'Đoạn hội thoại\' nếu ảnh là bài tập nối/điền từ!",\n' +
+            '  "grammar": "Cấu trúc ngữ pháp trọng tâm hoặc danh mục từ vựng bài tập trong ảnh"\n' +
             "}";
 
           const res = await fetch(endpoint, {
@@ -1927,20 +1927,32 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
           }
         }
 
-        // DYNAMIC CONTEXT GENERATOR FROM CURRENT VOCABULARY LIST (NO HARDCODED GRADE 7 MOCK DATA)
+        // DYNAMIC SECTION-AWARE CONTEXT & LEARNING OBJECTIVES GENERATOR (V279)
+        const currentWordsList = (vocabList || []).map(i => (i.word || '').toLowerCase()).filter(Boolean);
         const currentWordsStr = (vocabList || []).map(i => i.word).filter(Boolean).join(', ');
-        
-        // Detect characters from words if present (e.g. Ann, Mi, Nick)
-        let dynChars = 'Ann, Mi';
-        if (currentWordsStr.toLowerCase().includes('suburb') || currentWordsStr.toLowerCase().includes('facilities') || currentWordsStr.toLowerCase().includes('craft village')) {
-          dynChars = 'Ann, Mi';
+
+        const isDialogueLesson = targetSec.toUpperCase().includes('GETTING STARTED');
+
+        if (isDialogueLesson) {
           setContextCharacters('Ann, Mi');
-          setContextPlot('Đoạn hội thoại tiết ' + targetSec + ': Ann và Mi trò chuyện về việc Mi mới chuyển đến nhà mới ở vùng ngoại ô (suburb), các tiện ích (facilities) và làng nghề thủ công (craft village) gần nhà.');
+          setContextPlot('Đoạn hội thoại tiết GETTING STARTED: Ann và Mi trò chuyện về việc Mi mới chuyển đến nhà mới ở vùng ngoại ô (suburb), các tiện ích (facilities) và làng nghề thủ công (craft village) gần nhà.');
           setContextGrammar('Phrasal Verbs (move in, get on with), Danh từ về khu phố & tiện ích.');
         } else {
-          setContextCharacters('Ann, Nick & Mi');
-          setContextPlot('Nội dung tiết ' + targetSec + ' thuộc ' + targetUnit + ': Thực hành các từ vựng trọng tâm (' + (currentWordsStr || 'từ vựng bài học') + ') và cấu trúc giao tiếp tương tác.');
-          setContextGrammar('Grammar & Target Vocabulary cho tiết ' + targetSec);
+          // NON-DIALOGUE LESSONS (A CLOSER LOOK 1, A CLOSER LOOK 2, SKILLS, ETC.) -> CLEAR CHARACTERS 100%!
+          setContextCharacters('');
+
+          const isCommunityJobs = currentWordsList.some(w => w.includes('police') || w.includes('firefighter') || w.includes('electrician') || w.includes('collector') || w.includes('delivery') || w.includes('officer'));
+
+          if (isCommunityJobs || targetSec.toUpperCase().includes('A CLOSER LOOK 1')) {
+            setContextPlot('Yêu cầu cần đạt tiết A CLOSER LOOK 1: Học sinh nhận biết và nối đúng tên các nghề nghiệp phục vụ cộng đồng (police officer, electrician, firefighter, garbage collector, delivery person) với định nghĩa nhiệm vụ tương ứng. Nắm vững vai trò của các nhân sự cộng đồng.');
+            setContextGrammar('Từ vựng các nghề nghiệp cộng đồng (police officer, electrician, firefighter, delivery person, garbage collector).');
+          } else if (targetSec.toUpperCase().includes('A CLOSER LOOK 2')) {
+            setContextPlot('Yêu cầu cần đạt tiết A CLOSER LOOK 2: Học sinh nắm vững cấu trúc ngữ pháp trọng tâm và hoàn thành các bài tập ứng dụng ngôn ngữ.');
+            setContextGrammar('Grammar Structures & Language Practice cho tiết ' + targetSec);
+          } else {
+            setContextPlot('Yêu cầu cần đạt tiết ' + targetSec + ': Thực hành bài tập tổng hợp và rèn luyện từ vựng trọng tâm (' + (currentWordsStr || 'từ vựng bài học') + ').');
+            setContextGrammar('Key Vocabulary & Exercises cho tiết ' + targetSec);
+          }
         }
         playSuccessSound();
         alert('🎉 Đã trích xuất xong nội dung bài học tiết [' + targetSec + '] từ ảnh chụp SGK!');
