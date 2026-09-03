@@ -1048,7 +1048,24 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [lockAheadLessonsForStudents, setLockAheadLessonsForStudents] = useState(
     () => settings.lockAheadLessonsForStudents || false
   );
-      const handleToggleLockGames = () => {
+        const handleClearAllVocabulary = () => {
+    if (window.confirm('Thầy Hải có chắc chắn muốn xóa toàn bộ từ vựng trong bài học này để soạn lại bài mới không?')) {
+      const emptyList = [];
+      setVocabList(emptyList);
+      setSelectedIndex(0);
+      if (onSaveActivity) {
+        onSaveActivity({
+          ...settings,
+          vocabularyList: emptyList,
+          voiceOption: voiceOption,
+          masterAudioUrl: masterAudioUrl,
+        });
+      }
+      alert('⚡ Đã xóa toàn bộ từ vựng thành công! Bài học hiện tại đã trở về không gian trống sạch sẽ.');
+    }
+  };
+
+  const handleToggleLockGames = () => {
     const nextVal = !lockGamesForStudents;
     setLockGamesForStudents(nextVal);
     
