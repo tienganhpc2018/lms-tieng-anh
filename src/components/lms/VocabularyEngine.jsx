@@ -747,16 +747,121 @@ const GLOBAL_SUCCESS_PRESETS = {
   }
 };
 
-// TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V267)
+// TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V268)
 const generateSmartPhrasesAndExamples = (word, posType = null) => {
   const lower = (word || '').toLowerCase().trim();
 
-  // 1. BUILT-IN DICTIONARY OF EXPLICIT SGK WORDS (MATCHING IMAGE 2 OXFORD STANDARD 100%)
+  // 1. BUILT-IN DICTIONARY OF EXPLICIT SGK WORDS (MATCHING IMAGE 1 PERFECTLY 100%)
+  if (lower === 'creativity') {
+    return {
+      pos: 'n',
+      phonetic: "/,kriːeɪ'tɪvəti/",
+      meaning: 'sự sáng tạo',
+      imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
+      phrases: ['creativity and originality', 'enhance creativity', 'artistic creativity'],
+      examples: [
+        'Big companies are always looking for creativity and originality.',
+        'Our teacher has a lot of activities to help us enhance creativity.'
+      ]
+    };
+  }
+  if (lower === 'insect') {
+    return {
+      pos: 'n',
+      phonetic: "/'ɪnsekt/",
+      meaning: 'côn trùng',
+      imageUrl: 'https://images.unsplash.com/photo-1534142463423-019e2388942e?w=600&auto=format&fit=crop&q=80',
+      phrases: ['insect species', 'beneficial insects', 'study insects'],
+      examples: [
+        'Bees and butterflies are beneficial insects in our garden.',
+        'Students learn about different insect species in biology class.'
+      ]
+    };
+  }
+  if (lower === 'maturity') {
+    return {
+      pos: 'n',
+      phonetic: "/mə'tʃʊərəti/",
+      meaning: 'sự trưởng thành, sự chín chắn',
+      imageUrl: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=600&auto=format&fit=crop&q=80',
+      phrases: ['emotional maturity', 'reach maturity', 'show great maturity'],
+      examples: [
+        'He showed great maturity in handling the difficult situation.',
+        'Personal growth leads to emotional maturity over time.'
+      ]
+    };
+  }
+  if (lower === 'patient') {
+    return {
+      pos: 'adj',
+      phonetic: "/'peɪʃnt/",
+      meaning: 'kiên nhẫn, nhẫn nại',
+      imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
+      phrases: ['be patient with someone', 'patient teacher', 'patiently wait'],
+      examples: [
+        'Teachers need to be patient with young learners.',
+        'She was very patient while explaining the lesson again.'
+      ]
+    };
+  }
+  if (lower === 'responsibility') {
+    return {
+      pos: 'n',
+      phonetic: "/rɪ,spɒnsə'bɪləti/",
+      meaning: 'trách nhiệm, sự chịu trách nhiệm',
+      imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&auto=format&fit=crop&q=80',
+      phrases: ['take responsibility', 'sense of responsibility', 'personal responsibility'],
+      examples: [
+        'Students should take responsibility for their own learning.',
+        'Doing chores at home helps children build a sense of responsibility.'
+      ]
+    };
+  }
+  if (lower === 'stress') {
+    return {
+      pos: 'n',
+      phonetic: '/stres/',
+      meaning: 'sự căng thẳng, áp lực',
+      imageUrl: 'https://images.unsplash.com/photo-1541199249251-f713e6145474?w=600&auto=format&fit=crop&q=80',
+      phrases: ['reduce stress', 'manage stress', 'under great stress'],
+      examples: [
+        'Doing regular exercise is a great way to reduce stress.',
+        'Students need to learn how to manage exam stress effectively.'
+      ]
+    };
+  }
+  if (lower === 'take on') {
+    return {
+      pos: 'phr v',
+      phonetic: '/teɪk ɒn/',
+      meaning: 'đảm nhận, gánh vác',
+      imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
+      phrases: ['take on a new challenge', 'take on responsibility', 'take on a project'],
+      examples: [
+        'She is ready to take on a new challenge in her career.',
+        'Our team decided to take on a science project this semester.'
+      ]
+    };
+  }
+  if (lower === 'valuable') {
+    return {
+      pos: 'adj',
+      phonetic: "/'væljuəbl/",
+      meaning: 'có giá trị, quý giá',
+      imageUrl: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80',
+      phrases: ['valuable lesson', 'valuable experience', 'valuable contribution'],
+      examples: [
+        'Learning from mistakes is a valuable experience for students.',
+        'She made a valuable contribution to our class group presentation.'
+      ]
+    };
+  }
   if (lower === 'campaign') {
     return {
       pos: 'n',
-      phonetic: '/kæmˈpeɪn/',
+      phonetic: "/kæm'peɪn/",
       meaning: 'chiến dịch',
+      imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=600&auto=format&fit=crop&q=80',
       phrases: ['campaign for something', 'campaign to do something', 'launch a campaign'],
       examples: [
         'Please join our campaign for a greener living environment.',
@@ -767,8 +872,9 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (lower === 'illustrate') {
     return {
       pos: 'v',
-      phonetic: '/ˈɪl.ə.streɪt/',
+      phonetic: "/'ɪl.ə.streɪt/",
       meaning: 'minh họa, làm rõ ý',
+      imageUrl: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80',
       phrases: ['illustrate a point', 'illustrate a concept', 'clearly illustrate'],
       examples: [
         'The diagrams clearly illustrate how the water cycle works.',
@@ -779,8 +885,9 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (lower === 'poster') {
     return {
       pos: 'n',
-      phonetic: '/ˈpəʊ.stər/',
+      phonetic: "/'pəʊ.stər/",
       meaning: 'áp phích, tranh thông báo',
+      imageUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80',
       phrases: ['design a poster', 'hang a poster', 'poster presentation'],
       examples: [
         'Students made a colorful poster about environmental protection.',
@@ -793,6 +900,7 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
       pos: 'n',
       phonetic: '/tɪp/',
       meaning: 'mẹo, lời khuyên hữu ích',
+      imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
       phrases: ['useful tip', 'study tips', 'tips for learning English'],
       examples: [
         'Here are five useful tips for learning new vocabulary words.',
@@ -800,68 +908,8 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
       ]
     };
   }
-  if (lower === 'spend') {
-    return {
-      pos: 'v',
-      phonetic: '/spend/',
-      meaning: 'dành (thời gian), tiêu (tiền bạc)',
-      phrases: ['spend time with friends', 'spend money on books', 'spend free time'],
-      examples: [
-        'I like to spend my free time reading English stories.',
-        'Many students spend their weekend doing outdoor activities.'
-      ]
-    };
-  }
-  if (lower === 'general') {
-    return {
-      pos: 'adj',
-      phonetic: '/ˈdʒen.ər.əl/',
-      meaning: 'tổng quát, chung (đúng với hầu hết mọi trường hợp)',
-      phrases: ['in general', 'general knowledge', 'general public'],
-      examples: [
-        'In general, most students enjoy interactive English lessons.',
-        'She has a great general knowledge of English vocabulary.'
-      ]
-    };
-  }
-  if (lower === 'especially') {
-    return {
-      pos: 'adv',
-      phonetic: '/ɪˈspeʃ.əl.i/',
-      meaning: 'đặc biệt là, nhất là',
-      phrases: ['especially for students', 'especially in summer', 'especially important'],
-      examples: [
-        'I love reading books, especially English stories.',
-        'This game is especially useful for memorizing vocabulary.'
-      ]
-    };
-  }
-  if (lower === 'exercise') {
-    return {
-      pos: 'n',
-      phonetic: '/ˈek.sə.saɪz/',
-      meaning: 'bài tập, sự tập thể dục',
-      phrases: ['do exercise', 'morning exercise', 'grammar exercise'],
-      examples: [
-        'Doing regular exercise keeps our body healthy and strong.',
-        'We complete a grammar exercise at the start of every lesson.'
-      ]
-    };
-  }
-  if (lower === 'science') {
-    return {
-      pos: 'n',
-      phonetic: '/ˈsaɪ.əns/',
-      meaning: 'khoa học',
-      phrases: ['science project', 'science lesson', 'natural science'],
-      examples: [
-        'Science is my favorite subject at school.',
-        'They are working on a science experiment together.'
-      ]
-    };
-  }
 
-  // 2. DETECT POS AUTOMATICALLY FROM VERBS / ADJECTIVES / ADVERBS / NOUNS
+  // 2. DETECT POS AUTOMATICALLY FROM VERBS / ADJECTIVES / ADVERBS / PHRASAL VERBS / NOUNS
   const commonVerbs = [
     'illustrate', 'spend', 'encourage', 'collect', 'build', 'make', 'do', 'enjoy', 'play',
     'talk', 'watch', 'listen', 'study', 'learn', 'help', 'visit', 'take',
@@ -870,19 +918,35 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
     'sell', 'think', 'know', 'feel', 'see', 'look', 'hear', 'practice', 'create'
   ];
 
-  const isDetectedVerb = posType === 'v' || posType === 'v phr' || commonVerbs.includes(lower) || lower.endsWith('ate') || lower.endsWith('ise') || lower.endsWith('ize');
+  const isPhrasalVerb = posType === 'phr v' || lower.includes(' ') && (lower.startsWith('take ') || lower.startsWith('go ') || lower.startsWith('turn ') || lower.startsWith('look ') || lower.startsWith('get ') || lower.startsWith('give ') || lower.startsWith('put ') || lower.startsWith('keep '));
+  const isDetectedVerb = !isPhrasalVerb && (posType === 'v' || commonVerbs.includes(lower) || lower.endsWith('ate') || lower.endsWith('ise') || lower.endsWith('ize'));
   const isDetectedAdv = posType === 'adv' || lower.endsWith('ly');
-  const isDetectedAdj = posType === 'adj' || lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al') || lower.endsWith('able');
+  const isDetectedAdj = posType === 'adj' || lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al') || lower.endsWith('able') || lower.endsWith('ent');
+
+  if (isPhrasalVerb) {
+    return {
+      pos: 'phr v',
+      phonetic: '/' + lower + '/',
+      meaning: lower,
+      imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
+      phrases: [lower + ' a new challenge', lower + ' responsibility', lower + ' a project'],
+      examples: [
+        'Students are ready to ' + lower + ' a new project in class.',
+        'Learning to ' + lower + ' new duties helps build personal confidence.'
+      ]
+    };
+  }
 
   if (isDetectedVerb) {
     return {
       pos: 'v',
       phonetic: '/' + lower + '/',
       meaning: lower,
+      imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80',
       phrases: [lower + ' a concept', lower + ' for students', 'learn how to ' + lower],
       examples: [
-        'Teachers often use diagrams to ' + lower + ' important points clearly.',
-        'Students are encouraged to ' + lower + ' during group work in class.'
+        'Teachers often encourage students to ' + lower + ' during class.',
+        'Students learn how to ' + lower + ' effectively in groups.'
       ]
     };
   }
@@ -892,6 +956,7 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
       pos: 'adv',
       phonetic: '/' + lower + '/',
       meaning: lower,
+      imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
       phrases: ['work ' + lower, 'speak ' + lower, 'act ' + lower],
       examples: [
         'She ' + lower + ' completes all her assignments before class.',
@@ -905,6 +970,7 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
       pos: 'adj',
       phonetic: '/' + lower + '/',
       meaning: lower,
+      imageUrl: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80',
       phrases: ['very ' + lower, 'a ' + lower + ' approach', 'remain ' + lower],
       examples: [
         'This ' + lower + ' method helps students learn vocabulary effectively.',
@@ -913,15 +979,16 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
     };
   }
 
-  // 3. DEFAULT NOUN (OXFORD STYLE - NO DUMMY IMPORTANT/GREAT/STUDY OF)
+  // 3. DEFAULT NOUN (OXFORD STYLE - NO DUMMY LAZY PHRASES)
   return {
     pos: 'n',
     phonetic: '/' + lower + '/',
     meaning: lower,
-    phrases: [lower + ' for something', lower + ' project', 'key ' + lower],
+    imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
+    phrases: [lower + ' and development', 'enhance ' + lower, 'key ' + lower],
     examples: [
-      'Please join our ' + lower + ' to make our school environment better.',
-      'Understanding the concept of ' + lower + ' is essential for our lesson.'
+      'Understanding the concept of ' + lower + ' is essential for our lesson.',
+      'Our teacher has a lot of activities to help us develop ' + lower + '.'
     ]
   };
 };
@@ -2815,7 +2882,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
           let phonetic = `/${lower}/`;
           let meaning = lower;
           let img = 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80';
-          const fallbackData = generateSmartPhrasesAndExamples(w, 'n');
+          const fallbackData = generateSmartPhrasesAndExamples(w, null);
           let phrases = fallbackData.phrases;
           let examples = fallbackData.examples;
           if (fallbackData.pos) pos = fallbackData.pos;
@@ -2848,7 +2915,32 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
           };
         });
       }
-      // GUARANTEE VIETNAMESE TRANSLATION FOR EVERY GENERATED ITEM
+      // SANITIZE POS, PHRASES, EXAMPLES & IMAGES FOR EVERY GENERATED ITEM (V268)
+      for (let i = 0; i < generatedEntries.length; i++) {
+        const item = generatedEntries[i];
+        const wLower = (item.word || '').toLowerCase().trim();
+
+        // CHECK IF HIGH-QUALITY DICTIONARY ENTRY EXISTS
+        const dictEntry = generateSmartPhrasesAndExamples(wLower, item.pos);
+        if (dictEntry) {
+          if (dictEntry.pos) item.pos = dictEntry.pos;
+          if (dictEntry.phonetic && (!item.phonetic || item.phonetic.length < 3)) item.phonetic = dictEntry.phonetic;
+          if (dictEntry.meaning && (item.meaning.includes('nghĩa') || item.meaning === item.word)) item.meaning = dictEntry.meaning;
+          if (dictEntry.imageUrl) item.imageUrl = dictEntry.imageUrl;
+
+          // IF PHRASES/EXAMPLES ARE DUMMY/GENERIC OR EMPTY, OVERRIDE WITH HIGH-QUALITY DICTIONARY DATA
+          const hasDummyPhrase = !item.phrases || item.phrases.length === 0 || item.phrases.some(p => p.includes('learn ') || p.includes('use ') || p.includes('important ') || p.includes('great '));
+          const hasDummyExample = !item.examples || item.examples.length === 0 || item.examples.some(e => e.includes('useful in daily conversation') || e.includes('introduced the topic'));
+
+          if (hasDummyPhrase && dictEntry.phrases && dictEntry.phrases.length > 0) {
+            item.phrases = dictEntry.phrases;
+          }
+          if (hasDummyExample && dictEntry.examples && dictEntry.examples.length > 0) {
+            item.examples = dictEntry.examples;
+          }
+        }
+      }
+            // GUARANTEE VIETNAMESE TRANSLATION FOR EVERY GENERATED ITEM
       for (let i = 0; i < generatedEntries.length; i++) {
         const item = generatedEntries[i];
         const wLower = (item.word || '').toLowerCase().trim();
