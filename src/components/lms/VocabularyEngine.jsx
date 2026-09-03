@@ -1246,15 +1246,28 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const settings = activity?.settings || {};
   // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
   const detectActivityGrade = (act) => {
-    const g = (act?.grade || act?.settings?.grade || act?.selectedGrade || act?.title || '').toString();
-    if (g.includes('6')) return 'Lớp 6';
-    if (g.includes('7')) return 'Lớp 7';
-    if (g.includes('8')) return 'Lớp 8';
-    if (g.includes('9')) return 'Lớp 9';
-    if (g.includes('10')) return 'Lớp 10';
-    if (g.includes('11')) return 'Lớp 11';
-    if (g.includes('12')) return 'Lớp 12';
-    return 'Lớp 7';
+    const searchStr = (
+      (act?.course_title || '') + ' ' +
+      (act?.course_name || '') + ' ' +
+      (act?.course?.title || '') + ' ' +
+      (act?.courseGrade || '') + ' ' +
+      (act?.grade || '') + ' ' +
+      (act?.settings?.grade || '') + ' ' +
+      (act?.selectedGrade || '') + ' ' +
+      (act?.title || '') + ' ' +
+      (typeof window !== 'undefined' ? window.location.href : '')
+    ).toString().toLowerCase();
+
+    if (searchStr.includes('9') || searchStr.includes('lớp 9') || searchStr.includes('tiếng anh 9')) return 'Lớp 9';
+    if (searchStr.includes('8') || searchStr.includes('lớp 8') || searchStr.includes('tiếng anh 8')) return 'Lớp 8';
+    if (searchStr.includes('6') || searchStr.includes('lớp 6') || searchStr.includes('tiếng anh 6')) return 'Lớp 6';
+    if (searchStr.includes('10') || searchStr.includes('lớp 10')) return 'Lớp 10';
+    if (searchStr.includes('11') || searchStr.includes('lớp 11')) return 'Lớp 11';
+    if (searchStr.includes('12') || searchStr.includes('lớp 12')) return 'Lớp 12';
+    if (searchStr.includes('7') || searchStr.includes('lớp 7') || searchStr.includes('tiếng anh 7')) return 'Lớp 7';
+
+    // DEFAULT TO LỚP 9 FOR ALL CURRENT GRADE 9 LESSON PREPARATIONS ACCORDING TO THẦY HẢI
+    return 'Lớp 9';
   };
   const activityGrade = detectActivityGrade(activity);
   // MAIN VOCABULARY LIST (STRICTLY SCOPED BY GRADE ACCORDING TO THẦY HẢI)
@@ -2281,31 +2294,34 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
       const storyVersionIndex = ((storySeed % 5) + 5) % 5;
 
+      // GRADE-AWARE DYNAMIC STORIES (NO HARDCODED GRADE 7 CHARACTERS OR HOBBIES FOR GRADE 9)
+      const storyCharPrefix = (contextCharacters && contextCharacters.length > 0 && !contextCharacters.includes('Trang')) ? ('Hội Thoại ' + contextCharacters) : 'Tóm Tắt Bài Học';
+
       const dynamicStories = [
         {
-          title: 'Truyện Từ Vựng (Version 1 - Tóm Tắt Hội Thoại Ann & Trang): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'In our Getting Started lesson, students share their favorite activities. Trang likes ' + w1.en + ' and ' + w2.en + ' in class. Nick enjoys ' + w3.en + ' and ' + w4.en + '. Together, they practice ' + w5.en + ' and ' + w6.en + ', finding them ' + w7.en + ' and ' + w8.en + ' for everyone.',
-          storyVi: 'Trong tiết Getting Started, học sinh chia sẻ các hoạt động yêu thích của mình. Trang thích ' + w1.vi + ' và ' + w2.vi + ' ở trên lớp. Nick thích ' + w3.vi + ' và ' + w4.vi + '. Cùng nhau, các bạn thực hành ' + w5.vi + ' và ' + w6.vi + ', nhận thấy chúng là những sở thích ' + w7.vi + ' và ' + w8.vi + ' cho tất cả mọi người.'
+          title: 'Truyện Từ Vựng (Version 1 - ' + storyCharPrefix + '): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'In our ' + lessonSec + ' lesson, students explore key topics in ' + currentUnitName + '. They practice ' + w1.en + ' and ' + w2.en + '. Furthermore, they focus on ' + w3.en + ' alongside ' + w4.en + '. Working together, students learn to ' + w5.en + ' and ' + w6.en + ', finding these activities ' + w7.en + ' and ' + w8.en + ' for their study.',
+          storyVi: 'Trong bài học ' + lessonSec + ', học sinh khám phá các chủ đề trọng tâm của ' + currentUnitName + '. Các bạn thực hành ' + w1.vi + ' và ' + w2.vi + '. Hơn nữa, học sinh tập trung vào ' + w3.vi + ' cùng với ' + w4.vi + '. Cùng nhau làm việc, các bạn học cách ' + w5.vi + ' và ' + w6.vi + ', nhận thấy những kiến thức này rất ' + w7.vi + ' và ' + w8.vi + ' cho việc học tập.'
         },
         {
-          title: 'Truyện Từ Vựng (Version 2 - Hội Thoại Mi & Nick): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'During the lesson, Mi and Nick present their weekly interests. Mi enjoys ' + w1.en + ' while ' + w2.en + '. Nick prefers ' + w3.en + ' and ' + w4.en + '. They agree that ' + w5.en + ' and ' + w6.en + ' are ' + w7.en + ' ways to relax, creating ' + w8.en + ' for all students.',
-          storyVi: 'Trong bài học, Mi và Nick trình bày về sở thích hàng tuần của mình. Mi thích ' + w1.vi + ' trong khi ' + w2.vi + '. Nick thích ' + w3.vi + ' và ' + w4.vi + '. Các bạn đồng ý rằng ' + w5.vi + ' và ' + w6.vi + ' là những cách ' + w7.vi + ' để thư giãn, tạo nên ' + w8.vi + ' cho tất cả học sinh.'
+          title: 'Truyện Từ Vựng (Version 2 - Thảo Luận Nhóm Lớp Học): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'During the group discussion, students talk about ' + currentUnitName + '. They share insights on ' + w1.en + ' while ' + w2.en + '. Everyone agrees that ' + w3.en + ' and ' + w4.en + ' are essential. They also practice ' + w5.en + ' and ' + w6.en + ', making ' + w7.en + ' and ' + w8.en + ' meaningful.',
+          storyVi: 'Trong buổi thảo luận nhóm, học sinh trao đổi về chủ đề ' + currentUnitName + '. Các bạn chia sẻ góc nhìn về ' + w1.vi + ' trong khi ' + w2.vi + '. Mọi người đồng ý rằng ' + w3.vi + ' và ' + w4.vi + ' rất quan trọng. Các bạn cũng thực hành ' + w5.vi + ' và ' + w6.vi + ', làm cho ' + w7.vi + ' và ' + w8.vi + ' trở nên thật ý nghĩa.'
         },
         {
-          title: 'Truyện Từ Vựng (Version 3 - Hội Thoại Elena & Bạn Bè): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Ann shows her creative project to Elena during break time. Ann focuses on ' + w1.en + ' and ' + w2.en + '. Elena enjoys ' + w3.en + ' alongside ' + w4.en + '. They believe ' + w5.en + ' and ' + w6.en + ' are ' + w7.en + ' hobbies, which make ' + w8.en + ' enjoyable.',
-          storyVi: 'Ann khoe dự án sáng tạo của mình với Elena trong giờ giải lao. Ann tập trung vào ' + w1.vi + ' và ' + w2.vi + '. Elena thích ' + w3.vi + ' cùng với ' + w4.vi + '. Hai bạn tin rằng ' + w5.vi + ' và ' + w6.vi + ' là những sở thích ' + w7.vi + ', làm cho ' + w8.vi + ' trở nên thú vị.'
+          title: 'Truyện Từ Vựng (Version 3 - Dự Án Thực Hành Ngôn Ngữ): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Students present their class project on ' + currentUnitName + '. The project highlights ' + w1.en + ' and ' + w2.en + '. Group members focus on ' + w3.en + ' alongside ' + w4.en + '. They believe ' + w5.en + ' and ' + w6.en + ' provide ' + w7.en + ' knowledge for ' + w8.en + '.',
+          storyVi: 'Học sinh trình bày dự án học tập về ' + currentUnitName + '. Dự án làm nổi bật ' + w1.vi + ' và ' + w2.vi + '. Các thành viên tập trung vào ' + w3.vi + ' cùng với ' + w4.vi + '. Các bạn tin rằng ' + w5.vi + ' và ' + w6.vi + ' mang lại kiến thức ' + w7.vi + ' cho ' + w8.vi + '.'
         },
         {
-          title: 'Truyện Từ Vựng (Version 4 - Khám Phá Sở Thích Cuối Tuần): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'The teacher asks the class about their weekend routines. Some students prefer ' + w1.en + ' and ' + w2.en + '. Others like ' + w3.en + ' and ' + w4.en + '. Participating in ' + w5.en + ' and ' + w6.en + ' is ' + w7.en + ', making ' + w8.en + ' a great experience.',
-          storyVi: 'Thầy giáo hỏi cả lớp về các thói quen cuối tuần. Một số học sinh thích ' + w1.vi + ' và ' + w2.vi + '. Những bạn khác thích ' + w3.vi + ' và ' + w4.vi + '. Tham gia vào ' + w5.vi + ' và ' + w6.vi + ' rất ' + w7.vi + ', biến ' + w8.vi + ' thành một trải nghiệm tuyệt vời.'
+          title: 'Truyện Từ Vựng (Version 4 - Trải Nghiệm Thực Tế Bài Học): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'The teacher guides the class through real-life applications of ' + currentUnitName + '. Students discuss ' + w1.en + ' and ' + w2.en + '. Others practice ' + w3.en + ' and ' + w4.en + '. Engaging in ' + w5.en + ' and ' + w6.en + ' offers ' + w7.en + ' skills, enriching ' + w8.en + ' for everyone.',
+          storyVi: 'Giáo viên hướng dẫn cả lớp thông qua các ứng dụng thực tế của ' + currentUnitName + '. Học sinh thảo luận về ' + w1.vi + ' và ' + w2.vi + '. Những bạn khác thực hành ' + w3.vi + ' và ' + w4.vi + '. Tham gia vào ' + w5.vi + ' và ' + w6.vi + ' mang lại kỹ năng ' + w7.vi + ', làm phong phú thêm ' + w8.vi + ' cho mọi người.'
         },
         {
-          title: 'Truyện Từ Vựng (Version 5 - Dự Án Đội Nhóm Lớp Học): ' + currentUnitName + ' - ' + lessonSec,
-          storyEn: 'Working together in small groups inspires everyone in class. Group members practice ' + w1.en + ' and ' + w2.en + '. They also try ' + w3.en + ' with ' + w4.en + '. Through ' + w5.en + ' and ' + w6.en + ', students build ' + w7.en + ' skills and experience ' + w8.en + '.',
-          storyVi: 'Cùng nhau làm việc trong các nhóm nhỏ truyền cảm hứng cho tất cả mọi người trong lớp. Các thành viên nhóm thực hành ' + w1.vi + ' và ' + w2.vi + '. Các bạn cũng thử ' + w3.vi + ' với ' + w4.vi + '. Thông qua ' + w5.vi + ' và ' + w6.vi + ', học sinh xây dựng ' + w7.vi + ' và trải nghiệm ' + w8.vi + '.'
+          title: 'Truyện Từ Vựng (Version 5 - Tổng Kết Kiến Thức Trọng Tâm): ' + currentUnitName + ' - ' + lessonSec,
+          storyEn: 'Working together in small groups inspires everyone in class. Group members practice ' + w1.en + ' and ' + w2.en + '. They also explore ' + w3.en + ' with ' + w4.en + '. Through ' + w5.en + ' and ' + w6.en + ', students build ' + w7.en + ' competencies and gain ' + w8.en + '.',
+          storyVi: 'Cùng nhau làm việc trong các nhóm nhỏ truyền cảm hứng cho tất cả mọi người trong lớp. Các thành viên nhóm thực hành ' + w1.vi + ' và ' + w2.vi + '. Các bạn cũng khám phá ' + w3.vi + ' với ' + w4.vi + '. Thông qua ' + w5.vi + ' và ' + w6.vi + ', học sinh phát triển năng lực ' + w7.vi + ' và tích lũy ' + w8.vi + '.'
         }
       ];
 
