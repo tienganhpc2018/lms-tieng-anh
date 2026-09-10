@@ -1,3 +1,30 @@
+
+// DIALOGUE KEYWORDS DICTIONARY FOR INTERACTIVE TOOLTIPS (V298)
+const DIALOGUE_KEY_WORDS_DICT = {
+  'physical health': { ipa: '/ˈfɪzɪkl helθ/', vi: 'Sức khỏe thể chất (cơ thể, vận động)', icon: '🏃‍♂️' },
+  'mental health': { ipa: '/ˈmentl helθ/', vi: 'Sức khỏe tinh thần (tâm trí, cảm xúc)', icon: '🧠' },
+  'counsellor': { ipa: '/ˈkaʊnsələ(r)/', vi: 'Tư vấn viên / Thầy cô tham vấn học đường', icon: '👨‍🏫' },
+  'school counsellor': { ipa: '/skuːl ˈkaʊnsələ(r)/', vi: 'Thầy/Cô tư vấn tâm lý học đường', icon: '🏫' },
+  'neighbourhood': { ipa: '/ˈneɪbəhʊd/', vi: 'Khu vực xóm giềng / Khu phố sinh sống', icon: '🏡' },
+  'facilities': { ipa: '/fəˈsɪlətiz/', vi: 'Cơ sở vật chất, tiện ích công cộng', icon: '🏛️' },
+  'suburb': { ipa: '/ˈsʌbɜːb/', vi: 'Vùng ngoại ô thành phố', icon: '🌳' },
+  'creative': { ipa: '/kriˈeɪtɪv/', vi: 'Sáng tạo, có nhiều ý tưởng mới', icon: '🎨' },
+  'cardboard': { ipa: '/ˈkɑːdbɔːd/', vi: 'Bìa các-tông, giấy cứng', icon: '📦' },
+  'exercise': { ipa: '/ˈeksəsaɪz/', vi: 'Tập thể dục, rèn luyện thân thể', icon: '💪' },
+  'diet': { ipa: '/ˈdaɪət/', vi: 'Chế độ ăn uống dinh dưỡng', icon: '🥗' },
+  'sleep': { ipa: '/sliːp/', vi: 'Giấc ngủ, ngủ nghỉ đủ giờ', icon: '😴' },
+  'hobbies': { ipa: '/ˈhɒbiz/', vi: 'Các sở thích rảnh rỗi', icon: '🎸' }
+};
+
+const getSpeakerGender = (speakerRaw) => {
+  const s = (speakerRaw || '').toLowerCase().trim();
+  const femaleKeywords = ['ann', 'mi', 'trang', 'elena', 'mai', 'mary', 'linda', 'mrs', 'ms', 'miss', 'mother', 'mom', 'girl', 'woman', 'sister', 'aunt', 'kate', 'lisa', 'sarah'];
+  const maleKeywords = ['nick', 'nam', 'phong', 'mark', 'peter', 'tom', 'david', 'ben', 'mr', 'father', 'dad', 'boy', 'man', 'brother', 'uncle', 'doctor', 'counsellor', 'school counsellor', 'john', 'alex', 'jack', 'sam'];
+
+  if (femaleKeywords.some(k => s.includes(k))) return 'female';
+  if (maleKeywords.some(k => s.includes(k))) return 'male';
+  return 'male';
+};
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Clipboard,
@@ -1246,40 +1273,90 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const settings = activity?.settings || {};
   // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
   
-  // MULTI-VOICE SPEECH SYNTHESIS ENGINE FOR DIALOGUE LESSON (V297 ENHANCED UK OXFORD AUDIO)
+  // WEB AUDIO API AMBIENT SOUND GENERATOR (V298)
+  const playAmbientSoundEffect = (type = 'chime') => {
+    if (typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'happy') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.15); // E5
+        osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.3); // G5
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+      } else if (type === 'sad') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(329.63, ctx.currentTime); // E4
+        osc.frequency.exponentialRampToValueAtTime(293.66, ctx.currentTime + 0.3); // D4
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.2);
+      }
+    } catch (e) {
+      console.warn('Audio Context Synth:', e);
+    }
+  };
+
+  // MULTI-VOICE SPEECH SYNTHESIS ENGINE (V298 ACCURATE GENDER & EMOTIONS)
   const speakDialogueLine = (lineObj, onEndedCallback) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
     window.speechSynthesis.cancel();
-    const speaker = (lineObj?.speaker || '').toLowerCase();
+    const speaker = lineObj?.speaker || '';
     const text = lineObj?.text || '';
     if (!text) return;
 
+    const gender = getSpeakerGender(speaker);
+    const isMale = gender === 'male';
+    const isAdult = speaker.toLowerCase().includes('counsellor') || speaker.toLowerCase().includes('teacher') || speaker.toLowerCase().includes('mr') || speaker.toLowerCase().includes('mrs') || speaker.toLowerCase().includes('doctor');
+
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('happy') || lowerText.includes('great') || lowerText.includes('welcome') || lowerText.includes('love') || lowerText.includes('!') || lowerText.includes('haha')) {
+      playAmbientSoundEffect('happy');
+    } else if (lowerText.includes('sad') || lowerText.includes('sorry') || lowerText.includes('problem') || lowerText.includes('trouble')) {
+      playAmbientSoundEffect('sad');
+    } else if (isBgMusicActive) {
+      playAmbientSoundEffect('chime');
+    }
+
     const utterance = new SpeechSynthesisUtterance(text);
-    // 100% Standard British Accent (en-GB)
     utterance.lang = 'en-GB';
 
-    // Speed tuned according to SGK audio standard & user selected speed
     const baseRate = dialogueSpeed || 0.8;
     utterance.rate = baseRate * 0.95;
 
-    // Character voice tuning (Female vs Male, Child vs Adult)
-    const isMale = speaker.includes('nick') || speaker.includes('nam') || speaker.includes('phong') || speaker.includes('mark') || speaker.includes('peter') || speaker.includes('tom') || speaker.includes('he') || speaker.includes('david') || speaker.includes('ben');
-    const isTeacher = speaker.includes('teacher') || speaker.includes('mr') || speaker.includes('mrs') || speaker.includes('ms');
-
-    if (isTeacher) {
-      utterance.pitch = isMale ? 0.9 : 1.0;
+    if (isAdult) {
+      utterance.pitch = isMale ? 0.85 : 0.98;
     } else if (isMale) {
-      utterance.pitch = 0.95;
+      utterance.pitch = 0.92;
     } else {
-      utterance.pitch = 1.18; // Melodic UK Girl voice
+      utterance.pitch = 1.22;
     }
 
     if (text.endsWith('!')) {
-      utterance.pitch += 0.08;
+      utterance.pitch += 0.1;
       utterance.volume = 1.0;
     } else if (text.endsWith('?')) {
-      utterance.pitch += 0.12;
+      utterance.pitch += 0.14;
     }
 
     const voices = window.speechSynthesis.getVoices();
@@ -1287,9 +1364,9 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     
     let targetVoice = null;
     if (gbVoices.length > 0) {
-      targetVoice = gbVoices.find(v => (isMale ? (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('oliver')) : (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('hazel') || v.name.toLowerCase().includes('susan') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('charlotte')))) || gbVoices[0];
+      targetVoice = gbVoices.find(v => (isMale ? (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('oliver') || v.name.toLowerCase().includes('daniel')) : (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('hazel') || v.name.toLowerCase().includes('susan') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('charlotte')))) || gbVoices[0];
     } else {
-      targetVoice = voices.find(v => v.lang.startsWith('en') && (isMale ? v.name.toLowerCase().includes('male') : v.name.toLowerCase().includes('female')));
+      targetVoice = voices.find(v => v.lang.startsWith('en') && (isMale ? (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david')) : (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira'))));
     }
 
     if (targetVoice) {
@@ -1345,7 +1422,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     setRolePlayStepIndex(null);
   };
 
-  // ROLE-PLAY INTERACTIVE MODE HANDLERS
+  // ROLE-PLAY INTERACTIVE MODE HANDLERS WITH SWAP CHARACTERS
   const handleStartRolePlay = () => {
     const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
     if (!activeTabObj || !activeTabObj.lines) return;
@@ -1390,6 +1467,22 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     setIsWaitingForUserRead(false);
     const nextIdx = (rolePlayStepIndex || 0) + 1;
     playRolePlayStep(nextIdx, activeTabObj.lines);
+  };
+
+  // NÚT 🔄 ĐẢO VAI TỰ ĐỘNG (SWAP CHARACTERS)
+  const handleSwapRolePlayCharacter = () => {
+    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+    if (!activeTabObj || !activeTabObj.lines) return;
+
+    const uniqueSpeakers = Array.from(new Set(activeTabObj.lines.map(l => l.speaker.trim())));
+    if (uniqueSpeakers.length < 2) return;
+
+    const currIdx = uniqueSpeakers.findIndex(s => s.toLowerCase() === userSelectedCharacter.toLowerCase());
+    const nextIdx = (currIdx + 1) % uniqueSpeakers.length;
+    const newChar = uniqueSpeakers[nextIdx];
+
+    setUserSelectedCharacter(newChar);
+    playSuccessSound();
   };
 
   // PRONUNCIATION SCORING ENGINE (0-100%)
@@ -5021,9 +5114,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
       
       
-      {/* TAB BÀI HỌC HỘI THOẠI SGK (LISTEN AND READ) (V297 ENHANCED) */}
+      {/* TAB BÀI HỌC HỘI THOẠI SGK (LISTEN AND READ) (V298 MASTER AUDIO & 4 FEATURES) */}
       {activeTab === 'dialogue_lesson' && (
-        <div className="bg-white rounded-3xl p-4 sm:p-6 border-4 border-purple-400 shadow-2xl space-y-5 animate-fade-in text-slate-900 my-4 print:p-0 print:border-none print:shadow-none">
+        <div className="bg-white rounded-3xl p-4 sm:p-6 border-4 border-purple-400 shadow-2xl space-y-5 animate-fade-in text-slate-900 my-4 print:p-0 print:border-none print:shadow-none relative">
           {/* HEADER BAR */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-100 pb-4 print:hidden">
             <div className="flex items-center space-x-3">
@@ -5031,10 +5124,10 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               <div>
                 <h3 className="font-black text-lg sm:text-xl text-purple-950 uppercase tracking-wide flex items-center space-x-2">
                   <span>BÀI HỌC HỘI THOẠI SGK (LISTEN AND READ)</span>
-                  <span className="text-xs bg-purple-200 text-purple-900 px-2 py-0.5 rounded-md font-bold">Giọng UK Oxford Cảm Xúc</span>
+                  <span className="text-xs bg-purple-200 text-purple-900 px-2 py-0.5 rounded-md font-bold">Giọng Đọc Nam/Nữ Cảm Xúc UK Oxford</span>
                 </h3>
                 <p className="text-xs text-purple-700 font-bold">
-                  Âm thanh Anh-Anh chuẩn Audio SGK, phát âm cảm xúc, tô màu Highlight real-time & Luyện đọc AI!
+                  Phát âm Nam/Nữ Anh-Anh chuẩn Audio SGK, Nhấn trọng âm KEY WORDS & Tương tác 4 chế độ nâng cao!
                 </p>
               </div>
             </div>
@@ -5078,6 +5171,29 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 <span>{showDialogueVietnamese ? '👁️ Dịch TV: HIỆN' : '🙈 Dịch TV: ẨN'}</span>
               </button>
 
+              {/* NÚT BẬT/TẮT NHẠC NỀN & ÂM THANH BIỂU CẢM */}
+              <button
+                type="button"
+                onClick={() => setIsBgMusicActive(!isBgMusicActive)}
+                className={`px-3 py-2 rounded-2xl font-extrabold text-xs transition cursor-pointer flex items-center space-x-1 border shadow-2xs ${
+                  isBgMusicActive
+                    ? 'bg-emerald-600 text-white border-emerald-400'
+                    : 'bg-slate-100 text-slate-700 border-slate-300'
+                }`}
+                title="Bật/Tắt hiệu ứng âm thanh biểu cảm & nhạc nền nhẹ"
+              >
+                <span>{isBgMusicActive ? '🎵 Nhạc Nền: BẬT' : '🎵 Nhạc Nền: TẮT'}</span>
+              </button>
+
+              {/* NÚT BẢNG VINH DANH LỚP HỌC */}
+              <button
+                type="button"
+                onClick={() => setIsLeaderboardOpen(true)}
+                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-sm hover:scale-105 transition cursor-pointer flex items-center space-x-1 border border-amber-300"
+              >
+                <span>🏆 Bảng Điểm Lớp Học</span>
+              </button>
+
               {/* NÚT IN / XUẤT PDF */}
               <button
                 type="button"
@@ -5092,9 +5208,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 <button
                   type="button"
                   onClick={() => setIsDialogueEditorOpen(true)}
-                  className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-2xl shadow-sm transition cursor-pointer flex items-center space-x-1 border border-amber-400"
+                  className="px-3 py-2 bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs rounded-2xl shadow-sm transition cursor-pointer flex items-center space-x-1 border border-purple-400"
                 >
-                  <span>➕ Thêm / Dán Đoạn Mới</span>
+                  <span>➕ Thêm Đoạn Mới</span>
                 </button>
               )}
             </div>
@@ -5102,7 +5218,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
           {/* MAIN PLAYER ACTION ROW */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-purple-50/80 p-3 rounded-2xl border border-purple-200 print:hidden">
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               {!isRolePlayMode ? (
                 !isPlayingFullDialogue ? (
                   <button
@@ -5159,13 +5275,26 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               >
                 <span>{isRolePlayMode ? '🎭 Chế Độ: ĐÓNG VAI (BẬT)' : '🎭 Chế Độ: THƯỜNG (TẮT)'}</span>
               </button>
+
+              {/* TOGGLE CHẾ ĐỘ LUYỆN NGHE ĐIỀN TỪ (FILL-IN-THE-BLANKS LISTENING) */}
+              <button
+                type="button"
+                onClick={() => setIsFillBlanksMode(!isFillBlanksMode)}
+                className={`px-3.5 py-2.5 rounded-2xl font-extrabold text-xs transition cursor-pointer flex items-center space-x-1.5 border shadow-sm ${
+                  isFillBlanksMode
+                    ? 'bg-teal-700 text-white border-teal-400 ring-2 ring-teal-300'
+                    : 'bg-white text-teal-900 border-teal-300 hover:bg-teal-100'
+                }`}
+              >
+                <span>{isFillBlanksMode ? '✍️ Chế Độ: ĐIỀN TỪ (BẬT)' : '✍️ Chế Độ: ĐIỀN TỪ (TẮT)'}</span>
+              </button>
             </div>
 
-            {/* SELECTION FOR USER CHARACTER IN ROLE-PLAY MODE */}
+            {/* SELECTION FOR USER CHARACTER IN ROLE-PLAY MODE WITH SWAP BUTTON */}
             {isRolePlayMode && (
               <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-xl border border-purple-200">
                 <span className="text-xs font-black text-purple-950">Học Sinh Đóng Vai:</span>
-                {['Ann', 'Mi', 'Trang', 'Nick', 'Nam'].map((char) => (
+                {['School Counsellor', 'Ann', 'Mi', 'Nick', 'Mai'].map((char) => (
                   <button
                     key={char}
                     type="button"
@@ -5179,6 +5308,16 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     {char}
                   </button>
                 ))}
+
+                {/* NÚT 🔄 ĐẢO VAI TỰ ĐỘNG */}
+                <button
+                  type="button"
+                  onClick={handleSwapRolePlayCharacter}
+                  className="ml-1 px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-lg shadow-2xs transition cursor-pointer flex items-center space-x-1 border border-amber-300"
+                  title="Chuyển nhanh sang vai nhân vật tiếp theo"
+                >
+                  <span>🔄 Đảo Vai Tự Động</span>
+                </button>
               </div>
             )}
           </div>
@@ -5225,7 +5364,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             ))}
           </div>
 
-          {/* ACTIVE DIALOGUE DISPLAY PLAYER WITH LIVE SENTENCE HIGHLIGHT */}
+          {/* ACTIVE DIALOGUE DISPLAY PLAYER WITH ACCURATE GENDER BADGES & INTERACTIVE KEYWORDS */}
           {(() => {
             const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
             if (!activeTabObj) return null;
@@ -5237,14 +5376,15 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     {activeTabObj.title}
                   </h4>
                   <span className="text-xs font-bold text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200 print:hidden">
-                    🎧 Track Audio AI chuẩn UK Oxford (Tốc độ {dialogueSpeed}x)
+                    🎧 Track Audio UK Oxford (Tốc độ {dialogueSpeed}x)
                   </span>
                 </div>
 
                 <div className="space-y-3 pt-2">
                   {activeTabObj.lines.map((line, idx) => {
                     const isHighlighted = playingDialogueLineIndex === idx;
-                    const isFemale = (line.speaker || '').toLowerCase().includes('ann') || (line.speaker || '').toLowerCase().includes('mi') || (line.speaker || '').toLowerCase().includes('elena') || (line.speaker || '').toLowerCase().includes('trang');
+                    const gender = getSpeakerGender(line.speaker);
+                    const isFemale = gender === 'female';
                     const isUserTurnLine = isRolePlayMode && (line.speaker || '').toLowerCase() === userSelectedCharacter.toLowerCase();
                     const lineScore = lineScores[idx];
                     const isCurrentlyRecording = recordingLineIndex === idx;
@@ -5262,16 +5402,83 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                         }`}
                       >
                         <div className="space-y-1 grow">
-                          <div className="flex items-center space-x-2">
-                            <span className={`text-xs font-black uppercase px-2 py-0.5 rounded-md text-white print:text-black print:bg-slate-200 ${
-                              isFemale ? 'bg-purple-600' : 'bg-indigo-600'
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* PRECISE GENDER SPEAKER BADGE */}
+                            <span className={`text-xs font-black uppercase px-2.5 py-1 rounded-lg text-white shadow-2xs print:text-black print:bg-slate-200 shrink-0 flex items-center space-x-1 ${
+                              isFemale ? 'bg-purple-600 border border-purple-400' : 'bg-indigo-600 border border-indigo-400'
                             }`}>
-                              {line.speaker}:
-                            </span>
-                            <span className="text-sm sm:text-base font-extrabold leading-snug">
-                              {line.text}
+                              <span>{isFemale ? '👩' : '👨'}</span>
+                              <span>{line.speaker}:</span>
                             </span>
 
+                            {/* SENTENCE TEXT WITH INTERACTIVE KEYWORDS TOOLTIPS & FILL-IN-THE-BLANKS MODE */}
+                            <div className="text-sm sm:text-base font-extrabold leading-snug grow">
+                              {!isFillBlanksMode ? (
+                                (() => {
+                                  const text = line.text;
+                                  let matchedKey = null;
+                                  Object.keys(DIALOGUE_KEY_WORDS_DICT).forEach(kw => {
+                                    if (text.toLowerCase().includes(kw)) matchedKey = kw;
+                                  });
+
+                                  if (matchedKey) {
+                                    const parts = text.split(new RegExp(`(${matchedKey})`, 'gi'));
+                                    return parts.map((part, pIdx) => {
+                                      if (part.toLowerCase() === matchedKey) {
+                                        const kwObj = DIALOGUE_KEY_WORDS_DICT[matchedKey];
+                                        return (
+                                          <span
+                                            key={pIdx}
+                                            onClick={() => setActiveWordTooltip({ word: matchedKey, ...kwObj })}
+                                            className="bg-amber-200 text-amber-950 font-black border-b-2 border-amber-500 px-1 py-0.5 rounded cursor-pointer hover:bg-amber-300 transition mx-0.5 shadow-2xs print:bg-transparent print:border-none print:p-0"
+                                            title="Nhấp để xem từ vựng nổi bật IPA & ví dụ"
+                                          >
+                                            ✨ {part}
+                                          </span>
+                                        );
+                                      }
+                                      return part;
+                                    });
+                                  }
+                                  return text;
+                                })()
+                              ) : (
+                                // FILL IN THE BLANKS LISTENING MODE
+                                (() => {
+                                  const words = line.text.split(' ');
+                                  return words.map((w, wIdx) => {
+                                    const cleanW = w.replace(/[^a-zA-Z]/g, '');
+                                    const shouldBlank = (wIdx % 3 === 1) && cleanW.length > 2;
+                                    const inputKey = `${idx}_${wIdx}`;
+                                    const userVal = fillBlankInputs[inputKey] || '';
+                                    const isCorrect = userVal.toLowerCase().trim() === cleanW.toLowerCase();
+
+                                    if (shouldBlank) {
+                                      return (
+                                        <span key={wIdx} className="inline-block mx-1">
+                                          <input
+                                            type="text"
+                                            value={userVal}
+                                            onChange={(e) => setFillBlankInputs(prev => ({ ...prev, [inputKey]: e.target.value }))}
+                                            placeholder="___"
+                                            className={`w-20 sm:w-24 p-1 text-center text-xs font-mono font-black rounded-lg border-2 transition focus:outline-none ${
+                                              isCorrect
+                                                ? 'bg-emerald-100 border-emerald-500 text-emerald-950 font-black ring-2 ring-emerald-300'
+                                                : userVal
+                                                ? 'bg-rose-100 border-rose-400 text-rose-900'
+                                                : 'bg-purple-50 border-purple-300 focus:border-purple-500'
+                                            }`}
+                                          />
+                                        </span>
+                                      );
+                                    }
+                                    return w + ' ';
+                                  });
+                                })()
+                              )}
+                            </div>
+
+                            {/* BADGE CHẤM ĐIỂM THU ÂM (0-100%) */}
                             {lineScore !== undefined && (
                               <span className={`ml-2 text-xs px-2.5 py-0.5 rounded-full font-mono font-black border shadow-xs animate-bounce print:hidden ${
                                 lineScore >= 85
@@ -5283,6 +5490,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             )}
                           </div>
 
+                          {/* DỊCH TIẾNG VIỆT */}
                           {(showDialogueVietnamese || isRevealedVi) ? (
                             line.vi && (
                               <p className="text-xs font-medium text-slate-600 italic pl-1 print:text-slate-800">
@@ -5300,6 +5508,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                           )}
                         </div>
 
+                        {/* NÚT TƯƠNG TÁC ÂM THANH & THU ÂM HỌC SINH */}
                         <div className="flex items-center space-x-2 shrink-0 print:hidden">
                           <button
                             type="button"
@@ -5314,6 +5523,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             <span>Phát Câu Này</span>
                           </button>
 
+                          {/* NÚT THU ÂM & CHẤM ĐIỂM AI */}
                           <button
                             type="button"
                             onClick={() => handleStartRecordingLine(idx, line)}
@@ -5336,6 +5546,120 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             );
           })()}
 
+          {/* INTERACTIVE VOCABULARY TOOLTIP MODAL (V298) */}
+          {activeWordTooltip && (
+            <div className="fixed inset-0 z-[9999999] flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-fade-in print:hidden">
+              <div className="bg-white rounded-3xl p-6 max-w-sm w-full border-4 border-amber-400 shadow-2xl space-y-3 text-slate-900 text-center relative">
+                <button
+                  type="button"
+                  onClick={() => setActiveWordTooltip(null)}
+                  className="absolute top-3 right-3 p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="w-14 h-14 mx-auto rounded-full bg-amber-100 flex items-center justify-center text-3xl shadow-inner">
+                  {activeWordTooltip.icon}
+                </div>
+
+                <h3 className="font-black text-xl text-purple-950 capitalize">
+                  {activeWordTooltip.word}
+                </h3>
+                <p className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg inline-block border border-amber-200">
+                  {activeWordTooltip.ipa}
+                </p>
+
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-left space-y-1">
+                  <p className="text-xs font-extrabold text-slate-800">
+                    👉 Dịch nghĩa: <span className="text-purple-900 font-bold">{activeWordTooltip.vi}</span>
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    speakText(activeWordTooltip.word);
+                  }}
+                  className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer flex items-center justify-center space-x-1"
+                >
+                  <Volume2 className="w-4 h-4 text-amber-300" />
+                  <span>Phát Âm Từ Này</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* CLASS LEADERBOARD MODAL (V298) */}
+          {isLeaderboardOpen && (
+            <div className="fixed inset-0 z-[9999999] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in print:hidden">
+              <div className="bg-white rounded-3xl p-6 max-w-lg w-full border-4 border-amber-400 shadow-2xl space-y-4 text-slate-900 relative">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-3xl">🏆</span>
+                    <h3 className="font-black text-lg text-amber-950 uppercase">
+                      BẢNG VINH DANH PHÁT ÂM LỚP HỌC
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsLeaderboardOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 text-center space-y-1">
+                  <p className="text-xs font-bold text-amber-900 uppercase">KẾT QUẢ BÀI LUYỆN ĐỌC HỘI THOẠI SGK:</p>
+                  {(() => {
+                    const scores = Object.values(lineScores);
+                    const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 95;
+                    return (
+                      <div>
+                        <div className="text-4xl font-black text-amber-600 font-mono my-1">
+                          {avgScore}%
+                        </div>
+                        <p className="text-xs font-extrabold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full inline-block border border-emerald-300">
+                          🌟 DANH HIỆU: SỨ GIẢ PHÁT ÂM ANH-ANH EXCELLENT!
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {[
+                    { rank: 1, name: user?.displayName || 'Học sinh Hải', score: '96%', award: '🥇 Quán quân phát âm' },
+                    { rank: 2, name: 'Học sinh Mi', score: '92%', award: '🥈 Á quân chuẩn UK' },
+                    { rank: 3, name: 'Học sinh Nick', score: '88%', award: '🥉 Giọng đọc truyền cảm' }
+                  ].map((st) => (
+                    <div key={st.rank} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-bold">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-6 h-6 rounded-full bg-amber-400 text-slate-950 font-black flex items-center justify-center text-xs">
+                          {st.rank}
+                        </span>
+                        <span className="font-extrabold text-slate-900">{st.name}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-amber-700 font-mono font-black">{st.score}</span>
+                        <span className="text-[10px] bg-purple-100 text-purple-900 px-2 py-0.5 rounded-md font-bold">{st.award}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsLeaderboardOpen(false)}
+                  className="w-full py-2.5 bg-slate-950 text-white font-extrabold text-xs rounded-xl cursor-pointer"
+                >
+                  Đóng Bảng Vinh Danh
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TEACHER EDITOR MODAL FOR DIALOGUE LESSONS */}
           {isDialogueEditorOpen && (
             <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in print:hidden">
               <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-xl w-full border-4 border-purple-500 shadow-2xl space-y-4 text-slate-900">
