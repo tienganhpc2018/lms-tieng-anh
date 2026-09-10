@@ -370,18 +370,24 @@ const getVietnameseTranslation = (enText, targetWord = '') => {
   return 'Dịch: "' + translated + '"';
 };
 
-// PALETTE 10 MÀU SẮC LUNG LINH PHÁO HOA CHO CÁC TỪ KHÓA TÌM THẤY (MATCHING ẢNH VÒNG XOAY KÍ TỰ CỦA THẦY HẢI)
+// PALETTE 16 MÀU SẮC RỰC RỠ PHÁO HOA CHO CÁC TỪ KHÓA TÌM THẤY (KHÔNG DÙNG MÀU TỐI, TƯƠI SÁNG ĐỘC NHẤT)
 const FIREWORK_WORD_COLORS = [
-  { bg: '#059669', stroke: '#34d399', text: '#ffffff', glow: 'rgba(5, 150, 105, 0.6)', name: 'Emerald' },
-  { bg: '#e11d48', stroke: '#fb7185', text: '#ffffff', glow: 'rgba(225, 29, 72, 0.6)', name: 'Rose' },
-  { bg: '#d97706', stroke: '#fcd34d', text: '#ffffff', glow: 'rgba(217, 119, 6, 0.6)', name: 'Amber' },
-  { bg: '#2563eb', stroke: '#60a5fa', text: '#ffffff', glow: 'rgba(37, 99, 235, 0.6)', name: 'Blue' },
-  { bg: '#7c3aed', stroke: '#c084fc', text: '#ffffff', glow: 'rgba(124, 58, 237, 0.6)', name: 'Purple' },
-  { bg: '#ea580c', stroke: '#fdba74', text: '#ffffff', glow: 'rgba(234, 88, 12, 0.6)', name: 'Orange' },
-  { bg: '#db2777', stroke: '#f472b6', text: '#ffffff', glow: 'rgba(219, 39, 119, 0.6)', name: 'Pink' },
-  { bg: '#65a30d', stroke: '#bef264', text: '#ffffff', glow: 'rgba(101, 163, 13, 0.6)', name: 'Lime' },
-  { bg: '#0891b2', stroke: '#67e8f9', text: '#ffffff', glow: 'rgba(8, 145, 178, 0.6)', name: 'Cyan' },
-  { bg: '#4f46e5', stroke: '#a5b4fc', text: '#ffffff', glow: 'rgba(79, 70, 229, 0.6)', name: 'Indigo' },
+  { bg: '#059669', stroke: '#6ee7b7', text: '#ffffff', glow: 'rgba(5, 150, 105, 0.85)', name: 'Bright Emerald' },
+  { bg: '#e11d48', stroke: '#fda4af', text: '#ffffff', glow: 'rgba(225, 29, 72, 0.85)', name: 'Neon Rose' },
+  { bg: '#d97706', stroke: '#fde047', text: '#ffffff', glow: 'rgba(217, 119, 6, 0.85)', name: 'Sun Amber' },
+  { bg: '#0284c7', stroke: '#7dd3fc', text: '#ffffff', glow: 'rgba(2, 132, 199, 0.85)', name: 'Electric Sky' },
+  { bg: '#7c3aed', stroke: '#d8b4fe', text: '#ffffff', glow: 'rgba(124, 58, 237, 0.85)', name: 'Vivid Purple' },
+  { bg: '#ea580c', stroke: '#fdba74', text: '#ffffff', glow: 'rgba(234, 88, 12, 0.85)', name: 'Flame Orange' },
+  { bg: '#db2777', stroke: '#fbcfe8', text: '#ffffff', glow: 'rgba(219, 39, 119, 0.85)', name: 'Hot Pink' },
+  { bg: '#16a34a', stroke: '#86efac', text: '#ffffff', glow: 'rgba(22, 163, 74, 0.85)', name: 'Vibrant Green' },
+  { bg: '#0891b2', stroke: '#67e8f9', text: '#ffffff', glow: 'rgba(8, 145, 178, 0.85)', name: 'Radiant Cyan' },
+  { bg: '#4f46e5', stroke: '#a5b4fc', text: '#ffffff', glow: 'rgba(79, 70, 229, 0.85)', name: 'Royal Indigo' },
+  { bg: '#c026d3', stroke: '#f0abfc', text: '#ffffff', glow: 'rgba(192, 38, 211, 0.85)', name: 'Electric Fuchsia' },
+  { bg: '#0d9488', stroke: '#5eead4', text: '#ffffff', glow: 'rgba(13, 148, 136, 0.85)', name: 'Aqua Teal' },
+  { bg: '#ca8a04', stroke: '#fef08a', text: '#ffffff', glow: 'rgba(202, 138, 4, 0.85)', name: 'Goldenrod' },
+  { bg: '#2563eb', stroke: '#93c5fd', text: '#ffffff', glow: 'rgba(37, 99, 235, 0.85)', name: 'Cobalt Spark' },
+  { bg: '#f43f5e', stroke: '#fecdd3', text: '#ffffff', glow: 'rgba(244, 63, 94, 0.85)', name: 'Coral Fire' },
+  { bg: '#8b5cf6', stroke: '#c4b5fd', text: '#ffffff', glow: 'rgba(139, 92, 246, 0.85)', name: 'Bright Violet' },
 ];
 
 // SVG MATH HELPER: TÍNH TỌA ĐỘ VÀ TẠO PATH CUNG TRÒN NAN QUẠT (ANNULAR SECTOR) CHO VÒNG XOAY KÍ TỰ
@@ -3226,18 +3232,22 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     },
     {
       id: 'tab_g7_u1_1',
-      title: 'Đoạn 1: Elena & Trang (My favourite hobby - English 7 Unit 1)',
+      title: 'Đoạn 1: Ann & Trang (Your house is very nice - Lớp 7 Unit 1)',
       grade: 'Lớp 7',
       unit: 'Unit 1: Hobbies',
-      introOffset: 2.5,
+      introOffset: 1.0,
       lines: [
-        { speaker: 'Elena', text: 'Today we are talking about our hobbies. Trang, what is your hobby?', vi: 'Hôm nay chúng ta cùng nói về sở thích. Trang ơi, sở thích của bạn là gì?' },
-        { speaker: 'Trang', text: 'I like making models. I build dollhouses and small cars using cardboard and glue.', vi: 'Mình thích làm mô hình. Mình làm nhà búp bê và xe nhỏ bằng bìa các tông và keo dán.' },
-        { speaker: 'Elena', text: 'Wow, that sounds great! Do you need a lot of patience for that?', vi: 'Ồ, nghe tuyệt quá! Bạn có cần nhiều sự kiên nhẫn cho việc đó không?' },
-        { speaker: 'Trang', text: 'Yes, but it makes me feel creative and relaxed. How about you, Ann?', vi: 'Có chứ, nhưng nó giúp mình cảm thấy sáng tạo và thư giãn. Còn bạn thì sao, Ann?' },
-        { speaker: 'Ann', text: 'I love outdoor activities. My favourite hobby is horse riding and gardening.', vi: 'Mình thích các hoạt động ngoài trời. Sở thích yêu thích của mình là cưỡi ngựa và làm vườn.' },
-        { speaker: 'Elena', text: 'Horse riding sounds unusual and exciting! How often do you ride?', vi: 'Cưỡi ngựa nghe thật độc đáo và hào hứng! Bạn thường cưỡi ngựa bao lâu một lần?' },
-        { speaker: 'Ann', text: 'I ride once a week with my sister. It keeps me active and fit.', vi: 'Mình cưỡi ngựa mỗi tuần một lần với chị gái. Nó giúp mình luôn năng động và khỏe mạnh.' }
+        { speaker: 'Ann', text: 'Your house is very nice, Trang.', vi: 'Ngôi nhà của bạn đẹp thật đấy, Trang à.', startTime: 0.5, endTime: 3.2 },
+        { speaker: 'Trang', text: 'Thanks! Let’s go upstairs. I’ll show you my room.', vi: 'Cảm ơn bạn! Chúng mình cùng lên gác nhé. Mình sẽ cho bạn xem phòng của mình.', startTime: 3.5, endTime: 7.5 },
+        { speaker: 'Ann', text: 'I love your dollhouse. It’s amazing. Did you make it yourself?', vi: 'Mình mê ngôi nhà búp bê của bạn quá. Nó thật tuyệt vời. Bạn tự làm nó đấy à?', startTime: 7.8, endTime: 12.0 },
+        { speaker: 'Trang', text: 'Yes. I like building dollhouses very much.', vi: 'Đúng rồi. Mình rất thích tự tay làm những ngôi nhà búp bê.', startTime: 12.3, endTime: 15.5 },
+        { speaker: 'Ann', text: 'Really? Is it hard to build one?', vi: 'Thật sao? Làm một ngôi nhà như thế có khó không bạn?', startTime: 15.8, endTime: 18.5 },
+        { speaker: 'Trang', text: 'Not really. All you need is some cardboard and glue. Then just use a bit of creativity. What do you do in your free time?', vi: 'Không hẳn đâu. Tất cả những gì bạn cần chỉ là một ít bìa các tông và keo dán. Rồi chỉ cần thêm một chút sáng tạo nữa thôi. Bạn thường làm gì vào thời gian rảnh?', startTime: 18.8, endTime: 26.5 },
+        { speaker: 'Ann', text: 'I like horse riding.', vi: 'Mình thích cưỡi ngựa.', startTime: 26.8, endTime: 29.0 },
+        { speaker: 'Trang', text: 'That’s rather unusual. Not many people do that.', vi: 'Sở thích đó khá là đặc biệt và khác lạ đấy. Không có nhiều người làm như vậy đâu.', startTime: 29.3, endTime: 33.0 },
+        { speaker: 'Ann', text: 'Actually, it’s more common than you think. There are some horse riding clubs in Ha Noi now. I go to the Riders’ Club every Sunday.', vi: 'Thực ra nó phổ biến hơn bạn nghĩ đấy. Hiện nay ở Hà Nội có một số câu lạc bộ cưỡi ngựa rồi. Mình đến Câu lạc bộ Những người cưỡi ngựa vào mỗi Chủ Nhật.', startTime: 33.3, endTime: 42.0 },
+        { speaker: 'Trang', text: 'I’d love to go to your club this Sunday. I want to learn how to ride.', vi: 'Mình rất muốn đến câu lạc bộ của bạn vào Chủ Nhật này. Mình muốn học cách cưỡi ngựa.', startTime: 42.3, endTime: 47.0 },
+        { speaker: 'Ann', text: 'Sure. My lesson starts at 8 a.m.', vi: 'Chắc chắn rồi. Buổi học của mình bắt đầu lúc 8 giờ sáng.', startTime: 47.3, endTime: 50.5 }
       ]
     },
     {
@@ -3256,16 +3266,22 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     }
   ];
 
-  // INTERACTIVE SGK DIALOGUE LESSON STATE (V315 FULL DATA PERSISTENCE & AUTO-RESTORE)
+  // INTERACTIVE SGK DIALOGUE LESSON STATE (V316 FULL DATA PERSISTENCE & AUTO-RESTORE)
   const [dialogueTabs, setDialogueTabs] = useState(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = localStorage.getItem('lms_dialogue_tabs_v315') || localStorage.getItem('lms_dialogue_tabs_v312');
+        const saved = localStorage.getItem('lms_dialogue_tabs_v316') || localStorage.getItem('lms_dialogue_tabs_v315') || localStorage.getItem('lms_dialogue_tabs_v312');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            // Tự động gộp lại các bài SGK chuẩn nếu người dùng bị thiếu/vô tình xóa mất
-            let merged = [...parsed];
+            // Tự động đồng bộ bài chuẩn Lớp 7 Unit 1 đúng nội dung Thầy vừa giao
+            let merged = parsed.map(t => {
+              if (t.id === 'tab_g7_u1_1') {
+                const official = defaultInitialDialogueTabs.find(d => d.id === 'tab_g7_u1_1');
+                return { ...official, audioUrl: t.audioUrl || official.audioUrl };
+              }
+              return t;
+            });
             defaultInitialDialogueTabs.forEach(defTab => {
               if (!merged.some(t => t.id === defTab.id || (t.grade === defTab.grade && t.title === defTab.title))) {
                 merged.push(defTab);
@@ -3285,6 +3301,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage && Array.isArray(dialogueTabs) && dialogueTabs.length > 0) {
+        localStorage.setItem('lms_dialogue_tabs_v316', JSON.stringify(dialogueTabs));
         localStorage.setItem('lms_dialogue_tabs_v315', JSON.stringify(dialogueTabs));
         localStorage.setItem('lms_dialogue_tabs_v312', JSON.stringify(dialogueTabs));
       }
@@ -4934,6 +4951,208 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
     } catch (e) {}
     initWordSearchGame(newShape);
     playSuccessSound();
+  };
+
+  // TẢI BẢN IN TRONG SUỐT CHO HỌC SINH TÔ MÀU BẰNG BÚT MÀU TRÊN LỚP (THEO YÊU CẦU THẦY HẢI)
+  const handleDownloadTransparentColoringSheet = () => {
+    if (!wordSearchData || !wordSearchData.grid) {
+      alert("Chưa có dữ liệu ô chữ để tải về!");
+      return;
+    }
+
+    try {
+      const isCircle = wordSearchShape === 'circle';
+      const canvas = document.createElement('canvas');
+      const width = 1200;
+      const height = isCircle ? 1450 : 1350;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // NỀN TRONG SUỐT HOÀN TOÀN (TRANSPARENT BACKGROUND)
+      ctx.clearRect(0, 0, width, height);
+
+      // TIÊU ĐỀ BÀI TẬP IN ĐEN TRẮNG TRONG SUỐT CHO HS TÔ MÀU
+      ctx.fillStyle = '#0f172a';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      ctx.font = 'bold 36px sans-serif';
+      ctx.fillText(
+        isCircle
+          ? '🎆 VÒNG XOAY TÌM TỪ PHÁO HOA LUNG LINH'
+          : '🟦 BẢNG TÌM TỪ TIẾNG ANH (FIND THE WORD)',
+        width / 2,
+        35
+      );
+
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillStyle = '#334155';
+      ctx.fillText('BÀI TẬP TÌM TỪ KHÓA & TÔ MÀU SÁNG TẠO (COLORING WORKSHEET)', width / 2, 85);
+
+      ctx.font = 'bold 18px sans-serif';
+      ctx.fillStyle = '#1e293b';
+      ctx.fillText(
+        'Họ và tên: .............................................................. Lớp: ..................... Ngày: .....................',
+        width / 2,
+        125
+      );
+
+      // KHUNG VẼ Ô CHỮ
+      if (isCircle) {
+        const cx = width / 2;
+        const cy = 660;
+        const ringRadii = [
+          { in: 105, out: 175 },
+          { in: 175, out: 245 },
+          { in: 245, out: 315 },
+          { in: 315, out: 385 },
+          { in: 385, out: 460 }
+        ];
+        const numSectors = 20;
+        const sectorAngle = 360 / numSectors;
+        const canvasFontSizes = [28, 32, 36, 40, 44];
+
+        // Vành ngoài cùng tròn
+        ctx.beginPath();
+        ctx.arc(cx, cy, 465, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        wordSearchData.grid.forEach((row, r) => {
+          const rIn = ringRadii[r]?.in || 105;
+          const rOut = ringRadii[r]?.out || 175;
+          const rMid = (rIn + rOut) / 2;
+          const fSize = canvasFontSizes[r] || 32;
+
+          row.forEach((char, c) => {
+            const startAngleDeg = c * sectorAngle;
+            const endAngleDeg = (c + 1) * sectorAngle;
+            const startRad = ((startAngleDeg - 90) * Math.PI) / 180;
+            const endRad = ((endAngleDeg - 90) * Math.PI) / 180;
+
+            // Vẽ viền nan quạt nét đen rõ
+            ctx.beginPath();
+            ctx.arc(cx, cy, rOut, startRad, endRad, false);
+            ctx.arc(cx, cy, rIn, endRad, startRad, true);
+            ctx.closePath();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Vẽ chữ cái đen đậm nét
+            const midAngleDeg = startAngleDeg + sectorAngle / 2;
+            const midRad = ((midAngleDeg - 90) * Math.PI) / 180;
+            const tx = cx + rMid * Math.cos(midRad);
+            const ty = cy + rMid * Math.sin(midRad);
+
+            ctx.font = `bold ${fSize}px sans-serif`;
+            ctx.fillStyle = '#0f172a';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(char, tx, ty);
+          });
+        });
+
+        // Tâm tròn
+        ctx.beginPath();
+        ctx.arc(cx, cy, 100, 0, 2 * Math.PI);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🎆 VÒNG XOAY', cx, cy - 22);
+        ctx.fillText('PHÁO HOA', cx, cy + 2);
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillStyle = '#475569';
+        ctx.fillText(`⭐ ${wordSearchData.placedWords.length} TỪ KHÓA`, cx, cy + 26);
+
+      } else {
+        // MA TRẬN VUÔNG TRONG SUỐT CHO HS TÔ MÀU
+        const gridSize = wordSearchData.grid.length;
+        const cellSize = 65;
+        const startX = (width - gridSize * cellSize) / 2;
+        const startY = 190;
+
+        wordSearchData.grid.forEach((row, r) => {
+          row.forEach((char, c) => {
+            const x = startX + c * cellSize;
+            const y = startY + r * cellSize;
+
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(x, y, cellSize, cellSize);
+
+            ctx.font = 'bold 36px sans-serif';
+            ctx.fillStyle = '#0f172a';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(char, x + cellSize / 2, y + cellSize / 2);
+          });
+        });
+      }
+
+      // HỘP DANH SÁCH TỪ VỰNG PHÍA DƯỚI ĐỂ HS CHECK & TÔ MÀU
+      const boxY = isCircle ? 1160 : 880;
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.strokeRect(80, boxY, width - 160, isCircle ? 230 : 250);
+      ctx.setLineDash([]);
+
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillStyle = '#0f172a';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`📋 DANH SÁCH TỪ VỰNG CẦN TÌM VÀ TÔ MÀU (${wordSearchData.placedWords.length} TỪ):`, 110, boxY + 20);
+
+      ctx.font = '16px sans-serif';
+      ctx.fillStyle = '#475569';
+      ctx.fillText('(Học sinh dùng bút màu khác nhau tô kín các chữ cái tìm được, sau đó đánh dấu ✓ vào ô trống)', 110, boxY + 50);
+
+      const words = wordSearchData.placedWords || [];
+      const cols = 3;
+      const colWidth = 330;
+      words.forEach((pw, idx) => {
+        const c = idx % cols;
+        const row = Math.floor(idx / cols);
+        const wx = 110 + c * colWidth;
+        const wy = boxY + 90 + row * 40;
+
+        // Ô vuông checkbox cho HS tích
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(wx, wy, 24, 24);
+
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(`${idx + 1}. ${pw.word}`, wx + 36, wy + 2);
+      });
+
+      // TẢI FILE PNG TRONG SUỐT VỀ MÁY
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = isCircle
+        ? `Vong-Xoay-Phao-Hoa-To-Mau-Unit1.png`
+        : `O-Chu-Tim-Tu-To-Mau-Unit1.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      playSuccessSound();
+      alert("🎉 Đã tải file ảnh ô chữ trong suốt thành công! Thầy có thể in trực tiếp ra giấy A4 hoặc chèn vào phiếu bài tập cho học sinh tô màu nhé.");
+    } catch (err) {
+      console.error('Download coloring sheet error:', err);
+      alert("Có lỗi khi tạo file ảnh tải về: " + err.message);
+    }
   };
 
   const handleAddCustomWordSearchWord = () => {
@@ -7976,6 +8195,17 @@ Ann: How's your new neighbourhood?`}
                 </button>
               </div>
 
+              {/* NÚT TẢI BẢN TRONG SUỐT CHO HS TÔ MÀU THEO YÊU CẦU THẦY HẢI */}
+              <button
+                type="button"
+                onClick={handleDownloadTransparentColoringSheet}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 hover:from-teal-300 hover:to-emerald-400 text-slate-950 font-black rounded-xl transition cursor-pointer flex items-center space-x-1.5 shadow-md border border-teal-200 transform hover:scale-105"
+                title="Tải file ảnh ô chữ nền trong suốt độ nét cao để in phiếu bài tập cho học sinh tự tô màu bằng bút màu trên lớp!"
+              >
+                <Download className="w-4 h-4 text-slate-950" />
+                <span>📥 Tải File Tô Màu (Trong Suốt)</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleTriggerHint}
@@ -8053,12 +8283,13 @@ Ann: How's your new neighbourhood?`}
                   >
                     <defs>
                       <radialGradient id="hubGrad" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#92400e" />
-                        <stop offset="100%" stopColor="#451a03" />
+                        <stop offset="0%" stopColor="#fbbf24" />
+                        <stop offset="60%" stopColor="#f59e0b" />
+                        <stop offset="100%" stopColor="#b45309" />
                       </radialGradient>
                       <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#291305" />
-                        <stop offset="100%" stopColor="#0c0401" />
+                        <stop offset="0%" stopColor="#1e1b4b" />
+                        <stop offset="100%" stopColor="#0f172a" />
                       </radialGradient>
                       <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
                         <feGaussianBlur stdDeviation="3" result="blur" />
@@ -8066,11 +8297,11 @@ Ann: How's your new neighbourhood?`}
                       </filter>
                     </defs>
 
-                    {/* Vành ngoài viền vàng */}
-                    <circle cx="260" cy="260" r="256" fill="url(#bgGrad)" stroke="#b45309" strokeWidth="4" />
-                    <circle cx="260" cy="260" r="252" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4 4" />
+                    {/* Vành ngoài viền vàng lấp lánh */}
+                    <circle cx="260" cy="260" r="256" fill="url(#bgGrad)" stroke="#f59e0b" strokeWidth="4.5" />
+                    <circle cx="260" cy="260" r="251" fill="none" stroke="#fde047" strokeWidth="1.5" strokeDasharray="6 4" />
 
-                    {/* 5 Vòng đồng tâm chia 20 nan quạt theo cung tròn */}
+                    {/* 5 Vòng đồng tâm chia 20 nan quạt theo cung tròn - MÀU SẮC TƯƠI SÁNG & CHỮ TO RÕ */}
                     {(() => {
                       const cx = 260;
                       const cy = 260;
@@ -8083,11 +8314,23 @@ Ann: How's your new neighbourhood?`}
                       ];
                       const numSectors = 20;
                       const sectorAngle = 360 / numSectors;
+                      const ringFontSizes = [18, 20, 23, 26, 29];
+
+                      // BẢNG PHỐI MÀU TƯƠI SÁNG CHO 5 TẦNG VÒNG TRÒN (KHÔNG DÙNG MÀU TỐI, MỖI TẦNG 1 TÔNG MÀU SỐNG ĐỘNG)
+                      const ringThemes = [
+                        { fill1: '#4338ca', fill2: '#4f46e5', stroke: '#a5b4fc', text: '#ffffff' }, // Tầng 1: Indigo rực rỡ
+                        { fill1: '#0284c7', fill2: '#0369a1', stroke: '#7dd3fc', text: '#ffffff' }, // Tầng 2: Cyan biển sáng
+                        { fill1: '#059669', fill2: '#047857', stroke: '#6ee7b7', text: '#ffffff' }, // Tầng 3: Emerald tươi
+                        { fill1: '#9333ea', fill2: '#7e22ce', stroke: '#e9d5ff', text: '#ffffff' }, // Tầng 4: Purple tím sáng
+                        { fill1: '#e11d48', fill2: '#be123c', stroke: '#fecdd3', text: '#ffffff' }, // Tầng 5: Rose san hô
+                      ];
 
                       return wordSearchData.grid.map((row, r) => {
                         const rIn = ringRadii[r]?.in || 55;
                         const rOut = ringRadii[r]?.out || 95;
                         const rMid = (rIn + rOut) / 2;
+                        const theme = ringThemes[r] || ringThemes[0];
+                        const fontSize = ringFontSizes[r] || 22;
 
                         return row.map((char, c) => {
                           const key = `${r}-${c}`;
@@ -8106,30 +8349,31 @@ Ann: How's your new neighbourhood?`}
                           const fireworkColor = foundWordIdx >= 0 ? FIREWORK_WORD_COLORS[foundWordIdx % FIREWORK_WORD_COLORS.length] : null;
                           const isHighlightedHint = highlightedHintCell === key;
 
-                          let fill = r % 2 === 0 ? 'rgba(69, 26, 3, 0.92)' : 'rgba(120, 53, 15, 0.92)';
-                          let stroke = '#78350f';
+                          // Màu nền & viền phối tươi sáng đa tầng
+                          let fill = c % 2 === 0 ? theme.fill1 : theme.fill2;
+                          let stroke = theme.stroke;
                           let strokeWidth = 1.5;
-                          let textFill = '#fef3c7';
+                          let textFill = theme.text;
 
                           if (fireworkColor) {
                             fill = fireworkColor.bg;
                             stroke = fireworkColor.stroke;
-                            strokeWidth = 2.5;
+                            strokeWidth = 3;
                             textFill = fireworkColor.text;
                           } else if (isWrongSelection) {
                             fill = '#e11d48';
                             stroke = '#fecdd3';
-                            strokeWidth = 2.5;
+                            strokeWidth = 3;
                             textFill = '#ffffff';
                           } else if (isSelected) {
-                            fill = '#f59e0b';
-                            stroke = '#fef08a';
-                            strokeWidth = 3;
-                            textFill = '#451a03';
+                            fill = '#fbbf24';
+                            stroke = '#ffffff';
+                            strokeWidth = 3.5;
+                            textFill = '#0f172a';
                           } else if (isHighlightedHint) {
                             fill = '#fde047';
                             stroke = '#ffffff';
-                            strokeWidth = 3;
+                            strokeWidth = 3.5;
                             textFill = '#0f172a';
                           }
 
@@ -8138,7 +8382,7 @@ Ann: How's your new neighbourhood?`}
                               key={key}
                               onClick={() => handleWordSearchCellClick(r, c)}
                               className="cursor-pointer transition-all duration-200"
-                              style={{ filter: isSelected || isHighlightedHint ? 'url(#glowEffect)' : undefined }}
+                              style={{ filter: isSelected || isHighlightedHint || fireworkColor ? 'url(#glowEffect)' : undefined }}
                             >
                               <path
                                 d={pathD}
@@ -8153,10 +8397,14 @@ Ann: How's your new neighbourhood?`}
                                 textAnchor="middle"
                                 dominantBaseline="central"
                                 fill={textFill}
-                                fontSize={r >= 3 ? 14 : 12}
+                                fontSize={fontSize}
                                 fontWeight="900"
                                 pointerEvents="none"
-                                className="font-mono tracking-wider select-none"
+                                className="select-none font-bold"
+                                style={{
+                                  fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                                  textShadow: isSelected || isHighlightedHint ? 'none' : '0 1.5px 3px rgba(0,0,0,0.6)'
+                                }}
                               >
                                 {char}
                               </text>
@@ -8167,15 +8415,15 @@ Ann: How's your new neighbourhood?`}
                     })()}
 
                     {/* Tâm Tròn Vòng Xoay Pháo Hoa Lung Linh */}
-                    <circle cx="260" cy="260" r="53" fill="url(#hubGrad)" stroke="#f59e0b" strokeWidth="3.5" />
-                    <circle cx="260" cy="260" r="49" fill="none" stroke="#fef08a" strokeWidth="1" strokeDasharray="3 3" />
-                    <text x="260" y="242" textAnchor="middle" dominantBaseline="central" fill="#fef08a" fontSize="10" fontWeight="900" letterSpacing="0.8">
+                    <circle cx="260" cy="260" r="53" fill="url(#hubGrad)" stroke="#fef08a" strokeWidth="3.5" />
+                    <circle cx="260" cy="260" r="49" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeDasharray="3 3" />
+                    <text x="260" y="240" textAnchor="middle" dominantBaseline="central" fill="#ffffff" fontSize="11" fontWeight="900" letterSpacing="0.8">
                       🎆 VÒNG XOAY
                     </text>
-                    <text x="260" y="258" textAnchor="middle" dominantBaseline="central" fill="#f59e0b" fontSize="11" fontWeight="900" letterSpacing="0.5">
+                    <text x="260" y="257" textAnchor="middle" dominantBaseline="central" fill="#fef08a" fontSize="12" fontWeight="900" letterSpacing="0.5">
                       PHÁO HOA
                     </text>
-                    <text x="260" y="274" textAnchor="middle" dominantBaseline="central" fill="#34d399" fontSize="10" fontWeight="900">
+                    <text x="260" y="274" textAnchor="middle" dominantBaseline="central" fill="#ffffff" fontSize="11" fontWeight="900">
                       ⭐ {foundWordList.length}/{wordSearchData.placedWords.length} TỪ
                     </text>
                   </svg>
