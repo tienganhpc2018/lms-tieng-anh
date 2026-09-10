@@ -1496,25 +1496,49 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
     if (isKaraokeSyncMode) {
       const words = text.split(' ');
-      let currentWIdx = 0;
+      let karaokeTimer = null;
       setHighlightedWordIndex(0);
-      const wordMs = Math.max(180, Math.floor((1000 * 60) / (135 * baseRate)));
-      const timer = setInterval(() => {
-        currentWIdx++;
-        if (currentWIdx < words.length) {
-          setHighlightedWordIndex(currentWIdx);
-        } else {
-          clearInterval(timer);
+
+      // HIGH-PRECISION SPEECH SYNTHESIS ONBOUNDARY WORD TRACKER
+      utterance.onboundary = (event) => {
+        if (event.name === 'word') {
+          const charIdx = event.charIndex;
+          let accumulated = 0;
+          for (let i = 0; i < words.length; i++) {
+            accumulated += words[i].length + 1;
+            if (charIdx < accumulated) {
+              setHighlightedWordIndex(i);
+              break;
+            }
+          }
         }
-      }, wordMs);
+      };
+
+      // DYNAMIC WORD-LENGTH WEIGHTED FALLBACK TIMER
+      const totalChars = text.length || 1;
+      const totalSpeechDurationMs = Math.max(1200, Math.floor((text.length / 12) * 1000 / baseRate));
+      let currentWord = 0;
+
+      const scheduleNextWord = () => {
+        if (currentWord < words.length - 1) {
+          const curWordLen = words[currentWord] ? words[currentWord].length : 3;
+          const delay = Math.max(180, Math.floor((curWordLen / totalChars) * totalSpeechDurationMs));
+          karaokeTimer = setTimeout(() => {
+            currentWord++;
+            setHighlightedWordIndex(currentWord);
+            scheduleNextWord();
+          }, delay);
+        }
+      };
+      scheduleNextWord();
 
       utterance.onend = (e) => {
-        clearInterval(timer);
+        if (karaokeTimer) clearTimeout(karaokeTimer);
         setHighlightedWordIndex(-1);
         if (onEndedCallback) onEndedCallback();
       };
       utterance.onerror = (e) => {
-        clearInterval(timer);
+        if (karaokeTimer) clearTimeout(karaokeTimer);
         setHighlightedWordIndex(-1);
         if (onEndedCallback) onEndedCallback();
       };
