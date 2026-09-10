@@ -18,7 +18,17 @@ const DIALOGUE_KEY_WORDS_DICT = {
 
 const getSpeakerGender = (speakerRaw) => {
   const s = (speakerRaw || '').toLowerCase().trim();
-  const femaleKeywords = [
+  const maleExact = [
+    'nick', 'phong', 'nam', 'minh', 'hải', 'hai', 'đức', 'duc', 'hùng', 'hung', 'tuấn', 'tuan', 'kiên', 'kien', 'lâm', 'lam',
+    'hoàng', 'hoang', 'quang', 'sơn', 'son', 'thành', 'thanh', 'bình', 'binh', 'khang', 'phúc', 'phuc', 'dũng', 'dung',
+    'huy', 'việt', 'viet', 'tùng', 'tung', 'thắng', 'thang', 'trọng', 'trong', 'khoa', 'trung', 'hiếu', 'hieu', 'đạt', 'dat',
+    'cường', 'cuong', 'thái', 'thai', 'tấn', 'tan', 'tâm', 'tam', 'nhân', 'nhan', 'quốc', 'quoc', 'bảo', 'bao', 'triết', 'triet',
+    'nghĩa', 'nghia', 'long', 'lộc', 'loc', 'duy', 'nguyên', 'nguyen', 'quyền', 'quyen', 'tiến', 'tien', 'vương', 'vuong',
+    'mark', 'peter', 'tom', 'david', 'ben', 'mr', 'mr.', 'father', 'dad', 'boy', 'man', 'brother', 'uncle', 'doctor',
+    'counsellor', 'counselor', 'school counsellor', 'john', 'alex', 'jack', 'sam', 'steve', 'brian', 'chris', 'mike', 'james'
+  ];
+
+  const femaleExact = [
     'ann', 'mi', 'trang', 'mai', 'hoa', 'lan', 'linh', 'hương', 'huong', 'phương', 'phuong', 'thu', 'thảo', 'thao',
     'hà', 'ha', 'chi', 'nhung', 'vân', 'van', 'ngọc', 'ngoc', 'quỳnh', 'quynh', 'trinh', 'yến', 'yen', 'tuyết', 'tuyet',
     'cúc', 'cuc', 'đào', 'dao', 'hiền', 'hien', 'hằng', 'hang', 'thùy', 'thuy', 'oanh', 'loan', 'bích', 'bich', 'châu', 'chau',
@@ -27,18 +37,11 @@ const getSpeakerGender = (speakerRaw) => {
     'mother', 'mom', 'girl', 'woman', 'sister', 'aunt', 'kate', 'lisa', 'sarah', 'emily', 'jessica'
   ];
 
-  const maleKeywords = [
-    'phong', 'nam', 'minh', 'hải', 'hai', 'đức', 'duc', 'hùng', 'hung', 'tuấn', 'tuan', 'kiên', 'kien', 'lâm', 'lam',
-    'hoàng', 'hoang', 'quang', 'sơn', 'son', 'thành', 'thanh', 'bình', 'binh', 'khang', 'phúc', 'phuc', 'dũng', 'dung',
-    'huy', 'việt', 'viet', 'tùng', 'tung', 'thắng', 'thang', 'trọng', 'trong', 'khoa', 'trung', 'hiếu', 'hieu', 'đạt', 'dat',
-    'cường', 'cuong', 'thái', 'thai', 'tấn', 'tan', 'tâm', 'tam', 'nhân', 'nhan', 'quốc', 'quoc', 'bảo', 'bao', 'triết', 'triet',
-    'nghĩa', 'nghia', 'long', 'lộc', 'loc', 'duy', 'nguyên', 'nguyen', 'quyền', 'quyen', 'tiến', 'tien', 'vương', 'vuong',
-    'nick', 'mark', 'peter', 'tom', 'david', 'ben', 'mr', 'father', 'dad', 'boy', 'man', 'brother', 'uncle', 'doctor',
-    'counsellor', 'counselor', 'school counsellor', 'john', 'alex', 'jack', 'sam', 'steve', 'brian', 'chris', 'mike', 'james'
-  ];
-
-  if (femaleKeywords.some(k => s.includes(k))) return 'female';
-  if (maleKeywords.some(k => s.includes(k))) return 'male';
+  const words = s.split(/[\s,._-]+/);
+  if (words.some(w => maleExact.includes(w))) return 'male';
+  if (words.some(w => femaleExact.includes(w))) return 'female';
+  if (maleExact.some(k => s.includes(k))) return 'male';
+  if (femaleExact.some(k => s.includes(k))) return 'female';
   return 'male';
 };
 import React, { useState, useEffect, useRef } from 'react';
@@ -1290,7 +1293,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
   // HOISTED V297 & V298 DIALOGUE & BG MUSIC STATES AT COMPONENT TOP
   const [dialogueSpeed, setDialogueSpeed] = useState(0.8);
-  const [showDialogueVietnamese, setShowDialogueVietnamese] = useState(true);
+  const [showDialogueVietnamese, setShowDialogueVietnamese] = useState(false);
   const [isRolePlayMode, setIsRolePlayMode] = useState(false);
   const [userSelectedCharacter, setUserSelectedCharacter] = useState('Ann');
   const [rolePlayStepIndex, setRolePlayStepIndex] = useState(null);
@@ -5307,6 +5310,35 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             </div>
           </div>
 
+          {/* V301 FEATURE: BẢNG THI ĐẤU 1v1 REAL-TIME BANNER */}
+          {is1v1BattleMode && (
+            <div className="bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 p-3.5 rounded-2xl text-white shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in print:hidden border-2 border-rose-300">
+              <div className="flex items-center space-x-3">
+                <span className="text-3xl animate-bounce">⚔️</span>
+                <div>
+                  <h4 className="font-black text-sm sm:text-base uppercase tracking-wider text-amber-300">
+                    ĐANG THI ĐẤU 1v1 LUYỆN ĐỌC ĐÓNG VAI
+                  </h4>
+                  <p className="text-xs font-bold text-slate-100">
+                    Player 1 ({battleP1Score} điểm) ⚡ VS ⚡ Player 2 ({battleP2Score} điểm)
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="px-3 py-1 bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-sm">
+                  Lượt Đọc: Player {battleTurnPlayer}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setBattleP1Score(0); setBattleP2Score(0); setBattleTurnPlayer(1); }}
+                  className="px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  🔄 Đặt Lại Điểm
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* MAIN PLAYER ACTION ROW */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-purple-50/80 p-3 rounded-2xl border border-purple-200 print:hidden">
             <div className="flex flex-wrap items-center gap-2">
@@ -5503,7 +5535,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             </span>
 
                             {/* SENTENCE TEXT WITH REAL-TIME KARAOKE WORD HIGHLIGHTING & KEYWORD TOOLTIPS */}
-                            <div className="text-sm sm:text-base font-extrabold leading-snug grow">
+                            <div className={`text-sm sm:text-base font-black leading-snug grow ${isHighlighted ? 'text-blue-700 font-black' : 'text-slate-900'}`}>
                               {!isFillBlanksMode ? (
                                 isKaraokeSyncMode && isHighlighted ? (
                                   line.text.split(' ').map((word, wIdx) => (
@@ -5511,8 +5543,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                                       key={wIdx}
                                       className={`inline-block mr-1.5 transition-all duration-150 rounded px-1.5 py-0.5 ${
                                         highlightedWordIndex === wIdx
-                                          ? 'bg-amber-300 text-slate-950 font-black scale-110 shadow-md ring-2 ring-amber-400 animate-pulse border border-amber-500'
-                                          : 'hover:text-purple-700 cursor-pointer'
+                                          ? 'bg-red-600 text-white font-black scale-115 shadow-xl ring-4 ring-red-300 animate-pulse border-2 border-red-400 rounded-md px-2 py-0.5'
+                                          : 'hover:text-blue-700 cursor-pointer'
                                       }`}
                                     >
                                       {word}
