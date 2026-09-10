@@ -7207,7 +7207,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                   {aiStoryData.title}
                 </h4>
 
-                {/* KHUNG 1: CÂU TRUYỆN TIẾNG ANH (CÓ NÚT SỬA/XÓA VĂN BẢN VÀ HIGHLIGHT MÀU VÀNG) */}
+                {/* KHUNG 1: CÂU TRUYỆN TIẾNG ANH (CÓ NÚT SỬA/XÓA VĂN BẢN DÀNH CHỈ CHO GIÁO VIÊN VÀ HIGHLIGHT MÀU VÀNG) */}
                 <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 space-y-3 relative shadow-inner">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-black text-purple-800 uppercase tracking-wide flex items-center space-x-1">
@@ -7224,10 +7224,13 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                         <span>🔊 Nghe Giọng Đọc AI (UK Oxford)</span>
                       </button>
 
-                      {!isEditingStoryText ? (
+                      {isTeacher && (!isEditingStoryText ? (
                         <button
                           type="button"
                           onClick={() => {
+                            if (typeof window !== 'undefined' && window.speechSynthesis) {
+                              window.speechSynthesis.cancel();
+                            }
                             setCustomStoryEn(customStoryEn || aiStoryData.storyEn || '');
                             setIsEditingStoryText(true);
                           }}
@@ -7240,6 +7243,9 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                         <button
                           type="button"
                           onClick={() => {
+                            if (typeof window !== 'undefined' && window.speechSynthesis) {
+                              window.speechSynthesis.cancel();
+                            }
                             setCustomStoryEn('');
                             setCustomStoryVi('');
                           }}
@@ -7248,11 +7254,11 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                         >
                           <span>🗑️ Xóa Bài</span>
                         </button>
-                      )}
+                      ))}
                     </div>
                   </div>
 
-                  {isEditingStoryText ? (
+                  {isTeacher && isEditingStoryText ? (
                     <div className="space-y-2 pt-1">
                       <textarea
                         rows={5}
@@ -7264,7 +7270,12 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           type="button"
-                          onClick={() => setIsEditingStoryText(false)}
+                          onClick={() => {
+                            if (typeof window !== 'undefined' && window.speechSynthesis) {
+                              window.speechSynthesis.cancel();
+                            }
+                            setIsEditingStoryText(false);
+                          }}
                           className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition cursor-pointer"
                         >
                           Hoàn Thành Sửa
@@ -7272,6 +7283,9 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                         <button
                           type="button"
                           onClick={() => {
+                            if (typeof window !== 'undefined' && window.speechSynthesis) {
+                              window.speechSynthesis.cancel();
+                            }
                             setIsEditingStoryText(false);
                             handleAiTranslateCustomStory(customStoryEn);
                           }}
@@ -7287,19 +7301,26 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                     </div>
                   )}
 
-                  {/* KHUNG 2: BẢN DỊCH TIẾNG VIỆT CÓ NÚT AI DỊCH TỰ ĐỘNG THEO NỘI DUNG THẦY VỪA NHẬP */}
+                  {/* KHUNG 2: BẢN DỊCH TIẾNG VIỆT CÓ NÚT AI DỊCH TỰ ĐỘNG THEO NỘI DUNG THẦY VỪA NHẬP (CHỈ DÀNH CHO GIÁO VIÊN) */}
                   <div className="bg-white/90 p-3.5 rounded-xl border border-purple-200 text-xs sm:text-sm text-purple-950 font-medium leading-relaxed mt-2 shadow-xs space-y-2">
                     <div className="flex items-center justify-between">
                       <strong className="text-purple-800 font-extrabold block">👉 Dịch tiếng Việt (Tóm tắt hội thoại):</strong>
-                      <button
-                        type="button"
-                        onClick={() => handleAiTranslateCustomStory(customStoryEn || aiStoryData.storyEn)}
-                        disabled={isAiTranslating}
-                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl shadow-sm transition flex items-center space-x-1 cursor-pointer border border-amber-400 disabled:opacity-50"
-                        title="AI tự động dịch sang Tiếng Việt theo nội dung Thầy vừa nhập"
-                      >
-                        <span>{isAiTranslating ? '⏳ AI Đang Dịch...' : '🤖 AI Dịch Tự Động'}</span>
-                      </button>
+                      {isTeacher && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof window !== 'undefined' && window.speechSynthesis) {
+                              window.speechSynthesis.cancel();
+                            }
+                            handleAiTranslateCustomStory(customStoryEn || aiStoryData.storyEn);
+                          }}
+                          disabled={isAiTranslating}
+                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl shadow-sm transition flex items-center space-x-1 cursor-pointer border border-amber-400 disabled:opacity-50"
+                          title="AI tự động dịch sang Tiếng Việt theo nội dung Thầy vừa nhập"
+                        >
+                          <span>{isAiTranslating ? '⏳ AI Đang Dịch...' : '🤖 AI Dịch Tự Động'}</span>
+                        </button>
+                      )}
                     </div>
                     <div>
                       {renderHighlightedStoryText(customStoryVi || aiStoryData.storyVi, filteredList.length > 0 ? filteredList : vocabList)}
