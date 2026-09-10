@@ -1712,6 +1712,39 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   };
 
   // EDIT & DELETE DIALOGUE HANDLERS
+  // FEATURE: UPLOAD CUSTOM MP3 AUDIO FOR DIALOGUE LESSON
+  const handleUploadDialogueMp3 = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingDialogueAudio(true);
+      let publicUrl = '';
+      try {
+        publicUrl = await uploadLMSFile(file, 'audio');
+      } catch (err) {
+        console.warn('Supabase audio upload fallback to local blob:', err);
+      }
+      if (!publicUrl) {
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          setEditingDialogueObj(prev => ({ ...prev, audioUrl: re.target.result }));
+          setIsUploadingDialogueAudio(false);
+          playSuccessSound();
+          alert("🎉 Đã tải lên thành công file Audio MP3 chuẩn cho đoạn hội thoại!");
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+      setEditingDialogueObj(prev => ({ ...prev, audioUrl: publicUrl }));
+      setIsUploadingDialogueAudio(false);
+      playSuccessSound();
+      alert("🎉 Đã tải lên thành công file Audio MP3 chuẩn cho đoạn hội thoại!");
+    } catch (error) {
+      setIsUploadingDialogueAudio(false);
+      alert("Lỗi khi tải file: " + error.message);
+    }
+  };
+
   const handleOpenEditDialogueModal = (tabObj) => {
     setEditingDialogueObj(JSON.parse(JSON.stringify(tabObj)));
     setIsEditingDialogueModalOpen(true);
@@ -1745,6 +1778,46 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
     if (!activeTabObj || !activeTabObj.lines || activeTabObj.lines.length === 0) return;
 
+    // IF CUSTOM MP3 AUDIO IS UPLOADED BY TEACHER, PLAY THE REAL MP3 AUDIO WITH LINE PROGRESS SYNC
+    if (activeTabObj.audioUrl) {
+      if (customDialogueAudioRef.current) {
+        customDialogueAudioRef.current.pause();
+      }
+      const audio = new Audio(activeTabObj.audioUrl);
+      customDialogueAudioRef.current = audio;
+      setIsPlayingFullDialogue(true);
+      setPlayingDialogueLineIndex(0);
+
+      audio.ontimeupdate = () => {
+        if (audio.duration) {
+          const progress = audio.currentTime / audio.duration;
+          const lineIdx = Math.min(
+            activeTabObj.lines.length - 1,
+            Math.floor(progress * activeTabObj.lines.length)
+          );
+          setPlayingDialogueLineIndex(lineIdx);
+        }
+      };
+
+      audio.onended = () => {
+        setIsPlayingFullDialogue(false);
+        setPlayingDialogueLineIndex(null);
+        customDialogueAudioRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setIsPlayingFullDialogue(false);
+        setPlayingDialogueLineIndex(null);
+        customDialogueAudioRef.current = null;
+      };
+
+      audio.play().catch(e => {
+        console.warn('Custom audio playback fallback:', e);
+      });
+      return;
+    }
+
+    // DEFAULT UK OXFORD SPEECH SYNTHESIS
     setIsPlayingFullDialogue(true);
     let idx = 0;
 
@@ -1765,6 +1838,10 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   };
 
   const handleStopDialogueAudio = () => {
+    if (customDialogueAudioRef.current) {
+      customDialogueAudioRef.current.pause();
+      customDialogueAudioRef.current = null;
+    }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -2875,6 +2952,8 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [isEditingDialogueModalOpen, setIsEditingDialogueModalOpen] = useState(false);
   const [editingDialogueObj, setEditingDialogueObj] = useState(null);
   const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
+  const [isUploadingDialogueAudio, setIsUploadingDialogueAudio] = useState(false);
+  const customDialogueAudioRef = useRef(null);
   // SPEED, VIETNAMESE TOGGLE, ROLE-PLAY & RECORDING STATES (V297)
   const [newTabTitleInput, setNewTabTitleInput] = useState('');
   const [isEditingStoryText, setIsEditingStoryText] = useState(false);
@@ -5807,7 +5886,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 <span>🎓</span>
                 <span>Khối Lớp:</span>
               </span>
-              {['Tất Cả', 'Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12'].map((g) => (
+              {['Tất Cả', 'Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9'].map((g) => (
                 <button
                   key={g}
                   type="button"
@@ -5904,8 +5983,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           
       {/* V307 ACTIVE MODAL FOR EDITING DIALOGUE LESSON */}
       {isEditingDialogueModalOpen && editingDialogueObj && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 animate-fade-in print:hidden overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full border-4 border-amber-500 shadow-2xl space-y-4 relative text-slate-900 my-8">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 sm:p-6 pt-20 pb-10 animate-fade-in print:hidden overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full my-auto border-4 border-amber-500 shadow-2xl space-y-4 relative text-slate-900 shadow-amber-500/20">
             <button
               type="button"
               onClick={() => setIsEditingDialogueModalOpen(false)}
@@ -5939,12 +6018,12 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     onChange={(e) => setEditingDialogueObj({ ...editingDialogueObj, grade: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 focus:border-amber-500 font-bold text-sm bg-white"
                   >
-                    {['Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12'].map((g) => (
+                    {['Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9'].map((g) => (
                       <option key={g} value={g}>{g}</option>
                     ))}
                   </select>
                 </div>
-                <div className="sm:col-span-3">
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-black text-slate-700 mb-1">📘 Nhãn Unit SGK (Ví dụ: Unit 1: Hobbies, Unit 2: City Life):</label>
                   <input
                     type="text"
@@ -5954,6 +6033,40 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 focus:border-amber-500 font-bold text-sm bg-white"
                   />
                 </div>
+
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-black text-slate-700 mb-1">🎵 File Audio Chuẩn SGK (MP3):</label>
+                  <div className="space-y-1">
+                    <label className="flex items-center justify-center space-x-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs cursor-pointer transition">
+                      <span>{isUploadingDialogueAudio ? '⏳ Đang Tải...' : editingDialogueObj.audioUrl ? '✅ Đã Có Audio MP3' : '📤 Tải MP3 Lên'}</span>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={handleUploadDialogueMp3}
+                        className="hidden"
+                      />
+                    </label>
+                    {editingDialogueObj.audioUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingDialogueObj({ ...editingDialogueObj, audioUrl: '' })}
+                        className="w-full px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[11px] rounded-lg transition"
+                      >
+                        🗑️ Xóa MP3 đã tải
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {editingDialogueObj.audioUrl && (
+                  <div className="sm:col-span-3 bg-emerald-50 p-2.5 rounded-xl border border-emerald-300 flex items-center justify-between gap-2">
+                    <span className="text-xs font-black text-emerald-900 flex items-center space-x-1">
+                      <span>🎧</span>
+                      <span>Audio mẫu chuẩn SGK:</span>
+                    </span>
+                    <audio controls src={editingDialogueObj.audioUrl} className="h-7 max-w-xs w-full" />
+                  </div>
+                )}
 
                 {/* AI AUTO ROLE-ASSIGNER PASTE BOX */}
                 <div className="sm:col-span-3 bg-purple-50 p-3.5 rounded-2xl border-2 border-purple-200 space-y-2">
@@ -6086,8 +6199,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
       {/* V302 ACTIVE MODAL FOR AI TẠO HỘI THOẠI */}
       {isAiTopicModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 animate-fade-in print:hidden">
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full border-4 border-purple-500 shadow-2xl space-y-4 relative text-slate-900">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 sm:p-6 pt-20 pb-10 animate-fade-in print:hidden overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full my-auto border-4 border-purple-500 shadow-2xl space-y-4 relative text-slate-900">
             <button
               type="button"
               onClick={() => setIsAiTopicModalOpen(false)}
@@ -6122,7 +6235,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   onChange={(e) => setCustomDialogueGrade(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-2xl border-2 border-purple-300 focus:border-purple-600 focus:outline-none font-bold text-sm bg-white"
                 >
-                  {['Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12'].map((g) => (
+                  {['Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9'].map((g) => (
                     <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
