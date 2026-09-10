@@ -4853,109 +4853,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
       
       
-      {/* 🔗 FRAME 2: SƠ ĐỒ LIÊN KẾT TỪ VỰNG TIẾT HỌC (UNIT LESSON MATRIX) - CÓ NÚT KHÓA NỔI BẬT NẰM TRỰC TIẾP TRÊN MỖI TIẾT HỌC */}
-      <div className="bg-amber-950/80 rounded-2xl p-4 border-2 border-amber-700/80 shadow-xl space-y-3 my-4 animate-fade-in">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-800/80 pb-2.5">
-          <div className="flex items-center space-x-2 text-amber-300 font-black text-xs sm:text-sm uppercase tracking-wide">
-            <span className="text-base">🔗</span>
-            <span>SƠ ĐỒ LIÊN KẾT TỪ VỰNG TIẾT HỌC (UNIT LESSON MATRIX):</span>
-          </div>
-
-          <div className="bg-emerald-800 text-emerald-100 font-extrabold text-xs px-3.5 py-1 rounded-full border border-emerald-500 shadow-sm flex items-center space-x-1">
-            <span>Đang hiển thị từ vựng:</span>
-            <span className="font-black text-amber-300 ml-1">
-              {selectedSection === 'All' ? 'TẤT CẢ CÁC TIẾT' : selectedSection}
-            </span>
-          </div>
-        </div>
-
-        {/* DÃY NÚT CÁC TIẾT HỌC (1. GETTING STARTED, 2. A CLOSER LOOK 1...) NỔI BẬT NÚT KHÓA */}
-        <div className="flex flex-wrap items-center gap-2.5 overflow-x-auto py-1">
-          {[
-            { id: 'All', num: '', name: 'ALL (Tất Cả)', fullSec: 'All', icon: '🌐' },
-            { id: 'GETTING STARTED', num: '1. ', name: 'GETTING STARTED', fullSec: 'GETTING STARTED', icon: '🚀' },
-            { id: 'A CLOSER LOOK 1', num: '2. ', name: 'A CLOSER LOOK 1', fullSec: 'A CLOSER LOOK 1', icon: '📖' },
-            { id: 'A CLOSER LOOK 2', num: '3. ', name: 'A CLOSER LOOK 2', fullSec: 'A CLOSER LOOK 2', icon: '⚡' },
-            { id: 'COMMUNICATION', num: '4. ', name: 'COMMUNICATION', fullSec: 'COMMUNICATION', icon: '💬' },
-            { id: 'SKILLS 1', num: '5. ', name: 'SKILLS 1', fullSec: 'SKILLS 1', icon: '📚' },
-            { id: 'SKILLS 2', num: '6. ', name: 'SKILLS 2', fullSec: 'SKILLS 2', icon: '✍️' },
-            { id: 'LOOKING BACK', num: '7. ', name: 'LOOKING BACK', fullSec: 'LOOKING BACK', icon: '🔄' },
-            { id: 'PROJECT', num: '8. ', name: 'PROJECT', fullSec: 'PROJECT', icon: '🎨' },
-          ].map((sec) => {
-            const isSelected = selectedSection === sec.fullSec;
-            const isLocked = sec.fullSec !== 'All' && !!individualSectionLocks[sec.fullSec];
-            const isLockedForStudent = isSectionLockedForStudent(sec.fullSec);
-
-            return (
-              <div key={sec.id} className="relative flex items-center shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isLockedForStudent) {
-                      playSuccessSound();
-                      alert(`🔒 Tiết học '${sec.name}' đang được Giáo viên tạm khóa. Hãy học các tiết trước hoặc chờ Thầy Mở Khóa nhé!`);
-                      return;
-                    }
-                    setSelectedSection(sec.fullSec);
-                    setSelectedIndex(0);
-                  }}
-                  className={`px-3.5 py-2 rounded-2xl text-xs font-black transition cursor-pointer flex items-center space-x-1.5 border shadow-sm ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 border-amber-300 ring-2 ring-amber-300 scale-105 shadow-md'
-                      : isLockedForStudent
-                      ? 'bg-rose-950/80 text-rose-200 border-rose-500/80 opacity-75'
-                      : isLocked
-                      ? 'bg-amber-950/90 text-amber-200 border-rose-500/70 hover:bg-rose-950/60'
-                      : 'bg-slate-900/80 text-amber-200 border-amber-700/60 hover:bg-amber-900/60 hover:text-white'
-                  }`}
-                >
-                  {isLockedForStudent || isLocked ? (
-                    <Lock className="w-3.5 h-3.5 text-rose-400 animate-pulse shrink-0" />
-                  ) : (
-                    <span className="text-sm shrink-0">{sec.icon}</span>
-                  )}
-
-                  <span>{sec.num}{sec.name}</span>
-
-                                    {/* THAY CHỮ LINK BẰNG NÚT HIDE / SHOW ĐẨY ẨN/HIỆN TIẾT HỌC CHO GIÁO VIÊN */}
-                  {isTeacher && sec.fullSec !== 'All' && (
-                    <span
-                      onClick={(e) => handleToggleIndividualSectionLock(sec.fullSec, e)}
-                      title={isLocked ? 'Nhấp để HIỆN tiết học này cho HS' : 'Nhấp để ẨN tiết học này với HS'}
-                      className={`ml-1.5 px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center space-x-1 border shadow-xs shrink-0 ${
-                        isLocked
-                          ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-300 ring-1 ring-rose-300'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-300 ring-1 ring-emerald-300'
-                      }`}
-                    >
-                      {isLocked ? (
-                        <>
-                          <Lock className="w-3 h-3 text-white" />
-                          <span>🔒 HIDE (Ẩn)</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="w-3 h-3 text-white" />
-                          <span>👁️ SHOW (Hiện)</span>
-                        </>
-                      )}
-                    </span>
-                  )}
-
-                  {!isTeacher && isLockedForStudent && (
-                    <span className="bg-rose-600 text-white text-[9px] px-1.5 py-0.5 rounded font-mono font-black ml-1 border border-rose-400">
-                      🔒 ĐÃ ẨN
-                    </span>
-                  )}
-                </button>
-
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-{/* TAB BÀI HỌC HỘI THOẠI SGK (LISTEN AND READ) (V295) */}
+      {/* TAB BÀI HỌC HỘI THOẠI SGK (LISTEN AND READ) (V295) */}
       {activeTab === 'dialogue_lesson' && (
         <div className="bg-white rounded-3xl p-4 sm:p-6 border-4 border-purple-400 shadow-2xl space-y-5 animate-fade-in text-slate-900">
           {/* HEADER BAR */}
@@ -5163,7 +5061,111 @@ Ann: How's your new neighbourhood?`}
         </div>
       )}
 
-      {/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
+      {/* 🔗 FRAME 2: SƠ ĐỒ LIÊN KẾT TỪ VỰNG TIẾT HỌC (UNIT LESSON MATRIX) - CÓ NÚT KHÓA NỔI BẬT NẰM TRỰC TIẾP TRÊN MỖI TIẾT HỌC */}
+      {(activeTab === 'dictionary' || activeTab === 'bookmarks') && (
+        <div className="bg-amber-950/80 rounded-2xl p-4 border-2 border-amber-700/80 shadow-xl space-y-3 my-4 animate-fade-in">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-800/80 pb-2.5">
+          <div className="flex items-center space-x-2 text-amber-300 font-black text-xs sm:text-sm uppercase tracking-wide">
+            <span className="text-base">🔗</span>
+            <span>SƠ ĐỒ LIÊN KẾT TỪ VỰNG TIẾT HỌC (UNIT LESSON MATRIX):</span>
+          </div>
+
+          <div className="bg-emerald-800 text-emerald-100 font-extrabold text-xs px-3.5 py-1 rounded-full border border-emerald-500 shadow-sm flex items-center space-x-1">
+            <span>Đang hiển thị từ vựng:</span>
+            <span className="font-black text-amber-300 ml-1">
+              {selectedSection === 'All' ? 'TẤT CẢ CÁC TIẾT' : selectedSection}
+            </span>
+          </div>
+        </div>
+
+        {/* DÃY NÚT CÁC TIẾT HỌC (1. GETTING STARTED, 2. A CLOSER LOOK 1...) NỔI BẬT NÚT KHÓA */}
+        <div className="flex flex-wrap items-center gap-2.5 overflow-x-auto py-1">
+          {[
+            { id: 'All', num: '', name: 'ALL (Tất Cả)', fullSec: 'All', icon: '🌐' },
+            { id: 'GETTING STARTED', num: '1. ', name: 'GETTING STARTED', fullSec: 'GETTING STARTED', icon: '🚀' },
+            { id: 'A CLOSER LOOK 1', num: '2. ', name: 'A CLOSER LOOK 1', fullSec: 'A CLOSER LOOK 1', icon: '📖' },
+            { id: 'A CLOSER LOOK 2', num: '3. ', name: 'A CLOSER LOOK 2', fullSec: 'A CLOSER LOOK 2', icon: '⚡' },
+            { id: 'COMMUNICATION', num: '4. ', name: 'COMMUNICATION', fullSec: 'COMMUNICATION', icon: '💬' },
+            { id: 'SKILLS 1', num: '5. ', name: 'SKILLS 1', fullSec: 'SKILLS 1', icon: '📚' },
+            { id: 'SKILLS 2', num: '6. ', name: 'SKILLS 2', fullSec: 'SKILLS 2', icon: '✍️' },
+            { id: 'LOOKING BACK', num: '7. ', name: 'LOOKING BACK', fullSec: 'LOOKING BACK', icon: '🔄' },
+            { id: 'PROJECT', num: '8. ', name: 'PROJECT', fullSec: 'PROJECT', icon: '🎨' },
+          ].map((sec) => {
+            const isSelected = selectedSection === sec.fullSec;
+            const isLocked = sec.fullSec !== 'All' && !!individualSectionLocks[sec.fullSec];
+            const isLockedForStudent = isSectionLockedForStudent(sec.fullSec);
+
+            return (
+              <div key={sec.id} className="relative flex items-center shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isLockedForStudent) {
+                      playSuccessSound();
+                      alert(`🔒 Tiết học '${sec.name}' đang được Giáo viên tạm khóa. Hãy học các tiết trước hoặc chờ Thầy Mở Khóa nhé!`);
+                      return;
+                    }
+                    setSelectedSection(sec.fullSec);
+                    setSelectedIndex(0);
+                  }}
+                  className={`px-3.5 py-2 rounded-2xl text-xs font-black transition cursor-pointer flex items-center space-x-1.5 border shadow-sm ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 border-amber-300 ring-2 ring-amber-300 scale-105 shadow-md'
+                      : isLockedForStudent
+                      ? 'bg-rose-950/80 text-rose-200 border-rose-500/80 opacity-75'
+                      : isLocked
+                      ? 'bg-amber-950/90 text-amber-200 border-rose-500/70 hover:bg-rose-950/60'
+                      : 'bg-slate-900/80 text-amber-200 border-amber-700/60 hover:bg-amber-900/60 hover:text-white'
+                  }`}
+                >
+                  {isLockedForStudent || isLocked ? (
+                    <Lock className="w-3.5 h-3.5 text-rose-400 animate-pulse shrink-0" />
+                  ) : (
+                    <span className="text-sm shrink-0">{sec.icon}</span>
+                  )}
+
+                  <span>{sec.num}{sec.name}</span>
+
+                                    {/* THAY CHỮ LINK BẰNG NÚT HIDE / SHOW ĐẨY ẨN/HIỆN TIẾT HỌC CHO GIÁO VIÊN */}
+                  {isTeacher && sec.fullSec !== 'All' && (
+                    <span
+                      onClick={(e) => handleToggleIndividualSectionLock(sec.fullSec, e)}
+                      title={isLocked ? 'Nhấp để HIỆN tiết học này cho HS' : 'Nhấp để ẨN tiết học này với HS'}
+                      className={`ml-1.5 px-2 py-0.5 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center space-x-1 border shadow-xs shrink-0 ${
+                        isLocked
+                          ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-300 ring-1 ring-rose-300'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-300 ring-1 ring-emerald-300'
+                      }`}
+                    >
+                      {isLocked ? (
+                        <>
+                          <Lock className="w-3 h-3 text-white" />
+                          <span>🔒 HIDE (Ẩn)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-3 h-3 text-white" />
+                          <span>👁️ SHOW (Hiện)</span>
+                        </>
+                      )}
+                    </span>
+                  )}
+
+                  {!isTeacher && isLockedForStudent && (
+                    <span className="bg-rose-600 text-white text-[9px] px-1.5 py-0.5 rounded font-mono font-black ml-1 border border-rose-400">
+                      🔒 ĐÃ ẨN
+                    </span>
+                  )}
+                </button>
+
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      )}
+
+{/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
       {(activeTab === 'dictionary' || activeTab === 'bookmarks') && (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-4 lg:col-span-3 bg-amber-100/90 rounded-2xl p-2.5 border-2 border-amber-300 shadow-inner flex flex-col justify-between max-h-[580px]">
