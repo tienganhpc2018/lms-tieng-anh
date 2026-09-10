@@ -2305,9 +2305,17 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
       const storyVersionIndex = ((storySeed % 5) + 5) % 5;
 
-      // LESSON-SECTION SPECIFIC AI STORY ENGINE INTEGRATING SGK CONTEXT (V285)
+      // LESSON-SECTION SPECIFIC AI STORY ENGINE INTEGRATING SGK CONTEXT (V286 - FIXED SCOPE & ORDER)
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+
+      const activeLessonWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList).map(i => (i.word || '').toLowerCase().trim());
+      const activeSecUpper = (lessonSec || selectedSection || '').toUpperCase();
       const currentActGrade = activityGrade || detectActivityGrade(activity);
       const isGrade7 = currentActGrade === 'Lớp 7' || activeLessonWordsList.some(w => w.includes('cardboard') || w.includes('dollhouse') || w.includes('horse riding') || w.includes('making models'));
+
+      let dynamicStories = [];
 
       if (isGrade7) {
         dynamicStories = [
@@ -2322,18 +2330,9 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
             storyVi: 'Trong giờ giải lao, học sinh thảo luận về các hoạt động sáng tạo. Trang thích xây dựng nhà búp bê (dollhouse) bằng các hộp bìa các tông (cardboard), trong khi Ann thích cưỡi ngựa (horse riding) ngoài trời. Các bạn thấy rằng dành thời gian cho sở thích mang lại niềm vui và nâng cao sự sáng tạo.'
           }
         ];
-      } else
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
       }
-
-      const activeLessonWordsList = (filteredList && filteredList.length > 0 ? filteredList : vocabList).map(i => (i.word || '').toLowerCase().trim());
-      const activeSecUpper = (lessonSec || selectedSection || '').toUpperCase();
-
-      let dynamicStories = [];
-
       // A CLOSER LOOK 1: COMMUNITY OCCUPATIONS & HELPERS
-      if (activeSecUpper.includes('CLOSER LOOK 1') || activeLessonWordsList.some(w => w.includes('police') || w.includes('electrician') || w.includes('firefighter') || w.includes('collector') || w.includes('delivery'))) {
+      else if (activeSecUpper.includes('CLOSER LOOK 1') || activeLessonWordsList.some(w => w.includes('police') || w.includes('electrician') || w.includes('firefighter') || w.includes('collector') || w.includes('delivery'))) {
         dynamicStories = [
           {
             title: 'Truyện Từ Vựng (Version 1 - Nghề Nghiệp Phục Vụ Cộng Đồng): ' + currentUnitName + ' - A CLOSER LOOK 1',
