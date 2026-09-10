@@ -16,6 +16,8 @@ const DIALOGUE_KEY_WORDS_DICT = {
   'hobbies': { ipa: '/ˈhɒbiz/', vi: 'Các sở thích rảnh rỗi', icon: '🎸' }
 };
 
+const characterVoiceRegistry = {};
+
 const getSpeakerGender = (speakerRaw) => {
   const s = (speakerRaw || '').toLowerCase().trim();
   const words = s.split(/[\s,._-]+/);
@@ -42,11 +44,49 @@ const getSpeakerGender = (speakerRaw) => {
   if (words.some(w => femaleExact.includes(w))) return 'female';
   if (words.some(w => maleExact.includes(w))) return 'male';
 
-  // Strict whole word check (avoid 2-letter substring collision like 'an' matching 'man')
   if (femaleExact.some(k => k.length > 2 && s.includes(k))) return 'female';
   if (maleExact.some(k => k.length > 2 && s.includes(k))) return 'male';
 
   return 'female';
+};
+
+// MULTI-CHARACTER DISTINCT PITCH & SPEED CALCULATOR
+const getSpeakerAudioProfile = (speakerRaw, isMale, baseRate = 0.8) => {
+  const s = (speakerRaw || '').toLowerCase().trim();
+
+  if (s.includes('counsellor') || s.includes('counselor') || s.includes('teacher') || s.includes('doctor')) {
+    return { pitch: 0.80, rate: baseRate * 0.88 }; // Adult Male: Deep & authoritative
+  }
+  if (s.includes('nick')) {
+    return { pitch: 0.94, rate: baseRate * 0.95 }; // Boy 1 (Nick): Young clear male
+  }
+  if (s.includes('phong') || s.includes('nam')) {
+    return { pitch: 0.90, rate: baseRate * 0.92 }; // Boy 2 (Phong/Nam): Energetic male
+  }
+  if (s.includes('ann')) {
+    return { pitch: 1.08, rate: baseRate * 0.92 }; // Girl 1 (Ann): Young British Female
+  }
+  if (s.includes('mi')) {
+    return { pitch: 1.28, rate: baseRate * 1.02 }; // Girl 2 (Mi): Higher energetic girl
+  }
+  if (s.includes('mai')) {
+    return { pitch: 1.18, rate: baseRate * 0.90 }; // Girl 3 (Mai): Gentle female tone
+  }
+  if (s.includes('trang')) {
+    return { pitch: 1.22, rate: baseRate * 0.95 }; // Girl 4 (Trang): Bright female tone
+  }
+
+  // Fallback hash for dynamic AI generated characters
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
+  const pitchOffset = (Math.abs(hash) % 20) / 100;
+  const rateOffset = (Math.abs(hash) % 10) / 100;
+
+  if (isMale) {
+    return { pitch: 0.85 + pitchOffset, rate: baseRate * (0.90 + rateOffset) };
+  } else {
+    return { pitch: 1.08 + pitchOffset, rate: baseRate * (0.92 + rateOffset) };
+  }
 };
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -1407,24 +1447,9 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     utterance.lang = 'en-GB';
 
     const baseRate = dialogueSpeed || 0.8;
-    utterance.rate = baseRate * 0.95;
-
-    // DISTINCT PITCH & SPEED PER CHARACTER SO DIALOGUES SOUND LIKE DIFFERENT PEOPLE
-    if (isAdult) {
-      utterance.pitch = isMale ? 0.80 : 0.95;
-    } else if (isMale) {
-      utterance.pitch = lowerSpeaker.includes('phong') ? 0.90 : 0.94;
-    } else {
-      // Female distinct pitches: Ann (1.05), Mi (1.25), Mai (1.15)
-      if (lowerSpeaker.includes('mi')) {
-        utterance.pitch = 1.25;
-        utterance.rate = baseRate * 1.02;
-      } else if (lowerSpeaker.includes('mai')) {
-        utterance.pitch = 1.15;
-      } else {
-        utterance.pitch = 1.05;
-      }
-    }
+    const { pitch, rate } = getSpeakerAudioProfile(speaker, isMale, baseRate);
+    utterance.pitch = pitch;
+    utterance.rate = rate;
 
     if (text.endsWith('!')) {
       utterance.pitch += 0.05;
@@ -1433,33 +1458,36 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       utterance.pitch += 0.08;
     }
 
-    const allVoices = window.speechSynthesis.getVoices();
+    // MULTI-VOICE REGISTRY: ASSIGN DISTINCT PHYSICAL VOICE PER SPEAKER NAME
+    const allVoices = window.speechSynthesis.getVoices() || [];
     const gbVoices = allVoices.filter(v => v.lang && (v.lang.toLowerCase().includes('gb') || v.lang.toLowerCase().includes('uk')));
     const enVoices = allVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
 
-    let targetVoice = null;
-    const pool = gbVoices.length > 0 ? gbVoices : enVoices;
+    const candidatePool = gbVoices.length > 0 ? gbVoices : (enVoices.length > 0 ? enVoices : allVoices);
 
-    if (pool.length > 0) {
+    let targetVoice = characterVoiceRegistry[lowerSpeaker];
+    if (!targetVoice && candidatePool.length > 0) {
+      const maleVoices = candidatePool.filter(v => {
+        const n = v.name.toLowerCase();
+        return n.includes('male') || n.includes('george') || n.includes('david') || n.includes('daniel') || n.includes('oliver') || n.includes('james') || n.includes('mark') || n.includes('guy');
+      });
+
+      const femaleVoices = candidatePool.filter(v => {
+        const n = v.name.toLowerCase();
+        return n.includes('female') || n.includes('hazel') || n.includes('susan') || n.includes('sonia') || n.includes('charlotte') || n.includes('zira') || n.includes('aria') || n.includes('jenny');
+      });
+
+      const usedCount = Object.keys(characterVoiceRegistry).length;
+
       if (isMale) {
-        targetVoice = pool.find(v => {
-          const n = v.name.toLowerCase();
-          return n.includes('male') || n.includes('george') || n.includes('david') || n.includes('daniel') || n.includes('oliver') || n.includes('james') || n.includes('mark');
-        }) || pool[0];
+        const pool = maleVoices.length > 0 ? maleVoices : candidatePool;
+        targetVoice = pool[usedCount % pool.length] || candidatePool[0];
       } else {
-        const femaleVoices = pool.filter(v => {
-          const n = v.name.toLowerCase();
-          return n.includes('female') || n.includes('hazel') || n.includes('susan') || n.includes('sonia') || n.includes('charlotte') || n.includes('zira') || n.includes('aria');
-        });
-
-        if (lowerSpeaker.includes('mi') && femaleVoices.length > 1) {
-          targetVoice = femaleVoices[1];
-        } else if (femaleVoices.length > 0) {
-          targetVoice = femaleVoices[0];
-        } else {
-          targetVoice = pool[0];
-        }
+        const pool = femaleVoices.length > 0 ? femaleVoices : candidatePool;
+        targetVoice = pool[usedCount % pool.length] || candidatePool[0];
       }
+
+      characterVoiceRegistry[lowerSpeaker] = targetVoice;
     }
 
     if (targetVoice) {
