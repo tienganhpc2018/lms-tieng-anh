@@ -1246,27 +1246,38 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const settings = activity?.settings || {};
   // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
   const detectActivityGrade = (act) => {
-    const searchStr = (
-      (act?.course_title || '') + ' ' +
-      (act?.course_name || '') + ' ' +
-      (act?.course?.title || '') + ' ' +
-      (act?.courseGrade || '') + ' ' +
-      (act?.grade || '') + ' ' +
+    const explicit = (
       (act?.settings?.grade || '') + ' ' +
-      (act?.selectedGrade || '') + ' ' +
-      (act?.title || '') + ' ' +
-      (typeof window !== 'undefined' ? window.location.href : '')
+      (act?.grade || '') + ' ' +
+      (act?.courseGrade || '') + ' ' +
+      (act?.course?.grade || '') + ' ' +
+      (act?.selectedGrade || '')
     ).toString().toLowerCase();
 
-    if (searchStr.includes('9') || searchStr.includes('lớp 9') || searchStr.includes('tiếng anh 9')) return 'Lớp 9';
-    if (searchStr.includes('8') || searchStr.includes('lớp 8') || searchStr.includes('tiếng anh 8')) return 'Lớp 8';
-    if (searchStr.includes('6') || searchStr.includes('lớp 6') || searchStr.includes('tiếng anh 6')) return 'Lớp 6';
-    if (searchStr.includes('10') || searchStr.includes('lớp 10')) return 'Lớp 10';
-    if (searchStr.includes('11') || searchStr.includes('lớp 11')) return 'Lớp 11';
-    if (searchStr.includes('12') || searchStr.includes('lớp 12')) return 'Lớp 12';
-    if (searchStr.includes('7') || searchStr.includes('lớp 7') || searchStr.includes('tiếng anh 7')) return 'Lớp 7';
+    if (explicit.includes('7') || explicit.includes('lớp 7')) return 'Lớp 7';
+    if (explicit.includes('9') || explicit.includes('lớp 9')) return 'Lớp 9';
+    if (explicit.includes('8') || explicit.includes('lớp 8')) return 'Lớp 8';
+    if (explicit.includes('6') || explicit.includes('lớp 6')) return 'Lớp 6';
 
-    // DEFAULT TO LỚP 9 FOR ALL CURRENT GRADE 9 LESSON PREPARATIONS ACCORDING TO THẦY HẢI
+    const textStr = (
+      (act?.title || '') + ' ' +
+      (act?.course_title || '') + ' ' +
+      (act?.course_name || '') + ' ' +
+      (act?.course?.title || '')
+    ).toString().toLowerCase();
+
+    if (/\b(lớp\s*7|lop\s*7|grade\s*7|tiếng\s*anh\s*7|unit\s*1.*hobbies)\b/i.test(textStr)) return 'Lớp 7';
+    if (/\b(lớp\s*9|lop\s*9|grade\s*9|tiếng\s*anh\s*9)\b/i.test(textStr)) return 'Lớp 9';
+    if (/\b(lớp\s*8|lop\s*8|grade\s*8|tiếng\s*anh\s*8)\b/i.test(textStr)) return 'Lớp 8';
+    if (/\b(lớp\s*6|lop\s*6|grade\s*6|tiếng\s*anh\s*6)\b/i.test(textStr)) return 'Lớp 6';
+
+    // Check vocabulary contents to auto-detect grade accurately
+    const words = Array.isArray(act?.settings?.vocabularyList)
+      ? act.settings.vocabularyList.map(i => (i?.word || '').toLowerCase()).join(' ')
+      : '';
+    if (words.includes('cardboard') || words.includes('dollhouse') || words.includes('horse riding')) return 'Lớp 7';
+    if (words.includes('suburb') || words.includes('facilities') || words.includes('craft village')) return 'Lớp 9';
+
     return 'Lớp 9';
   };
   const activityGrade = detectActivityGrade(activity);
@@ -2294,7 +2305,24 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
       const storyVersionIndex = ((storySeed % 5) + 5) % 5;
 
-      // LESSON-SECTION SPECIFIC AI STORY ENGINE INTEGRATING SGK CONTEXT (V284)
+      // LESSON-SECTION SPECIFIC AI STORY ENGINE INTEGRATING SGK CONTEXT (V285)
+      const currentActGrade = activityGrade || detectActivityGrade(activity);
+      const isGrade7 = currentActGrade === 'Lớp 7' || activeLessonWordsList.some(w => w.includes('cardboard') || w.includes('dollhouse') || w.includes('horse riding') || w.includes('making models'));
+
+      if (isGrade7) {
+        dynamicStories = [
+          {
+            title: 'Truyện Từ Vựng (Version 1 - Tóm Tắt Hội Thoại Ann & Trang): Unit 1 - GETTING STARTED',
+            storyEn: 'In our Getting Started lesson, students share their favorite hobbies in class. Trang likes making models using cardboard and glue. Ann enjoys horse riding and collecting stamps. Together, they practice gardening and doing crafts, finding these hobbies popular and unusual for everyone.',
+            storyVi: 'Trong tiết Getting Started, học sinh chia sẻ sở thích cá nhân ở trên lớp. Trang thích làm nhà mô hình (making models) bằng bìa các tông (cardboard) và keo dán (glue). Ann thích cưỡi ngựa (horse riding) và sưu tầm tem. Cùng nhau, các bạn thực hành làm vườn (gardening) và làm đồ thủ công, nhận thấy những sở thích này rất phổ biến (popular) và độc đáo (unusual) cho tất cả mọi người.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 2 - Thảo Luận Sở Thích Lớp 7): Unit 1 - GETTING STARTED',
+            storyEn: 'During the break time, students discuss different creative activities. Trang prefers building a dollhouse with cardboard boxes, while Ann likes outdoor horse riding. They find that spending time on hobbies brings happiness and improves creativity.',
+            storyVi: 'Trong giờ giải lao, học sinh thảo luận về các hoạt động sáng tạo. Trang thích xây dựng nhà búp bê (dollhouse) bằng các hộp bìa các tông (cardboard), trong khi Ann thích cưỡi ngựa (horse riding) ngoài trời. Các bạn thấy rằng dành thời gian cho sở thích mang lại niềm vui và nâng cao sự sáng tạo.'
+          }
+        ];
+      } else
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
