@@ -4417,6 +4417,19 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             <span>📖 AI Truyện Từ Vựng</span>
           </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              handleStopDialogueAudio();
+              setActiveTab('dialogue_lesson');
+            }}
+            className="px-3.5 py-1.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5 border border-pink-400 animate-bounce"
+            title="Mở bài học hội thoại SGK có giọng đọc cảm xúc & highlight câu"
+          >
+            <Volume2 className="w-4 h-4 text-amber-300" />
+            <span>🗣️ Bài Học Hội Thoại SGK</span>
+          </button>
+
           {isTeacher && (
             <button
               type="button"
@@ -4575,6 +4588,23 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span>Từ Điển Tương Tác</span>
+          </button>
+
+          {/* TAB BÀI HỌC HỘI THOẠI SGK (LISTEN AND READ) (V294) */}
+          <button
+            type="button"
+            onClick={() => {
+              handleStopDialogueAudio();
+              setActiveTab('dialogue_lesson');
+            }}
+            className={`px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 cursor-pointer shrink-0 ${
+              activeTab === 'dialogue_lesson'
+                ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md font-extrabold ring-2 ring-amber-300 scale-105'
+                : 'text-purple-200 hover:bg-purple-900/60 bg-purple-950/40 border border-purple-500/50'
+            }`}
+          >
+            <Volume2 className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <span>🗣️ Bài Học Hội Thoại SGK</span>
           </button>
           {/* GAME 1: LẬT THẺ */}
           <div className="relative flex items-center shrink-0">
