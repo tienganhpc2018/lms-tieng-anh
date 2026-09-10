@@ -1371,6 +1371,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [is1v1BattleMode, setIs1v1BattleMode] = useState(false);
   const [battleP1Score, setBattleP1Score] = useState(0);
   const [battleP2Score, setBattleP2Score] = useState(0);
+  const [battleTurnPlayer, setBattleTurnPlayer] = useState(1);
   const [isBattleWinnerModalOpen, setIsBattleWinnerModalOpen] = useState(false);
 
   const [isAudioTranscribing, setIsAudioTranscribing] = useState(false);
@@ -3681,12 +3682,23 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
       const spokenText = event.results[0][0].transcript.toLowerCase().trim();
       const targetText = (currentItem?.word || '').toLowerCase().trim();
       setIsRecording(false);
-      if (spokenText === targetText || targetText.includes(spokenText) || spokenText.includes(targetText)) {
+      const isMatch = spokenText === targetText || targetText.includes(spokenText) || spokenText.includes(targetText);
+      if (isMatch) {
         playSuccessSound();
         setSpeechResult({ success: true, text: spokenText, score: 98 });
       } else {
         playErrorSound();
         setSpeechResult({ success: false, text: spokenText, score: 65 });
+      }
+      if (is1v1BattleMode) {
+        const pts = isMatch ? 10 : 5;
+        if (battleTurnPlayer === 1) {
+          setBattleP1Score((prev) => prev + pts);
+          setBattleTurnPlayer(2);
+        } else {
+          setBattleP2Score((prev) => prev + pts);
+          setBattleTurnPlayer(1);
+        }
       }
     };
     recognition.onerror = () => {
