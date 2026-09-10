@@ -18,15 +18,7 @@ const DIALOGUE_KEY_WORDS_DICT = {
 
 const getSpeakerGender = (speakerRaw) => {
   const s = (speakerRaw || '').toLowerCase().trim();
-  const maleExact = [
-    'nick', 'phong', 'nam', 'minh', 'hải', 'hai', 'đức', 'duc', 'hùng', 'hung', 'tuấn', 'tuan', 'kiên', 'kien', 'lâm', 'lam',
-    'hoàng', 'hoang', 'quang', 'sơn', 'son', 'thành', 'thanh', 'bình', 'binh', 'khang', 'phúc', 'phuc', 'dũng', 'dung',
-    'huy', 'việt', 'viet', 'tùng', 'tung', 'thắng', 'thang', 'trọng', 'trong', 'khoa', 'trung', 'hiếu', 'hieu', 'đạt', 'dat',
-    'cường', 'cuong', 'thái', 'thai', 'tấn', 'tan', 'tâm', 'tam', 'nhân', 'nhan', 'quốc', 'quoc', 'bảo', 'bao', 'triết', 'triet',
-    'nghĩa', 'nghia', 'long', 'lộc', 'loc', 'duy', 'nguyên', 'nguyen', 'quyền', 'quyen', 'tiến', 'tien', 'vương', 'vuong',
-    'mark', 'peter', 'tom', 'david', 'ben', 'mr', 'mr.', 'father', 'dad', 'boy', 'man', 'brother', 'uncle', 'doctor',
-    'counsellor', 'counselor', 'school counsellor', 'john', 'alex', 'jack', 'sam', 'steve', 'brian', 'chris', 'mike', 'james'
-  ];
+  const words = s.split(/[\s,._-]+/);
 
   const femaleExact = [
     'ann', 'mi', 'trang', 'mai', 'hoa', 'lan', 'linh', 'hương', 'huong', 'phương', 'phuong', 'thu', 'thảo', 'thao',
@@ -37,12 +29,24 @@ const getSpeakerGender = (speakerRaw) => {
     'mother', 'mom', 'girl', 'woman', 'sister', 'aunt', 'kate', 'lisa', 'sarah', 'emily', 'jessica'
   ];
 
-  const words = s.split(/[\s,._-]+/);
-  if (words.some(w => maleExact.includes(w))) return 'male';
+  const maleExact = [
+    'nick', 'phong', 'nam', 'minh', 'hải', 'hai', 'đức', 'duc', 'hùng', 'hung', 'tuấn', 'tuan', 'kiên', 'kien', 'lâm', 'lam',
+    'hoàng', 'hoang', 'quang', 'sơn', 'son', 'thành', 'thanh', 'bình', 'binh', 'khang', 'phúc', 'phuc', 'dũng', 'dung',
+    'huy', 'việt', 'viet', 'tùng', 'tung', 'thắng', 'thang', 'trọng', 'trong', 'khoa', 'trung', 'hiếu', 'hieu', 'đạt', 'dat',
+    'cường', 'cuong', 'thái', 'thai', 'tấn', 'tan', 'tâm', 'tam', 'nhân', 'nhan', 'quốc', 'quoc', 'bảo', 'bao', 'triết', 'triet',
+    'nghĩa', 'nghia', 'long', 'lộc', 'loc', 'duy', 'nguyên', 'nguyen', 'quyền', 'quyen', 'tiến', 'tien', 'vương', 'vuong',
+    'mark', 'peter', 'tom', 'david', 'ben', 'mr', 'mr.', 'father', 'dad', 'boy', 'man', 'brother', 'uncle', 'doctor',
+    'counsellor', 'counselor', 'school counsellor', 'john', 'alex', 'jack', 'sam', 'steve', 'brian', 'chris', 'mike', 'james'
+  ];
+
   if (words.some(w => femaleExact.includes(w))) return 'female';
-  if (maleExact.some(k => s.includes(k))) return 'male';
-  if (femaleExact.some(k => s.includes(k))) return 'female';
-  return 'male';
+  if (words.some(w => maleExact.includes(w))) return 'male';
+
+  // Strict whole word check (avoid 2-letter substring collision like 'an' matching 'man')
+  if (femaleExact.some(k => k.length > 2 && s.includes(k))) return 'female';
+  if (maleExact.some(k => k.length > 2 && s.includes(k))) return 'male';
+
+  return 'female';
 };
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -1400,18 +1404,26 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-GB'; // 100% STANDARD BRITISH UK OXFORD
+    utterance.lang = 'en-GB';
 
     const baseRate = dialogueSpeed || 0.8;
     utterance.rate = baseRate * 0.95;
 
-    // NATURAL HUMAN PITCH (NO ROBOTIC DISTORTION)
+    // DISTINCT PITCH & SPEED PER CHARACTER SO DIALOGUES SOUND LIKE DIFFERENT PEOPLE
     if (isAdult) {
-      utterance.pitch = isMale ? 0.92 : 0.98;
+      utterance.pitch = isMale ? 0.80 : 0.95;
     } else if (isMale) {
-      utterance.pitch = 0.95;
+      utterance.pitch = lowerSpeaker.includes('phong') ? 0.90 : 0.94;
     } else {
-      utterance.pitch = 1.05;
+      // Female distinct pitches: Ann (1.05), Mi (1.25), Mai (1.15)
+      if (lowerSpeaker.includes('mi')) {
+        utterance.pitch = 1.25;
+        utterance.rate = baseRate * 1.02;
+      } else if (lowerSpeaker.includes('mai')) {
+        utterance.pitch = 1.15;
+      } else {
+        utterance.pitch = 1.05;
+      }
     }
 
     if (text.endsWith('!')) {
@@ -1426,20 +1438,28 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     const enVoices = allVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
 
     let targetVoice = null;
-    if (gbVoices.length > 0) {
+    const pool = gbVoices.length > 0 ? gbVoices : enVoices;
+
+    if (pool.length > 0) {
       if (isMale) {
-        targetVoice = gbVoices.find(v => {
+        targetVoice = pool.find(v => {
           const n = v.name.toLowerCase();
-          return n.includes('male') || n.includes('george') || n.includes('david') || n.includes('daniel') || n.includes('oliver');
-        }) || gbVoices[0];
+          return n.includes('male') || n.includes('george') || n.includes('david') || n.includes('daniel') || n.includes('oliver') || n.includes('james') || n.includes('mark');
+        }) || pool[0];
       } else {
-        targetVoice = gbVoices.find(v => {
+        const femaleVoices = pool.filter(v => {
           const n = v.name.toLowerCase();
-          return n.includes('female') || n.includes('hazel') || n.includes('susan') || n.includes('sonia') || n.includes('charlotte');
-        }) || gbVoices[0];
+          return n.includes('female') || n.includes('hazel') || n.includes('susan') || n.includes('sonia') || n.includes('charlotte') || n.includes('zira') || n.includes('aria');
+        });
+
+        if (lowerSpeaker.includes('mi') && femaleVoices.length > 1) {
+          targetVoice = femaleVoices[1];
+        } else if (femaleVoices.length > 0) {
+          targetVoice = femaleVoices[0];
+        } else {
+          targetVoice = pool[0];
+        }
       }
-    } else if (enVoices.length > 0) {
-      targetVoice = enVoices.find(v => (isMale ? v.name.toLowerCase().includes('male') : v.name.toLowerCase().includes('female'))) || enVoices[0];
     }
 
     if (targetVoice) {
