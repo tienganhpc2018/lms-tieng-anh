@@ -4955,7 +4955,215 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
         </div>
       </div>
 
-{/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
+{/* TAB BÀI HỌC HỘI THOẠI SGK (LISTEN AND READ) (V295) */}
+      {activeTab === 'dialogue_lesson' && (
+        <div className="bg-white rounded-3xl p-4 sm:p-6 border-4 border-purple-400 shadow-2xl space-y-5 animate-fade-in text-slate-900">
+          {/* HEADER BAR */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-100 pb-4">
+            <div className="flex items-center space-x-3">
+              <span className="text-3xl sm:text-4xl">🗣️</span>
+              <div>
+                <h3 className="font-black text-lg sm:text-xl text-purple-950 uppercase tracking-wide flex items-center space-x-2">
+                  <span>BÀI HỌC HỘI THOẠI SGK (LISTEN AND READ)</span>
+                  <span className="text-xs bg-purple-200 text-purple-900 px-2 py-0.5 rounded-md font-bold">100% Âm Thanh Cảm Xúc</span>
+                </h3>
+                <p className="text-xs text-purple-700 font-bold">
+                  Phát từng câu thoại hoặc toàn bài, tự động tô màu vàng Highlight 🟡 khi phát âm thanh!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              {!isPlayingFullDialogue ? (
+                <button
+                  type="button"
+                  onClick={handlePlayFullDialogue}
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-md transition transform hover:scale-105 cursor-pointer flex items-center space-x-1.5 border border-emerald-400"
+                >
+                  <Volume2 className="w-4 h-4 text-amber-300 animate-bounce" />
+                  <span>▶️ Phát Toàn Bộ Hội Thoại</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleStopDialogueAudio}
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-md transition cursor-pointer flex items-center space-x-1.5 border border-rose-400"
+                >
+                  <span>⏹️ Tạm Dừng Đọc</span>
+                </button>
+              )}
+
+              {isTeacher && (
+                <button
+                  type="button"
+                  onClick={() => setIsDialogueEditorOpen(true)}
+                  className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-2xl shadow-sm transition cursor-pointer flex items-center space-x-1 border border-amber-400"
+                  title="Thêm đoạn hội thoại mới bằng cách dán chữ hoặc chụp ảnh SGK"
+                >
+                  <span>➕ Thêm / Dán Đoạn Mới</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* MULTI-TAB SELECTOR FOR DIALOGUE LESSONS */}
+          <div className="flex flex-wrap items-center gap-2 bg-purple-50 p-2 rounded-2xl border border-purple-200">
+            <span className="text-xs font-black text-purple-900 px-1">Danh Sách Đoạn Hội Thoại:</span>
+            {dialogueTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  handleStopDialogueAudio();
+                  setActiveDialogueTabId(tab.id);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-1 shadow-2xs ${
+                  activeDialogueTabId === tab.id
+                    ? 'bg-purple-700 text-white ring-2 ring-purple-400 scale-105 shadow-sm'
+                    : 'bg-white text-purple-900 hover:bg-purple-100 border border-purple-200'
+                }`}
+              >
+                <span>🗣️ {tab.title}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* ACTIVE DIALOGUE DISPLAY PLAYER WITH LIVE SENTENCE HIGHLIGHT */}
+          {(() => {
+            const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+            if (!activeTabObj) return null;
+
+            return (
+              <div className="space-y-4 bg-slate-50/70 p-4 sm:p-6 rounded-3xl border-2 border-purple-200">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <h4 className="font-extrabold text-base text-purple-950">
+                    {activeTabObj.title}
+                  </h4>
+                  <span className="text-xs font-bold text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                    🎧 Track Audio AI (UK Oxford & US Voice)
+                  </span>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  {activeTabObj.lines.map((line, idx) => {
+                    const isHighlighted = playingDialogueLineIndex === idx;
+                    const isFemale = (line.speaker || '').toLowerCase().includes('ann') || (line.speaker || '').toLowerCase().includes('mi') || (line.speaker || '').toLowerCase().includes('elena') || (line.speaker || '').toLowerCase().includes('trang');
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3 sm:p-4 rounded-2xl transition-all duration-200 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isHighlighted
+                            ? 'bg-amber-300 text-slate-950 font-bold border-2 border-amber-400 shadow-md scale-[1.01] ring-4 ring-amber-200'
+                            : 'bg-white text-slate-900 border-slate-200 hover:border-purple-300 shadow-2xs'
+                        }`}
+                      >
+                        <div className="space-y-1 grow">
+                          <div className="flex items-center space-x-2">
+                            <span className={`text-xs font-black uppercase px-2 py-0.5 rounded-md text-white ${
+                              isFemale ? 'bg-purple-600' : 'bg-indigo-600'
+                            }`}>
+                              {line.speaker}:
+                            </span>
+                            <span className="text-sm sm:text-base font-extrabold leading-snug">
+                              {line.text}
+                            </span>
+                          </div>
+                          {line.vi && (
+                            <p className="text-xs font-medium text-slate-600 italic pl-1">
+                              👉 {line.vi}
+                            </p>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handlePlaySingleDialogueLine(idx, line)}
+                          className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1 shrink-0 shadow-2xs ${
+                            isHighlighted
+                              ? 'bg-slate-950 text-amber-300 ring-2 ring-amber-400'
+                              : 'bg-purple-100 text-purple-900 hover:bg-purple-200 border border-purple-200'
+                          }`}
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                          <span>Phát Câu Này</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* TEACHER EDITOR MODAL FOR DIALOGUE LESSONS */}
+          {isDialogueEditorOpen && (
+            <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
+              <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-xl w-full border-4 border-purple-500 shadow-2xl space-y-4 text-slate-900">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <h3 className="font-black text-lg text-purple-900 uppercase">
+                    ➕ THÊM ĐOẠN HỘI THOẠI SGK MỚI
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsDialogueEditorOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-extrabold text-slate-700 block mb-1">Tên Tiêu Đề Đoạn Hội Thoại:</label>
+                    <input
+                      type="text"
+                      value={newTabTitleInput}
+                      onChange={(e) => setNewTabTitleInput(e.target.value)}
+                      placeholder="Ví dụ: Đoạn 3: Nick & Phong (Getting started)"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-semibold focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 block mb-1">
+                      Dán Đoạn Hội Thoại (Mỗi dòng định dạng: NhânVật: CâuNói):
+                    </label>
+                    <textarea
+                      rows={7}
+                      value={rawDialogueInputText}
+                      onChange={(e) => setRawDialogueInputText(e.target.value)}
+                      placeholder={`Ann: Hi, Mi. Long time no see. How're you doing?
+Mi: I'm fine, thanks. We moved to a new house.
+Ann: How's your new neighbourhood?`}
+                      className="w-full p-3 rounded-xl border border-slate-300 font-mono text-xs focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setIsDialogueEditorOpen(false)}
+                    className="px-4 py-2 bg-slate-200 text-slate-800 font-bold text-xs rounded-xl"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleParseAndSaveRawDialogue}
+                    className="px-5 py-2 bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs rounded-xl shadow-md"
+                  >
+                    💾 Lưu Đoạn Hội Thoại
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
       {(activeTab === 'dictionary' || activeTab === 'bookmarks') && (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-4 lg:col-span-3 bg-amber-100/90 rounded-2xl p-2.5 border-2 border-amber-300 shadow-inner flex flex-col justify-between max-h-[580px]">
