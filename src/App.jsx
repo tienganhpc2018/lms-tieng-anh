@@ -12,6 +12,7 @@ import UserProfileView from './pages/UserProfileView';
 import WhiteboardView from './pages/WhiteboardView';
 import MockExamView from './pages/MockExamView';
 import CommunityModuleView from './pages/CommunityModuleView';
+import InteractiveLessonBookView from './pages/InteractiveLessonBookView';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import NotFound from './pages/NotFound';
 
@@ -67,6 +68,28 @@ export default function App() {
                   <ProtectedRoute>
                     <ErrorBoundary>
                       <CourseView />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/book/:courseId"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <InteractiveLessonBookView />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/book/:courseId/:sectionId"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <InteractiveLessonBookView />
                     </ErrorBoundary>
                   </ProtectedRoute>
                 }

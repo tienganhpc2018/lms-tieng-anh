@@ -749,11 +749,20 @@ export default function CourseView() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-wrap gap-2">
+            <button
+              onClick={() => navigate(`/book/${courseId}${activeSectionId ? `/${activeSectionId}` : ''}`)}
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 text-white font-black text-xs rounded-2xl shadow-lg transition flex items-center space-x-2 cursor-pointer border border-amber-400/50 transform hover:scale-102"
+              title="Mở chế độ Sách Mềm Tương Tác trình chiếu trên lớp hoặc tự học"
+            >
+              <BookOpen className="w-4 h-4 text-amber-200" />
+              <span>📖 MỞ SÁCH MỀM TƯƠNG TÁC (CHẾ ĐỘ TRÌNH CHIẾU)</span>
+            </button>
+
             {isTeacher && (
               <button
                 onClick={() => setIsEnrolledModalOpen(true)}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-2xl shadow-lg transition flex items-center space-x-2"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-2xl shadow-lg transition flex items-center space-x-2 cursor-pointer"
               >
                 <Users className="w-4 h-4" />
                 <span>Danh Sách Học Viên Enrolled</span>
