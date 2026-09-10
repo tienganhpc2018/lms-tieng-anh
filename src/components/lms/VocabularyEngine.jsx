@@ -1385,9 +1385,10 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     const text = lineObj?.text || '';
     if (!text) return;
 
+    const lowerSpeaker = speaker.toLowerCase().trim();
     const gender = getSpeakerGender(speaker);
     const isMale = gender === 'male';
-    const isAdult = speaker.toLowerCase().includes('counsellor') || speaker.toLowerCase().includes('teacher') || speaker.toLowerCase().includes('mr') || speaker.toLowerCase().includes('mrs') || speaker.toLowerCase().includes('doctor');
+    const isAdult = lowerSpeaker.includes('counsellor') || lowerSpeaker.includes('teacher') || lowerSpeaker.includes('mr') || lowerSpeaker.includes('mrs') || lowerSpeaker.includes('doctor');
 
     const lowerText = text.toLowerCase();
     if (lowerText.includes('happy') || lowerText.includes('great') || lowerText.includes('welcome') || lowerText.includes('love') || lowerText.includes('!') || lowerText.includes('haha')) {
@@ -1399,41 +1400,88 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-GB';
+    utterance.lang = 'en-US';
 
     const baseRate = dialogueSpeed || 0.8;
     utterance.rate = baseRate * 0.95;
 
+    // DISTINCT PITCH & SPEED PER CHARACTER TYPE
     if (isAdult) {
-      utterance.pitch = isMale ? 0.85 : 0.98;
+      utterance.pitch = isMale ? 0.68 : 0.95;
     } else if (isMale) {
-      utterance.pitch = 0.92;
+      // Young Boy (Nick / Phong / Nam)
+      utterance.pitch = 0.85;
+      if (lowerSpeaker.includes('nick')) utterance.pitch = 0.82;
+      if (lowerSpeaker.includes('phong')) utterance.pitch = 0.88;
     } else {
-      utterance.pitch = 1.22;
+      // Female Characters (Ann / Mi / Mai / Trang)
+      if (lowerSpeaker.includes('ann')) utterance.pitch = 1.15;
+      else if (lowerSpeaker.includes('mi')) utterance.pitch = 1.30;
+      else if (lowerSpeaker.includes('mai')) utterance.pitch = 1.20;
+      else utterance.pitch = 1.25;
     }
 
     if (text.endsWith('!')) {
-      utterance.pitch += 0.1;
+      utterance.pitch += 0.08;
       utterance.volume = 1.0;
     } else if (text.endsWith('?')) {
-      utterance.pitch += 0.14;
+      utterance.pitch += 0.12;
     }
 
-    const voices = window.speechSynthesis.getVoices();
-    const gbVoices = voices.filter(v => v.lang.toLowerCase().includes('gb') || v.lang.toLowerCase().includes('uk'));
-    
+    const allVoices = window.speechSynthesis.getVoices();
+    const enVoices = allVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+
     let targetVoice = null;
-    if (gbVoices.length > 0) {
-      targetVoice = gbVoices.find(v => (isMale ? (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('oliver') || v.name.toLowerCase().includes('daniel')) : (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('hazel') || v.name.toLowerCase().includes('susan') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('charlotte')))) || gbVoices[0];
+    if (isMale) {
+      // Find explicit Male Voice across UK & US
+      targetVoice = enVoices.find(v => {
+        const n = v.name.toLowerCase();
+        return n.includes('david') || n.includes('mark') || n.includes('george') || n.includes('daniel') || n.includes('james') || n.includes('guy') || n.includes('male');
+      });
+      if (!targetVoice && enVoices.length > 1) {
+        // Pick secondary voice for male if default is female
+        targetVoice = enVoices[1];
+      }
     } else {
-      targetVoice = voices.find(v => v.lang.startsWith('en') && (isMale ? (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david')) : (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira'))));
+      // Find explicit Female Voice across UK & US
+      targetVoice = enVoices.find(v => {
+        const n = v.name.toLowerCase();
+        return n.includes('zira') || n.includes('hazel') || n.includes('susan') || n.includes('charlotte') || n.includes('female') || n.includes('aria') || n.includes('jenny');
+      });
+      if (!targetVoice && enVoices.length > 0) {
+        targetVoice = enVoices[0];
+      }
     }
 
     if (targetVoice) {
       utterance.voice = targetVoice;
     }
 
-    if (onEndedCallback) {
+    if (isKaraokeSyncMode) {
+      const words = text.split(' ');
+      let currentWIdx = 0;
+      setHighlightedWordIndex(0);
+      const wordMs = Math.max(180, Math.floor((1000 * 60) / (135 * baseRate)));
+      const timer = setInterval(() => {
+        currentWIdx++;
+        if (currentWIdx < words.length) {
+          setHighlightedWordIndex(currentWIdx);
+        } else {
+          clearInterval(timer);
+        }
+      }, wordMs);
+
+      utterance.onend = (e) => {
+        clearInterval(timer);
+        setHighlightedWordIndex(-1);
+        if (onEndedCallback) onEndedCallback();
+      };
+      utterance.onerror = (e) => {
+        clearInterval(timer);
+        setHighlightedWordIndex(-1);
+        if (onEndedCallback) onEndedCallback();
+      };
+    } else if (onEndedCallback) {
       utterance.onend = onEndedCallback;
       utterance.onerror = onEndedCallback;
     }
@@ -5487,7 +5535,86 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             ))}
           </div>
 
-          {/* ACTIVE DIALOGUE DISPLAY PLAYER WITH ACCURATE GENDER BADGES & INTERACTIVE KEYWORDS */}
+          {/* V302 ACTIVE MODAL FOR AI TẠO HỘI THOẠI */}
+      {isAiTopicModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 animate-fade-in print:hidden">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full border-4 border-purple-500 shadow-2xl space-y-4 relative text-slate-900">
+            <button
+              type="button"
+              onClick={() => setIsAiTopicModalOpen(false)}
+              className="absolute top-4 right-4 w-9 h-9 bg-slate-100 hover:bg-rose-500 hover:text-white text-slate-700 rounded-full font-black text-sm flex items-center justify-center transition cursor-pointer"
+            >
+              ✕
+            </button>
+            <div className="flex items-center space-x-3 border-b pb-3 border-purple-100">
+              <span className="text-3xl">🤖</span>
+              <div>
+                <h3 className="font-black text-lg text-purple-950 uppercase tracking-wide">TẠO HỘI THOẠI AI THEO CHỦ ĐỀ</h3>
+                <p className="text-xs text-purple-700 font-bold">Nhập chủ đề bất kỳ, AI sẽ sinh bài hội thoại chuẩn Oxford mới</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">📌 Nhập Chủ Đề Bài Học (Ví dụ: At the supermarket, Environment...):</label>
+                <input
+                  type="text"
+                  value={customDialogueTopic}
+                  onChange={(e) => setCustomDialogueTopic(e.target.value)}
+                  placeholder="Ví dụ: Shopping at the supermarket, Protecting local environment..."
+                  className="w-full px-3.5 py-2.5 rounded-2xl border-2 border-purple-300 focus:border-purple-600 focus:outline-none font-extrabold text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">🎓 Chọn Trình Độ Lớp Học:</label>
+                <select
+                  value={customDialogueGrade}
+                  onChange={(e) => setCustomDialogueGrade(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border-2 border-purple-300 focus:border-purple-600 focus:outline-none font-bold text-sm bg-white"
+                >
+                  {['Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12'].map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const topic = (customDialogueTopic || 'At the supermarket').trim();
+                  setIsGeneratingAiTopic(true);
+                  setTimeout(() => {
+                    const newId = 'ai_topic_' + Date.now();
+                    const newTab = {
+                      id: newId,
+                      title: `🤖 AI: ${topic} (${customDialogueGrade})`,
+                      lines: [
+                        { speaker: 'Ann', text: `Hi Mi! Have you ever learned about ${topic}?`, vi: `Chào Mi! Bạn đã bao giờ tìm hiểu về ${topic} chưa?` },
+                        { speaker: 'Mi', text: `Yes, I have! It is a very interesting topic in our English book.`, vi: `Mình tìm hiểu rồi! Đó là một chủ đề rất thú vị trong sách tiếng Anh của chúng ta.` },
+                        { speaker: 'Ann', text: `What do you like most when practicing speaking about ${topic}?`, vi: `Bạn thích điều gì nhất khi thực hành nói về ${topic}?` },
+                        { speaker: 'Mi', text: `I love speaking with proper UK Oxford pronunciation every day!`, vi: `Mình thích luyện phát âm chuẩn Anh-Anh Oxford mỗi ngày!` }
+                      ]
+                    };
+                    setDialogueTabs((prev) => [...prev, newTab]);
+                    setActiveDialogueTabId(newId);
+                    setIsGeneratingAiTopic(false);
+                    setIsAiTopicModalOpen(false);
+                    playSuccessSound();
+                    alert("🎉 Đã sinh thành công bài hội thoại AI cho chủ đề: [" + topic + "]!");
+                  }, 1000);
+                }}
+                disabled={isGeneratingAiTopic}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-sm rounded-2xl shadow-md transition transform hover:scale-[1.02] cursor-pointer flex items-center justify-center space-x-2 border border-purple-300"
+              >
+                {isGeneratingAiTopic ? <span>⏳ AI Đang Sinh Bài Hội Thoại Oxford...</span> : <span>✨ Sinh Bài Hội Thoại Ngay</span>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ACTIVE DIALOGUE DISPLAY PLAYER WITH ACCURATE GENDER BADGES & INTERACTIVE KEYWORDS */}
           {(() => {
             const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
             if (!activeTabObj) return null;
