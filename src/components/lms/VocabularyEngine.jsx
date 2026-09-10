@@ -7203,31 +7203,103 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                   {aiStoryData.title}
                 </h4>
 
-                {/* KHUNG CÂU TRUYỆN TIẾNG ANH CÓ HIGHLIGHT TỪ VỰNG MÀU VÀNG PHÁT SÁNG */}
+                {/* KHUNG 1: CÂU TRUYỆN TIẾNG ANH (CÓ NÚT SỬA/XÓA VĂN BẢN VÀ HIGHLIGHT MÀU VÀNG) */}
                 <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 space-y-3 relative shadow-inner">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-black text-purple-800 uppercase tracking-wide flex items-center space-x-1">
                       <span>🇬🇧 CÂU TRUYỆN TIẾNG ANH (UK STANDARD):</span>
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => speakText(aiStoryData.storyEn)}
-                      className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5 border border-purple-400"
-                    >
-                      <Volume2 className="w-4 h-4 text-amber-300 animate-bounce" />
-                      <span>🔊 Nghe Giọng Đọc AI (UK Oxford)</span>
-                    </button>
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        type="button"
+                        onClick={() => speakText(customStoryEn || aiStoryData.storyEn)}
+                        className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5 border border-purple-400"
+                      >
+                        <Volume2 className="w-4 h-4 text-amber-300 animate-bounce" />
+                        <span>🔊 Nghe Giọng Đọc AI (UK Oxford)</span>
+                      </button>
+
+                      {!isEditingStoryText ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomStoryEn(customStoryEn || aiStoryData.storyEn || '');
+                            setIsEditingStoryText(true);
+                          }}
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1 cursor-pointer border border-amber-400"
+                          title="Sửa nội dung bài Tiếng Anh theo ý Thầy"
+                        >
+                          <span>✏️ Sửa Bài</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomStoryEn('');
+                            setCustomStoryVi('');
+                          }}
+                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1 cursor-pointer border border-rose-400"
+                          title="Xóa sạch toàn bộ văn bản để gõ mới"
+                        >
+                          <span>🗑️ Xóa Bài</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  <p className="text-sm sm:text-base font-semibold text-slate-800 leading-relaxed pt-1">
-                    {renderHighlightedStoryText(aiStoryData.storyEn, filteredList.length > 0 ? filteredList : vocabList)}
-                  </p>
+                  {isEditingStoryText ? (
+                    <div className="space-y-2 pt-1">
+                      <textarea
+                        rows={5}
+                        value={customStoryEn}
+                        onChange={(e) => setCustomStoryEn(e.target.value)}
+                        placeholder="Nhập hoặc dán câu chuyện Tiếng Anh của Thầy vào đây..."
+                        className="w-full p-3 rounded-xl border-2 border-purple-400 focus:border-purple-600 focus:ring-2 focus:ring-purple-200 font-medium text-sm text-slate-900 bg-white shadow-inner outline-none"
+                      />
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingStoryText(false)}
+                          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition cursor-pointer"
+                        >
+                          Hoàn Thành Sửa
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingStoryText(false);
+                            handleAiTranslateCustomStory(customStoryEn);
+                          }}
+                          className="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center space-x-1 cursor-pointer"
+                        >
+                          <span>💾 Lưu & AI Dịch Tiếng Việt</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm sm:text-base font-semibold text-slate-800 leading-relaxed pt-1">
+                      {renderHighlightedStoryText(customStoryEn || aiStoryData.storyEn, filteredList.length > 0 ? filteredList : vocabList)}
+                    </div>
+                  )}
 
-                  {/* BẢN DỊCH TIẾNG VIỆT CÓ HIGHLIGHT NGHĨA TỪ VỰNG */}
-                  <div className="bg-white/90 p-3 rounded-xl border border-purple-200 text-xs sm:text-sm text-purple-950 font-medium leading-relaxed mt-2 shadow-xs">
-                    <strong className="text-purple-800 font-extrabold block mb-1">👉 Dịch tiếng Việt (Tóm tắt hội thoại):</strong>
-                    {renderHighlightedStoryText(aiStoryData.storyVi, filteredList.length > 0 ? filteredList : vocabList)}
+                  {/* KHUNG 2: BẢN DỊCH TIẾNG VIỆT CÓ NÚT AI DỊCH TỰ ĐỘNG THEO NỘI DUNG THẦY VỪA NHẬP */}
+                  <div className="bg-white/90 p-3.5 rounded-xl border border-purple-200 text-xs sm:text-sm text-purple-950 font-medium leading-relaxed mt-2 shadow-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-purple-800 font-extrabold block">👉 Dịch tiếng Việt (Tóm tắt hội thoại):</strong>
+                      <button
+                        type="button"
+                        onClick={() => handleAiTranslateCustomStory(customStoryEn || aiStoryData.storyEn)}
+                        disabled={isAiTranslating}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl shadow-sm transition flex items-center space-x-1 cursor-pointer border border-amber-400 disabled:opacity-50"
+                        title="AI tự động dịch sang Tiếng Việt theo nội dung Thầy vừa nhập"
+                      >
+                        <span>{isAiTranslating ? '⏳ AI Đang Dịch...' : '🤖 AI Dịch Tự Động'}</span>
+                      </button>
+                    </div>
+                    <div>
+                      {renderHighlightedStoryText(customStoryVi || aiStoryData.storyVi, filteredList.length > 0 ? filteredList : vocabList)}
+                    </div>
                   </div>
                 </div>
 
