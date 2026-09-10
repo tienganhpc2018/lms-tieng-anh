@@ -2434,11 +2434,33 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       }
 
 
-      const safeIndex = ((storyVersionIndex % dynamicStories.length) + dynamicStories.length) % dynamicStories.length;
-      const selectedStory = dynamicStories[safeIndex] || dynamicStories[0];
+      // ALWAYS GUARANTEE DYNAMIC STORIES IS NON-EMPTY
+      if (!dynamicStories || !Array.isArray(dynamicStories) || dynamicStories.length === 0) {
+        dynamicStories = [
+          {
+            title: 'Truyện Từ Vựng (Version 1 - Tóm Tắt Bài Học): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'In our ' + lessonSec + ' lesson of ' + currentUnitName + ', students practice key English vocabulary and grammar. They work together to complete interactive exercises and build effective communication skills.',
+            storyVi: 'Trong bài học ' + lessonSec + ' của ' + currentUnitName + ', học sinh thực hành từ vựng và ngữ pháp Tiếng Anh trọng tâm. Các bạn cùng nhau hoàn thành bài tập tương tác và phát triển kỹ năng giao tiếp hiệu quả.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 2 - Thảo Luận Nhóm Lớp Học): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'During group discussion, students explore topics in ' + currentUnitName + '. They practice speaking, listening, and applying vocabulary to daily life contexts.',
+            storyVi: 'Trong buổi thảo luận nhóm, học sinh khám phá các chủ đề trong ' + currentUnitName + '. Các bạn thực hành nghe, nói và áp dụng từ vựng vào ngữ cảnh cuộc sống hàng ngày.'
+          }
+        ];
+      }
+
+      const len = dynamicStories.length || 1;
+      const safeIndex = Math.abs(storyVersionIndex % len);
+      const selectedStory = dynamicStories[safeIndex] || dynamicStories[0] || {
+        title: 'Truyện Từ Vựng Tóm Tắt Bài Học: ' + currentUnitName,
+        storyEn: 'In this lesson, students practice key English vocabulary and grammar.',
+        storyVi: 'Trong bài học này, học sinh thực hành từ vựng và ngữ pháp Tiếng Anh trọng tâm.'
+      };
+
       // ALWAYS WEAVE 100% OF LESSON WORDS INTO EVERY STORY
-      let finalEn = selectedStory.storyEn;
-      let finalVi = selectedStory.storyVi;
+      let finalEn = selectedStory.storyEn || 'In this lesson, students practice key English vocabulary and grammar.';
+      let finalVi = selectedStory.storyVi || 'Trong bài học này, học sinh thực hành từ vựng và ngữ pháp Tiếng Anh trọng tâm.';
 
       // Ensure every single word in activeLessonWordsList is mentioned if not already present
       const activeObjs = (filteredList && filteredList.length > 0 ? filteredList : vocabList) || [];
