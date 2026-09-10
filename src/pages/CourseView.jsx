@@ -109,8 +109,11 @@ export default function CourseView() {
   const [course, setCourse] = useState(null);
   const [sections, setSections] = useState([]);
   const [activeSectionId, setActiveSectionId] = useState(null);
-  const [activities, setActivities] = useState([]);
+  const [allActivities, setAllActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Danh sách bài học của Unit đang được kích hoạt
+  const activities = allActivities.filter((a) => a.section_id === activeSectionId);
 
   // Modals
   const [isAddActivityOpen, setIsAddActivityOpen] = useState(false);
@@ -275,7 +278,10 @@ export default function CourseView() {
           order_index: act.order_index,
           is_hidden: act.is_hidden,
         }));
-        await supabase.from('activities').insert(newActInserts);
+        const { data: insertedActs } = await supabase.from('activities').insert(newActInserts).select();
+        if (insertedActs) {
+          setAllActivities((prev) => [...prev, ...insertedActs]);
+        }
       }
 
       setSections((prev) => [...prev, newSec]);
@@ -325,26 +331,30 @@ export default function CourseView() {
   // Nâng cấp: Di chuyển bài học LÊN / XUỐNG linh hoạt theo buổi dạy
   const handleMoveActivity = async (act, direction, e) => {
     e.stopPropagation();
-    const currentIndex = activities.findIndex((a) => a.id === act.id);
+    const currentSectionActs = allActivities.filter((a) => a.section_id === act.section_id);
+    const currentIndex = currentSectionActs.findIndex((a) => a.id === act.id);
     if (currentIndex === -1) return;
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= activities.length) return;
+    if (targetIndex < 0 || targetIndex >= currentSectionActs.length) return;
 
-    const newActivities = [...activities];
-    const temp = newActivities[currentIndex];
-    newActivities[currentIndex] = newActivities[targetIndex];
-    newActivities[targetIndex] = temp;
+    const newActs = [...currentSectionActs];
+    const temp = newActs[currentIndex];
+    newActs[currentIndex] = newActs[targetIndex];
+    newActs[targetIndex] = temp;
 
-    newActivities.forEach((item, idx) => {
+    newActs.forEach((item, idx) => {
       item.order_index = idx;
     });
 
-    setActivities(newActivities);
+    setAllActivities((prev) => {
+      const otherActs = prev.filter((a) => a.section_id !== act.section_id);
+      return [...otherActs, ...newActs];
+    });
 
     try {
       await Promise.all([
-        supabase.from('activities').update({ order_index: newActivities[currentIndex].order_index }).eq('id', newActivities[currentIndex].id),
-        supabase.from('activities').update({ order_index: newActivities[targetIndex].order_index }).eq('id', newActivities[targetIndex].id),
+        supabase.from('activities').update({ order_index: newActs[currentIndex].order_index }).eq('id', newActs[currentIndex].id),
+        supabase.from('activities').update({ order_index: newActs[targetIndex].order_index }).eq('id', newActs[targetIndex].id),
       ]);
     } catch (err) {}
 
@@ -381,6 +391,7 @@ export default function CourseView() {
 
     const remaining = sections.filter((s) => s.id !== sec.id);
     setSections(remaining);
+    setAllActivities((prev) => prev.filter((a) => a.section_id !== sec.id));
     if (remaining.length > 0) {
       setActiveSectionId(remaining[0].id);
     } else {
@@ -397,7 +408,7 @@ export default function CourseView() {
       await supabase.from('activities').update({ is_hidden: newIsHidden }).eq('id', act.id);
     } catch (err) {}
 
-    setActivities((prev) =>
+    setAllActivities((prev) =>
       prev.map((a) => (a.id === act.id ? { ...a, is_hidden: newIsHidden } : a))
     );
     showToast(
@@ -415,7 +426,7 @@ export default function CourseView() {
       await supabase.from('activities').delete().eq('id', act.id);
     } catch (err) {}
 
-    setActivities((prev) => prev.filter((a) => a.id !== act.id));
+    setAllActivities((prev) => prev.filter((a) => a.id !== act.id));
     showToast('success', 'Đã Xóa Bài Học', `Đã xóa bài học "${act.title}" thành công!`);
   };
 
@@ -439,7 +450,7 @@ export default function CourseView() {
         .eq('id', editingAct.id);
     } catch (err) {}
 
-    setActivities((prev) =>
+    setAllActivities((prev) =>
       prev.map((a) =>
         a.id === editingAct.id
           ? { ...a, title: formattedTitle, type: targetDbType, content: editContent, settings: updatedSettings }
@@ -464,7 +475,7 @@ export default function CourseView() {
         .eq('id', schedulingAct.id);
     } catch (err) {}
 
-    setActivities((prev) =>
+    setAllActivities((prev) =>
       prev.map((a) => (a.id === schedulingAct.id ? { ...a, start_time: startIso, end_time: endIso } : a))
     );
     setIsScheduleModalOpen(false);
@@ -489,22 +500,26 @@ export default function CourseView() {
 
       if (sData && sData.length > 0) {
         setSections(sData);
-        setActiveSectionId(sData[0].id);
-      }
-    } catch (e) {}
-    setLoading(false);
-  };
+        setActiveSectionId((prev) => (prev && sData.some((s) => s.id === prev) ? prev : sData[0].id));
 
-  const fetchActivities = async () => {
-    if (!activeSectionId) return;
-    try {
-      const { data: aData } = await supabase
-        .from('activities')
-        .select('*')
-        .eq('section_id', activeSectionId)
-        .order('order_index', { ascending: true });
-      setActivities(aData || []);
-    } catch (e) {}
+        const sectionIds = sData.map((s) => s.id);
+        const { data: aData } = await supabase
+          .from('activities')
+          .select('*')
+          .in('section_id', sectionIds)
+          .order('order_index', { ascending: true });
+
+        setAllActivities(aData || []);
+      } else {
+        setSections([]);
+        setActiveSectionId(null);
+        setAllActivities([]);
+      }
+    } catch (e) {
+      console.error('Lỗi nạp dữ liệu khóa học:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const [isEnrolled, setIsEnrolled] = useState(true);
@@ -537,10 +552,6 @@ export default function CourseView() {
     fetchCourseData();
     checkEnrollment();
   }, [courseId, user]);
-
-  useEffect(() => {
-    fetchActivities();
-  }, [activeSectionId]);
 
   const userIsTeacher = isTeacher || profile?.is_teacher || profile?.role === 'admin' || profile?.role === 'teacher' || (user?.email && (user.email.toLowerCase().includes('hai') || user.email.toLowerCase().includes('nguyensea')));
 
@@ -638,7 +649,7 @@ export default function CourseView() {
         setIsAddActivityOpen(false);
         setNewActTitle('');
         setNewActContent('');
-        setActivities((prev) => [...prev, newAct]);
+        setAllActivities((prev) => [...prev, newAct]);
         setToast({ isOpen: true, type: 'success', title: 'Thành Công', message: 'Đã tạo bài học mới thành công!' });
 
         if (newActType === 'whiteboard') {
@@ -760,7 +771,7 @@ export default function CourseView() {
               onSelectSection={handleSelectSection}
               onAddSection={handleAddSection}
               isTeacher={userIsTeacher}
-              activities={activities}
+              activities={allActivities}
             />
           </div>
 
