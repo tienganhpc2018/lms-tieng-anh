@@ -18,8 +18,24 @@ const DIALOGUE_KEY_WORDS_DICT = {
 
 const getSpeakerGender = (speakerRaw) => {
   const s = (speakerRaw || '').toLowerCase().trim();
-  const femaleKeywords = ['ann', 'mi', 'trang', 'elena', 'mai', 'mary', 'linda', 'mrs', 'ms', 'miss', 'mother', 'mom', 'girl', 'woman', 'sister', 'aunt', 'kate', 'lisa', 'sarah'];
-  const maleKeywords = ['nick', 'nam', 'phong', 'mark', 'peter', 'tom', 'david', 'ben', 'mr', 'father', 'dad', 'boy', 'man', 'brother', 'uncle', 'doctor', 'counsellor', 'school counsellor', 'john', 'alex', 'jack', 'sam'];
+  const femaleKeywords = [
+    'ann', 'mi', 'trang', 'mai', 'hoa', 'lan', 'linh', 'hương', 'huong', 'phương', 'phuong', 'thu', 'thảo', 'thao',
+    'hà', 'ha', 'chi', 'nhung', 'vân', 'van', 'ngọc', 'ngoc', 'quỳnh', 'quynh', 'trinh', 'yến', 'yen', 'tuyết', 'tuyet',
+    'cúc', 'cuc', 'đào', 'dao', 'hiền', 'hien', 'hằng', 'hang', 'thùy', 'thuy', 'oanh', 'loan', 'bích', 'bich', 'châu', 'chau',
+    'diệp', 'diep', 'ly', 'nhi', 'ánh', 'anh', 'trúc', 'truc', 'duyen', 'my', 'tú', 'tu', 'thơ', 'tho', 'ngân', 'ngan',
+    'gấm', 'gam', 'vy', 'xuyên', 'xuyen', 'khánh', 'khanh', 'phụng', 'phung', 'elena', 'mary', 'linda', 'mrs', 'ms', 'miss',
+    'mother', 'mom', 'girl', 'woman', 'sister', 'aunt', 'kate', 'lisa', 'sarah', 'emily', 'jessica'
+  ];
+
+  const maleKeywords = [
+    'phong', 'nam', 'minh', 'hải', 'hai', 'đức', 'duc', 'hùng', 'hung', 'tuấn', 'tuan', 'kiên', 'kien', 'lâm', 'lam',
+    'hoàng', 'hoang', 'quang', 'sơn', 'son', 'thành', 'thanh', 'bình', 'binh', 'khang', 'phúc', 'phuc', 'dũng', 'dung',
+    'huy', 'việt', 'viet', 'tùng', 'tung', 'thắng', 'thang', 'trọng', 'trong', 'khoa', 'trung', 'hiếu', 'hieu', 'đạt', 'dat',
+    'cường', 'cuong', 'thái', 'thai', 'tấn', 'tan', 'tâm', 'tam', 'nhân', 'nhan', 'quốc', 'quoc', 'bảo', 'bao', 'triết', 'triet',
+    'nghĩa', 'nghia', 'long', 'lộc', 'loc', 'duy', 'nguyên', 'nguyen', 'quyền', 'quyen', 'tiến', 'tien', 'vương', 'vuong',
+    'nick', 'mark', 'peter', 'tom', 'david', 'ben', 'mr', 'father', 'dad', 'boy', 'man', 'brother', 'uncle', 'doctor',
+    'counsellor', 'counselor', 'school counsellor', 'john', 'alex', 'jack', 'sam', 'steve', 'brian', 'chris', 'mike', 'james'
+  ];
 
   if (femaleKeywords.some(k => s.includes(k))) return 'female';
   if (maleKeywords.some(k => s.includes(k))) return 'male';
@@ -5470,7 +5486,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                         key={idx}
                         className={`p-3 sm:p-4 rounded-2xl transition-all duration-200 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:p-2 print:border-b print:rounded-none ${
                           isHighlighted
-                            ? 'bg-amber-300 text-slate-950 font-bold border-2 border-amber-400 shadow-md scale-[1.01] ring-4 ring-amber-200'
+                            ? 'bg-purple-50/70 text-slate-950 font-bold border-2 border-purple-400 shadow-md ring-2 ring-purple-300'
                             : isUserTurnLine && isWaitingForUserRead && rolePlayStepIndex === idx
                             ? 'bg-emerald-100 text-emerald-950 font-bold border-2 border-emerald-500 shadow-md ring-4 ring-emerald-300 animate-pulse'
                             : 'bg-white text-slate-900 border-slate-200 hover:border-purple-300 shadow-2xs'
@@ -5486,37 +5502,52 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                               <span>{line.speaker}:</span>
                             </span>
 
-                            {/* SENTENCE TEXT WITH INTERACTIVE KEYWORDS TOOLTIPS & FILL-IN-THE-BLANKS MODE */}
+                            {/* SENTENCE TEXT WITH REAL-TIME KARAOKE WORD HIGHLIGHTING & KEYWORD TOOLTIPS */}
                             <div className="text-sm sm:text-base font-extrabold leading-snug grow">
                               {!isFillBlanksMode ? (
-                                (() => {
-                                  const text = line.text;
-                                  let matchedKey = null;
-                                  Object.keys(DIALOGUE_KEY_WORDS_DICT).forEach(kw => {
-                                    if (text.toLowerCase().includes(kw)) matchedKey = kw;
-                                  });
-
-                                  if (matchedKey) {
-                                    const parts = text.split(new RegExp(`(${matchedKey})`, 'gi'));
-                                    return parts.map((part, pIdx) => {
-                                      if (part.toLowerCase() === matchedKey) {
-                                        const kwObj = DIALOGUE_KEY_WORDS_DICT[matchedKey];
-                                        return (
-                                          <span
-                                            key={pIdx}
-                                            onClick={() => setActiveWordTooltip({ word: matchedKey, ...kwObj })}
-                                            className="bg-amber-200 text-amber-950 font-black border-b-2 border-amber-500 px-1 py-0.5 rounded cursor-pointer hover:bg-amber-300 transition mx-0.5 shadow-2xs print:bg-transparent print:border-none print:p-0"
-                                            title="Nhấp để xem từ vựng nổi bật IPA & ví dụ"
-                                          >
-                                            ✨ {part}
-                                          </span>
-                                        );
-                                      }
-                                      return part;
+                                isKaraokeSyncMode && isHighlighted ? (
+                                  line.text.split(' ').map((word, wIdx) => (
+                                    <span
+                                      key={wIdx}
+                                      className={`inline-block mr-1.5 transition-all duration-150 rounded px-1.5 py-0.5 ${
+                                        highlightedWordIndex === wIdx
+                                          ? 'bg-amber-300 text-slate-950 font-black scale-110 shadow-md ring-2 ring-amber-400 animate-pulse border border-amber-500'
+                                          : 'hover:text-purple-700 cursor-pointer'
+                                      }`}
+                                    >
+                                      {word}
+                                    </span>
+                                  ))
+                                ) : (
+                                  (() => {
+                                    const text = line.text;
+                                    let matchedKey = null;
+                                    Object.keys(DIALOGUE_KEY_WORDS_DICT).forEach(kw => {
+                                      if (text.toLowerCase().includes(kw)) matchedKey = kw;
                                     });
-                                  }
-                                  return text;
-                                })()
+
+                                    if (matchedKey) {
+                                      const parts = text.split(new RegExp(`(${matchedKey})`, 'gi'));
+                                      return parts.map((part, pIdx) => {
+                                        if (part.toLowerCase() === matchedKey) {
+                                          const kwObj = DIALOGUE_KEY_WORDS_DICT[matchedKey];
+                                          return (
+                                            <span
+                                              key={pIdx}
+                                              onClick={() => setActiveWordTooltip({ word: matchedKey, ...kwObj })}
+                                              className="bg-amber-200 text-amber-950 font-black border-b-2 border-amber-500 px-1 py-0.5 rounded cursor-pointer hover:bg-amber-300 transition mx-0.5 shadow-2xs print:bg-transparent print:border-none print:p-0"
+                                              title="Nhấp để xem từ vựng nổi bật IPA & ví dụ"
+                                            >
+                                              ✨ {part}
+                                            </span>
+                                          );
+                                        }
+                                        return part;
+                                      });
+                                    }
+                                    return text;
+                                  })()
+                                )
                               ) : (
                                 // FILL IN THE BLANKS LISTENING MODE
                                 (() => {
