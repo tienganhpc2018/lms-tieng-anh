@@ -5614,34 +5614,34 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                           )}
                         </div>
 
-                        {/* NÚT TƯƠNG TÁC ÂM THANH & THU ÂM HỌC SINH */}
-                        <div className="flex items-center space-x-2 shrink-0 print:hidden">
+                        {/* NÚT TƯƠNG TÁC ÂM THANH & THU ÂM HỌC SINH (CHỈ GIỮ ICON THEO CHỈ ĐẠO CỦA THẦY HẢI) */}
+                        <div className="flex items-center space-x-1.5 shrink-0 print:hidden">
                           <button
                             type="button"
                             onClick={() => handlePlaySingleDialogueLine(idx, line)}
-                            className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1 shadow-2xs ${
+                            className={`p-2.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center shadow-2xs ${
                               isHighlighted
-                                ? 'bg-slate-950 text-amber-300 ring-2 ring-amber-400'
+                                ? 'bg-slate-950 text-amber-300 ring-2 ring-amber-400 scale-105'
                                 : 'bg-purple-100 text-purple-900 hover:bg-purple-200 border border-purple-200'
                             }`}
+                            title="Phát phát âm câu thoại này"
                           >
-                            <Volume2 className="w-3.5 h-3.5" />
-                            <span>Phát Câu Này</span>
+                            <Volume2 className="w-4 h-4 text-purple-800" />
                           </button>
 
-                          {/* NÚT THU ÂM & CHẤM ĐIỂM AI */}
+                          {/* NÚT THU ÂM & CHẤM ĐIỂM AI (CHỈ GIỮ ICON) */}
                           <button
                             type="button"
                             onClick={() => handleStartRecordingLine(idx, line)}
                             disabled={isCurrentlyRecording}
-                            className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1 border shadow-2xs ${
+                            className={`p-2.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center border shadow-2xs ${
                               isCurrentlyRecording
-                                ? 'bg-rose-600 text-white border-rose-400 animate-pulse'
+                                ? 'bg-rose-600 text-white border-rose-400 animate-pulse scale-105'
                                 : 'bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border-emerald-200'
                             }`}
-                            title="Bấm để thu âm và AI chấm điểm phát âm (0-100%)"
+                            title="Luyện đọc & AI chấm điểm phát âm"
                           >
-                            <span>{isCurrentlyRecording ? '🎙️ Đang Thu...' : '🎙️ Luyện Đọc'}</span>
+                            <Mic className="w-4 h-4 text-emerald-700" />
                           </button>
                         </div>
                       </div>
