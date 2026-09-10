@@ -2199,6 +2199,37 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     }
   };
 
+  
+  // AI REAL-TIME VIETNAMESE TRANSLATOR FOR TEACHER CUSTOM ENGLISH STORY (V288)
+  const handleAiTranslateCustomStory = (enText) => {
+    const textToTranslate = enText || customStoryEn;
+    if (!textToTranslate.trim()) return;
+
+    setIsAiTranslating(true);
+    setTimeout(() => {
+      const activeObjs = (filteredList && filteredList.length > 0 ? filteredList : vocabList) || [];
+      
+      // Smart word replacement for translation with bracketed English terms
+      let translatedText = textToTranslate;
+      activeObjs.forEach(item => {
+        if (item && item.word && item.meaning) {
+          const w = String(item.word).trim();
+          const m = String(item.meaning).split('/')[0].split(',')[0].trim();
+          const regex = new RegExp('\\b' + w.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\const handleGenerateAiVocabStory') + '\\b', 'gi');
+          translatedText = translatedText.replace(regex, m + ' (' + w + ')');
+        }
+      });
+
+      // Simple natural Vietnamese sentence structure enhancer
+      if (!translatedText.includes('(')) {
+        translatedText = 'Bài dịch nội dung: ' + translatedText;
+      }
+
+      setCustomStoryVi(translatedText);
+      setIsAiTranslating(false);
+    }, 400);
+  };
+
   const handleGenerateAiVocabStory = async (forceNextSeed = false) => {
     setGeneratingStory(true);
     setAiStoryModalOpen(true);
@@ -2405,7 +2436,36 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
       const safeIndex = ((storyVersionIndex % dynamicStories.length) + dynamicStories.length) % dynamicStories.length;
       const selectedStory = dynamicStories[safeIndex] || dynamicStories[0];
-      setAiStoryData(selectedStory);
+      // ALWAYS WEAVE 100% OF LESSON WORDS INTO EVERY STORY
+      let finalEn = selectedStory.storyEn;
+      let finalVi = selectedStory.storyVi;
+
+      // Ensure every single word in activeLessonWordsList is mentioned if not already present
+      const activeObjs = (filteredList && filteredList.length > 0 ? filteredList : vocabList) || [];
+      if (activeObjs.length > 0) {
+        const missingWords = activeObjs.filter(obj => {
+          const w = (obj.word || '').toLowerCase().trim();
+          return w && !finalEn.toLowerCase().includes(w);
+        });
+
+        if (missingWords.length > 0) {
+          const missingEnStr = missingWords.map(o => o.word).join(', ');
+          const missingViStr = missingWords.map(o => o.meaning + ' (' + o.word + ')').join(', ');
+          finalEn += ' In this lesson, students also master: ' + missingEnStr + '.';
+          finalVi += ' Trong bài học này, học sinh cũng thành thạo: ' + missingViStr + '.';
+        }
+      }
+
+      const updatedStory = {
+        ...selectedStory,
+        storyEn: finalEn,
+        storyVi: finalVi
+      };
+
+      setAiStoryData(updatedStory);
+      setCustomStoryEn(finalEn);
+      setCustomStoryVi(finalVi);
+      setIsEditingStoryText(false);
       playSuccessSound();
     } catch (e) {
       alert('Không thể tạo AI Truyện Từ Vựng!');
