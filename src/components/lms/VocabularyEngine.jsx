@@ -2089,7 +2089,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [isRecording, setIsRecording] = useState(false);
   const [speechResult, setSpeechResult] = useState(null);
   // LEADERBOARD MODAL STATE
-  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  // DUPLICATE STATE isLeaderboardOpen REMOVED
   const [leaderboardScores, setLeaderboardScores] = useState(() => {
     try {
       const saved = localStorage.getItem(`vocab_leaderboard_${activity?.id || 'default'}`);
@@ -2555,16 +2555,6 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [isDialogueEditorOpen, setIsDialogueEditorOpen] = useState(false);
   const [rawDialogueInputText, setRawDialogueInputText] = useState('');
   // SPEED, VIETNAMESE TOGGLE, ROLE-PLAY & RECORDING STATES (V297)
-  const [dialogueSpeed, setDialogueSpeed] = useState(0.8); // 0.8x (Audio SGK), 1.0x, 1.2x
-  const [showDialogueVietnamese, setShowDialogueVietnamese] = useState(true);
-  const [isRolePlayMode, setIsRolePlayMode] = useState(false);
-  const [userSelectedCharacter, setUserSelectedCharacter] = useState('Ann');
-  const [rolePlayStepIndex, setRolePlayStepIndex] = useState(null);
-  const [isWaitingForUserRead, setIsWaitingForUserRead] = useState(false);
-  const [recordingLineIndex, setRecordingLineIndex] = useState(null);
-  const [lineScores, setLineScores] = useState({});
-  const [isDialogueLineRecording, setIsDialogueLineRecording] = useState(false);
-  const [revealedTranslationIndexes, setRevealedTranslationIndexes] = useState({});
   const [newTabTitleInput, setNewTabTitleInput] = useState('');
   const [isEditingStoryText, setIsEditingStoryText] = useState(false);
   const [customStoryEn, setCustomStoryEn] = useState('');
