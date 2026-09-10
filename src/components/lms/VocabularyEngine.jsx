@@ -1554,8 +1554,46 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   };
 
   const handlePlaySingleDialogueLine = (index, lineObj) => {
+    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
     setIsPlayingFullDialogue(false);
     setPlayingDialogueLineIndex(index);
+
+    // If custom audio exists, play the exact slice for this line
+    if (activeTabObj?.audioUrl) {
+      if (customDialogueAudioRef.current) {
+        customDialogueAudioRef.current.pause();
+      }
+      const audio = new Audio(activeTabObj.audioUrl);
+      customDialogueAudioRef.current = audio;
+      
+      let startTime = lineObj.startTime;
+      let endTime = lineObj.endTime;
+      
+      // Calculate proportional if not specified
+      if (startTime === undefined || endTime === undefined) {
+        const intro = activeTabObj.introOffset !== undefined ? activeTabObj.introOffset : 2.5;
+        const wordCounts = activeTabObj.lines.map(l => (l.text || '').trim().split(/\s+/).filter(Boolean).length || 1);
+        const totalWords = wordCounts.reduce((a, b) => a + b, 0) || 1;
+        const estTotalDur = 70;
+        let accum = intro;
+        for (let i = 0; i < index; i++) accum += (wordCounts[i] / totalWords) * estTotalDur;
+        startTime = accum;
+        endTime = accum + (wordCounts[index] / totalWords) * estTotalDur;
+      }
+
+      audio.currentTime = Math.max(0, startTime || 0);
+      audio.play();
+
+      const durationMs = Math.max(1200, ((endTime || startTime + 4) - startTime) * 1000);
+      setTimeout(() => {
+        if (customDialogueAudioRef.current === audio) {
+          audio.pause();
+          setPlayingDialogueLineIndex(null);
+        }
+      }, durationMs);
+      return;
+    }
+
     speakDialogueLine(lineObj, () => {
       setPlayingDialogueLineIndex(null);
     });
@@ -1713,6 +1751,39 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
   // EDIT & DELETE DIALOGUE HANDLERS
   // FEATURE: UPLOAD CUSTOM MP3 AUDIO FOR DIALOGUE LESSON
+  const modalAudioPreviewRef = useRef(null);
+
+  // SMART AUTO-DISTRIBUTE TIMESTAMPS BASED ON SENTENCE WORD LENGTH
+  const handleAutoDistributeTimestamps = (totalDurationSec = null) => {
+    if (!editingDialogueObj || !editingDialogueObj.lines || editingDialogueObj.lines.length === 0) return;
+    
+    let duration = totalDurationSec;
+    if (!duration && modalAudioPreviewRef.current && modalAudioPreviewRef.current.duration) {
+      duration = modalAudioPreviewRef.current.duration;
+    }
+    if (!duration || isNaN(duration)) duration = 75; // Default fallback to 75 seconds
+
+    const introOffset = editingDialogueObj.introOffset !== undefined ? parseFloat(editingDialogueObj.introOffset) : 2.5;
+    const netDuration = Math.max(10, duration - introOffset);
+    
+    const lines = editingDialogueObj.lines;
+    const wordCounts = lines.map(l => (l.text || '').trim().split(/\s+/).filter(Boolean).length || 1);
+    const totalWords = wordCounts.reduce((a, b) => a + b, 0) || 1;
+
+    let currentStart = introOffset;
+    const updatedLines = lines.map((line, idx) => {
+      const lineDuration = (wordCounts[idx] / totalWords) * netDuration;
+      const startTime = parseFloat(currentStart.toFixed(1));
+      const endTime = parseFloat((currentStart + lineDuration).toFixed(1));
+      currentStart += lineDuration;
+      return { ...line, startTime, endTime };
+    });
+
+    setEditingDialogueObj({ ...editingDialogueObj, introOffset, lines: updatedLines });
+    playSuccessSound();
+    alert("🎉 Đã tự động phân bổ mốc giây chuẩn xác cho " + updatedLines.length + " câu thoại theo đúng độ dài lời nói!");
+  };
+
   const handleUploadDialogueMp3 = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1778,7 +1849,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
     if (!activeTabObj || !activeTabObj.lines || activeTabObj.lines.length === 0) return;
 
-    // IF CUSTOM MP3 AUDIO IS UPLOADED BY TEACHER, PLAY THE REAL MP3 AUDIO WITH LINE PROGRESS SYNC
+    // IF CUSTOM MP3 AUDIO IS UPLOADED BY TEACHER, PLAY WITH WORD-WEIGHTED & TIMESTAMP PRECISION SYNC
     if (activeTabObj.audioUrl) {
       if (customDialogueAudioRef.current) {
         customDialogueAudioRef.current.pause();
@@ -1789,13 +1860,45 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       setPlayingDialogueLineIndex(0);
 
       audio.ontimeupdate = () => {
-        if (audio.duration) {
-          const progress = audio.currentTime / audio.duration;
-          const lineIdx = Math.min(
-            activeTabObj.lines.length - 1,
-            Math.floor(progress * activeTabObj.lines.length)
-          );
-          setPlayingDialogueLineIndex(lineIdx);
+        const cur = audio.currentTime;
+        let matchedIdx = -1;
+
+        // 1. Check exact configured line timestamps first
+        for (let i = 0; i < activeTabObj.lines.length; i++) {
+          const l = activeTabObj.lines[i];
+          if (l.startTime !== undefined && l.endTime !== undefined) {
+            if (cur >= l.startTime && cur < l.endTime) {
+              matchedIdx = i;
+              break;
+            }
+          }
+        }
+
+        // 2. If no exact timestamps, calculate proportional duration based on word count + intro
+        if (matchedIdx === -1 && audio.duration) {
+          const intro = activeTabObj.introOffset !== undefined ? activeTabObj.introOffset : 2.5;
+          if (cur >= intro) {
+            const netCur = cur - intro;
+            const netDur = Math.max(1, audio.duration - intro);
+            const wordCounts = activeTabObj.lines.map(l => (l.text || '').trim().split(/\s+/).filter(Boolean).length || 1);
+            const totalWords = wordCounts.reduce((a, b) => a + b, 0) || 1;
+
+            let accumulated = 0;
+            for (let i = 0; i < activeTabObj.lines.length; i++) {
+              const lineDur = (wordCounts[i] / totalWords) * netDur;
+              accumulated += lineDur;
+              if (netCur <= accumulated) {
+                matchedIdx = i;
+                break;
+              }
+            }
+          } else {
+            matchedIdx = 0;
+          }
+        }
+
+        if (matchedIdx !== -1 && matchedIdx !== playingDialogueLineIndex) {
+          setPlayingDialogueLineIndex(matchedIdx);
         }
       };
 
@@ -5983,8 +6086,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           
       {/* V307 ACTIVE MODAL FOR EDITING DIALOGUE LESSON */}
       {isEditingDialogueModalOpen && editingDialogueObj && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 sm:p-6 pt-20 pb-10 animate-fade-in print:hidden overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full my-auto border-4 border-amber-500 shadow-2xl space-y-4 relative text-slate-900 shadow-amber-500/20">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-start justify-center p-4 sm:p-6 pt-24 pb-16 animate-fade-in print:hidden overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full my-2 border-4 border-amber-500 shadow-2xl space-y-4 relative text-slate-900 shadow-amber-500/20">
             <button
               type="button"
               onClick={() => setIsEditingDialogueModalOpen(false)}
@@ -6059,12 +6162,40 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 </div>
 
                 {editingDialogueObj.audioUrl && (
-                  <div className="sm:col-span-3 bg-emerald-50 p-2.5 rounded-xl border border-emerald-300 flex items-center justify-between gap-2">
-                    <span className="text-xs font-black text-emerald-900 flex items-center space-x-1">
-                      <span>🎧</span>
-                      <span>Audio mẫu chuẩn SGK:</span>
-                    </span>
-                    <audio controls src={editingDialogueObj.audioUrl} className="h-7 max-w-xs w-full" />
+                  <div className="sm:col-span-3 bg-emerald-50 p-3 rounded-2xl border-2 border-emerald-300 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-black text-emerald-950 flex items-center space-x-1.5">
+                        <span>🎧</span>
+                        <span>Trình Phát Audio Gốc SGK:</span>
+                      </span>
+                      <audio
+                        ref={modalAudioPreviewRef}
+                        controls
+                        src={editingDialogueObj.audioUrl}
+                        className="h-7 max-w-xs w-full"
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-emerald-200">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-bold text-emerald-800">⏱️ Bỏ qua nhạc dạo/intro (giây):</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          value={editingDialogueObj.introOffset !== undefined ? editingDialogueObj.introOffset : 2.5}
+                          onChange={(e) => setEditingDialogueObj({ ...editingDialogueObj, introOffset: parseFloat(e.target.value) || 0 })}
+                          className="w-16 px-2 py-0.5 rounded-lg border border-emerald-300 text-xs font-black text-center bg-white"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAutoDistributeTimestamps()}
+                        className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1"
+                        title="Tự động tính toán mốc giây đọc cho từng câu theo độ dài lời thoại"
+                      >
+                        <span>⚡ Tự Động Khớp Mốc Giây Từng Câu</span>
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -6118,7 +6249,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 <div className="space-y-3">
                   {editingDialogueObj.lines.map((line, lIdx) => (
                     <div key={lIdx} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 relative">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center space-x-2">
                           <span className="text-xs font-black text-slate-500"># {lIdx + 1}</span>
                           <input
@@ -6132,6 +6263,57 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             placeholder="Tên nhân vật (Ví dụ: Ann, Mi, Nick)"
                             className="px-2.5 py-1 rounded-lg border border-slate-300 font-black text-xs w-36 bg-white"
                           />
+                        </div>
+
+                        {/* PRECISION TIMESTAMP TIMELINE INPUTS */}
+                        <div className="flex items-center space-x-1.5 bg-slate-100 px-2 py-1 rounded-xl border border-slate-300">
+                          <span className="text-[11px] font-bold text-slate-600">⏱️ Giây:</span>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={line.startTime !== undefined ? line.startTime : ''}
+                            onChange={(e) => {
+                              const lines = [...editingDialogueObj.lines];
+                              lines[lIdx].startTime = parseFloat(e.target.value) || 0;
+                              setEditingDialogueObj({ ...editingDialogueObj, lines });
+                            }}
+                            placeholder="Bắt đầu (s)"
+                            className="w-14 px-1.5 py-0.5 rounded border border-slate-300 text-xs font-black text-center bg-white"
+                            title="Giây bắt đầu câu thoại trong audio MP3"
+                          />
+                          <span className="text-xs text-slate-400">➔</span>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={line.endTime !== undefined ? line.endTime : ''}
+                            onChange={(e) => {
+                              const lines = [...editingDialogueObj.lines];
+                              lines[lIdx].endTime = parseFloat(e.target.value) || 0;
+                              setEditingDialogueObj({ ...editingDialogueObj, lines });
+                            }}
+                            placeholder="Kết thúc (s)"
+                            className="w-14 px-1.5 py-0.5 rounded border border-slate-300 text-xs font-black text-center bg-white"
+                            title="Giây kết thúc câu thoại trong audio MP3"
+                          />
+                          {editingDialogueObj.audioUrl && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (modalAudioPreviewRef.current) {
+                                  const cur = parseFloat(modalAudioPreviewRef.current.currentTime.toFixed(1));
+                                  const lines = [...editingDialogueObj.lines];
+                                  lines[lIdx].startTime = cur;
+                                  setEditingDialogueObj({ ...editingDialogueObj, lines });
+                                }
+                              }}
+                              className="px-1.5 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded"
+                              title="Lấy số giây hiện tại đang nghe trong trình phát audio ở trên"
+                            >
+                              📍 Lấy Giây
+                            </button>
+                          )}
                         </div>
 
                         <button
@@ -6199,8 +6381,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
       {/* V302 ACTIVE MODAL FOR AI TẠO HỘI THOẠI */}
       {isAiTopicModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 sm:p-6 pt-20 pb-10 animate-fade-in print:hidden overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full my-auto border-4 border-purple-500 shadow-2xl space-y-4 relative text-slate-900">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-start justify-center p-4 sm:p-6 pt-24 pb-16 animate-fade-in print:hidden overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full my-2 border-4 border-purple-500 shadow-2xl space-y-4 relative text-slate-900">
             <button
               type="button"
               onClick={() => setIsAiTopicModalOpen(false)}
