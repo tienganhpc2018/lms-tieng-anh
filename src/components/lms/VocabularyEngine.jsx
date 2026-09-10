@@ -1559,6 +1559,150 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     });
   };
 
+  // WAV ENCODER HELPER FOR DOWNLOADING MULTI-VOICE DIALOGUE AUDIO
+  const encodeWavAudio = (audioBuffer) => {
+    const numChannels = audioBuffer.numberOfChannels;
+    const sampleRate = audioBuffer.sampleRate;
+    const format = 1; // PCM
+    const bitDepth = 16;
+    const left = audioBuffer.getChannelData(0);
+    const right = numChannels > 1 ? audioBuffer.getChannelData(1) : left;
+    
+    const length = left.length + right.length;
+    const samples = new Float32Array(length);
+    let index = 0, inputIndex = 0;
+    while (index < length) {
+      samples[index++] = left[inputIndex];
+      samples[index++] = right[inputIndex];
+      inputIndex++;
+    }
+    
+    const dataLength = samples.length * 2;
+    const bufferLength = 44 + dataLength;
+    const out = new ArrayBuffer(bufferLength);
+    const view = new DataView(out);
+    
+    const writeString = (v, offset, str) => {
+      for (let i = 0; i < str.length; i++) v.setUint8(offset + i, str.charCodeAt(i));
+    };
+    
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataLength, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, format, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numChannels * 2, true);
+    view.setUint16(32, numChannels * 2, true);
+    view.setUint16(34, bitDepth, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataLength, true);
+    
+    let offset = 44;
+    for (let i = 0; i < samples.length; i++, offset += 2) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return new Blob([view], { type: 'audio/wav' });
+  };
+
+  // DOWNLOAD MULTI-VOICE DIALOGUE AUDIO AS WAV/MP3 FILE
+  const handleDownloadDialogueAudio = async () => {
+    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+    if (!activeTabObj || !activeTabObj.lines || activeTabObj.lines.length === 0) return;
+
+    setIsDownloadingAudio(true);
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      const decodedBuffers = [];
+
+      for (const line of activeTabObj.lines) {
+        const ttsUrl = "https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=" + encodeURIComponent(line.text);
+        try {
+          const res = await fetch(ttsUrl);
+          if (res.ok) {
+            const arrayBuffer = await res.arrayBuffer();
+            const decoded = await ctx.decodeAudioData(arrayBuffer);
+            decodedBuffers.push(decoded);
+          }
+        } catch (e) {
+          console.warn('TTS Line download fallback:', e);
+        }
+      }
+
+      if (decodedBuffers.length > 0) {
+        const sampleRate = decodedBuffers[0].sampleRate;
+        const pauseSamples = Math.floor(sampleRate * 0.4); // 0.4s pause between lines
+        let totalSamples = 0;
+        decodedBuffers.forEach(b => { totalSamples += b.length + pauseSamples; });
+
+        const combined = ctx.createBuffer(2, totalSamples, sampleRate);
+        const channelLeft = combined.getChannelData(0);
+        const channelRight = combined.getChannelData(1);
+
+        let offset = 0;
+        for (const b of decodedBuffers) {
+          channelLeft.set(b.getChannelData(0), offset);
+          channelRight.set(b.numberOfChannels > 1 ? b.getChannelData(1) : b.getChannelData(0), offset);
+          offset += b.length + pauseSamples;
+        }
+
+        const wavBlob = encodeWavAudio(combined);
+        const url = URL.createObjectURL(wavBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        const cleanTitle = (activeTabObj.title || 'Dialogue').replace(/[^a-zA-Z0-9_-]/g, '_');
+        a.download = `${activeTabObj.grade || 'Lop9'}_${cleanTitle}_Oxford_Audio.wav`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        playSuccessSound();
+        alert("🎉 Đã xuất file Audio MP3/WAV cho đoạn hội thoại: [" + activeTabObj.title + "]!");
+      } else {
+        alert("Không thể kết nối máy chủ Audio TTS. Vui lòng kiểm tra lại mạng!");
+      }
+    } catch (err) {
+      console.error('Audio Download Error:', err);
+      alert("Đã xảy ra lỗi khi tạo file Audio: " + err.message);
+    } finally {
+      setIsDownloadingAudio(false);
+    }
+  };
+
+  // EDIT & DELETE DIALOGUE HANDLERS
+  const handleOpenEditDialogueModal = (tabObj) => {
+    setEditingDialogueObj(JSON.parse(JSON.stringify(tabObj)));
+    setIsEditingDialogueModalOpen(true);
+  };
+
+  const handleSaveEditedDialogue = () => {
+    if (!editingDialogueObj || !editingDialogueObj.title.trim()) {
+      alert("Vui lòng nhập tên đoạn hội thoại!");
+      return;
+    }
+    setDialogueTabs(prev => prev.map(t => t.id === editingDialogueObj.id ? editingDialogueObj : t));
+    setIsEditingDialogueModalOpen(false);
+    playSuccessSound();
+    alert("🎉 Đã lưu thay đổi cho đoạn hội thoại: [" + editingDialogueObj.title + "]!");
+  };
+
+  const handleDeleteDialogueTab = (tabId) => {
+    if (dialogueTabs.length <= 1) {
+      alert("Phải giữ lại ít nhất 1 đoạn hội thoại trong hệ thống!");
+      return;
+    }
+    if (window.confirm("Thầy/Cô có chắc chắn muốn xóa đoạn hội thoại này không?")) {
+      const remaining = dialogueTabs.filter(t => t.id !== tabId);
+      setDialogueTabs(remaining);
+      setActiveDialogueTabId(remaining[0].id);
+      playSuccessSound();
+    }
+  };
+
   const handlePlayFullDialogue = () => {
     const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
     if (!activeTabObj || !activeTabObj.lines || activeTabObj.lines.length === 0) return;
@@ -2657,6 +2801,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     {
       id: 'tab1',
       title: 'Đoạn 1: Ann & Mi (I really love where I live now)',
+      grade: 'Lớp 9',
       lines: [
         { speaker: 'Ann', text: 'Hi, Mi. Long time no see. How’re you doing?', vi: 'Chào Mi. Lâu rồi không gặp. Dạo này bạn thế nào?' },
         { speaker: 'Mi', text: 'I’m fine, thanks. By the way, we moved to a new house in a suburb last month.', vi: 'Mình khỏe, cảm ơn bạn. Nhân tiện, tháng trước nhà mình mới chuyển đến một ngôi nhà ở vùng ngoại ô.' },
@@ -2670,6 +2815,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     {
       id: 'tab2',
       title: 'Đoạn 2: Ann & Trang (Hội thoại Lớp 7 Unit 1)',
+      grade: 'Lớp 7',
       lines: [
         { speaker: 'Ann', text: 'Hi, Trang. What are your favorite hobbies in your free time?', vi: 'Chào Trang. Những sở thích yêu thích của bạn trong thời gian rảnh là gì?' },
         { speaker: 'Trang', text: 'I love making models using cardboard and glue. It is very creative!', vi: 'Mình thích làm nhà mô hình bằng bìa các tông và keo dán. Nó rất sáng tạo!' },
@@ -2683,6 +2829,10 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [isPlayingFullDialogue, setIsPlayingFullDialogue] = useState(false);
   const [isDialogueEditorOpen, setIsDialogueEditorOpen] = useState(false);
   const [rawDialogueInputText, setRawDialogueInputText] = useState('');
+  const [selectedDialogueGradeFilter, setSelectedDialogueGradeFilter] = useState('Tất Cả');
+  const [isEditingDialogueModalOpen, setIsEditingDialogueModalOpen] = useState(false);
+  const [editingDialogueObj, setEditingDialogueObj] = useState(null);
+  const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
   // SPEED, VIETNAMESE TOGGLE, ROLE-PLAY & RECORDING STATES (V297)
   const [newTabTitleInput, setNewTabTitleInput] = useState('');
   const [isEditingStoryText, setIsEditingStoryText] = useState(false);
@@ -5504,6 +5654,17 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 </div>
               )}
 
+              <button
+                type="button"
+                onClick={handleDownloadDialogueAudio}
+                disabled={isDownloadingAudio}
+                className="px-3.5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-md transition transform hover:scale-105 cursor-pointer flex items-center space-x-1.5 border border-blue-300 disabled:opacity-50"
+                title="Tải về file Audio MP3/WAV bài hội thoại đa vai phát âm chuẩn Oxford"
+              >
+                <Download className="w-4 h-4 text-amber-300" />
+                <span>{isDownloadingAudio ? '⏳ Đang Xuất File Audio...' : '📥 Tải Audio Bài Thoại'}</span>
+              </button>
+
               {/* TOGGLE CHẾ ĐỘ ĐÓNG VAI ROLE-PLAY */}
               <button
                 type="button"
@@ -5587,28 +5748,234 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           )}
 
           {/* MULTI-TAB SELECTOR FOR DIALOGUE LESSONS */}
-          <div className="flex flex-wrap items-center gap-2 bg-purple-50 p-2 rounded-2xl border border-purple-200 print:hidden">
-            <span className="text-xs font-black text-purple-900 px-1">Danh Sách Đoạn Hội Thoại:</span>
-            {dialogueTabs.map((tab) => (
+          {/* V307 FEATURE: KHỐI LỚP FILTER BAR */}
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-purple-100 via-indigo-50 to-purple-50 p-3 rounded-2xl border-2 border-purple-200 shadow-sm print:hidden">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-black text-purple-950 uppercase tracking-wide flex items-center space-x-1 mr-1">
+                <span>🎓</span>
+                <span>Lọc Theo Khối Lớp:</span>
+              </span>
+              {['Tất Cả', 'Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12'].map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setSelectedDialogueGradeFilter(g)}
+                  className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
+                    selectedDialogueGradeFilter === g
+                      ? 'bg-purple-700 text-white shadow-md scale-105 ring-2 ring-purple-300'
+                      : 'bg-white text-purple-900 hover:bg-purple-200 border border-purple-300'
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center space-x-2">
               <button
-                key={tab.id}
                 type="button"
                 onClick={() => {
-                  handleStopDialogueAudio();
-                  setActiveDialogueTabId(tab.id);
+                  const newId = 'tab_' + Date.now();
+                  const newTab = {
+                    id: newId,
+                    title: `Đoạn Hội Thoại ${selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : 'Mới'}`,
+                    grade: selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : 'Lớp 9',
+                    lines: [
+                      { speaker: 'Ann', text: 'Hi! Welcome to our new dialogue lesson.', vi: 'Chào bạn! Chào mừng đến với bài học hội thoại mới.' },
+                      { speaker: 'Nick', text: 'Thank you! I am ready to practice speaking.', vi: 'Cảm ơn bạn! Mình đã sẵn sàng thực hành nói.' }
+                    ]
+                  };
+                  setDialogueTabs(prev => [...prev, newTab]);
+                  setActiveDialogueTabId(newId);
+                  handleOpenEditDialogueModal(newTab);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-1 shadow-2xs ${
-                  activeDialogueTabId === tab.id
-                    ? 'bg-purple-700 text-white ring-2 ring-purple-400 scale-105 shadow-sm'
-                    : 'bg-white text-purple-900 hover:bg-purple-100 border border-purple-200'
-                }`}
+                className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-purple-400"
               >
-                <span>🗣️ {tab.title}</span>
+                <span>➕ Thêm Đoạn Mới</span>
               </button>
-            ))}
+            </div>
           </div>
 
-          {/* V302 ACTIVE MODAL FOR AI TẠO HỘI THOẠI */}
+          {/* MULTI-TAB SELECTOR FOR DIALOGUE LESSONS (FILTERED BY GRADE) */}
+          <div className="flex flex-wrap items-center gap-2 bg-purple-50/90 p-2.5 rounded-2xl border border-purple-200 print:hidden">
+            <span className="text-xs font-black text-purple-900 px-1">Danh Sách Đoạn ({selectedDialogueGradeFilter}):</span>
+            {(() => {
+              const filteredTabs = dialogueTabs.filter(t => 
+                selectedDialogueGradeFilter === 'Tất Cả' || (t.grade || 'Lớp 9') === selectedDialogueGradeFilter
+              );
+              if (filteredTabs.length === 0) {
+                return (
+                  <span className="text-xs font-bold text-rose-600 bg-white px-3 py-1 rounded-xl border border-rose-200">
+                    Chưa có bài hội thoại cho [{selectedDialogueGradeFilter}]. Bấm '🤖 AI Tạo Hội Thoại' hoặc '+ Thêm Đoạn Mới'!
+                  </span>
+                );
+              }
+              return filteredTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    handleStopDialogueAudio();
+                    setActiveDialogueTabId(tab.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-1.5 shadow-2xs ${
+                    activeDialogueTabId === tab.id
+                      ? 'bg-purple-700 text-white ring-2 ring-purple-400 scale-105 shadow-sm'
+                      : 'bg-white text-purple-900 hover:bg-purple-100 border border-purple-200'
+                  }`}
+                >
+                  <span className="px-1.5 py-0.5 bg-purple-200 text-purple-950 rounded font-black text-[10px]">
+                    {tab.grade || 'Lớp 9'}
+                  </span>
+                  <span>🗣️ {tab.title}</span>
+                </button>
+              ));
+            })()}
+          </div>
+
+          
+      {/* V307 ACTIVE MODAL FOR EDITING DIALOGUE LESSON */}
+      {isEditingDialogueModalOpen && editingDialogueObj && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 animate-fade-in print:hidden overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full border-4 border-amber-500 shadow-2xl space-y-4 relative text-slate-900 my-8">
+            <button
+              type="button"
+              onClick={() => setIsEditingDialogueModalOpen(false)}
+              className="absolute top-4 right-4 w-9 h-9 bg-slate-100 hover:bg-rose-500 hover:text-white text-slate-700 rounded-full font-black text-sm flex items-center justify-center transition cursor-pointer"
+            >
+              ✕
+            </button>
+            <div className="flex items-center space-x-3 border-b pb-3 border-amber-100">
+              <span className="text-3xl">✏️</span>
+              <div>
+                <h3 className="font-black text-lg text-slate-950 uppercase tracking-wide">CHỈNH SỬA ĐOẠN HỘI THOẠI SGK</h3>
+                <p className="text-xs text-slate-600 font-bold">Thay đổi tiêu đề, phân loại khối lớp và chỉnh sửa từng câu thoại</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-black text-slate-700 mb-1">📌 Tiêu Đề Đoạn Hội Thoại:</label>
+                  <input
+                    type="text"
+                    value={editingDialogueObj.title}
+                    onChange={(e) => setEditingDialogueObj({ ...editingDialogueObj, title: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 focus:border-amber-500 font-bold text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">🎓 Khối Lớp:</label>
+                  <select
+                    value={editingDialogueObj.grade || 'Lớp 9'}
+                    onChange={(e) => setEditingDialogueObj({ ...editingDialogueObj, grade: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 focus:border-amber-500 font-bold text-sm bg-white"
+                  >
+                    {['Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12'].map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-black text-slate-800">💬 Danh Sách Các Câu Thoại:</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lines = [...editingDialogueObj.lines, { speaker: 'Ann', text: '', vi: '' }];
+                      setEditingDialogueObj({ ...editingDialogueObj, lines });
+                    }}
+                    className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-lg transition cursor-pointer"
+                  >
+                    ➕ Thêm Câu Thoại
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {editingDialogueObj.lines.map((line, lIdx) => (
+                    <div key={lIdx} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 relative">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-black text-slate-500"># {lIdx + 1}</span>
+                          <input
+                            type="text"
+                            value={line.speaker}
+                            onChange={(e) => {
+                              const lines = [...editingDialogueObj.lines];
+                              lines[lIdx].speaker = e.target.value;
+                              setEditingDialogueObj({ ...editingDialogueObj, lines });
+                            }}
+                            placeholder="Tên nhân vật (Ví dụ: Ann, Mi, Nick)"
+                            className="px-2.5 py-1 rounded-lg border border-slate-300 font-black text-xs w-36 bg-white"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editingDialogueObj.lines.length <= 1) return;
+                            const lines = editingDialogueObj.lines.filter((_, idx) => idx !== lIdx);
+                            setEditingDialogueObj({ ...editingDialogueObj, lines });
+                          }}
+                          className="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold rounded-md"
+                        >
+                          🗑️ Xóa câu
+                        </button>
+                      </div>
+
+                      <div>
+                        <input
+                          type="text"
+                          value={line.text}
+                          onChange={(e) => {
+                            const lines = [...editingDialogueObj.lines];
+                            lines[lIdx].text = e.target.value;
+                            setEditingDialogueObj({ ...editingDialogueObj, lines });
+                          }}
+                          placeholder="Câu thoại Tiếng Anh..."
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-bold text-xs bg-white mb-1"
+                        />
+                        <input
+                          type="text"
+                          value={line.vi}
+                          onChange={(e) => {
+                            const lines = [...editingDialogueObj.lines];
+                            lines[lIdx].vi = e.target.value;
+                            setEditingDialogueObj({ ...editingDialogueObj, lines });
+                          }}
+                          placeholder="Nghĩa Tiếng Việt..."
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 italic bg-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveEditedDialogue}
+                  className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-2xl shadow-md transition cursor-pointer text-center"
+                >
+                  💾 Lưu Thay Đổi Đoạn Hội Thoại
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingDialogueModalOpen(false)}
+                  className="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-sm rounded-2xl transition cursor-pointer"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* V302 ACTIVE MODAL FOR AI TẠO HỘI THOẠI */}
       {isAiTopicModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 animate-fade-in print:hidden">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full border-4 border-purple-500 shadow-2xl space-y-4 relative text-slate-900">
@@ -5662,6 +6029,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     const newTab = {
                       id: newId,
                       title: `🤖 AI: ${topic} (${customDialogueGrade})`,
+                      grade: customDialogueGrade,
                       lines: [
                         { speaker: 'Ann', text: `Hi Mi! Have you ever learned about ${topic}?`, vi: `Chào Mi! Bạn đã bao giờ tìm hiểu về ${topic} chưa?` },
                         { speaker: 'Mi', text: `Yes, I have! It is a very interesting topic in our English book.`, vi: `Mình tìm hiểu rồi! Đó là một chủ đề rất thú vị trong sách tiếng Anh của chúng ta.` },
@@ -5695,12 +6063,35 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             return (
               <div className="space-y-4 bg-slate-50/70 p-4 sm:p-6 rounded-3xl border-2 border-purple-200 print:p-0 print:border-none print:bg-white">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2 print:border-b-2 print:border-slate-900">
-                  <h4 className="font-extrabold text-base text-purple-950 print:text-xl print:text-black">
-                    {activeTabObj.title}
-                  </h4>
-                  <span className="text-xs font-bold text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200 print:hidden">
-                    🎧 Track Audio UK Oxford (Tốc độ {dialogueSpeed}x)
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="px-2.5 py-1 bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs">
+                      🎓 {activeTabObj.grade || 'Lớp 9'}
+                    </span>
+                    <h4 className="font-extrabold text-base text-purple-950 print:text-xl print:text-black">
+                      {activeTabObj.title}
+                    </h4>
+                  </div>
+                  <div className="flex items-center space-x-2 print:hidden">
+                    <span className="text-xs font-bold text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                      🎧 Track Audio UK Oxford ({dialogueSpeed}x)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditDialogueModal(activeTabObj)}
+                      className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-amber-400"
+                      title="Chỉnh sửa đoạn hội thoại này"
+                    >
+                      <span>✏️ Sửa Đoạn</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteDialogueTab(activeTabObj.id)}
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-rose-400"
+                      title="Xóa đoạn hội thoại này"
+                    >
+                      <span>🗑️ Xóa Đoạn</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3 pt-2">
