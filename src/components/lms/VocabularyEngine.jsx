@@ -1754,25 +1754,43 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const modalAudioPreviewRef = useRef(null);
 
   // SMART AUTO-DISTRIBUTE TIMESTAMPS BASED ON SENTENCE WORD LENGTH
-  const handleAutoDistributeTimestamps = (totalDurationSec = null) => {
+  const handleAutoDistributeTimestamps = (totalDurationSec = null, customIntro = null) => {
     if (!editingDialogueObj || !editingDialogueObj.lines || editingDialogueObj.lines.length === 0) return;
     
     let duration = totalDurationSec;
     if (!duration && modalAudioPreviewRef.current && modalAudioPreviewRef.current.duration) {
       duration = modalAudioPreviewRef.current.duration;
     }
-    if (!duration || isNaN(duration)) duration = 75; // Default fallback to 75 seconds
+    if (!duration || isNaN(duration)) duration = 77; // Default fallback to 77 seconds
 
-    const introOffset = editingDialogueObj.introOffset !== undefined ? parseFloat(editingDialogueObj.introOffset) : 2.5;
-    const netDuration = Math.max(10, duration - introOffset);
+    const introOffset = customIntro !== null ? parseFloat(customIntro) : (editingDialogueObj.introOffset !== undefined ? parseFloat(editingDialogueObj.introOffset) : 2.5);
+    const outroBuffer = 2.0; // 2.0s buffer at the end of audio
+    const netDuration = Math.max(10, duration - introOffset - outroBuffer);
     
     const lines = editingDialogueObj.lines;
-    const wordCounts = lines.map(l => (l.text || '').trim().split(/\s+/).filter(Boolean).length || 1);
-    const totalWords = wordCounts.reduce((a, b) => a + b, 0) || 1;
+    
+    // REALISTIC CONVERSATIONAL SPEECH PACING MODEL:
+    // - Word length: 1.0 unit
+    // - Punctuation pauses (commas, dashes): +0.6 units
+    // - Sentence endings (periods, question marks): +1.0 unit
+    // - Speaker turn switch (conversational breath & reply delay): +2.2 units
+    const lineWeights = lines.map((line, idx) => {
+      const text = line.text || '';
+      const words = text.trim().split(/\s+/).filter(Boolean).length || 1;
+      const commas = (text.match(/[,;—–-]/g) || []).length;
+      const sentenceEnds = (text.match(/[.?!]/g) || []).length;
+      const prevSpeaker = idx > 0 ? lines[idx - 1].speaker : null;
+      const isSpeakerSwitch = idx > 0 && line.speaker !== prevSpeaker;
+      
+      let weight = words * 1.0 + commas * 0.6 + sentenceEnds * 1.0 + (isSpeakerSwitch ? 2.2 : 0.8);
+      return Math.max(2.8, weight);
+    });
+
+    const totalWeight = lineWeights.reduce((a, b) => a + b, 0) || 1;
 
     let currentStart = introOffset;
     const updatedLines = lines.map((line, idx) => {
-      const lineDuration = (wordCounts[idx] / totalWords) * netDuration;
+      const lineDuration = (lineWeights[idx] / totalWeight) * netDuration;
       const startTime = parseFloat(currentStart.toFixed(1));
       const endTime = parseFloat((currentStart + lineDuration).toFixed(1));
       currentStart += lineDuration;
@@ -1781,7 +1799,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
     setEditingDialogueObj({ ...editingDialogueObj, introOffset, lines: updatedLines });
     playSuccessSound();
-    alert("🎉 Đã tự động phân bổ mốc giây chuẩn xác cho " + updatedLines.length + " câu thoại theo đúng độ dài lời nói!");
+    alert("🎉 Đã tự động khớp chính xác mốc giây cho " + updatedLines.length + " câu thoại theo đúng ngữ điệu và nhịp đọc SGK!");
   };
 
   const handleUploadDialogueMp3 = async (e) => {
@@ -1863,7 +1881,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
         const cur = audio.currentTime;
         let matchedIdx = -1;
 
-        // 1. Check exact configured line timestamps first
+        // 1. Check exact configured line timestamps
         for (let i = 0; i < activeTabObj.lines.length; i++) {
           const l = activeTabObj.lines[i];
           if (l.startTime !== undefined && l.endTime !== undefined) {
@@ -1874,19 +1892,41 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
           }
         }
 
-        // 2. If no exact timestamps, calculate proportional duration based on word count + intro
+        // 2. If cur is in the pause gap between line i and line i+1, hold line i active!
+        if (matchedIdx === -1) {
+          for (let i = 0; i < activeTabObj.lines.length; i++) {
+            const curL = activeTabObj.lines[i];
+            const nextL = activeTabObj.lines[i + 1];
+            if (curL.endTime !== undefined && nextL && nextL.startTime !== undefined) {
+              if (cur >= curL.endTime && cur < nextL.startTime) {
+                matchedIdx = i;
+                break;
+              }
+            }
+          }
+        }
+
+        // 3. Fallback to conversational speech pacing model
         if (matchedIdx === -1 && audio.duration) {
           const intro = activeTabObj.introOffset !== undefined ? activeTabObj.introOffset : 2.5;
           if (cur >= intro) {
             const netCur = cur - intro;
-            const netDur = Math.max(1, audio.duration - intro);
-            const wordCounts = activeTabObj.lines.map(l => (l.text || '').trim().split(/\s+/).filter(Boolean).length || 1);
-            const totalWords = wordCounts.reduce((a, b) => a + b, 0) || 1;
+            const netDur = Math.max(1, audio.duration - intro - 2.0);
+            const lines = activeTabObj.lines;
+            const lineWeights = lines.map((l, idx) => {
+              const t = l.text || '';
+              const w = t.trim().split(/\s+/).filter(Boolean).length || 1;
+              const c = (t.match(/[,;—–-]/g) || []).length;
+              const e = (t.match(/[.?!]/g) || []).length;
+              const sw = idx > 0 && l.speaker !== lines[idx - 1].speaker;
+              return Math.max(2.8, w + c * 0.6 + e * 1.0 + (sw ? 2.2 : 0.8));
+            });
+            const totalW = lineWeights.reduce((a, b) => a + b, 0) || 1;
 
             let accumulated = 0;
-            for (let i = 0; i < activeTabObj.lines.length; i++) {
-              const lineDur = (wordCounts[i] / totalWords) * netDur;
-              accumulated += lineDur;
+            for (let i = 0; i < lines.length; i++) {
+              const dur = (lineWeights[i] / totalW) * netDur;
+              accumulated += dur;
               if (netCur <= accumulated) {
                 matchedIdx = i;
                 break;
@@ -1897,8 +1937,20 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
           }
         }
 
-        if (matchedIdx !== -1 && matchedIdx !== playingDialogueLineIndex) {
+        if (matchedIdx !== -1) {
           setPlayingDialogueLineIndex(matchedIdx);
+          
+          // Smooth word-by-word karaoke synchronization within active line
+          if (isKaraokeSyncMode && activeTabObj.lines[matchedIdx]) {
+            const curLineObj = activeTabObj.lines[matchedIdx];
+            const startT = curLineObj.startTime !== undefined ? curLineObj.startTime : 0;
+            const endT = curLineObj.endTime !== undefined ? curLineObj.endTime : startT + 4;
+            const lineSpan = Math.max(0.5, endT - startT);
+            const lineProg = Math.max(0, Math.min(1, (cur - startT) / lineSpan));
+            const wordsList = (curLineObj.text || '').split(' ');
+            const wordIdx = Math.floor(lineProg * wordsList.length);
+            setHighlightedWordIndex(wordIdx);
+          }
         }
       };
 
@@ -6086,7 +6138,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           
       {/* V307 ACTIVE MODAL FOR EDITING DIALOGUE LESSON */}
       {isEditingDialogueModalOpen && editingDialogueObj && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-start justify-center p-4 sm:p-6 pt-24 pb-16 animate-fade-in print:hidden overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-start justify-center p-4 sm:p-6 pt-28 sm:pt-32 pb-20 animate-fade-in print:hidden overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 max-w-2xl w-full my-2 border-4 border-amber-500 shadow-2xl space-y-4 relative text-slate-900 shadow-amber-500/20">
             <button
               type="button"
@@ -6183,7 +6235,10 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                           step="0.5"
                           min="0"
                           value={editingDialogueObj.introOffset !== undefined ? editingDialogueObj.introOffset : 2.5}
-                          onChange={(e) => setEditingDialogueObj({ ...editingDialogueObj, introOffset: parseFloat(e.target.value) || 0 })}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            setEditingDialogueObj({ ...editingDialogueObj, introOffset: val });
+                          }}
                           className="w-16 px-2 py-0.5 rounded-lg border border-emerald-300 text-xs font-black text-center bg-white"
                         />
                       </div>
