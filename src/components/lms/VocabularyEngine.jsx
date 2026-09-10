@@ -8319,7 +8319,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                         <span>🗑️ Xóa Ảnh</span>
                       </button>
                     </div>
-                  )}}
+                  )}
                 </div>
 
                 {/* VISUAL PASTE BOX FOR CTRL + V */}
