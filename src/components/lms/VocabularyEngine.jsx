@@ -1400,57 +1400,46 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
+    utterance.lang = 'en-GB'; // 100% STANDARD BRITISH UK OXFORD
 
     const baseRate = dialogueSpeed || 0.8;
     utterance.rate = baseRate * 0.95;
 
-    // DISTINCT PITCH & SPEED PER CHARACTER TYPE
+    // NATURAL HUMAN PITCH (NO ROBOTIC DISTORTION)
     if (isAdult) {
-      utterance.pitch = isMale ? 0.68 : 0.95;
+      utterance.pitch = isMale ? 0.92 : 0.98;
     } else if (isMale) {
-      // Young Boy (Nick / Phong / Nam)
-      utterance.pitch = 0.85;
-      if (lowerSpeaker.includes('nick')) utterance.pitch = 0.82;
-      if (lowerSpeaker.includes('phong')) utterance.pitch = 0.88;
+      utterance.pitch = 0.95;
     } else {
-      // Female Characters (Ann / Mi / Mai / Trang)
-      if (lowerSpeaker.includes('ann')) utterance.pitch = 1.15;
-      else if (lowerSpeaker.includes('mi')) utterance.pitch = 1.30;
-      else if (lowerSpeaker.includes('mai')) utterance.pitch = 1.20;
-      else utterance.pitch = 1.25;
+      utterance.pitch = 1.05;
     }
 
     if (text.endsWith('!')) {
-      utterance.pitch += 0.08;
+      utterance.pitch += 0.05;
       utterance.volume = 1.0;
     } else if (text.endsWith('?')) {
-      utterance.pitch += 0.12;
+      utterance.pitch += 0.08;
     }
 
     const allVoices = window.speechSynthesis.getVoices();
+    const gbVoices = allVoices.filter(v => v.lang && (v.lang.toLowerCase().includes('gb') || v.lang.toLowerCase().includes('uk')));
     const enVoices = allVoices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
 
     let targetVoice = null;
-    if (isMale) {
-      // Find explicit Male Voice across UK & US
-      targetVoice = enVoices.find(v => {
-        const n = v.name.toLowerCase();
-        return n.includes('david') || n.includes('mark') || n.includes('george') || n.includes('daniel') || n.includes('james') || n.includes('guy') || n.includes('male');
-      });
-      if (!targetVoice && enVoices.length > 1) {
-        // Pick secondary voice for male if default is female
-        targetVoice = enVoices[1];
+    if (gbVoices.length > 0) {
+      if (isMale) {
+        targetVoice = gbVoices.find(v => {
+          const n = v.name.toLowerCase();
+          return n.includes('male') || n.includes('george') || n.includes('david') || n.includes('daniel') || n.includes('oliver');
+        }) || gbVoices[0];
+      } else {
+        targetVoice = gbVoices.find(v => {
+          const n = v.name.toLowerCase();
+          return n.includes('female') || n.includes('hazel') || n.includes('susan') || n.includes('sonia') || n.includes('charlotte');
+        }) || gbVoices[0];
       }
-    } else {
-      // Find explicit Female Voice across UK & US
-      targetVoice = enVoices.find(v => {
-        const n = v.name.toLowerCase();
-        return n.includes('zira') || n.includes('hazel') || n.includes('susan') || n.includes('charlotte') || n.includes('female') || n.includes('aria') || n.includes('jenny');
-      });
-      if (!targetVoice && enVoices.length > 0) {
-        targetVoice = enVoices[0];
-      }
+    } else if (enVoices.length > 0) {
+      targetVoice = enVoices.find(v => (isMale ? v.name.toLowerCase().includes('male') : v.name.toLowerCase().includes('female'))) || enVoices[0];
     }
 
     if (targetVoice) {
