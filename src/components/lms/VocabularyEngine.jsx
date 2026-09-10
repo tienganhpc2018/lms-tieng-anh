@@ -2131,6 +2131,10 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
       // AI VOCAB STORYTELLER STATE
   const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
+  const [isEditingStoryText, setIsEditingStoryText] = useState(false);
+  const [customStoryEn, setCustomStoryEn] = useState('');
+  const [customStoryVi, setCustomStoryVi] = useState('');
+  const [isAiTranslating, setIsAiTranslating] = useState(false);
   const [aiStoryData, setAiStoryData] = useState(null);
   const [storySeed, setStorySeed] = useState(0);
   const [generatingStory, setGeneratingStory] = useState(false);
