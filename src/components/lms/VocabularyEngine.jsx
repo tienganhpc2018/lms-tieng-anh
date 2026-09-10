@@ -1245,6 +1245,106 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const { user } = useAuth();
   const settings = activity?.settings || {};
   // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
+  
+  // MULTI-VOICE SPEECH SYNTHESIS ENGINE FOR DIALOGUE LESSON (V293)
+  const speakDialogueLine = (lineObj, onEndedCallback) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel();
+    const speaker = (lineObj?.speaker || '').toLowerCase();
+    const text = lineObj?.text || '';
+    if (!text) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-GB';
+
+    // Voice tuning based on speaker gender
+    const isMale = speaker.includes('nick') || speaker.includes('nam') || speaker.includes('phong') || speaker.includes('mark') || speaker.includes('peter') || speaker.includes('tom') || speaker.includes('he');
+    utterance.pitch = isMale ? 0.85 : 1.15;
+    utterance.rate = 0.92;
+
+    const voices = window.speechSynthesis.getVoices();
+    const targetVoice = voices.find(v => v.lang.startsWith('en') && (isMale ? v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('george') : v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('hazel') || v.name.toLowerCase().includes('zira')));
+    if (targetVoice) utterance.voice = targetVoice;
+
+    if (onEndedCallback) {
+      utterance.onend = onEndedCallback;
+      utterance.onerror = onEndedCallback;
+    }
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handlePlaySingleDialogueLine = (index, lineObj) => {
+    setIsPlayingFullDialogue(false);
+    setPlayingDialogueLineIndex(index);
+    speakDialogueLine(lineObj, () => {
+      setPlayingDialogueLineIndex(null);
+    });
+  };
+
+  const handlePlayFullDialogue = () => {
+    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+    if (!activeTabObj || !activeTabObj.lines || activeTabObj.lines.length === 0) return;
+
+    setIsPlayingFullDialogue(true);
+    let idx = 0;
+
+    const playNext = () => {
+      if (idx >= activeTabObj.lines.length) {
+        setPlayingDialogueLineIndex(null);
+        setIsPlayingFullDialogue(false);
+        return;
+      }
+      setPlayingDialogueLineIndex(idx);
+      speakDialogueLine(activeTabObj.lines[idx], () => {
+        idx++;
+        playNext();
+      });
+    };
+
+    playNext();
+  };
+
+  const handleStopDialogueAudio = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setPlayingDialogueLineIndex(null);
+    setIsPlayingFullDialogue(false);
+  };
+
+  const handleParseAndSaveRawDialogue = () => {
+    if (!rawDialogueInputText.trim()) return;
+
+    const rawLines = rawDialogueInputText.split('\n').filter(l => l.trim().length > 0);
+    const parsedLines = rawLines.map(line => {
+      const parts = line.split(':');
+      if (parts.length >= 2) {
+        const spk = parts[0].trim();
+        const txt = parts.slice(1).join(':').trim();
+        return { speaker: spk, text: txt, vi: '' };
+      }
+      return { speaker: 'Speaker', text: line.trim(), vi: '' };
+    });
+
+    const newId = 'tab_' + Date.now();
+    const title = newTabTitleInput.trim() || ('Đoạn ' + (dialogueTabs.length + 1) + ': ' + (parsedLines[0]?.speaker || 'Hội Thoại'));
+
+    const newTab = {
+      id: newId,
+      title: title,
+      lines: parsedLines
+    };
+
+    setDialogueTabs(prev => [...prev, newTab]);
+    setActiveDialogueTabId(newId);
+    setRawDialogueInputText('');
+    setNewTabTitleInput('');
+    setIsDialogueEditorOpen(false);
+    playSuccessSound();
+  };
+
   const detectActivityGrade = (act) => {
     const explicit = (
       (act?.settings?.grade || '') + ' ' +
@@ -2131,6 +2231,39 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
       // AI VOCAB STORYTELLER STATE
   const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
+
+  // INTERACTIVE SGK DIALOGUE LESSON STATE (V293)
+  const [dialogueTabs, setDialogueTabs] = useState([
+    {
+      id: 'tab1',
+      title: 'Đoạn 1: Ann & Mi (I really love where I live now)',
+      lines: [
+        { speaker: 'Ann', text: 'Hi, Mi. Long time no see. How’re you doing?', vi: 'Chào Mi. Lâu rồi không gặp. Dạo này bạn thế nào?' },
+        { speaker: 'Mi', text: 'I’m fine, thanks. By the way, we moved to a new house in a suburb last month.', vi: 'Mình khỏe, cảm ơn bạn. Nhân tiện, tháng trước nhà mình mới chuyển đến một ngôi nhà ở vùng ngoại ô.' },
+        { speaker: 'Ann', text: 'Oh, that’s why I haven’t seen you in the Reading Club very often.', vi: 'Ồ, thảo nào dạo này mình ít thấy bạn ở Câu lạc bộ Đọc sách.' },
+        { speaker: 'Mi', text: 'Yes. We’re still busy moving in, you know.', vi: 'Đúng vậy. Bạn biết đấy, bọn mình vẫn đang bận rộn dọn dẹp chuyển nhà.' },
+        { speaker: 'Ann', text: 'How’s your new neighbourhood?', vi: 'Khu phố mới của bạn như thế nào?' },
+        { speaker: 'Mi', text: 'It’s much bigger than our old one. The streets are wider, and there are fewer people.', vi: 'Nó rộng hơn nhiều so với khu cũ. Đường xá rộng rãi hơn và ít người hơn.' },
+        { speaker: 'Ann', text: 'What about the facilities?', vi: 'Thế còn các cơ sở vật chất tiện ích thì sao?' }
+      ]
+    },
+    {
+      id: 'tab2',
+      title: 'Đoạn 2: Ann & Trang (Hội thoại Lớp 7 Unit 1)',
+      lines: [
+        { speaker: 'Ann', text: 'Hi, Trang. What are your favorite hobbies in your free time?', vi: 'Chào Trang. Những sở thích yêu thích của bạn trong thời gian rảnh là gì?' },
+        { speaker: 'Trang', text: 'I love making models using cardboard and glue. It is very creative!', vi: 'Mình thích làm nhà mô hình bằng bìa các tông và keo dán. Nó rất sáng tạo!' },
+        { speaker: 'Ann', text: 'That sounds unusual and interesting. I enjoy horse riding and gardening.', vi: 'Nghe có vẻ độc đáo và thú vị đấy. Mình thích cưỡi ngựa và làm vườn.' }
+      ]
+    }
+  ]);
+
+  const [activeDialogueTabId, setActiveDialogueTabId] = useState('tab1');
+  const [playingDialogueLineIndex, setPlayingDialogueLineIndex] = useState(null);
+  const [isPlayingFullDialogue, setIsPlayingFullDialogue] = useState(false);
+  const [isDialogueEditorOpen, setIsDialogueEditorOpen] = useState(false);
+  const [rawDialogueInputText, setRawDialogueInputText] = useState('');
+  const [newTabTitleInput, setNewTabTitleInput] = useState('');
   const [isEditingStoryText, setIsEditingStoryText] = useState(false);
   const [customStoryEn, setCustomStoryEn] = useState('');
   const [customStoryVi, setCustomStoryVi] = useState('');
