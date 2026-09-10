@@ -370,10 +370,137 @@ const getVietnameseTranslation = (enText, targetWord = '') => {
   return 'Dịch: "' + translated + '"';
 };
 
-// DYNAMIC WORD SEARCH GENERATOR WITH UP TO 10 WORDS & DIAGONAL PLACEMENT
-const generateWordSearchGrid = (list, currentGrade = 'Lớp 7') => {
+// PALETTE 10 MÀU SẮC LUNG LINH PHÁO HOA CHO CÁC TỪ KHÓA TÌM THẤY (MATCHING ẢNH VÒNG XOAY KÍ TỰ CỦA THẦY HẢI)
+const FIREWORK_WORD_COLORS = [
+  { bg: '#059669', stroke: '#34d399', text: '#ffffff', glow: 'rgba(5, 150, 105, 0.6)', name: 'Emerald' },
+  { bg: '#e11d48', stroke: '#fb7185', text: '#ffffff', glow: 'rgba(225, 29, 72, 0.6)', name: 'Rose' },
+  { bg: '#d97706', stroke: '#fcd34d', text: '#ffffff', glow: 'rgba(217, 119, 6, 0.6)', name: 'Amber' },
+  { bg: '#2563eb', stroke: '#60a5fa', text: '#ffffff', glow: 'rgba(37, 99, 235, 0.6)', name: 'Blue' },
+  { bg: '#7c3aed', stroke: '#c084fc', text: '#ffffff', glow: 'rgba(124, 58, 237, 0.6)', name: 'Purple' },
+  { bg: '#ea580c', stroke: '#fdba74', text: '#ffffff', glow: 'rgba(234, 88, 12, 0.6)', name: 'Orange' },
+  { bg: '#db2777', stroke: '#f472b6', text: '#ffffff', glow: 'rgba(219, 39, 119, 0.6)', name: 'Pink' },
+  { bg: '#65a30d', stroke: '#bef264', text: '#ffffff', glow: 'rgba(101, 163, 13, 0.6)', name: 'Lime' },
+  { bg: '#0891b2', stroke: '#67e8f9', text: '#ffffff', glow: 'rgba(8, 145, 178, 0.6)', name: 'Cyan' },
+  { bg: '#4f46e5', stroke: '#a5b4fc', text: '#ffffff', glow: 'rgba(79, 70, 229, 0.6)', name: 'Indigo' },
+];
+
+// SVG MATH HELPER: TÍNH TỌA ĐỘ VÀ TẠO PATH CUNG TRÒN NAN QUẠT (ANNULAR SECTOR) CHO VÒNG XOAY KÍ TỰ
+const polarToCartesianCoord = (cx, cy, r, angleInDegrees) => {
+  const rad = ((angleInDegrees - 90) * Math.PI) / 180.0;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+};
+
+const describeAnnularSectorPath = (cx, cy, rIn, rOut, startAngle, endAngle) => {
+  const p1 = polarToCartesianCoord(cx, cy, rIn, startAngle);
+  const p2 = polarToCartesianCoord(cx, cy, rOut, startAngle);
+  const p3 = polarToCartesianCoord(cx, cy, rOut, endAngle);
+  const p4 = polarToCartesianCoord(cx, cy, rIn, endAngle);
+  return (
+    'M ' + p1.x.toFixed(2) + ' ' + p1.y.toFixed(2) +
+    ' L ' + p2.x.toFixed(2) + ' ' + p2.y.toFixed(2) +
+    ' A ' + rOut + ' ' + rOut + ' 0 0 1 ' + p3.x.toFixed(2) + ' ' + p3.y.toFixed(2) +
+    ' L ' + p4.x.toFixed(2) + ' ' + p4.y.toFixed(2) +
+    ' A ' + rIn + ' ' + rIn + ' 0 0 0 ' + p1.x.toFixed(2) + ' ' + p1.y.toFixed(2) +
+    ' Z'
+  );
+};
+
+// DYNAMIC CIRCULAR WORD SEARCH GENERATOR (VÒNG XOAY PHÁO HOA LUNG LINH - THEO BẢN THIẾT KẾ CỦA THẦY HẢI)
+const generateCircularWordSearchGrid = (list, currentGrade = 'Lớp 7') => {
   let wordCandidates = list
-    .map((v) => v.word.toUpperCase().replace(/[^A-Z]/g, ''))
+    .map((v) => (v.word || '').toUpperCase().replace(/[^A-Z]/g, ''))
+    .filter((w) => w.length >= 3 && w.length <= 10);
+
+  const gradePresets = {
+    'Lớp 7': ['CARDBOARD', 'GARDENING', 'DOLLHOUSE', 'GLUE', 'POPULAR', 'UNUSUAL', 'COLLECTING', 'JOGGING', 'COOKING', 'PAINTING'],
+    'Lớp 8': ['BEEHIVE', 'CATTLE', 'HARVESTER', 'CROP', 'PADDY', 'FIELD', 'VAST', 'COUNTRY', 'FARMER', 'BUFFALO'],
+    'Lớp 9': ['ARTISAN', 'SUBURB', 'CHECKUP', 'CLAY', 'VILLAGE', 'HANDICRAFT', 'PRESERVE', 'POTTERY', 'COMMUNITY', 'GUIDANCE'],
+  };
+  const defaultWords = gradePresets[currentGrade] || gradePresets['Lớp 7'];
+  defaultWords.forEach((dw) => {
+    if (wordCandidates.length < 10 && !wordCandidates.includes(dw)) {
+      wordCandidates.push(dw);
+    }
+  });
+
+  const words = [...new Set(wordCandidates)].slice(0, 9);
+  const numRings = 5;
+  const sectors = 20;
+  const grid = Array.from({ length: numRings }, () => Array(sectors).fill(''));
+  const placedWords = [];
+
+  words.forEach((w) => {
+    let placed = false;
+    let attempts = 0;
+    while (!placed && attempts < 150) {
+      attempts++;
+      const dir = attempts < 80 ? 'ring_cw' : (w.length <= 5 && Math.random() < 0.4 ? 'radial_out' : 'ring_cw');
+      if (dir === 'ring_cw') {
+        const ring = Math.floor(Math.random() * numRings);
+        const startSec = Math.floor(Math.random() * sectors);
+        let canPlace = true;
+        for (let i = 0; i < w.length; i++) {
+          const s = (startSec + i) % sectors;
+          if (grid[ring][s] !== '' && grid[ring][s] !== w[i]) {
+            canPlace = false;
+            break;
+          }
+        }
+        if (canPlace) {
+          const coords = [];
+          for (let i = 0; i < w.length; i++) {
+            const s = (startSec + i) % sectors;
+            grid[ring][s] = w[i];
+            coords.push(`${ring}-${s}`);
+          }
+          placedWords.push({ word: w, coords, direction: 'ring_cw', ring });
+          placed = true;
+        }
+      } else if (dir === 'radial_out') {
+        const startRing = Math.floor(Math.random() * (numRings - w.length + 1));
+        const sec = Math.floor(Math.random() * sectors);
+        let canPlace = true;
+        for (let i = 0; i < w.length; i++) {
+          const r = startRing + i;
+          if (grid[r][sec] !== '' && grid[r][sec] !== w[i]) {
+            canPlace = false;
+            break;
+          }
+        }
+        if (canPlace) {
+          const coords = [];
+          for (let i = 0; i < w.length; i++) {
+            const r = startRing + i;
+            grid[r][sec] = w[i];
+            coords.push(`${r}-${sec}`);
+          }
+          placedWords.push({ word: w, coords, direction: 'radial_out', sec });
+          placed = true;
+        }
+      }
+    }
+  });
+
+  const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (let r = 0; r < numRings; r++) {
+    for (let c = 0; c < sectors; c++) {
+      if (grid[r][c] === '') {
+        grid[r][c] = alpha[Math.floor(Math.random() * alpha.length)];
+      }
+    }
+  }
+
+  return { grid, numRings, sectors, size: numRings, placedWords, shape: 'circle' };
+};
+
+// DYNAMIC WORD SEARCH GENERATOR WITH UP TO 10 WORDS & MULTI-SHAPE (SQUARE & CIRCLE PHÁO HOA)
+const generateWordSearchGrid = (list, currentGrade = 'Lớp 7', shape = 'square') => {
+  if (shape === 'circle') {
+    return generateCircularWordSearchGrid(list, currentGrade);
+  }
+
+  let wordCandidates = list
+    .map((v) => (v.word || '').toUpperCase().replace(/[^A-Z]/g, ''))
     .filter((w) => w.length >= 3 && w.length <= 10);
   const gradePresets = {
     'Lớp 7': ['CARDBOARD', 'GARDENING', 'DOLLHOUSE', 'GLUE', 'POPULAR', 'UNUSUAL', 'COLLECTING', 'JOGGING', 'COOKING', 'PAINTING'],
@@ -444,7 +571,7 @@ const generateWordSearchGrid = (list, currentGrade = 'Lớp 7') => {
       }
     }
   }
-  return { grid, size, placedWords };
+  return { grid, size, placedWords, shape: 'square' };
 };
 // UNIVERSAL DICTIONARY MAPPING FOR AUTOMATIC VIETNAMESE TRANSLATION
 const STATIC_VOCAB_DICT = {
@@ -3577,8 +3704,18 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [spellingStreak, setSpellingStreak] = useState(0);
   const [spellingFeedback, setSpellingFeedback] = useState(null);
   const [spellingMicRecording, setSpellingMicRecording] = useState(false);
-  // GAME 3: FIND THE WORD STATE
+  // GAME 3: FIND THE WORD STATE (SQUARE & CIRCULAR FIREWORK WHEEL)
   const [wordSearchData, setWordSearchData] = useState(null);
+  const [wordSearchShape, setWordSearchShape] = useState(() => {
+    try {
+      return localStorage.getItem('lms_wordsearch_shape_' + (activity?.id || 'default')) || 'square';
+    } catch (e) {
+      return 'square';
+    }
+  }); // 'square' | 'circle'
+  const [showWordSearchModal, setShowWordSearchModal] = useState(false);
+  const [newWordSearchWord, setNewWordSearchWord] = useState('');
+  const [wordSearchCustomList, setWordSearchCustomList] = useState([]);
   const [selectedCells, setSelectedCells] = useState([]);
   const [foundWordList, setFoundWordList] = useState([]);
   const [wordSearchScore, setWordSearchScore] = useState(0);
@@ -4720,8 +4857,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
     const s = totalSecs % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
-  const initWordSearchGame = () => {
-    const data = generateWordSearchGrid(activeScopeList, activityGrade);
+  const initWordSearchGame = (targetShape = wordSearchShape, customList = null) => {
+    const listToUse = customList && customList.length > 0 ? customList : (activeScopeList.length > 0 ? activeScopeList : vocabList);
+    const data = generateWordSearchGrid(listToUse, activityGrade, targetShape);
     setWordSearchData(data);
     setSelectedCells([]);
     setFoundWordList([]);
@@ -4735,6 +4873,52 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
     setIsWordSearchTimerRunning(true);
     setShowVictoryModal(false);
     setShowTimeoutModal(false);
+  };
+
+  const handleChangeWordSearchShape = (newShape) => {
+    setWordSearchShape(newShape);
+    try {
+      localStorage.setItem('lms_wordsearch_shape_' + (activity?.id || 'default'), newShape);
+    } catch (e) {}
+    initWordSearchGame(newShape);
+    playSuccessSound();
+  };
+
+  const handleAddCustomWordSearchWord = () => {
+    const w = (newWordSearchWord || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+    if (!w || w.length < 3) {
+      alert('Vui lòng nhập từ tiếng Anh có ít nhất 3 chữ cái!');
+      return;
+    }
+    if (w.length > 10) {
+      alert('Từ vựng cho Game Tìm Từ tối đa 10 chữ cái!');
+      return;
+    }
+    const currentList = wordSearchData?.placedWords?.map(pw => ({ word: pw.word })) || [];
+    if (currentList.some(item => item.word.toUpperCase() === w)) {
+      alert('Từ này đã có trong danh sách!');
+      return;
+    }
+    const updated = [...currentList, { word: w }];
+    const data = generateWordSearchGrid(updated, activityGrade, wordSearchShape);
+    setWordSearchData(data);
+    setSelectedCells([]);
+    setFoundWordList([]);
+    setNewWordSearchWord('');
+    playSuccessSound();
+  };
+
+  const handleDeleteWordSearchWord = (wordToDelete) => {
+    const currentList = wordSearchData?.placedWords?.filter(pw => pw.word !== wordToDelete) || [];
+    if (currentList.length < 3) {
+      alert('Bài tập cần có ít nhất 3 từ vựng!');
+      return;
+    }
+    const data = generateWordSearchGrid(currentList, activityGrade, wordSearchShape);
+    setWordSearchData(data);
+    setSelectedCells([]);
+    setFoundWordList([]);
+    playSuccessSound();
   };
   // EFFECT ĐẾM NGƯỢC THỜI GIAN 5 PHÚT
   useEffect(() => {
@@ -7671,17 +7855,61 @@ Ann: How's your new neighbourhood?`}
         </div>
         )}
       {/* TAB 4: GAME FIND THE WORD */}
+      {/* TAB 4: GAME FIND THE WORD (MULTI-SHAPE: SQUARE & CIRCLE PHÁO HOA LUNG LINH) */}
       {activeTab === 'word_search' && wordSearchData && (
         <div className="bg-amber-950/80 rounded-2xl p-4 sm:p-6 border-2 border-amber-700 text-white space-y-4 animate-fade-in">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-800 pb-3">
             <div className="flex items-center space-x-3">
-              <span className="text-2xl">🔍</span>
+              <span className="text-3xl">{wordSearchShape === 'circle' ? '🎆' : '🔍'}</span>
               <div>
-                <h3 className="font-black text-lg text-teal-300">GAME FIND THE WORD (10 TỪ VỰNG ẨN HÀNG NGANG, DỌC & CHÉO)</h3>
-                <p className="text-xs text-amber-200/80">Click chọn các chữ cái tạo thành từ tiếng Anh (Có xen từ ở hàng chéo!)</p>
+                <h3 className="font-black text-lg text-teal-300 flex items-center space-x-2">
+                  <span>
+                    {wordSearchShape === 'circle'
+                      ? 'VÒNG XOAY PHÁO HOA LUNG LINH (TÌM TỪ TRÒN ĐỒNG TÂM)'
+                      : 'GAME FIND THE WORD (10 TỪ VỰNG ẨN MA TRẬN VUÔNG)'}
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black">
+                    {wordSearchShape === 'circle' ? '🎆 Dạng Tròn' : '🟦 Dạng Vuông'}
+                  </span>
+                </h3>
+                <p className="text-xs text-amber-200/80">
+                  {wordSearchShape === 'circle'
+                    ? 'Click chọn chữ cái uốn lượn theo vòng tròn hoặc tỏa ra theo nan hoa. Từ tìm được sẽ tự động tô màu rực rỡ!'
+                    : 'Click chọn các chữ cái tạo thành từ tiếng Anh (Có xen từ ở hàng ngang, dọc và chéo!)'}
+                </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold">
+              {/* BỘ NÚT CHỌN HÌNH VUÔNG / HÌNH TRÒN PHÁO HOA THEO YÊU CẦU THẦY HẢI */}
+              <div className="flex items-center bg-amber-900/90 p-1 rounded-2xl border border-amber-600 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => handleChangeWordSearchShape('square')}
+                  className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 ${
+                    wordSearchShape === 'square'
+                      ? 'bg-amber-400 text-amber-950 shadow-md ring-2 ring-amber-300 scale-105'
+                      : 'text-amber-200 hover:bg-amber-800'
+                  }`}
+                  title="Chế độ ô chữ hình vuông ma trận cổ điển"
+                >
+                  <span>🟦</span>
+                  <span>Hình Vuông</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleChangeWordSearchShape('circle')}
+                  className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 ${
+                    wordSearchShape === 'circle'
+                      ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-teal-400 text-slate-950 shadow-md ring-2 ring-rose-300 scale-105'
+                      : 'text-amber-200 hover:bg-amber-800'
+                  }`}
+                  title="Chế độ ô chữ hình tròn Vòng Xoay Pháo Hoa Lung Linh"
+                >
+                  <span>🎆</span>
+                  <span>Hình Tròn (Pháo Hoa)</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={handleTriggerHint}
@@ -7689,7 +7917,7 @@ Ann: How's your new neighbourhood?`}
                 title="Bấm kính lúp để nhấp nháy phát sáng chữ cái đầu tiên của từ khó!"
               >
                 <Lightbulb className="w-4 h-4 text-amber-950 fill-amber-950" />
-                <span>🔍 Gợi Ý Kính Lúp ({hintCountLeft})</span>
+                <span>🔍 Gợi Ý ({hintCountLeft})</span>
               </button>
               <button
                 type="button"
@@ -7706,11 +7934,12 @@ Ann: How's your new neighbourhood?`}
               {isTeacher && (
                 <button
                   type="button"
-                  onClick={() => handleOpenStudio()}
+                  onClick={() => setShowWordSearchModal(true)}
                   className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition cursor-pointer flex items-center space-x-1 shadow-md border border-emerald-400"
+                  title="Cấu hình kiểu dáng và từ vựng Game Find the Word"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>+ Thêm Từ</span>
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>⚙️ Soạn Thảo</span>
                 </button>
               )}
               <span className={`px-3 py-1.5 rounded-xl border font-extrabold text-xs flex items-center space-x-1 ${
@@ -7734,10 +7963,10 @@ Ann: How's your new neighbourhood?`}
                     🔵 P2: {p2Score}
                   </span>
                 </div>
-                )}
+              )}
               <button
                 type="button"
-                onClick={initWordSearchGame}
+                onClick={() => initWordSearchGame(wordSearchShape)}
                 className="px-3 py-1.5 bg-amber-800 hover:bg-amber-700 rounded-xl transition cursor-pointer flex items-center space-x-1 text-white"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -7745,45 +7974,206 @@ Ann: How's your new neighbourhood?`}
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-            <div className="md:col-span-7 bg-amber-900/90 p-4 rounded-2xl border-2 border-amber-600 shadow-xl flex flex-col items-center">
-              <div className="grid grid-cols-10 gap-1.5 sm:gap-2">
-                {wordSearchData.grid.map((row, r) =>
-                  row.map((char, c) => {
-                    const key = `${r}-${c}`;
-                    const isSelected = selectedCells.includes(key);
-                    const isWrongSelection = wrongSelectedCells.includes(key);
-                    const isPartOfFound = wordSearchData.placedWords.some(
-                      (pw) => foundWordList.includes(pw.word) && pw.coords.includes(key)
-                    );
-                    const isHighlightedHint = highlightedHintCell === key;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        disabled={showVictoryModal || showTimeoutModal || foundWordList.length >= wordSearchData.placedWords.length}
-                        onClick={() => handleWordSearchCellClick(r, c)}
-                        className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl font-black text-sm sm:text-base flex items-center justify-center transition-all transform active:scale-95 cursor-pointer shadow-md ${
-                          isPartOfFound
-                            ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 shadow-emerald-500/50 font-extrabold'
-                            : isWrongSelection
-                            ? 'bg-rose-600 text-white ring-2 ring-rose-300 animate-shake font-extrabold'
-                            : isSelected
-                            ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-200 font-extrabold'
-                            : isHighlightedHint
-                            ? 'bg-amber-300 text-slate-950 ring-4 ring-amber-400 animate-pulse font-extrabold'
-                            : 'bg-amber-950/80 text-amber-100 hover:bg-amber-800 border border-amber-700/80'
-                        }`}
-                      >
-                        {char}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+            {/* CỘT TRÁI: Ô CHỮ (HÌNH VUÔNG HOẶC HÌNH TRÒN PHÁO HOA LUNG LINH) */}
+            <div className="md:col-span-7 bg-amber-900/90 p-4 rounded-3xl border-2 border-amber-600 shadow-xl flex flex-col items-center justify-center min-h-[440px]">
+              {wordSearchShape === 'circle' ? (
+                /* VÒNG XOAY PHÁO HOA LUNG LINH (THEO ĐÚNG BẢN THIẾT KẾ ẢNH 2 CỦA THẦY HẢI) */
+                <div className="relative flex flex-col items-center justify-center w-full overflow-hidden p-1">
+                  <svg
+                    viewBox="0 0 520 520"
+                    className="w-full max-w-[440px] sm:max-w-[480px] h-auto drop-shadow-2xl select-none"
+                    style={{ filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.55))' }}
+                  >
+                    <defs>
+                      <radialGradient id="hubGrad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#92400e" />
+                        <stop offset="100%" stopColor="#451a03" />
+                      </radialGradient>
+                      <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#291305" />
+                        <stop offset="100%" stopColor="#0c0401" />
+                      </radialGradient>
+                      <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+
+                    {/* Vành ngoài viền vàng */}
+                    <circle cx="260" cy="260" r="256" fill="url(#bgGrad)" stroke="#b45309" strokeWidth="4" />
+                    <circle cx="260" cy="260" r="252" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4 4" />
+
+                    {/* 5 Vòng đồng tâm chia 20 nan quạt theo cung tròn */}
+                    {(() => {
+                      const cx = 260;
+                      const cy = 260;
+                      const ringRadii = [
+                        { in: 55, out: 94 },
+                        { in: 94, out: 133 },
+                        { in: 133, out: 172 },
+                        { in: 172, out: 211 },
+                        { in: 211, out: 250 }
+                      ];
+                      const numSectors = 20;
+                      const sectorAngle = 360 / numSectors;
+
+                      return wordSearchData.grid.map((row, r) => {
+                        const rIn = ringRadii[r]?.in || 55;
+                        const rOut = ringRadii[r]?.out || 95;
+                        const rMid = (rIn + rOut) / 2;
+
+                        return row.map((char, c) => {
+                          const key = `${r}-${c}`;
+                          const startAngle = c * sectorAngle;
+                          const endAngle = (c + 1) * sectorAngle;
+                          const midAngle = startAngle + sectorAngle / 2;
+                          const pathD = describeAnnularSectorPath(cx, cy, rIn, rOut, startAngle, endAngle);
+                          const textPos = polarToCartesianCoord(cx, cy, rMid, midAngle);
+
+                          const isSelected = selectedCells.includes(key);
+                          const isWrongSelection = wrongSelectedCells.includes(key);
+                          const foundWordObj = wordSearchData.placedWords.find(
+                            (pw) => foundWordList.includes(pw.word) && pw.coords.includes(key)
+                          );
+                          const foundWordIdx = foundWordObj ? wordSearchData.placedWords.indexOf(foundWordObj) : -1;
+                          const fireworkColor = foundWordIdx >= 0 ? FIREWORK_WORD_COLORS[foundWordIdx % FIREWORK_WORD_COLORS.length] : null;
+                          const isHighlightedHint = highlightedHintCell === key;
+
+                          let fill = r % 2 === 0 ? 'rgba(69, 26, 3, 0.92)' : 'rgba(120, 53, 15, 0.92)';
+                          let stroke = '#78350f';
+                          let strokeWidth = 1.5;
+                          let textFill = '#fef3c7';
+
+                          if (fireworkColor) {
+                            fill = fireworkColor.bg;
+                            stroke = fireworkColor.stroke;
+                            strokeWidth = 2.5;
+                            textFill = fireworkColor.text;
+                          } else if (isWrongSelection) {
+                            fill = '#e11d48';
+                            stroke = '#fecdd3';
+                            strokeWidth = 2.5;
+                            textFill = '#ffffff';
+                          } else if (isSelected) {
+                            fill = '#f59e0b';
+                            stroke = '#fef08a';
+                            strokeWidth = 3;
+                            textFill = '#451a03';
+                          } else if (isHighlightedHint) {
+                            fill = '#fde047';
+                            stroke = '#ffffff';
+                            strokeWidth = 3;
+                            textFill = '#0f172a';
+                          }
+
+                          return (
+                            <g
+                              key={key}
+                              onClick={() => handleWordSearchCellClick(r, c)}
+                              className="cursor-pointer transition-all duration-200"
+                              style={{ filter: isSelected || isHighlightedHint ? 'url(#glowEffect)' : undefined }}
+                            >
+                              <path
+                                d={pathD}
+                                fill={fill}
+                                stroke={stroke}
+                                strokeWidth={strokeWidth}
+                                className="transition-colors duration-200 hover:brightness-125"
+                              />
+                              <text
+                                x={textPos.x}
+                                y={textPos.y}
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill={textFill}
+                                fontSize={r >= 3 ? 14 : 12}
+                                fontWeight="900"
+                                pointerEvents="none"
+                                className="font-mono tracking-wider select-none"
+                              >
+                                {char}
+                              </text>
+                            </g>
+                          );
+                        });
+                      });
+                    })()}
+
+                    {/* Tâm Tròn Vòng Xoay Pháo Hoa Lung Linh */}
+                    <circle cx="260" cy="260" r="53" fill="url(#hubGrad)" stroke="#f59e0b" strokeWidth="3.5" />
+                    <circle cx="260" cy="260" r="49" fill="none" stroke="#fef08a" strokeWidth="1" strokeDasharray="3 3" />
+                    <text x="260" y="242" textAnchor="middle" dominantBaseline="central" fill="#fef08a" fontSize="10" fontWeight="900" letterSpacing="0.8">
+                      🎆 VÒNG XOAY
+                    </text>
+                    <text x="260" y="258" textAnchor="middle" dominantBaseline="central" fill="#f59e0b" fontSize="11" fontWeight="900" letterSpacing="0.5">
+                      PHÁO HOA
+                    </text>
+                    <text x="260" y="274" textAnchor="middle" dominantBaseline="central" fill="#34d399" fontSize="10" fontWeight="900">
+                      ⭐ {foundWordList.length}/{wordSearchData.placedWords.length} TỪ
+                    </text>
+                  </svg>
+                  <p className="text-[11px] font-bold text-amber-200/90 pt-2 text-center">
+                    💡 Bấm chọn các chữ cái theo vòng tròn hoặc nan hoa để tô màu Pháo hoa lung linh!
+                  </p>
+                </div>
+              ) : (
+                /* MA TRẬN HÌNH VUÔNG 10x10 CỔ ĐIỂN */
+                <div className="grid grid-cols-10 gap-1.5 sm:gap-2">
+                  {wordSearchData.grid.map((row, r) =>
+                    row.map((char, c) => {
+                      const key = `${r}-${c}`;
+                      const isSelected = selectedCells.includes(key);
+                      const isWrongSelection = wrongSelectedCells.includes(key);
+                      const foundWordObj = wordSearchData.placedWords.find(
+                        (pw) => foundWordList.includes(pw.word) && pw.coords.includes(key)
+                      );
+                      const foundWordIdx = foundWordObj ? wordSearchData.placedWords.indexOf(foundWordObj) : -1;
+                      const fireworkColor = foundWordIdx >= 0 ? FIREWORK_WORD_COLORS[foundWordIdx % FIREWORK_WORD_COLORS.length] : null;
+                      const isHighlightedHint = highlightedHintCell === key;
+
+                      let cellBg = 'bg-amber-950/80 text-amber-100 hover:bg-amber-800 border border-amber-700/80';
+                      let customStyle = {};
+
+                      if (fireworkColor) {
+                        customStyle = {
+                          backgroundColor: fireworkColor.bg,
+                          borderColor: fireworkColor.stroke,
+                          boxShadow: `0 0 12px ${fireworkColor.glow}`,
+                          color: '#ffffff',
+                        };
+                      }
+
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          style={fireworkColor ? customStyle : undefined}
+                          disabled={showVictoryModal || showTimeoutModal || foundWordList.length >= wordSearchData.placedWords.length}
+                          onClick={() => handleWordSearchCellClick(r, c)}
+                          className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl font-black text-sm sm:text-base flex items-center justify-center transition-all transform active:scale-95 cursor-pointer shadow-md ${
+                            fireworkColor
+                              ? 'ring-2 font-black scale-102'
+                              : isWrongSelection
+                              ? 'bg-rose-600 text-white ring-2 ring-rose-300 animate-shake font-extrabold'
+                              : isSelected
+                              ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-200 font-extrabold'
+                              : isHighlightedHint
+                              ? 'bg-amber-300 text-slate-950 ring-4 ring-amber-400 animate-pulse font-extrabold'
+                              : cellBg
+                          }`}
+                        >
+                          {char}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
-            {/* WORD SEARCH SIDEBAR - VOCAB LIST & CONTROLS */}
-            <div className="md:col-span-5 bg-amber-900/90 p-4 rounded-2xl border-2 border-amber-600 shadow-xl space-y-4 text-white">
+
+            {/* CỘT PHẢI: DANH SÁCH TỪ CẦN TÌM (TÔ MÀU PHÁO HOA TƯƠNG ỨNG) */}
+            <div className="md:col-span-5 bg-amber-900/90 p-4 rounded-3xl border-2 border-amber-600 shadow-xl space-y-4 text-white">
               <div className="flex items-center justify-between border-b border-amber-700 pb-2">
                 <h4 className="font-black text-sm text-amber-300 uppercase tracking-wide flex items-center space-x-1.5">
                   <span>🎯 Danh Sách Từ Cần Tìm</span>
@@ -7795,28 +8185,37 @@ Ann: How's your new neighbourhood?`}
                   <button
                     type="button"
                     onClick={() => setShowWordSearchModal(true)}
-                    className="p-1 hover:bg-amber-800 text-amber-300 rounded transition cursor-pointer"
-                    title="Chỉnh sửa danh sách từ vựng Game Tìm Từ"
+                    className="p-1 hover:bg-amber-800 text-amber-300 rounded transition cursor-pointer flex items-center space-x-1 text-xs font-bold"
+                    title="Chỉnh sửa danh sách từ vựng & kiểu dáng Game Tìm Từ"
                   >
                     <Edit3 className="w-4 h-4" />
+                    <span>Cấu hình</span>
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
-                {wordSearchData.placedWords.map((pw) => {
+              <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto pr-1">
+                {wordSearchData.placedWords.map((pw, wIdx) => {
                   const isFound = foundWordList.includes(pw.word);
+                  const colorObj = FIREWORK_WORD_COLORS[wIdx % FIREWORK_WORD_COLORS.length];
                   return (
                     <div
                       key={pw.word}
-                      className={`px-3 py-2 rounded-xl text-xs font-black flex items-center justify-between border transition ${
+                      style={
                         isFound
-                          ? 'bg-emerald-600/90 text-white border-emerald-400 shadow-md'
-                          : 'bg-amber-950/70 text-amber-200/90 border-amber-800'
+                          ? { backgroundColor: colorObj.bg, borderColor: colorObj.stroke }
+                          : undefined
+                      }
+                      className={`px-3 py-2 rounded-xl text-xs font-black flex items-center justify-between border-2 transition shadow-xs ${
+                        isFound
+                          ? 'text-white shadow-lg scale-102 ring-1 ring-white/40'
+                          : 'bg-amber-950/70 text-amber-200/90 border-amber-800 hover:border-amber-600'
                       }`}
                     >
                       <span className="truncate">{pw.word}</span>
                       {isFound ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-200 shrink-0 ml-1" />
+                        <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] flex items-center space-x-0.5 font-bold">
+                          <span>✓</span>
+                        </span>
                       ) : (
                         <span className="text-[10px] text-amber-400/60 font-mono">({pw.word.length})</span>
                       )}
@@ -7825,7 +8224,7 @@ Ann: How's your new neighbourhood?`}
                 })}
               </div>
               {isTeacher && (
-                <div className="pt-2 border-t border-amber-800/80">
+                <div className="pt-2 border-t border-amber-800/80 space-y-2">
                   <button
                     type="button"
                     onClick={() => setShowWordSearchAnswers(!showWordSearchAnswers)}
@@ -7835,7 +8234,7 @@ Ann: How's your new neighbourhood?`}
                     <span>{showWordSearchAnswers ? '🙈 Ẩn Đáp Án GV' : '👁️ Hiện Đáp Án GV'}</span>
                   </button>
                 </div>
-                )}
+              )}
             </div>
           </div>
           {/* POP-UP CHÚC MỪNG HOÀN THÀNH LỚN 7/7 TỪ (VICTORY MODAL) */}
@@ -7885,6 +8284,179 @@ Ann: How's your new neighbourhood?`}
               </div>
             </div>
             )}
+
+      {/* MODAL SOẠN THẢO & CẤU HÌNH GAME FIND THE WORD (HÌNH VUÔNG / HÌNH TRÒN PHÁO HOA) */}
+      {showWordSearchModal && effectiveIsTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in print:hidden overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-xl w-full border-4 border-amber-500 shadow-2xl space-y-5 text-slate-900 my-8">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <span className="text-3xl">🔍</span>
+                <div>
+                  <h3 className="font-black text-lg text-slate-900 uppercase">
+                    THIẾT KẾ & SOẠN THẢO GAME FIND THE WORD
+                  </h3>
+                  <p className="text-xs text-slate-500 font-bold">
+                    Tùy chọn kiểu dáng ô chữ (Hình Vuông / Hình Tròn Pháo Hoa) & danh sách từ vựng
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWordSearchModal(false)}
+                className="w-9 h-9 bg-slate-100 hover:bg-rose-500 hover:text-white rounded-full text-slate-600 transition flex items-center justify-center font-black cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* PHẦN 1: LỰA CHỌN DẠNG Ô CHỮ THEO YÊU CẦU CỦA THẦY HẢI */}
+            <div className="space-y-2">
+              <label className="block text-xs font-black text-slate-700 uppercase tracking-wide">
+                🎨 1. Chọn Kiểu Dáng Ô Chữ (Layout Shape):
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Lựa chọn 1: Hình Vuông */}
+                <div
+                  onClick={() => handleChangeWordSearchShape('square')}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start space-x-3 ${
+                    wordSearchShape === 'square'
+                      ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-300 shadow-md'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="text-3xl">🟦</span>
+                  <div>
+                    <h5 className="font-black text-sm text-slate-900">Dạng Hình Vuông</h5>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Ma trận lưới 10x10 kinh điển, từ vựng phân bổ ngang, dọc và chéo chuẩn Oxford.
+                    </p>
+                    {wordSearchShape === 'square' && (
+                      <span className="inline-block mt-2 px-2 py-0.5 bg-amber-500 text-slate-950 text-[10px] font-black rounded-lg">
+                        ✓ Đang Chọn
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Lựa chọn 2: Hình Tròn Pháo Hoa Lung Linh */}
+                <div
+                  onClick={() => handleChangeWordSearchShape('circle')}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start space-x-3 ${
+                    wordSearchShape === 'circle'
+                      ? 'bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 border-rose-500 ring-2 ring-rose-300 shadow-md'
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="text-3xl">🎆</span>
+                  <div>
+                    <h5 className="font-black text-sm text-rose-950">Hình Tròn (Pháo Hoa)</h5>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Vòng xoay 5 tầng đồng tâm ngũ sắc. Học sinh tô màu các từ tìm được rực rỡ như pháo hoa!
+                    </p>
+                    {wordSearchShape === 'circle' && (
+                      <span className="inline-block mt-2 px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-lg">
+                        ✓ Đang Chọn
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PHẦN 2: THÊM TỪ VỰNG TÙY CHỈNH HOẶC LOAD PRESET */}
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-slate-700 uppercase tracking-wide">
+                  📝 2. Danh Sách Từ Vựng Trong Bài ({wordSearchData?.placedWords?.length || 0} từ):
+                </label>
+                <div className="flex items-center space-x-1 text-[11px] font-bold text-slate-500">
+                  <span>Nạp nhanh:</span>
+                  {['Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9'].map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => {
+                        const presetData = generateWordSearchGrid([], g, wordSearchShape);
+                        setWordSearchData(presetData);
+                        setSelectedCells([]);
+                        setFoundWordList([]);
+                        playSuccessSound();
+                      }}
+                      className="px-2 py-0.5 bg-slate-100 hover:bg-amber-100 hover:text-amber-900 border border-slate-300 rounded font-black text-[10px] cursor-pointer"
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Form thêm từ nhanh */}
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={newWordSearchWord}
+                  onChange={(e) => setNewWordSearchWord(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddCustomWordSearchWord()}
+                  placeholder="Gõ từ tiếng Anh cần thêm (VD: FIREWORK, CARDBOARD...)..."
+                  className="flex-1 px-3.5 py-2 border-2 border-slate-300 focus:border-amber-500 rounded-xl text-xs font-bold bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomWordSearchWord}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Thêm Từ</span>
+                </button>
+              </div>
+
+              {/* Danh sách từ hiện tại có nút xóa */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto p-2 bg-slate-50 rounded-2xl border border-slate-200">
+                {wordSearchData?.placedWords?.map((pw, idx) => (
+                  <div
+                    key={pw.word}
+                    className="p-2 bg-white rounded-xl border border-slate-200 flex items-center justify-between shadow-2xs group"
+                  >
+                    <span className="font-extrabold text-xs text-slate-800 truncate">
+                      {idx + 1}. {pw.word}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteWordSearchWord(pw.word)}
+                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition cursor-pointer"
+                      title={`Xóa từ "${pw.word}"`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowWordSearchModal(false)}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs rounded-xl transition cursor-pointer"
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  initWordSearchGame(wordSearchShape);
+                  setShowWordSearchModal(false);
+                  playSuccessSound();
+                }}
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5"
+              >
+                <span>💾 Tạo Lại Bài Tập Ngay</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     
       {/* MODAL CẤU HÌNH KHÓA RIÊNG TỪNG TIẾT HỌC / LESSON (V204) */}
       {isSectionLockConfigModalOpen && (
