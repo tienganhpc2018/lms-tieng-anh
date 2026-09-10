@@ -1990,6 +1990,20 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     }
   };
 
+  // KHÔI PHỤC TOÀN BỘ CÁC ĐOẠN HỘI THOẠI SGK MẪU (LỚP 7 UNIT 1 & LỚP 9 UNIT 1)
+  const handleRestoreDefaultDialogues = () => {
+    if (window.confirm("Thầy có muốn khôi phục lại toàn bộ các đoạn hội thoại SGK mẫu chuẩn (Lớp 7 Unit 1: Hobbies & Lớp 9 Unit 1) không? Toàn bộ các đoạn chuẩn sẽ được nạp lại đầy đủ.")) {
+      setDialogueTabs(defaultInitialDialogueTabs);
+      setActiveDialogueTabId('tab_g7_u1_1');
+      try {
+        localStorage.setItem('lms_dialogue_tabs_v315', JSON.stringify(defaultInitialDialogueTabs));
+        localStorage.setItem('lms_dialogue_tabs_v312', JSON.stringify(defaultInitialDialogueTabs));
+      } catch (e) {}
+      playSuccessSound();
+      alert("🎉 Đã khôi phục thành công toàn bộ Đoạn 1 & Đoạn 2 (Lớp 7 Unit 1: Hobbies) và Lớp 9!");
+    }
+  };
+
   const handlePlayFullDialogue = () => {
     const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
     if (!activeTabObj || !activeTabObj.lines || activeTabObj.lines.length === 0) return;
@@ -3211,27 +3225,54 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       ]
     },
     {
+      id: 'tab_g7_u1_1',
+      title: 'Đoạn 1: Elena & Trang (My favourite hobby - English 7 Unit 1)',
+      grade: 'Lớp 7',
+      unit: 'Unit 1: Hobbies',
+      introOffset: 2.5,
+      lines: [
+        { speaker: 'Elena', text: 'Today we are talking about our hobbies. Trang, what is your hobby?', vi: 'Hôm nay chúng ta cùng nói về sở thích. Trang ơi, sở thích của bạn là gì?' },
+        { speaker: 'Trang', text: 'I like making models. I build dollhouses and small cars using cardboard and glue.', vi: 'Mình thích làm mô hình. Mình làm nhà búp bê và xe nhỏ bằng bìa các tông và keo dán.' },
+        { speaker: 'Elena', text: 'Wow, that sounds great! Do you need a lot of patience for that?', vi: 'Ồ, nghe tuyệt quá! Bạn có cần nhiều sự kiên nhẫn cho việc đó không?' },
+        { speaker: 'Trang', text: 'Yes, but it makes me feel creative and relaxed. How about you, Ann?', vi: 'Có chứ, nhưng nó giúp mình cảm thấy sáng tạo và thư giãn. Còn bạn thì sao, Ann?' },
+        { speaker: 'Ann', text: 'I love outdoor activities. My favourite hobby is horse riding and gardening.', vi: 'Mình thích các hoạt động ngoài trời. Sở thích yêu thích của mình là cưỡi ngựa và làm vườn.' },
+        { speaker: 'Elena', text: 'Horse riding sounds unusual and exciting! How often do you ride?', vi: 'Cưỡi ngựa nghe thật độc đáo và hào hứng! Bạn thường cưỡi ngựa bao lâu một lần?' },
+        { speaker: 'Ann', text: 'I ride once a week with my sister. It keeps me active and fit.', vi: 'Mình cưỡi ngựa mỗi tuần một lần với chị gái. Nó giúp mình luôn năng động và khỏe mạnh.' }
+      ]
+    },
+    {
       id: 'tab2',
-      title: 'Đoạn 2: Ann & Trang (Hội thoại Lớp 7 Unit 1)',
+      title: 'Đoạn 2: Ann & Trang (Making dollhouses & Horse riding - English 7 Unit 1)',
       grade: 'Lớp 7',
       unit: 'Unit 1: Hobbies',
       introOffset: 2.5,
       lines: [
         { speaker: 'Ann', text: 'Hi, Trang. What are your favorite hobbies in your free time?', vi: 'Chào Trang. Những sở thích yêu thích của bạn trong thời gian rảnh là gì?' },
         { speaker: 'Trang', text: 'I love making models using cardboard and glue. It is very creative!', vi: 'Mình thích làm nhà mô hình bằng bìa các tông và keo dán. Nó rất sáng tạo!' },
-        { speaker: 'Ann', text: 'That sounds unusual and interesting. I enjoy horse riding and gardening.', vi: 'Nghe có vẻ độc đáo và thú vị đấy. Mình thích cưỡi ngựa và làm vườn.' }
+        { speaker: 'Ann', text: 'That sounds unusual and interesting. I enjoy horse riding and gardening.', vi: 'Nghe có vẻ độc đáo và thú vị đấy. Mình thích cưỡi ngựa và làm vườn.' },
+        { speaker: 'Trang', text: 'Do you need anything special for horse riding?', vi: 'Bạn có cần đồ dùng đặc biệt nào khi cưỡi ngựa không?' },
+        { speaker: 'Ann', text: 'Yes, a riding helmet and proper boots to keep safe.', vi: 'Có chứ, một chiếc mũ bảo hiểm cưỡi ngựa và đôi bốt phù hợp để giữ an toàn.' }
       ]
     }
   ];
 
-  // INTERACTIVE SGK DIALOGUE LESSON STATE (V312 FULL DATA PERSISTENCE)
+  // INTERACTIVE SGK DIALOGUE LESSON STATE (V315 FULL DATA PERSISTENCE & AUTO-RESTORE)
   const [dialogueTabs, setDialogueTabs] = useState(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = localStorage.getItem('lms_dialogue_tabs_v312');
+        const saved = localStorage.getItem('lms_dialogue_tabs_v315') || localStorage.getItem('lms_dialogue_tabs_v312');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Tự động gộp lại các bài SGK chuẩn nếu người dùng bị thiếu/vô tình xóa mất
+            let merged = [...parsed];
+            defaultInitialDialogueTabs.forEach(defTab => {
+              if (!merged.some(t => t.id === defTab.id || (t.grade === defTab.grade && t.title === defTab.title))) {
+                merged.push(defTab);
+              }
+            });
+            return merged;
+          }
         }
       }
     } catch (e) {
@@ -3244,6 +3285,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage && Array.isArray(dialogueTabs) && dialogueTabs.length > 0) {
+        localStorage.setItem('lms_dialogue_tabs_v315', JSON.stringify(dialogueTabs));
         localStorage.setItem('lms_dialogue_tabs_v312', JSON.stringify(dialogueTabs));
       }
     } catch (e) {
@@ -3708,10 +3750,17 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [wordSearchData, setWordSearchData] = useState(null);
   const [wordSearchShape, setWordSearchShape] = useState(() => {
     try {
-      return localStorage.getItem('lms_wordsearch_shape_' + (activity?.id || 'default')) || 'square';
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return (
+          localStorage.getItem('lms_wordsearch_shape_' + (activity?.id || 'default')) ||
+          localStorage.getItem('lms_wordsearch_shape_preference') ||
+          'square'
+        );
+      }
     } catch (e) {
       return 'square';
     }
+    return 'square';
   }); // 'square' | 'circle'
   const [showWordSearchModal, setShowWordSearchModal] = useState(false);
   const [newWordSearchWord, setNewWordSearchWord] = useState('');
@@ -4878,7 +4927,10 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
   const handleChangeWordSearchShape = (newShape) => {
     setWordSearchShape(newShape);
     try {
-      localStorage.setItem('lms_wordsearch_shape_' + (activity?.id || 'default'), newShape);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('lms_wordsearch_shape_' + (activity?.id || 'default'), newShape);
+        localStorage.setItem('lms_wordsearch_shape_preference', newShape);
+      }
     } catch (e) {}
     initWordSearchGame(newShape);
     playSuccessSound();
@@ -6318,6 +6370,14 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
             {effectiveIsTeacher && (
               <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={handleRestoreDefaultDialogues}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-emerald-400"
+                  title="Khôi phục lại đầy đủ Đoạn 1 & Đoạn 2 (Lớp 7 Unit 1: Hobbies) và Lớp 9 chuẩn SGK nếu lỡ tay xóa mất"
+                >
+                  <span>🔄 Khôi Phục Đoạn SGK Chuẩn</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -7880,33 +7940,39 @@ Ann: How's your new neighbourhood?`}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold">
-              {/* BỘ NÚT CHỌN HÌNH VUÔNG / HÌNH TRÒN PHÁO HOA THEO YÊU CẦU THẦY HẢI */}
-              <div className="flex items-center bg-amber-900/90 p-1 rounded-2xl border border-amber-600 shadow-sm">
+              {/* BỘ NÚT CHUYỂN ĐỔI NHANH 1-CHẠM: HÌNH VUÔNG 🟦 & HÌNH TRÒN 🎆 */}
+              <div className="flex items-center bg-amber-950/90 p-1.5 rounded-2xl border-2 border-amber-600 shadow-lg gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleChangeWordSearchShape('square')}
-                  className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 shadow-sm ${
                     wordSearchShape === 'square'
                       ? 'bg-amber-400 text-amber-950 shadow-md ring-2 ring-amber-300 scale-105'
-                      : 'text-amber-200 hover:bg-amber-800'
+                      : 'text-amber-200 hover:bg-amber-800 hover:text-white'
                   }`}
-                  title="Chế độ ô chữ hình vuông ma trận cổ điển"
+                  title="[🟦 Hình Vuông]: Chuyển sang ma trận lưới vuông 10x10 cổ điển (từ vựng ẩn ngang, dọc và chéo)"
                 >
-                  <span>🟦</span>
+                  <span className="text-sm">🟦</span>
                   <span>Hình Vuông</span>
+                  {wordSearchShape === 'square' && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse ml-0.5" />
+                  )}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleChangeWordSearchShape('circle')}
-                  className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 shadow-sm ${
                     wordSearchShape === 'circle'
                       ? 'bg-gradient-to-r from-amber-400 via-rose-500 to-teal-400 text-slate-950 shadow-md ring-2 ring-rose-300 scale-105'
-                      : 'text-amber-200 hover:bg-amber-800'
+                      : 'text-amber-200 hover:bg-amber-800 hover:text-white'
                   }`}
-                  title="Chế độ ô chữ hình tròn Vòng Xoay Pháo Hoa Lung Linh"
+                  title="[🎆 Hình Tròn (Pháo Hoa)]: Kích hoạt ngay chế độ Vòng Xoay Kí Tự Pháo Hoa Lung Linh độc đáo"
                 >
-                  <span>🎆</span>
+                  <span className="text-sm">🎆</span>
                   <span>Hình Tròn (Pháo Hoa)</span>
+                  {wordSearchShape === 'circle' && (
+                    <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping ml-0.5" />
+                  )}
                 </button>
               </div>
 
