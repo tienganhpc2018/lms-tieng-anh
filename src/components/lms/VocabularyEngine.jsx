@@ -1289,6 +1289,29 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [fillBlankInputs, setFillBlankInputs] = useState({});
   const [activeWordTooltip, setActiveWordTooltip] = useState(null);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+
+  // V299 6 ADVANCED DIALOGUE UPGRADE STATES
+  const [isKaraokeSyncMode, setIsKaraokeSyncMode] = useState(true);
+  const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
+
+  const [pronunciationHistory, setPronunciationHistory] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    try { return JSON.parse(localStorage.getItem('lms_pronunciation_history') || '[]'); } catch (e) { return []; }
+  });
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
+  const [isAiTopicModalOpen, setIsAiTopicModalOpen] = useState(false);
+  const [customDialogueTopic, setCustomDialogueTopic] = useState('');
+  const [customDialogueGrade, setCustomDialogueGrade] = useState('Lớp 9');
+  const [isGeneratingAiTopic, setIsGeneratingAiTopic] = useState(false);
+
+  const [is1v1BattleMode, setIs1v1BattleMode] = useState(false);
+  const [battleP1Score, setBattleP1Score] = useState(0);
+  const [battleP2Score, setBattleP2Score] = useState(0);
+  const [isBattleWinnerModalOpen, setIsBattleWinnerModalOpen] = useState(false);
+
+  const [isAudioTranscribing, setIsAudioTranscribing] = useState(false);
+  const [liveVoiceCoachFeedback, setLiveVoiceCoachFeedback] = useState(null);
   // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
   
   // WEB AUDIO API AMBIENT SOUND GENERATOR (V298)
@@ -5175,6 +5198,50 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   </button>
                 ))}
               </div>
+
+              {/* V299 FEATURE 1: KARAOKE SYNC TOGGLE */}
+              <button
+                type="button"
+                onClick={() => setIsKaraokeSyncMode(!isKaraokeSyncMode)}
+                className={`px-3 py-2 rounded-2xl font-extrabold text-xs transition cursor-pointer flex items-center space-x-1 border shadow-2xs ${
+                  isKaraokeSyncMode ? 'bg-amber-400 text-slate-950 border-amber-500 font-black' : 'bg-slate-100 text-slate-700 border-slate-300'
+                }`}
+                title="Bật/Tắt tô màu từng từ vựng chạy chữ theo nhịp Karaoke"
+              >
+                <span>{isKaraokeSyncMode ? '🎤 Karaoke: BẬT' : '🎤 Karaoke: TẮT'}</span>
+              </button>
+
+              {/* V299 FEATURE 2: PRONUNCIATION HISTORY LOG */}
+              <button
+                type="button"
+                onClick={() => setIsHistoryModalOpen(true)}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-amber-300 font-extrabold text-xs rounded-2xl shadow-sm transition cursor-pointer flex items-center space-x-1 border border-slate-700"
+                title="Xem lịch sử điểm thu âm & tiến bộ học sinh"
+              >
+                <span>📜 Lịch Sử Thu Âm ({pronunciationHistory.length})</span>
+              </button>
+
+              {/* V299 FEATURE 3: CUSTOM AI DIALOGUE GENERATOR */}
+              <button
+                type="button"
+                onClick={() => setIsAiTopicModalOpen(true)}
+                className="px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-2xl shadow-sm transition transform hover:scale-105 cursor-pointer flex items-center space-x-1 border border-purple-300"
+                title="Nhập chủ đề bất kỳ để AI tự động tạo bài hội thoại mới"
+              >
+                <span>🤖 AI Tạo Hội Thoại</span>
+              </button>
+
+              {/* V299 FEATURE 4: 1v1 PRONUNCIATION BATTLE TOGGLE */}
+              <button
+                type="button"
+                onClick={() => setIs1v1BattleMode(!is1v1BattleMode)}
+                className={`px-3 py-2 rounded-2xl font-extrabold text-xs transition cursor-pointer flex items-center space-x-1 border shadow-2xs ${
+                  is1v1BattleMode ? 'bg-rose-600 text-white border-rose-400 animate-pulse font-black' : 'bg-rose-100 text-rose-900 border-rose-300 hover:bg-rose-200'
+                }`}
+                title="Bật/Tắt chế độ thi đấu đối kháng luyện đọc 1v1"
+              >
+                <span>{is1v1BattleMode ? '⚔️ Thi Đấu 1v1: BẬT' : '⚔️ Thi Đấu 1v1: TẮT'}</span>
+              </button>
 
               {/* NÚT ẨN/HIỆN DỊCH TIẾNG VIỆT */}
               <button
