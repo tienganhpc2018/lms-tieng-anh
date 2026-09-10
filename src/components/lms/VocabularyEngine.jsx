@@ -1,4 +1,13 @@
 
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Download,
+  Clipboard,
+  Camera, BookOpen, Volume2, Mic, Search, ChevronLeft, ChevronRight, Play, Pause, Settings, Plus, Trash2, Edit3, Check, X, Eye, ImageIcon, Sparkles, Filter, RefreshCw, CheckSquare, Square, Star, Award, Zap, Trophy, HelpCircle, HelpCircle as HelpIcon, Gamepad2, RotateCcw, Flame, CheckCircle, AlertCircle, Bot, Music, Upload, User, UserCheck, Smile, Languages, Grid, Layers, ArrowRight, ArrowLeft, Clock, ShieldCheck, Crown, Compass, MapPin, Flag, Swords, Lightbulb, Printer, BookMarked, Sparkle, School, GraduationCap, EyeOff, Copy, Lock, Unlock
+} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { uploadLMSFile } from '../../lib/supabase';
+
 // DIALOGUE KEYWORDS DICTIONARY FOR INTERACTIVE TOOLTIPS (V298)
 const DIALOGUE_KEY_WORDS_DICT = {
   'physical health': { ipa: '/ˈfɪzɪkl helθ/', vi: 'Sức khỏe thể chất (cơ thể, vận động)', icon: '🏃‍♂️' },
@@ -88,13 +97,6 @@ const getSpeakerAudioProfile = (speakerRaw, isMale, baseRate = 0.8) => {
     return { pitch: 1.08 + pitchOffset, rate: baseRate * (0.92 + rateOffset) };
   }
 };
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Clipboard,
-  Camera, BookOpen, Volume2, Mic, Search, ChevronLeft, ChevronRight, Play, Pause, Settings, Plus, Trash2, Edit3, Check, X, Eye, ImageIcon, Sparkles, Filter, RefreshCw, CheckSquare, Square, Star, Award, Zap, Trophy, HelpCircle, HelpCircle as HelpIcon, Gamepad2, RotateCcw, Flame, CheckCircle, AlertCircle, Bot, Music, Upload, User, UserCheck, Smile, Languages, Grid, Layers, ArrowRight, ArrowLeft, Clock, ShieldCheck, Crown, Compass, MapPin, Flag, Swords, Lightbulb, Printer, BookMarked, Sparkle, School, GraduationCap, EyeOff, Copy, Lock, Unlock } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { uploadLMSFile } from '../../lib/supabase';
-// =============================================================================
 // WEB AUDIO SYNTHESIZER FOR ZERO-LATENCY GAME SOUND EFFECTS
 // =============================================================================
 const playSuccessSound = () => {
