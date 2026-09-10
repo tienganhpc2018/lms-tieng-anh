@@ -1673,6 +1673,42 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     }
   };
 
+  // FEATURE: AI AUTO ROLE-ASSIGNER & SMART RAW TEXT PARSER
+  const handleAiAutoParseRawText = (rawText) => {
+    if (!rawText || !rawText.trim()) return [];
+    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    const parsed = [];
+    const defaultSpeakers = ['Ann', 'Mi', 'Nick', 'Phong'];
+    let spkIdx = 0;
+
+    lines.forEach((line) => {
+      let speaker = '';
+      let text = line;
+
+      // Match "Speaker: Text" or "Speaker - Text"
+      const match = line.match(/^([A-Za-z0-9\s._-]+)[:\-—](.+)$/);
+      if (match) {
+        speaker = match[1].trim();
+        text = match[2].trim();
+      } else {
+        speaker = defaultSpeakers[spkIdx % defaultSpeakers.length];
+        spkIdx++;
+      }
+
+      if (text) {
+        parsed.push({
+          speaker: speaker || 'Ann',
+          text: text,
+          vi: getVietnameseTranslation(text) || 'Dịch: "' + text + '"'
+        });
+      }
+    });
+
+    return parsed.length > 0 ? parsed : [
+      { speaker: 'Ann', text: rawText, vi: 'Dịch: "' + rawText + '"' }
+    ];
+  };
+
   // EDIT & DELETE DIALOGUE HANDLERS
   const handleOpenEditDialogueModal = (tabObj) => {
     setEditingDialogueObj(JSON.parse(JSON.stringify(tabObj)));
@@ -2802,6 +2838,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       id: 'tab1',
       title: 'Đoạn 1: Ann & Mi (I really love where I live now)',
       grade: 'Lớp 9',
+      unit: 'Unit 1: Local Community',
       lines: [
         { speaker: 'Ann', text: 'Hi, Mi. Long time no see. How’re you doing?', vi: 'Chào Mi. Lâu rồi không gặp. Dạo này bạn thế nào?' },
         { speaker: 'Mi', text: 'I’m fine, thanks. By the way, we moved to a new house in a suburb last month.', vi: 'Mình khỏe, cảm ơn bạn. Nhân tiện, tháng trước nhà mình mới chuyển đến một ngôi nhà ở vùng ngoại ô.' },
@@ -2816,6 +2853,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       id: 'tab2',
       title: 'Đoạn 2: Ann & Trang (Hội thoại Lớp 7 Unit 1)',
       grade: 'Lớp 7',
+      unit: 'Unit 1: Hobbies',
       lines: [
         { speaker: 'Ann', text: 'Hi, Trang. What are your favorite hobbies in your free time?', vi: 'Chào Trang. Những sở thích yêu thích của bạn trong thời gian rảnh là gì?' },
         { speaker: 'Trang', text: 'I love making models using cardboard and glue. It is very creative!', vi: 'Mình thích làm nhà mô hình bằng bìa các tông và keo dán. Nó rất sáng tạo!' },
@@ -2830,6 +2868,8 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [isDialogueEditorOpen, setIsDialogueEditorOpen] = useState(false);
   const [rawDialogueInputText, setRawDialogueInputText] = useState('');
   const [selectedDialogueGradeFilter, setSelectedDialogueGradeFilter] = useState('Tất Cả');
+  const [selectedDialogueUnitFilter, setSelectedDialogueUnitFilter] = useState('Tất Cả');
+  const [rawTextPasteInput, setRawTextPasteInput] = useState('');
   const [isEditingDialogueModalOpen, setIsEditingDialogueModalOpen] = useState(false);
   const [editingDialogueObj, setEditingDialogueObj] = useState(null);
   const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
@@ -2852,6 +2892,16 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   }, [aiStoryModalOpen]);
 
   const [storyVariationIndex, setStoryVariationIndex] = useState(0);
+
+  // FEATURE: KARAOKE AUTO-SCROLL ACTIVE SENTENCE TO CENTER VIEW
+  useEffect(() => {
+    if (playingDialogueLineIndex !== null && playingDialogueLineIndex !== undefined) {
+      const el = document.getElementById(`dialogue-line-${playingDialogueLineIndex}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [playingDialogueLineIndex]);
 
     // HELPER HIGHLIGHT TARGET VOCABULARY WORDS IN AI STORY EN & VI (100% NULL-SAFE & CLEAN MEANING)
   const renderHighlightedStoryText = (text, list) => {
@@ -5753,14 +5803,14 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-xs font-black text-purple-950 uppercase tracking-wide flex items-center space-x-1 mr-1">
                 <span>🎓</span>
-                <span>Lọc Theo Khối Lớp:</span>
+                <span>Khối Lớp:</span>
               </span>
               {['Tất Cả', 'Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12'].map((g) => (
                 <button
                   key={g}
                   type="button"
                   onClick={() => setSelectedDialogueGradeFilter(g)}
-                  className={`px-3 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
                     selectedDialogueGradeFilter === g
                       ? 'bg-purple-700 text-white shadow-md scale-105 ring-2 ring-purple-300'
                       : 'bg-white text-purple-900 hover:bg-purple-200 border border-purple-300'
@@ -5769,6 +5819,20 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   {g}
                 </button>
               ))}
+
+              <span className="text-xs font-black text-purple-950 uppercase tracking-wide flex items-center space-x-1 ml-2 mr-1">
+                <span>📘</span>
+                <span>Unit SGK:</span>
+              </span>
+              <select
+                value={selectedDialogueUnitFilter}
+                onChange={(e) => setSelectedDialogueUnitFilter(e.target.value)}
+                className="px-2.5 py-1 rounded-xl text-xs font-black bg-white text-purple-950 border border-purple-300 focus:outline-none cursor-pointer"
+              >
+                {['Tất Cả Units', 'Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Unit 6', 'Unit 7', 'Unit 8', 'Unit 9', 'Unit 10', 'Unit 11', 'Unit 12'].map((u) => (
+                  <option key={u} value={u === 'Tất Cả Units' ? 'Tất Cả' : u}>{u}</option>
+                ))}
+              </select>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -5800,9 +5864,11 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           <div className="flex flex-wrap items-center gap-2 bg-purple-50/90 p-2.5 rounded-2xl border border-purple-200 print:hidden">
             <span className="text-xs font-black text-purple-900 px-1">Danh Sách Đoạn ({selectedDialogueGradeFilter}):</span>
             {(() => {
-              const filteredTabs = dialogueTabs.filter(t => 
-                selectedDialogueGradeFilter === 'Tất Cả' || (t.grade || 'Lớp 9') === selectedDialogueGradeFilter
-              );
+              const filteredTabs = dialogueTabs.filter(t => {
+                const matchGrade = selectedDialogueGradeFilter === 'Tất Cả' || (t.grade || 'Lớp 9') === selectedDialogueGradeFilter;
+                const matchUnit = selectedDialogueUnitFilter === 'Tất Cả' || (t.unit || '').includes(selectedDialogueUnitFilter);
+                return matchGrade && matchUnit;
+              });
               if (filteredTabs.length === 0) {
                 return (
                   <span className="text-xs font-bold text-rose-600 bg-white px-3 py-1 rounded-xl border border-rose-200">
@@ -5825,7 +5891,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   }`}
                 >
                   <span className="px-1.5 py-0.5 bg-purple-200 text-purple-950 rounded font-black text-[10px]">
-                    {tab.grade || 'Lớp 9'}
+                    {tab.grade || 'Lớp 9'} - {tab.unit || 'Unit 1'}
                   </span>
                   <span>🗣️ {tab.title}</span>
                 </button>
@@ -5875,6 +5941,47 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                       <option key={g} value={g}>{g}</option>
                     ))}
                   </select>
+                </div>
+                <div className="sm:col-span-3">
+                  <label className="block text-xs font-black text-slate-700 mb-1">📘 Nhãn Unit SGK (Ví dụ: Unit 1: Hobbies, Unit 2: City Life):</label>
+                  <input
+                    type="text"
+                    value={editingDialogueObj.unit || 'Unit 1'}
+                    onChange={(e) => setEditingDialogueObj({ ...editingDialogueObj, unit: e.target.value })}
+                    placeholder="Ví dụ: Unit 1: Local Community, Unit 2: City Life..."
+                    className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 focus:border-amber-500 font-bold text-sm bg-white"
+                  />
+                </div>
+
+                {/* AI AUTO ROLE-ASSIGNER PASTE BOX */}
+                <div className="sm:col-span-3 bg-purple-50 p-3.5 rounded-2xl border-2 border-purple-200 space-y-2">
+                  <label className="block text-xs font-black text-purple-950">✨ AI Tự Động Phân Vai Từ Văn Bản Thô (Paste Word/SGK):</label>
+                  <textarea
+                    rows={2}
+                    value={rawTextPasteInput}
+                    onChange={(e) => setRawTextPasteInput(e.target.value)}
+                    placeholder="Dán văn bản thô vào đây (Ví dụ: Ann: Hi Mi. How are you? \n Mi: I am fine thanks...)"
+                    className="w-full p-2.5 rounded-xl border border-purple-300 font-bold text-xs bg-white text-slate-900 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!rawTextPasteInput.trim()) {
+                        alert("Vui lòng dán đoạn văn bản thô trước!");
+                        return;
+                      }
+                      const parsedLines = handleAiAutoParseRawText(rawTextPasteInput);
+                      if (parsedLines.length > 0) {
+                        setEditingDialogueObj({ ...editingDialogueObj, lines: parsedLines });
+                        setRawTextPasteInput('');
+                        playSuccessSound();
+                        alert("🎉 AI đã phân tích & tự động phân vai thành công cho " + parsedLines.length + " câu thoại!");
+                      }
+                    }}
+                    className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center space-x-1"
+                  >
+                    <span>⚡ AI Tự Động Tách Vai & Gán Giọng Ngay</span>
+                  </button>
                 </div>
               </div>
 
@@ -6064,8 +6171,10 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               <div className="space-y-4 bg-slate-50/70 p-4 sm:p-6 rounded-3xl border-2 border-purple-200 print:p-0 print:border-none print:bg-white">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2 print:border-b-2 print:border-slate-900">
                   <div className="flex items-center space-x-2">
-                    <span className="px-2.5 py-1 bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs">
-                      🎓 {activeTabObj.grade || 'Lớp 9'}
+                    <span className="px-2.5 py-1 bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center space-x-1">
+                      <span>🎓 {activeTabObj.grade || 'Lớp 9'}</span>
+                      <span className="text-purple-200">|</span>
+                      <span>📘 {activeTabObj.unit || 'Unit 1'}</span>
                     </span>
                     <h4 className="font-extrabold text-base text-purple-950 print:text-xl print:text-black">
                       {activeTabObj.title}
@@ -6107,6 +6216,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     return (
                       <div
                         key={idx}
+                        id={`dialogue-line-${idx}`}
                         className={`p-3 sm:p-4 rounded-2xl transition-all duration-200 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:p-2 print:border-b print:rounded-none ${
                           isHighlighted
                             ? 'bg-purple-50/70 text-slate-950 font-bold border-2 border-purple-400 shadow-md ring-2 ring-purple-300'
