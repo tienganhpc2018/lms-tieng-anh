@@ -2320,14 +2320,29 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       if (isGrade7) {
         dynamicStories = [
           {
-            title: 'Truyện Từ Vựng (Version 1 - Tóm Tắt Hội Thoại Ann & Trang): Unit 1 - GETTING STARTED',
+            title: 'Truyện Từ Vựng (Version 1 - Tóm Tắt Hội Thoại Ann & Trang): ' + currentUnitName + ' - ' + lessonSec,
             storyEn: 'In our Getting Started lesson, students share their favorite hobbies in class. Trang likes making models using cardboard and glue. Ann enjoys horse riding and collecting stamps. Together, they practice gardening and doing crafts, finding these hobbies popular and unusual for everyone.',
             storyVi: 'Trong tiết Getting Started, học sinh chia sẻ sở thích cá nhân ở trên lớp. Trang thích làm nhà mô hình (making models) bằng bìa các tông (cardboard) và keo dán (glue). Ann thích cưỡi ngựa (horse riding) và sưu tầm tem. Cùng nhau, các bạn thực hành làm vườn (gardening) và làm đồ thủ công, nhận thấy những sở thích này rất phổ biến (popular) và độc đáo (unusual) cho tất cả mọi người.'
           },
           {
-            title: 'Truyện Từ Vựng (Version 2 - Thảo Luận Sở Thích Lớp 7): Unit 1 - GETTING STARTED',
+            title: 'Truyện Từ Vựng (Version 2 - Thảo Luận Sở Thích Lớp 7): ' + currentUnitName + ' - ' + lessonSec,
             storyEn: 'During the break time, students discuss different creative activities. Trang prefers building a dollhouse with cardboard boxes, while Ann likes outdoor horse riding. They find that spending time on hobbies brings happiness and improves creativity.',
             storyVi: 'Trong giờ giải lao, học sinh thảo luận về các hoạt động sáng tạo. Trang thích xây dựng nhà búp bê (dollhouse) bằng các hộp bìa các tông (cardboard), trong khi Ann thích cưỡi ngựa (horse riding) ngoài trời. Các bạn thấy rằng dành thời gian cho sở thích mang lại niềm vui và nâng cao sự sáng tạo.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 3 - Dự Án Sáng Tạo Lớp 7): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'For the class project, students showcase their handmade crafts. Group members use cardboard to make models and craft items. They enjoy working together and discovering new creative skills.',
+            storyVi: 'Dành cho dự án của lớp, học sinh trưng bày các sản phẩm thủ công tự làm. Các thành viên trong nhóm dùng bìa các tông (cardboard) để làm mô hình (making models) và đồ thủ công. Các bạn thích làm việc cùng nhau và khám phá những kỹ năng sáng tạo mới.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 4 - Trải Nghiệm Sở Thích Cuối Tuần): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'On weekends, students spend time on their favorite routines. Some students practice gardening in their family yard, while others try horse riding or collecting coins. These activities make weekend time meaningful.',
+            storyVi: 'Vào cuối tuần, học sinh dành thời gian cho các thói quen yêu thích của mình. Một số bạn thực hành làm vườn (gardening) trong sân nhà, trong khi những bạn khác thử cưỡi ngựa (horse riding) hoặc sưu tầm tiền xu. Những hoạt động này khiến thời gian cuối tuần thật ý nghĩa.'
+          },
+          {
+            title: 'Truyện Từ Vựng (Version 5 - Tổng Kết Từ Vựng Lớp 7): ' + currentUnitName + ' - ' + lessonSec,
+            storyEn: 'Grade 7 Unit 1 introduces essential vocabulary about hobbies and daily routines. Students practice using glue, making models, and exploring popular hobbies. Developing a good hobby inspires learning and personal growth.',
+            storyVi: 'Unit 1 Lớp 7 giới thiệu các từ vựng trọng tâm về sở thích và thói quen hàng ngày. Học sinh thực hành dùng keo dán (glue), làm nhà mô hình (making models) và khám phá các sở thích phổ biến (popular). Phát triển một sở thích tốt truyền cảm hứng cho việc học tập và phát triển bản thân.'
           }
         ];
       }
@@ -2388,7 +2403,8 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       }
 
 
-      const selectedStory = dynamicStories[storyVersionIndex];
+      const safeIndex = ((storyVersionIndex % dynamicStories.length) + dynamicStories.length) % dynamicStories.length;
+      const selectedStory = dynamicStories[safeIndex] || dynamicStories[0];
       setAiStoryData(selectedStory);
       playSuccessSound();
     } catch (e) {
