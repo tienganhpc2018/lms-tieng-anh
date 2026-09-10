@@ -1271,6 +1271,24 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
 export default function VocabularyEngine({ activity, isTeacher = false, onSaveActivity }) {
   const { user } = useAuth();
   const settings = activity?.settings || {};
+
+  // HOISTED V297 & V298 DIALOGUE & BG MUSIC STATES AT COMPONENT TOP
+  const [dialogueSpeed, setDialogueSpeed] = useState(0.8);
+  const [showDialogueVietnamese, setShowDialogueVietnamese] = useState(true);
+  const [isRolePlayMode, setIsRolePlayMode] = useState(false);
+  const [userSelectedCharacter, setUserSelectedCharacter] = useState('Ann');
+  const [rolePlayStepIndex, setRolePlayStepIndex] = useState(null);
+  const [isWaitingForUserRead, setIsWaitingForUserRead] = useState(false);
+  const [recordingLineIndex, setRecordingLineIndex] = useState(null);
+  const [lineScores, setLineScores] = useState({});
+  const [isDialogueLineRecording, setIsDialogueLineRecording] = useState(false);
+  const [revealedTranslationIndexes, setRevealedTranslationIndexes] = useState({});
+
+  const [isBgMusicActive, setIsBgMusicActive] = useState(true);
+  const [isFillBlanksMode, setIsFillBlanksMode] = useState(false);
+  const [fillBlankInputs, setFillBlankInputs] = useState({});
+  const [activeWordTooltip, setActiveWordTooltip] = useState(null);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
   
   // WEB AUDIO API AMBIENT SOUND GENERATOR (V298)
