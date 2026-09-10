@@ -3129,8 +3129,33 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   const [isPlayingFullDialogue, setIsPlayingFullDialogue] = useState(false);
   const [isDialogueEditorOpen, setIsDialogueEditorOpen] = useState(false);
   const [rawDialogueInputText, setRawDialogueInputText] = useState('');
-  const [selectedDialogueGradeFilter, setSelectedDialogueGradeFilter] = useState('Tất Cả');
+  const [selectedDialogueGradeFilter, setSelectedDialogueGradeFilter] = useState(() => (effectiveIsTeacher ? 'Tất Cả' : (activityGrade || 'Lớp 9')));
   const [selectedDialogueUnitFilter, setSelectedDialogueUnitFilter] = useState('Tất Cả');
+
+  // LOCK DIALOGUE GRADE FILTER TO ACTIVITY GRADE FOR STUDENTS
+  useEffect(() => {
+    if (!effectiveIsTeacher && activityGrade) {
+      setSelectedDialogueGradeFilter(activityGrade);
+    }
+  }, [effectiveIsTeacher, activityGrade]);
+
+  // AUTO SWITCH ACTIVE TAB TO FIRST MATCHING TAB WHEN GRADE/UNIT FILTER CHANGES
+  useEffect(() => {
+    if (dialogueTabs && dialogueTabs.length > 0) {
+      const filteredTabs = dialogueTabs.filter(t => {
+        const matchGrade = selectedDialogueGradeFilter === 'Tất Cả' || (t.grade || 'Lớp 9') === selectedDialogueGradeFilter;
+        const matchUnit = selectedDialogueUnitFilter === 'Tất Cả' || (t.unit || '').includes(selectedDialogueUnitFilter);
+        return matchGrade && matchUnit;
+      });
+      if (filteredTabs.length > 0) {
+        const isCurrentActive = filteredTabs.some(t => t.id === activeDialogueTabId);
+        if (!isCurrentActive) {
+          setActiveDialogueTabId(filteredTabs[0].id);
+        }
+      }
+    }
+  }, [selectedDialogueGradeFilter, selectedDialogueUnitFilter, dialogueTabs]);
+
   const [rawTextPasteInput, setRawTextPasteInput] = useState('');
   const [isEditingDialogueModalOpen, setIsEditingDialogueModalOpen] = useState(false);
   const [editingDialogueObj, setEditingDialogueObj] = useState(null);
@@ -5816,14 +5841,16 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               </button>
 
               {/* V299 FEATURE 3: CUSTOM AI DIALOGUE GENERATOR */}
-              <button
-                type="button"
-                onClick={() => setIsAiTopicModalOpen(true)}
-                className="px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-2xl shadow-sm transition transform hover:scale-105 cursor-pointer flex items-center space-x-1 border border-purple-300"
-                title="Nhập chủ đề bất kỳ để AI tự động tạo bài hội thoại mới"
-              >
-                <span>🤖 AI Tạo Hội Thoại</span>
-              </button>
+              {effectiveIsTeacher && (
+                <button
+                  type="button"
+                  onClick={() => setIsAiTopicModalOpen(true)}
+                  className="px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-2xl shadow-sm transition transform hover:scale-105 cursor-pointer flex items-center space-x-1 border border-purple-300"
+                  title="Nhập chủ đề bất kỳ để AI tự động tạo bài hội thoại mới"
+                >
+                  <span>🤖 AI Tạo Hội Thoại</span>
+                </button>
+              )}
 
               {/* V299 FEATURE 4: 1v1 PRONUNCIATION BATTLE TOGGLE */}
               <button
@@ -6069,20 +6096,26 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 <span>🎓</span>
                 <span>Khối Lớp:</span>
               </span>
-              {['Tất Cả', 'Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9'].map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => setSelectedDialogueGradeFilter(g)}
-                  className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
-                    selectedDialogueGradeFilter === g
-                      ? 'bg-purple-700 text-white shadow-md scale-105 ring-2 ring-purple-300'
-                      : 'bg-white text-purple-900 hover:bg-purple-200 border border-purple-300'
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
+              {effectiveIsTeacher ? (
+                ['Tất Cả', 'Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9'].map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setSelectedDialogueGradeFilter(g)}
+                    className={`px-2.5 py-1 rounded-xl text-xs font-black transition cursor-pointer ${
+                      selectedDialogueGradeFilter === g
+                        ? 'bg-purple-700 text-white shadow-md scale-105 ring-2 ring-purple-300'
+                        : 'bg-white text-purple-900 hover:bg-purple-200 border border-purple-300'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))
+              ) : (
+                <span className="px-3 py-1 bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs ring-2 ring-purple-300 flex items-center space-x-1">
+                  <span>🔒 {activityGrade || 'Lớp 9'}</span>
+                </span>
+              )}
 
               <span className="text-xs font-black text-purple-950 uppercase tracking-wide flex items-center space-x-1 ml-2 mr-1">
                 <span>📘</span>
@@ -6099,29 +6132,31 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               </select>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const newId = 'tab_' + Date.now();
-                  const newTab = {
-                    id: newId,
-                    title: `Đoạn Hội Thoại ${selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : 'Mới'}`,
-                    grade: selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : 'Lớp 9',
-                    lines: [
-                      { speaker: 'Ann', text: 'Hi! Welcome to our new dialogue lesson.', vi: 'Chào bạn! Chào mừng đến với bài học hội thoại mới.' },
-                      { speaker: 'Nick', text: 'Thank you! I am ready to practice speaking.', vi: 'Cảm ơn bạn! Mình đã sẵn sàng thực hành nói.' }
-                    ]
-                  };
-                  setDialogueTabs(prev => [...prev, newTab]);
-                  setActiveDialogueTabId(newId);
-                  handleOpenEditDialogueModal(newTab);
-                }}
-                className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-purple-400"
-              >
-                <span>➕ Thêm Đoạn Mới</span>
-              </button>
-            </div>
+            {effectiveIsTeacher && (
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newId = 'tab_' + Date.now();
+                    const newTab = {
+                      id: newId,
+                      title: `Đoạn Hội Thoại ${selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : 'Mới'}`,
+                      grade: selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : (activityGrade || 'Lớp 9'),
+                      lines: [
+                        { speaker: 'Ann', text: 'Hi! Welcome to our new dialogue lesson.', vi: 'Chào bạn! Chào mừng đến với bài học hội thoại mới.' },
+                        { speaker: 'Nick', text: 'Thank you! I am ready to practice speaking.', vi: 'Cảm ơn bạn! Mình đã sẵn sàng thực hành nói.' }
+                      ]
+                    };
+                    setDialogueTabs(prev => [...prev, newTab]);
+                    setActiveDialogueTabId(newId);
+                    handleOpenEditDialogueModal(newTab);
+                  }}
+                  className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-purple-400"
+                >
+                  <span>➕ Thêm Đoạn Mới</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* MULTI-TAB SELECTOR FOR DIALOGUE LESSONS (FILTERED BY GRADE) */}
@@ -6136,7 +6171,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               if (filteredTabs.length === 0) {
                 return (
                   <span className="text-xs font-bold text-rose-600 bg-white px-3 py-1 rounded-xl border border-rose-200">
-                    Chưa có bài hội thoại cho [{selectedDialogueGradeFilter}]. Bấm '🤖 AI Tạo Hội Thoại' hoặc '+ Thêm Đoạn Mới'!
+                    {effectiveIsTeacher
+                      ? `Chưa có bài hội thoại cho [${selectedDialogueGradeFilter}]. Bấm '🤖 AI Tạo Hội Thoại' hoặc '+ Thêm Đoạn Mới'!`
+                      : `Chưa có bài hội thoại cho [${selectedDialogueGradeFilter}]. Vui lòng chọn Unit khác hoặc liên hệ Thầy Cô!`}
                   </span>
                 );
               }
@@ -6165,7 +6202,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
           
       {/* V307 ACTIVE MODAL FOR EDITING DIALOGUE LESSON */}
-      {isEditingDialogueModalOpen && editingDialogueObj && (
+      {isEditingDialogueModalOpen && editingDialogueObj && effectiveIsTeacher && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-start justify-center p-4 sm:p-6 pt-28 sm:pt-32 pb-20 animate-fade-in print:hidden overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 max-w-2xl w-full my-2 border-4 border-amber-500 shadow-2xl space-y-4 relative text-slate-900 shadow-amber-500/20">
             <button
@@ -6463,7 +6500,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
       )}
 
       {/* V302 ACTIVE MODAL FOR AI TẠO HỘI THOẠI */}
-      {isAiTopicModalOpen && (
+      {isAiTopicModalOpen && effectiveIsTeacher && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[999999] flex items-start justify-center p-4 sm:p-6 pt-24 pb-16 animate-fade-in print:hidden overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full my-2 border-4 border-purple-500 shadow-2xl space-y-4 relative text-slate-900">
             <button
@@ -6564,22 +6601,26 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     <span className="text-xs font-bold text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
                       🎧 Track Audio UK Oxford ({dialogueSpeed}x)
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditDialogueModal(activeTabObj)}
-                      className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-amber-400"
-                      title="Chỉnh sửa đoạn hội thoại này"
-                    >
-                      <span>✏️ Sửa Đoạn</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteDialogueTab(activeTabObj.id)}
-                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-rose-400"
-                      title="Xóa đoạn hội thoại này"
-                    >
-                      <span>🗑️ Xóa Đoạn</span>
-                    </button>
+                    {effectiveIsTeacher && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditDialogueModal(activeTabObj)}
+                          className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-amber-400"
+                          title="Chỉnh sửa đoạn hội thoại này"
+                        >
+                          <span>✏️ Sửa Đoạn</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDialogueTab(activeTabObj.id)}
+                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-rose-400"
+                          title="Xóa đoạn hội thoại này"
+                        >
+                          <span>🗑️ Xóa Đoạn</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
