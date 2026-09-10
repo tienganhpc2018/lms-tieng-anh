@@ -3066,13 +3066,13 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       // AI VOCAB STORYTELLER STATE
   const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
 
-  // INTERACTIVE SGK DIALOGUE LESSON STATE (V293)
-  const [dialogueTabs, setDialogueTabs] = useState([
+  const defaultInitialDialogueTabs = [
     {
       id: 'tab1',
       title: 'Đoạn 1: Ann & Mi (I really love where I live now)',
       grade: 'Lớp 9',
       unit: 'Unit 1: Local Community',
+      introOffset: 2.5,
       lines: [
         { speaker: 'Ann', text: 'Hi, Mi. Long time no see. How’re you doing?', vi: 'Chào Mi. Lâu rồi không gặp. Dạo này bạn thế nào?' },
         { speaker: 'Mi', text: 'I’m fine, thanks. By the way, we moved to a new house in a suburb last month.', vi: 'Mình khỏe, cảm ơn bạn. Nhân tiện, tháng trước nhà mình mới chuyển đến một ngôi nhà ở vùng ngoại ô.' },
@@ -3088,13 +3088,41 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       title: 'Đoạn 2: Ann & Trang (Hội thoại Lớp 7 Unit 1)',
       grade: 'Lớp 7',
       unit: 'Unit 1: Hobbies',
+      introOffset: 2.5,
       lines: [
         { speaker: 'Ann', text: 'Hi, Trang. What are your favorite hobbies in your free time?', vi: 'Chào Trang. Những sở thích yêu thích của bạn trong thời gian rảnh là gì?' },
         { speaker: 'Trang', text: 'I love making models using cardboard and glue. It is very creative!', vi: 'Mình thích làm nhà mô hình bằng bìa các tông và keo dán. Nó rất sáng tạo!' },
         { speaker: 'Ann', text: 'That sounds unusual and interesting. I enjoy horse riding and gardening.', vi: 'Nghe có vẻ độc đáo và thú vị đấy. Mình thích cưỡi ngựa và làm vườn.' }
       ]
     }
-  ]);
+  ];
+
+  // INTERACTIVE SGK DIALOGUE LESSON STATE (V312 FULL DATA PERSISTENCE)
+  const [dialogueTabs, setDialogueTabs] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = localStorage.getItem('lms_dialogue_tabs_v312');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Load saved dialogue tabs error:', e);
+    }
+    return defaultInitialDialogueTabs;
+  });
+
+  // AUTO-SYNC DIALOGUE TABS TO LOCALSTORAGE ON ANY CHANGE (ZERO DATA LOSS)
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage && Array.isArray(dialogueTabs) && dialogueTabs.length > 0) {
+        localStorage.setItem('lms_dialogue_tabs_v312', JSON.stringify(dialogueTabs));
+      }
+    } catch (e) {
+      console.warn('Save dialogue tabs error:', e);
+    }
+  }, [dialogueTabs]);
 
   const [activeDialogueTabId, setActiveDialogueTabId] = useState('tab1');
   const [playingDialogueLineIndex, setPlayingDialogueLineIndex] = useState(null);
