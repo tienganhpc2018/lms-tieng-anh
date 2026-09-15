@@ -41,16 +41,16 @@ export default function CourseIntroBanner({ onExploreClick }) {
               <button
                 type="button"
                 onClick={() => setShowDetailModal(true)}
-                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-extrabold text-sm shadow-md hover:shadow-lg transition cursor-pointer flex items-center space-x-2 group"
+                className="px-6 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 rounded-2xl font-black text-sm border border-emerald-300/90 shadow-2xs transition cursor-pointer flex items-center space-x-2 group"
               >
                 <span>Tìm hiểu thêm</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition transform" />
+                <ArrowRight className="w-4 h-4 text-emerald-700 group-hover:translate-x-1 transition transform" />
               </button>
 
               <button
                 type="button"
                 onClick={onExploreClick}
-                className="px-5 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-2xl font-extrabold text-sm border border-emerald-300 transition cursor-pointer flex items-center space-x-2"
+                className="px-5 py-3 bg-white hover:bg-emerald-50 text-emerald-900 rounded-2xl font-black text-sm border border-emerald-200 transition cursor-pointer flex items-center space-x-2 shadow-2xs"
               >
                 <PlayCircle className="w-4 h-4 text-emerald-600" />
                 <span>Xem các khóa học</span>
@@ -58,15 +58,15 @@ export default function CourseIntroBanner({ onExploreClick }) {
             </div>
           </div>
 
-          {/* CỘT PHẢI: POSTER BANNER HỌC LIỆU ENGLISH CHUẨN ẢNH MẪU */}
+          {/* CỘT PHẢI: POSTER BANNER HỌC LIỆU ENGLISH CHUẨN ẢNH MẪU - ĐỒNG BỘ TÔNG XANH LÁ MENU */}
           <div className="lg:col-span-5 relative">
-            <div className="relative rounded-3xl overflow-hidden border-2 border-sky-100 shadow-xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 text-white p-6 sm:p-7 space-y-5">
+            <div className="relative rounded-3xl overflow-hidden border-2 border-emerald-200/80 shadow-xl bg-gradient-to-br from-emerald-700 via-teal-800 to-emerald-950 text-white p-6 sm:p-7 space-y-5">
               {/* NỀN HỌA TIẾT HỌC TẬP */}
               <div className="absolute -right-8 -bottom-8 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none" />
               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
 
               <div className="relative z-10 space-y-3">
-                <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-xl text-xs font-black uppercase tracking-wider text-sky-100 border border-white/30">
+                <div className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-xl text-xs font-black uppercase tracking-wider text-emerald-100 border border-white/30">
                   KHO HỌC LIỆU ENGLISH
                 </div>
 
@@ -74,32 +74,32 @@ export default function CourseIntroBanner({ onExploreClick }) {
                   Cung cấp tài liệu học tập, video bài dạy cho các khóa học cộng đồng
                 </h4>
 
-                <p className="text-xs text-sky-100/90 font-medium">
+                <p className="text-xs text-emerald-100 font-medium">
                   Hệ thống số hóa sách mềm, bài tập H5P, game từ vựng và luyện đề chuẩn CV7991 Bộ GD&ĐT.
                 </p>
               </div>
 
               {/* KHỐI ĐIỂM NỔI BẬT CHUẨN ẢNH MẪU */}
-              <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 space-y-2 text-xs font-bold text-sky-50">
+              <div className="relative z-10 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 space-y-2 text-xs font-bold text-emerald-50">
                 <div className="flex items-center space-x-2 text-amber-300 font-extrabold text-xs uppercase tracking-wide">
                   <Star className="w-4 h-4 fill-amber-300" />
                   <span>Điểm nổi bật:</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[13px]">
                   <div className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
                     <span>Thực hành Tiếng Anh</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
                     <span>Audio bài nghe chuẩn</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
                     <span>Luyện thi vào 10</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300 flex-shrink-0" />
                     <span>Chuyên đề tự luyện</span>
                   </div>
                 </div>
@@ -116,7 +116,7 @@ export default function CourseIntroBanner({ onExploreClick }) {
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition transform" />
                 </button>
 
-                <span className="text-[11px] font-bold text-sky-200 italic">
+                <span className="text-[11px] font-bold text-emerald-200 italic">
                   #hocdelamchu #english
                 </span>
               </div>

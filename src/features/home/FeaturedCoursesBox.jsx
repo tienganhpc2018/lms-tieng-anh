@@ -169,7 +169,7 @@ export default function FeaturedCoursesBox({ courses = [], userIsTeacher = false
                     </span>
                   </div>
 
-                  <h4 className="text-xl font-extrabold text-slate-900 group-hover:text-blue-700 transition leading-snug">
+                  <h4 className="text-xl font-black text-slate-900 group-hover:text-emerald-700 transition leading-snug">
                     {item.title}
                   </h4>
 
@@ -183,17 +183,17 @@ export default function FeaturedCoursesBox({ courses = [], userIsTeacher = false
                   <button
                     type="button"
                     onClick={() => handleOpenCourse(item)}
-                    className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-blue-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer group-hover:bg-blue-700"
+                    className="flex-1 py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 font-black text-xs rounded-xl border border-emerald-300/90 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer group/btn"
                   >
                     <span>Tìm hiểu thêm</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3.5 h-3.5 text-emerald-700 group-hover/btn:translate-x-0.5 transition transform" />
                   </button>
 
                   <button
                     type="button"
                     onClick={(e) => handleOpenBook(item, e)}
                     title="Mở chế độ Sách Mềm điện tử tương tác"
-                    className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-extrabold text-xs rounded-xl border border-emerald-300 transition flex items-center space-x-1 cursor-pointer"
+                    className="py-2.5 px-3 bg-white hover:bg-emerald-50 text-emerald-900 font-black text-xs rounded-xl border border-emerald-200 shadow-2xs transition flex items-center space-x-1 cursor-pointer"
                   >
                     <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
                     <span className="hidden sm:inline">Sách Mềm</span>

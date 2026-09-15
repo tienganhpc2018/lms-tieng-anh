@@ -51,7 +51,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
       {/* TIÊU ĐỀ BOX 3 */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 border-b border-slate-200 pb-3">
         <div className="flex items-center space-x-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shadow-md flex-shrink-0">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
             <Film className="w-5 h-5" />
           </div>
           <div>
@@ -67,50 +67,50 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
         {userIsTeacher && (
           <Link
             to="/film-reel"
-            className="text-xs font-extrabold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-3.5 py-1.5 rounded-xl border border-purple-200 transition flex items-center space-x-1"
+            className="text-xs font-black text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-xl border border-emerald-300 transition flex items-center space-x-1 shadow-2xs"
           >
             <span>Quản lý cuộn phim ➔</span>
           </Link>
         )}
       </div>
 
-      {/* DẢI PHIM NHỰA 3 KHUNG HÌNH (FILM REEL) */}
-      <div className="bg-slate-950 rounded-3xl p-4 sm:p-6 lg:p-7 shadow-2xl border-4 border-slate-900 relative overflow-hidden">
-        {/* DẢI LỖ RĂNG CƯA PHIM TRÊN CÙNG */}
-        <div className="flex justify-between items-center space-x-2 overflow-hidden pb-4 opacity-70">
+      {/* DẢI PHIM NHỰA 3 KHUNG HÌNH (FILM REEL) - NỀN TRONG SUỐT KHỚP MÀU MENU NGANG */}
+      <div className="bg-transparent rounded-3xl p-4 sm:p-6 lg:p-7 border-2 border-emerald-200/90 relative overflow-hidden shadow-xs">
+        {/* DẢI LỖ RĂNG CƯA PHIM TRÊN CÙNG TÔNG XANH LÁ NHẠT */}
+        <div className="flex justify-between items-center space-x-2 overflow-hidden pb-4 opacity-90">
           {Array.from({ length: 28 }).map((_, i) => (
-            <div key={`sprocket_top_${i}`} className="w-3.5 h-2 bg-slate-800 rounded-xs flex-shrink-0 border border-slate-700/60" />
+            <div key={`sprocket_top_${i}`} className="w-3.5 h-2 bg-emerald-100/90 rounded-xs flex-shrink-0 border border-emerald-300/80 shadow-2xs" />
           ))}
         </div>
 
-        {/* 3 KHUNG HÌNH PHIM CHỨA 3 BÀI MẪU */}
+        {/* 3 KHUNG HÌNH PHIM CHỨA 3 BÀI MẪU NỀN TRẮNG SÁNG THANH LỊCH */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {FILM_MEMORIES.map((post, idx) => (
             <div
               key={post.id}
               onClick={() => setActiveModalPost(post)}
-              className="bg-slate-900/90 rounded-2xl border-2 border-slate-800 hover:border-amber-400 p-4 transition duration-300 group cursor-pointer flex flex-col justify-between space-y-4 hover:shadow-2xl hover:scale-[1.02]"
+              className="bg-white rounded-2xl border-2 border-emerald-200 hover:border-emerald-500 p-4 transition duration-300 group cursor-pointer flex flex-col justify-between space-y-4 shadow-sm hover:shadow-xl hover:scale-[1.02]"
             >
               {/* KHUNG ẢNH KỶ NIỆM */}
-              <div className="relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800">
+              <div className="relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-100 border border-emerald-200/80">
                 <img
                   src={post.coverImage}
                   alt={post.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition duration-500 filter sepia-[0.15] contrast-105"
+                  className="w-full h-full object-cover group-hover:scale-110 transition duration-500 filter sepia-[0.10] contrast-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
 
                 {/* SỐ FRAME PHIM */}
-                <div className="absolute top-2 left-2 px-2 py-0.5 bg-slate-950/80 backdrop-blur-xs text-amber-300 font-mono text-[10px] font-bold rounded border border-amber-500/40">
+                <div className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-950/85 backdrop-blur-xs text-emerald-300 font-mono text-[10px] font-bold rounded border border-emerald-400/50">
                   FRAME #{String(idx + 1).padStart(2, '0')}
                 </div>
 
-                <div className="absolute top-2 right-2 px-2 py-0.5 bg-rose-600/90 text-white font-bold text-[10px] rounded-md shadow-xs">
+                <div className="absolute top-2 right-2 px-2 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-md shadow-xs">
                   {post.classTag}
                 </div>
 
-                <div className="absolute bottom-2 left-2 flex items-center space-x-1.5 text-slate-300 text-[11px] font-bold">
-                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                <div className="absolute bottom-2 left-2 flex items-center space-x-1.5 text-white text-[11px] font-bold drop-shadow-md">
+                  <Calendar className="w-3.5 h-3.5 text-amber-300" />
                   <span>{post.date}</span>
                 </div>
               </div>
@@ -118,28 +118,28 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
               {/* NỘI DUNG TÓM TẮT BÀI VIẾT */}
               <div className="space-y-2 flex-1 flex flex-col justify-between">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 block mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block mb-1">
                     {post.category}
                   </span>
-                  <h4 className="text-white font-extrabold text-sm sm:text-base leading-snug group-hover:text-amber-300 transition line-clamp-2">
+                  <h4 className="text-slate-900 font-black text-sm sm:text-base leading-snug group-hover:text-emerald-700 transition line-clamp-2">
                     {post.title}
                   </h4>
-                  <p className="text-slate-400 text-xs leading-relaxed line-clamp-3 mt-1.5">
+                  <p className="text-slate-600 text-xs leading-relaxed line-clamp-3 mt-1.5 font-normal">
                     {post.description}
                   </p>
                 </div>
 
                 {/* TAGS & LƯỢT THÍCH */}
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <div className="flex flex-wrap gap-1">
                     {post.tags.slice(0, 2).map((tg, tIdx) => (
-                      <span key={tIdx} className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-bold">
+                      <span key={tIdx} className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded text-[10px] font-bold">
                         {tg}
                       </span>
                     ))}
                   </div>
 
-                  <div className="flex items-center space-x-1 text-rose-400 font-bold text-[11px]">
+                  <div className="flex items-center space-x-1 text-rose-500 font-bold text-[11px]">
                     <Heart className="w-3.5 h-3.5 fill-rose-500" />
                     <span>{post.likes}</span>
                   </div>
@@ -149,10 +149,10 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
           ))}
         </div>
 
-        {/* DẢI LỖ RĂNG CƯA PHIM DƯỚI CÙNG */}
-        <div className="flex justify-between items-center space-x-2 overflow-hidden pt-4 opacity-70">
+        {/* DẢI LỖ RĂNG CƯA PHIM DƯỚI CÙNG TÔNG XANH LÁ NHẠT */}
+        <div className="flex justify-between items-center space-x-2 overflow-hidden pt-4 opacity-90">
           {Array.from({ length: 28 }).map((_, i) => (
-            <div key={`sprocket_bottom_${i}`} className="w-3.5 h-2 bg-slate-800 rounded-xs flex-shrink-0 border border-slate-700/60" />
+            <div key={`sprocket_bottom_${i}`} className="w-3.5 h-2 bg-emerald-100/90 rounded-xs flex-shrink-0 border border-emerald-300/80 shadow-2xs" />
           ))}
         </div>
       </div>
