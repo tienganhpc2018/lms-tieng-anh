@@ -67,7 +67,7 @@ export default function Footer() {
           <div className="space-y-2 text-xs sm:text-sm text-slate-700 font-semibold">
             <div className="flex items-center space-x-2">
               <span className="text-base">💬</span>
-              <span>{config.teacherNameSchool || 'Nguyễn Văn Hải - THCS Cát Minh'}</span>
+              <span>{config.teacherNameSchool || 'Nguyễn Văn Hải - THCS Đề Gi'}</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-base">✉️</span>

@@ -2,8 +2,9 @@ import React, { useState, useRef } from 'react';
 import { 
   X, Image as ImageIcon, Upload, Link as LinkIcon, Check, RotateCcw, 
   Sparkles, Sliders, Play, Palette, Layers, Plus, Trash2, Calendar, 
-  ZoomIn, Pause, Sun, BookOpen, Heart, Award
+  ZoomIn, Pause, Sun, BookOpen, Heart, Award, Volume2, Sparkle, Clock
 } from 'lucide-react';
+import { playWelcomeChime } from '../../utils/audioChime';
 
 export const BANNER_PRESETS = [
   {
@@ -64,19 +65,32 @@ export const SEASONAL_THEMES = [
     id: 'auto',
     name: 'Tự động theo lịch năm học (Khuyên dùng)',
     badge: '📅 THEO LỊCH NĂM HỌC TỰ ĐỘNG',
-    slogan: 'Tự động kích hoạt chủ đề Khai giảng, 20/11, Tết hoặc Mùa thi theo ngày tháng',
+    slogan: 'Tự động kích hoạt chủ đề Khai giảng, Trung Thu, 20/11, Tết hoặc Mùa thi theo ngày tháng',
     icon: '📅',
     colorClass: 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30',
+    particleType: 'confetti',
   },
   {
     id: 'khai_giang',
     name: 'Mùa Khai Giảng & Tựu Trường (Tháng 9)',
-    badge: '🎒 CHÀO NĂM HỌC MỚI • TỰ HÀO THCS CÁT MINH',
+    badge: '🎒 CHÀO NĂM HỌC MỚI • TỰ HÀO THCS ĐỀ GI',
     slogan: 'Chúc các em học sinh một năm học mới nhiều hứng khởi, bứt phá xuất sắc môn Tiếng Anh!',
     icon: '🎒',
     presetUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1600&auto=format&fit=crop&q=80',
     position: 'center 20%',
     colorClass: 'bg-amber-950/90 text-amber-400 border-amber-500/40',
+    particleType: 'confetti',
+  },
+  {
+    id: 'trung_thu',
+    name: 'Đêm Hội Trăng Rằm & Tết Trung Thu (Tháng 8 ÂL / Tháng 9-10)',
+    badge: '🥮 ĐÊM HỘI TRĂNG RẰM • TẾT TRUNG THU THCS ĐỀ GI',
+    slogan: 'Vui Tết Trung Thu rước đèn trông trăng - Chúc các em học sinh luôn vui tươi, chăm ngoan và học giỏi!',
+    icon: '🏮',
+    presetUrl: 'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=1600&auto=format&fit=crop&q=80',
+    position: 'center center',
+    colorClass: 'bg-amber-950/90 text-yellow-300 border-amber-400/50',
+    particleType: 'trung_thu',
   },
   {
     id: 'tri_an_2011',
@@ -87,6 +101,7 @@ export const SEASONAL_THEMES = [
     presetUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1600&auto=format&fit=crop&q=80',
     position: 'center center',
     colorClass: 'bg-rose-950/90 text-rose-300 border-rose-500/40',
+    particleType: 'confetti',
   },
   {
     id: 'tet_xuan',
@@ -97,6 +112,7 @@ export const SEASONAL_THEMES = [
     presetUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1600&auto=format&fit=crop&q=80',
     position: 'center 15%',
     colorClass: 'bg-red-950/90 text-yellow-300 border-yellow-500/40',
+    particleType: 'mai_dao',
   },
   {
     id: 'on_thi_hk',
@@ -107,6 +123,7 @@ export const SEASONAL_THEMES = [
     presetUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1600&auto=format&fit=crop&q=80',
     position: 'center center',
     colorClass: 'bg-blue-950/90 text-cyan-300 border-cyan-500/40',
+    particleType: 'confetti',
   },
   {
     id: 'none',
@@ -115,6 +132,7 @@ export const SEASONAL_THEMES = [
     slogan: 'Khám phá nền tảng giáo dục thông minh với đầy đủ công cụ quản lý chuyên môn, bài giảng tương tác.',
     icon: '✨',
     colorClass: 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30',
+    particleType: 'none',
   },
 ];
 
@@ -125,9 +143,17 @@ export function getActiveSeasonalTheme(selectedId) {
   if (!selectedId || selectedId === 'none') return null;
 
   if (selectedId === 'auto') {
-    const month = new Date().getMonth() + 1; // 1 đến 12
+    const now = new Date();
+    const month = now.getMonth() + 1; // 1 đến 12
+    const day = now.getDate();
+
     if (month === 9) {
-      return SEASONAL_THEMES.find((t) => t.id === 'khai_giang');
+      // Đầu tháng 9 là Khai giảng, giữa/cuối tháng 9 là Trung Thu
+      return day <= 15 
+        ? SEASONAL_THEMES.find((t) => t.id === 'khai_giang')
+        : SEASONAL_THEMES.find((t) => t.id === 'trung_thu');
+    } else if (month === 10) {
+      return SEASONAL_THEMES.find((t) => t.id === 'trung_thu');
     } else if (month === 11) {
       return SEASONAL_THEMES.find((t) => t.id === 'tri_an_2011');
     } else if (month === 1 || month === 2) {
@@ -152,6 +178,11 @@ export const DEFAULT_BANNER_CONFIG = {
   kenBurnsEnabled: true, // Hiệu ứng thu phóng nhẹ 3-5% sống động như phim
   pauseOnHover: true, // Tạm dừng slideshow khi rê chuột vào để đọc
   seasonalTheme: 'auto', // Tự động theo lịch năm học
+  particlesEnabled: true, // Hiệu ứng hoa mai, tuyết rơi, lồng đèn
+  audioChimeEnabled: true, // Chuông chào mừng nhẹ nhàng khi bắt đầu giờ học
+  countdownEnabled: true, // Đồng hồ đếm ngược ngày thi
+  countdownTitle: 'Kỳ Thi Tuyển Sinh Vào Lớp 10',
+  countdownTargetDate: '2026-06-08T07:30:00',
   slideshowImages: [
     BANNER_PRESETS[0].url,
     BANNER_PRESETS[1].url,
@@ -282,8 +313,8 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
               <ImageIcon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold tracking-tight">Tùy Chỉnh Banner, Slideshow & Mùa Lễ Hội</h3>
-              <p className="text-[11px] text-slate-300 font-medium">Ken Burns Effect, Pause on Hover, Bộ lọc màu & Tự động đổi theo mùa thi</p>
+              <h3 className="text-base font-extrabold tracking-tight">Tùy Chỉnh Banner, Slideshow & Lễ Hội</h3>
+              <p className="text-[11px] text-slate-300 font-medium">Trung Thu, THCS Đề Gi, Hạt rơi lễ hội, Chuông đầu giờ & Đếm ngược ngày thi</p>
             </div>
           </div>
           <button
@@ -352,7 +383,7 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
 
         {/* BODY */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-          {/* LIVE PREVIEW BANNER VỚI BỘ LỌC MÀU, CHỦ ĐỀ SỰ KIỆN */}
+          {/* LIVE PREVIEW BANNER */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-black text-slate-800 uppercase tracking-wider">
               <span>👁️ Khung Xem Trước Banner Thực Tế</span>
@@ -708,19 +739,20 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
             </div>
           )}
 
-          {/* TAB 4: SỰ KIỆN LỄ HỘI & MÙA THI (SEASONAL THEMES) */}
+          {/* TAB 4: SỰ KIỆN LỄ HỘI, HẠT RƠI, CHUÔNG & ĐẾM NGƯỢC NGÀY THI */}
           {activeTab === 'seasonal' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-200 space-y-1">
                 <h4 className="text-xs font-black text-rose-950 flex items-center space-x-1.5">
                   <Calendar className="w-4 h-4 text-rose-600" />
-                  <span>Chủ Đề Sự Kiện Mùa & Lễ Hội Năm Học THCS</span>
+                  <span>Chủ Đề Sự Kiện Mùa & Lễ Hội Năm Học THCS Đề Gi</span>
                 </h4>
                 <p className="text-[11px] text-rose-800 font-medium leading-relaxed">
-                  Tự động thay đổi diện mạo banner theo các mốc thời gian ý nghĩa trong năm (Khai giảng tháng 9, Tri ân 20/11, Tết cổ truyền, Mùa ôn thi học kỳ).
+                  Tự động hoặc thủ công thay đổi diện mạo banner theo các mốc ý nghĩa: Khai giảng, Trung Thu, 20/11, Tết cổ truyền và Mùa ôn thi.
                 </p>
               </div>
 
+              {/* DANH SÁCH CHỦ ĐỀ SỰ KIỆN */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {SEASONAL_THEMES.map((theme) => {
                   const isSelected = config.seasonalTheme === theme.id;
@@ -750,6 +782,109 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
                     </div>
                   );
                 })}
+              </div>
+
+              {/* KHỐI TÙY CHỌN NÂNG CAO: HẠT RƠI, CHUÔNG ĐẦU GIỜ & ĐẾM NGƯỢC */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                <h5 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center space-x-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>Tiện Ích Tương Tác Lễ Hội & Mùa Thi</span>
+                </h5>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* 1. HIỆU ỨNG HẠT RƠI (PARTICLE EFFECTS) */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div className="space-y-0.5 pr-2">
+                      <span className="text-xs font-bold text-slate-900 flex items-center space-x-1">
+                        <span>🌸</span>
+                        <span>Hạt rơi lễ hội (Hoa mai, tuyết, lồng đèn)</span>
+                      </span>
+                      <p className="text-[10px] text-slate-500">Hiệu ứng cánh hoa / lồng đèn / pháo giấy bay lượn trên banner</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={config.particlesEnabled}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, particlesEnabled: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600" />
+                    </label>
+                  </div>
+
+                  {/* 2. CHUÔNG CHÀO MỪNG ĐẦU GIỜ (AUDIO CHIME) */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div className="space-y-0.5 pr-2">
+                      <span className="text-xs font-bold text-slate-900 flex items-center space-x-1">
+                        <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Chuông chào mừng đầu giờ (2s)</span>
+                      </span>
+                      <p className="text-[10px] text-slate-500">Âm thanh chuông nhẹ nhàng truyền cảm hứng khi vào học</p>
+                      <button
+                        type="button"
+                        onClick={playWelcomeChime}
+                        className="text-[10px] font-bold text-emerald-700 hover:underline flex items-center space-x-1 pt-0.5 cursor-pointer"
+                      >
+                        <span>🔊 Bấm nghe thử chuông</span>
+                      </button>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={config.audioChimeEnabled}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, audioChimeEnabled: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* 3. ĐỒNG HỒ ĐẾM NGƯỢC NGÀY THI (COUNTDOWN TIMER) */}
+                <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold text-slate-900 flex items-center space-x-1">
+                        <Clock className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Đồng hồ đếm ngược ngày thi trực tiếp trên Banner</span>
+                      </span>
+                      <p className="text-[10px] text-slate-500">Đếm ngược chính xác Ngày, Giờ, Phút, Giây đến ngày thi học kỳ / lớp 10</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={config.countdownEnabled}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, countdownEnabled: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600" />
+                    </label>
+                  </div>
+
+                  {config.countdownEnabled && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-700">Tên kỳ thi:</label>
+                        <input
+                          type="text"
+                          value={config.countdownTitle}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, countdownTitle: e.target.value }))}
+                          placeholder="Ví dụ: Kỳ Thi Tuyển Sinh Lớp 10"
+                          className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 bg-slate-50 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-700">Ngày diễn ra kỳ thi:</label>
+                        <input
+                          type="datetime-local"
+                          value={config.countdownTargetDate?.substring(0, 16) || '2026-06-08T07:30'}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, countdownTargetDate: e.target.value }))}
+                          className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 bg-slate-50 outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

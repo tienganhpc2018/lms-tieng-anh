@@ -5,7 +5,7 @@ export const DEFAULT_FOOTER_CONFIG = {
   titleCol1: 'Trang Học Liệu',
   descCol1: 'Học Liệu Tiếng Anh được hoàn thiện và ra mắt vào ngày 30/8/2023. Với mục đích để lưu giữ tư liệu cá nhân trong việc giảng dạy và đồng thời giúp các em học sinh có thể tham khảo soạn bài và một số tài liệu cần thiết cho việc học.',
   titleCol2: 'Kết nối với tôi',
-  teacherNameSchool: 'Nguyễn Văn Hải - THCS Cát Minh',
+  teacherNameSchool: 'Nguyễn Văn Hải - THCS Đề Gi',
   email: 'ngvanhaiai81@gmail.com',
   phone: '+84 (0) 384635199',
   copyright: 'Bản quyền thuộc © Nguyễn Văn Hải',
@@ -124,7 +124,7 @@ export default function FooterEditModal({ isOpen, onClose, currentConfig, onSave
                   type="text"
                   value={formData.teacherNameSchool}
                   onChange={(e) => handleChange('teacherNameSchool', e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn Hải - THCS Cát Minh"
+                  placeholder="Ví dụ: Nguyễn Văn Hải - THCS Đề Gi"
                   className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 bg-white outline-none"
                 />
               </div>

@@ -7,12 +7,15 @@ import UserManagementModal from '../components/lms/UserManagementModal';
 import AssignModal from '../components/lms/AssignModal';
 import Footer from '../components/common/Footer';
 import HeroBannerModal, { DEFAULT_BANNER_CONFIG, BANNER_FILTERS, getActiveSeasonalTheme } from '../components/lms/HeroBannerModal';
+import BannerParticles from '../components/lms/BannerParticles';
+import BannerCountdown from '../components/lms/BannerCountdown';
+import { playWelcomeChime } from '../utils/audioChime';
 import { getSiteSetting, saveSiteSetting } from '../services/siteSettingsService';
 import { 
   BookOpen, Plus, Users, Search, Key, Sparkles, FolderOpen, Crown, ChevronRight, 
   ChevronDown, Home, Lock, BarChart3, HelpCircle, FileText, CheckCircle2, Copy, 
   Check, Palette, Layers, Award, FileQuestion, ArrowRight, X, Clock, Eye, EyeOff,
-  Camera, Play, Pause
+  Camera, Play, Pause, Volume2
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import HomeLandingView from '../features/home/HomeLandingView';
@@ -71,6 +74,20 @@ export default function Dashboard() {
     isSlideshowHovered, 
     isSlideshowPaused
   ]);
+
+  // Chuông chào mừng nhẹ nhàng khi bắt đầu giờ học (Audio Chime)
+  useEffect(() => {
+    if (bannerConfig.audioChimeEnabled) {
+      const hasPlayed = sessionStorage.getItem('lms_chime_played_session');
+      if (!hasPlayed) {
+        const timer = setTimeout(() => {
+          playWelcomeChime();
+          sessionStorage.setItem('lms_chime_played_session', 'true');
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [bannerConfig.audioChimeEnabled]);
 
   const handleSaveBannerConfig = async (newConfig) => {
     setBannerConfig(newConfig);
@@ -552,15 +569,29 @@ export default function Dashboard() {
                 style={{ opacity: (bannerConfig.overlayOpacity !== undefined ? bannerConfig.overlayOpacity : 70) / 100 }}
               />
 
+              {/* HIỆU ỨNG HẠT RƠI LỄ HỘI (HOA MAI, TRUNG THU, BÔNG TUYẾT, PHÁO GIẤY) */}
+              {bannerConfig.particlesEnabled && (
+                <BannerParticles type={activeSeason?.particleType || 'confetti'} />
+              )}
+
               <div className="relative z-10 p-6 sm:p-8 w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="space-y-2.5 max-w-2xl select-text">
-                  {/* HUY HIỆU BADGE THEO MÙA LỄ HỘI / THI CỬ */}
-                  <span className={`text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-xl flex items-center space-x-1.5 backdrop-blur-xs w-fit border shadow-xs ${
-                    activeSeason?.colorClass || 'text-emerald-400 bg-emerald-950/80 border-emerald-500/30'
-                  }`}>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>{activeSeason?.badge || 'SỔ TAY DẠY HỌC THCS • GLOBAL SUCCESS'}</span>
-                  </span>
+                  {/* HUY HIỆU BADGE THEO MÙA LỄ HỘI / THI CỬ + ĐỒNG HỒ ĐẾM NGƯỢC */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-xl flex items-center space-x-1.5 backdrop-blur-xs w-fit border shadow-xs ${
+                      activeSeason?.colorClass || 'text-emerald-400 bg-emerald-950/80 border-emerald-500/30'
+                    }`}>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{activeSeason?.badge || 'SỔ TAY DẠY HỌC THCS • GLOBAL SUCCESS'}</span>
+                    </span>
+
+                    {bannerConfig.countdownEnabled && (
+                      <BannerCountdown
+                        targetDate={bannerConfig.countdownTargetDate}
+                        title={bannerConfig.countdownTitle}
+                      />
+                    )}
+                  </div>
 
                   <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-md">
                     Chào mừng trở lại, {getDisplayName(profile, user)}! 👋
@@ -592,6 +623,16 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 select-none">
+                  {/* NÚT PHÁT CHUÔNG CHÀO MỪNG ĐẦU GIỜ */}
+                  <button
+                    type="button"
+                    onClick={playWelcomeChime}
+                    className="p-2.5 bg-slate-900/80 hover:bg-slate-900 text-emerald-400 hover:text-emerald-300 rounded-xl backdrop-blur-md border border-white/20 shadow-md transition cursor-pointer"
+                    title="Phát chuông chào mừng nhẹ nhàng đầu giờ học (Audio Chime)"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+
                   {userIsTeacher && (
                     <button
                       type="button"
