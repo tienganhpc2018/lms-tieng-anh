@@ -6,10 +6,12 @@ import CenterToastModal from '../components/common/CenterToastModal';
 import UserManagementModal from '../components/lms/UserManagementModal';
 import AssignModal from '../components/lms/AssignModal';
 import Footer from '../components/common/Footer';
+import HeroBannerModal, { DEFAULT_BANNER_CONFIG } from '../components/lms/HeroBannerModal';
 import { 
   BookOpen, Plus, Users, Search, Key, Sparkles, FolderOpen, Crown, ChevronRight, 
   ChevronDown, Home, Lock, BarChart3, HelpCircle, FileText, CheckCircle2, Copy, 
-  Check, Palette, Layers, Award, FileQuestion, ArrowRight, X, Clock, Eye, EyeOff
+  Check, Palette, Layers, Award, FileQuestion, ArrowRight, X, Clock, Eye, EyeOff,
+  Camera
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import HomeLandingView from '../features/home/HomeLandingView';
@@ -22,6 +24,23 @@ export default function Dashboard() {
   const [userEnrollments, setUserEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Banner tùy chỉnh ảnh nền & không bị khuất mặt
+  const [bannerConfig, setBannerConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lms_hero_banner_config');
+      if (saved) return { ...DEFAULT_BANNER_CONFIG, ...JSON.parse(saved) };
+    } catch (e) {}
+    return DEFAULT_BANNER_CONFIG;
+  });
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+
+  const handleSaveBannerConfig = (newConfig) => {
+    setBannerConfig(newConfig);
+    try {
+      localStorage.setItem('lms_hero_banner_config', JSON.stringify(newConfig));
+    } catch (e) {}
+  };
 
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -466,15 +485,19 @@ export default function Dashboard() {
       />
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* HERO BANNER - ĐÃ CHỈNH RÕ NÉT 85% ANH NỀN (ẢNH 3) */}
+        {/* HERO BANNER - TÙY BIẾN ẢNH NỀN KHÔNG BỊ KHUẤT MẶT */}
         <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200">
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-85 scale-105 transition duration-700 hover:scale-100"
+            className="absolute inset-0 bg-cover transition-all duration-700 hover:scale-102"
             style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&auto=format&fit=crop&q=80')`,
+              backgroundImage: `url('${bannerConfig.imageUrl || DEFAULT_BANNER_CONFIG.imageUrl}')`,
+              backgroundPosition: bannerConfig.position || DEFAULT_BANNER_CONFIG.position,
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-slate-950/30 to-transparent" />
+          <div 
+            className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/60 to-transparent transition-opacity duration-300"
+            style={{ opacity: (bannerConfig.overlayOpacity !== undefined ? bannerConfig.overlayOpacity : 70) / 100 }}
+          />
 
           <div className="relative z-10 p-6 sm:p-8 w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div className="space-y-2.5 max-w-2xl">
@@ -512,9 +535,23 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="hidden lg:flex items-center space-x-2 px-5 py-2.5 bg-amber-500/30 border border-amber-400/50 rounded-2xl text-amber-300 text-xs font-extrabold backdrop-blur-md shadow-lg">
-              <Crown className="w-5 h-5 text-amber-400 animate-bounce" />
-              <span>{isTeacher ? '👑 Đặc quyền VIP Giáo Viên' : '🎓 Học Sinh Chính Thức'}</span>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
+              {userIsTeacher && (
+                <button
+                  type="button"
+                  onClick={() => setIsBannerModalOpen(true)}
+                  className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-900/80 hover:bg-slate-900 text-white hover:text-emerald-400 text-xs font-bold rounded-xl backdrop-blur-md border border-white/20 shadow-md transition cursor-pointer"
+                  title="Thay đổi ảnh nền banner hoặc chỉnh góc hiển thị để không bị khuất mặt"
+                >
+                  <Camera className="w-4 h-4 text-emerald-400" />
+                  <span>📷 Đổi ảnh nền Banner</span>
+                </button>
+              )}
+
+              <div className="hidden lg:flex items-center space-x-2 px-4 py-2 bg-amber-500/30 border border-amber-400/50 rounded-2xl text-amber-300 text-xs font-extrabold backdrop-blur-md shadow-lg">
+                <Crown className="w-5 h-5 text-amber-400 animate-bounce" />
+                <span>{isTeacher ? '👑 Đặc quyền VIP Giáo Viên' : '🎓 Học Sinh Chính Thức'}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -970,6 +1007,14 @@ export default function Dashboard() {
 
       {/* CHÂN TRANG FOOTER CHUẨN ẢNH MẪU 2 */}
       <Footer />
+
+      {/* MODAL TÙY CHỈNH ẢNH NỀN BANNER (TRÁNH KHUẤT MẶT) */}
+      <HeroBannerModal
+        isOpen={isBannerModalOpen}
+        onClose={() => setIsBannerModalOpen(false)}
+        currentConfig={bannerConfig}
+        onSave={handleSaveBannerConfig}
+      />
 
       {/* MODAL NGÂN HÀNG CÂU HỎI & ĐỀ THI THỬ CÓ TAB KHÓA HỌC VÀ GIAO BÀI (ẢNH 2) */}
       {isQuestionBankOpen && (
