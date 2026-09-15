@@ -394,6 +394,7 @@ export default function InteractiveLessonBookView() {
         onReplayAudio={() => {
           window.speechSynthesis?.cancel();
         }}
+        isTeacher={isTeacher}
       />
     </div>
   );

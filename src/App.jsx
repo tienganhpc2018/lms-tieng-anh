@@ -37,6 +37,28 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function TeacherRoute({ children }) {
+  const { user, isTeacher, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!isTeacher) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -158,9 +180,9 @@ export default function App() {
               <Route
                 path="/analytics"
                 element={
-                  <ProtectedRoute>
+                  <TeacherRoute>
                     <TeacherAnalytics />
-                  </ProtectedRoute>
+                  </TeacherRoute>
                 }
               />
 
@@ -194,33 +216,33 @@ export default function App() {
               <Route
                 path="/behavior"
                 element={
-                  <ProtectedRoute>
+                  <TeacherRoute>
                     <ErrorBoundary>
                       <BehaviorPage />
                     </ErrorBoundary>
-                  </ProtectedRoute>
+                  </TeacherRoute>
                 }
               />
 
               <Route
                 path="/gift-shop"
                 element={
-                  <ProtectedRoute>
+                  <TeacherRoute>
                     <ErrorBoundary>
                       <GiftShopView />
                     </ErrorBoundary>
-                  </ProtectedRoute>
+                  </TeacherRoute>
                 }
               />
 
               <Route
                 path="/film-reel"
                 element={
-                  <ProtectedRoute>
+                  <TeacherRoute>
                     <ErrorBoundary>
                       <FilmReelView />
                     </ErrorBoundary>
-                  </ProtectedRoute>
+                  </TeacherRoute>
                 }
               />
 

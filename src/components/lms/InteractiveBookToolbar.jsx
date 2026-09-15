@@ -38,7 +38,8 @@ export default function InteractiveBookToolbar({
   onNextTask,
   audioRate,
   onChangeAudioRate,
-  onReplayAudio
+  onReplayAudio,
+  isTeacher = false
 }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -163,22 +164,24 @@ export default function InteractiveBookToolbar({
         </button>
       </div>
 
-      {/* 2. NÚT SOI ĐÁP ÁN (SHOW/HIDE KEY) */}
-      <div className="flex items-center space-x-1 px-2 border-r border-slate-700/80">
-        <button
-          type="button"
-          onClick={onToggleAnswerKey}
-          className={`px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer ${
-            showAnswerKey
-              ? 'bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300'
-              : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30'
-          }`}
-          title="Hiện hoặc ẩn đáp án bài tập"
-        >
-          {showAnswerKey ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-          <span className="hidden md:inline">{showAnswerKey ? 'Ẩn Đáp Án' : 'Soi Đáp Án'}</span>
-        </button>
-      </div>
+      {/* 2. NÚT SOI ĐÁP ÁN (SHOW/HIDE KEY) - CHỈ DÀNH CHO GIÁO VIÊN */}
+      {isTeacher && (
+        <div className="flex items-center space-x-1 px-2 border-r border-slate-700/80">
+          <button
+            type="button"
+            onClick={onToggleAnswerKey}
+            className={`px-2.5 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer ${
+              showAnswerKey
+                ? 'bg-amber-400 text-slate-950 shadow-md ring-2 ring-amber-300'
+                : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30'
+            }`}
+            title="Hiện hoặc ẩn đáp án bài tập"
+          >
+            {showAnswerKey ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            <span className="hidden md:inline">{showAnswerKey ? 'Ẩn Đáp Án' : 'Soi Đáp Án'}</span>
+          </button>
+        </div>
+      )}
 
       {/* 3. TỐC ĐỘ ĐỌC AUDIO & PHÁT LẠI */}
       <div className="flex items-center space-x-1 px-2 border-r border-slate-700/80">

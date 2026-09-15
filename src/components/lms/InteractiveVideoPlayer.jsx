@@ -270,6 +270,64 @@ const DragTheWordsH5P = React.memo(({ textWithBlanks, extraWords = [], draggedAn
   );
 });
 
+// COMPONENT H5P "FILL IN THE BLANKS" CHUẨN 100% PHÒNG NGỪA REFERENCE ERROR
+const FillBlanksSentenceH5P = React.memo(({ textWithBlanks, blankInputs = {}, onInputChange, quizFeedback, isSolutionVisible }) => {
+  const { parts, answers } = useMemo(() => parseFillBlanksText(textWithBlanks), [textWithBlanks]);
+  const isChecked = quizFeedback !== null;
+
+  return (
+    <div className="text-base sm:text-lg text-slate-800 leading-loose select-text space-y-2">
+      <div className="flex flex-wrap items-baseline gap-y-3">
+        {parts.map((item, pIdx) => {
+          if (item.type === 'text') {
+            return <span key={`fb_text_${pIdx}`} className="whitespace-pre-wrap">{item.content}</span>;
+          }
+          const userVal = (blankInputs[item.index] || '').trim();
+          const correctAns = answers[item.index] || item.answer || '';
+          const isCorrect = isChecked && userVal.toLowerCase() === correctAns.toLowerCase();
+
+          return (
+            <span key={`fb_blank_${item.index}`} className="inline-flex items-baseline mx-1 align-baseline">
+              {!isChecked ? (
+                <input
+                  type="text"
+                  value={blankInputs[item.index] || ''}
+                  onChange={(e) => onInputChange && onInputChange(item.index, e.target.value)}
+                  placeholder="..."
+                  style={{ width: `${Math.max(8, correctAns.length + 4)}ch` }}
+                  className="px-3 py-1 text-sm sm:text-base font-bold text-center rounded-lg border-2 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition bg-slate-50 focus:bg-white text-slate-900 shadow-inner"
+                />
+              ) : isCorrect ? (
+                <span className="inline-flex items-center px-3 py-1 rounded-lg bg-emerald-100 text-emerald-900 font-bold border-2 border-emerald-400 text-sm sm:text-base shadow-xs">
+                  <span>{userVal}</span>
+                  <span className="ml-1.5 text-emerald-600 font-black text-xs">✓</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center space-x-1.5 align-baseline">
+                  <span className="inline-flex items-center px-3 py-1 rounded-lg bg-rose-100 text-rose-900 font-bold border-2 border-rose-400 text-sm sm:text-base shadow-xs">
+                    <span className="line-through">{userVal || '___'}</span>
+                    <span className="ml-1.5 text-rose-600 font-black text-xs">✕</span>
+                  </span>
+                  {isSolutionVisible ? (
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-emerald-100 text-emerald-900 font-bold border-2 border-emerald-400 text-sm sm:text-base shadow-xs">
+                      <span>{correctAns}</span>
+                      <span className="ml-1.5 text-emerald-600 font-black text-xs">✓</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-slate-500 italic">
+                      (Đáp án: <strong className="text-emerald-700 font-extrabold">{correctAns}</strong>)
+                    </span>
+                  )}
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
 export default function InteractiveVideoPlayer({ activity, isTeacher }) {
   const containerRef = useRef(null);
   const html5VideoRef = useRef(null);
@@ -679,6 +737,35 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
       setSelectedMarkWords(selectedMarkWords.filter((w) => w !== word));
     } else {
       setSelectedMarkWords([...selectedMarkWords, word]);
+    }
+  };
+
+  // HELPER TUA VIDEO TỚI MỐC VÀ TỰ ĐỘNG KÍCH HOẠT CÂU HỎI KHI BẤM VÀO MỐC
+  const seekToTime = (targetSec) => {
+    const validSec = Math.max(0, Math.min(targetSec, duration || 146));
+    const roundedSec = Math.floor(validSec);
+    setCurrentTime(roundedSec);
+
+    if (html5VideoRef.current) {
+      html5VideoRef.current.currentTime = validSec;
+    }
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
+      try {
+        ytPlayerRef.current.seekTo(validSec, true);
+      } catch (e) {}
+    }
+
+    // Nếu người dùng bấm vào một mốc câu hỏi waypoint
+    const matchedWp = waypoints.find((w) => Math.abs(w.timeSec - roundedSec) <= 1);
+    if (matchedWp) {
+      pauseVideo();
+      setActiveQuiz(matchedWp);
+      setQuizFeedback(null);
+      setIsSolutionVisible(false);
+      setBlankInputs({});
+      setSelectedOpt('');
+      setTrueFalseChoice(null);
+      setSelectedMarkWords([]);
     }
   };
 
@@ -1471,7 +1558,15 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
             {isPlaying ? <Pause className="w-4 h-4 text-amber-400" /> : <Play className="w-4 h-4 text-emerald-400 ml-0.5" />}
           </button>
 
-          <div className="flex-1 relative h-6 flex items-center cursor-pointer">
+          <div
+            className="flex-1 relative h-6 flex items-center cursor-pointer"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickX = e.clientX - rect.left;
+              const newPercent = Math.max(0, Math.min(1, clickX / rect.width));
+              seekToTime(newPercent * (duration || 146));
+            }}
+          >
             <div className="w-full bg-slate-800/90 h-2 rounded-full overflow-hidden border border-slate-700 relative">
               <div
                 className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all"
@@ -1485,7 +1580,11 @@ export default function InteractiveVideoPlayer({ activity, isTeacher }) {
               return (
                 <div
                   key={idx}
-                  title={`Mốc ${w.timeSec}s: ${w.question}`}
+                  title={`Mốc ${w.timeSec}s: ${w.question} (Bấm để nhảy tới)`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    seekToTime(w.timeSec);
+                  }}
                   style={{ left: `${posPercent}%` }}
                   className={`absolute top-1/2 -translate-y-1/2 -ml-2 w-4 h-4 rounded-full border-2 border-white ring-2 shadow-md cursor-pointer hover:scale-125 transition z-40 flex items-center justify-center ${
                     isP ? 'bg-emerald-400 ring-emerald-500/50' : 'bg-amber-400 ring-amber-500/50 animate-pulse'

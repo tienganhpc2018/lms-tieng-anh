@@ -79,8 +79,8 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* NÚT TRUY CẬP NHANH SỔ NỀ NẾP 4.0 & CỬA HÀNG QUÀ TRÊN THANH ĐIỀU HƯỚNG */}
-          {user && location.pathname !== '/auth' && (
+          {/* NÚT TRUY CẬP NHANH SỔ NỀ NẾP 4.0 & CỬA HÀNG QUÀ TRÊN THANH ĐIỀU HƯỚNG (CHỈ DÀNH CHO GIÁO VIÊN) */}
+          {user && isTeacher && location.pathname !== '/auth' && (
             <div className="hidden md:flex items-center space-x-2">
               <Link
                 to="/behavior"
@@ -124,29 +124,34 @@ export default function Navbar() {
           <div className="flex items-center space-x-3" ref={dropdownRef}>
             {user && location.pathname !== '/auth' ? (
               <div className="flex items-center space-x-2">
-                <Link
-                  to="/behavior"
-                  className="md:hidden p-2 rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold"
-                  title="Sổ Nề Nếp 4.0"
-                >
-                  🛡️
-                </Link>
+                {/* CÁC NÚT NHANH MOBILE CHỈ DÀNH CHO GIÁO VIÊN */}
+                {isTeacher && (
+                  <>
+                    <Link
+                      to="/behavior"
+                      className="md:hidden p-2 rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold"
+                      title="Sổ Nề Nếp 4.0"
+                    >
+                      🛡️
+                    </Link>
 
-                <Link
-                  to="/gift-shop"
-                  className="md:hidden p-2 rounded-xl bg-amber-900/60 border border-amber-500/40 text-amber-200 text-xs font-bold"
-                  title="Cửa Hàng Đổi Quà 4.0"
-                >
-                  🎁
-                </Link>
+                    <Link
+                      to="/gift-shop"
+                      className="md:hidden p-2 rounded-xl bg-amber-900/60 border border-amber-500/40 text-amber-200 text-xs font-bold"
+                      title="Cửa Hàng Đổi Quà 4.0"
+                    >
+                      🎁
+                    </Link>
 
-                <Link
-                  to="/film-reel"
-                  className="md:hidden p-2 rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold"
-                  title="Cuộn Phim Kỷ Niệm"
-                >
-                  🎞️
-                </Link>
+                    <Link
+                      to="/film-reel"
+                      className="md:hidden p-2 rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold"
+                      title="Cuộn Phim Kỷ Niệm"
+                    >
+                      🎞️
+                    </Link>
+                  </>
+                )}
 
                 {/* 🔔 QUẢ CHUÔNG THÔNG BÁO THẬT NHẢY CHẤM ĐỎ DÀNH CHO HỌC SINH */}
                 <NotificationBell />
@@ -187,41 +192,46 @@ export default function Navbar() {
                       <span>Profile (Hồ sơ cá nhân)</span>
                     </Link>
 
-                    <Link
-                      to="/behavior"
-                      onClick={() => setIsUserDropdownOpen(false)}
-                      className="px-4 py-2 hover:bg-purple-50 hover:text-purple-800 flex items-center space-x-2 transition"
-                    >
-                      <span className="text-sm">🛡️</span>
-                      <span className="text-purple-700 font-extrabold">Sổ Nề Nếp 4.0</span>
-                    </Link>
+                    {/* CÁC CHỨC NĂNG QUẢN LÝ CHỈ DÀNH CHO GIÁO VIÊN */}
+                    {isTeacher && (
+                      <>
+                        <Link
+                          to="/behavior"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="px-4 py-2 hover:bg-purple-50 hover:text-purple-800 flex items-center space-x-2 transition"
+                        >
+                          <span className="text-sm">🛡️</span>
+                          <span className="text-purple-700 font-extrabold">Sổ Nề Nếp 4.0</span>
+                        </Link>
 
-                    <Link
-                      to="/gift-shop"
-                      onClick={() => setIsUserDropdownOpen(false)}
-                      className="px-4 py-2 hover:bg-amber-50 hover:text-amber-800 flex items-center space-x-2 transition"
-                    >
-                      <span className="text-sm">🎁</span>
-                      <span className="text-amber-700 font-extrabold">Cửa Hàng Quà 4.0</span>
-                    </Link>
+                        <Link
+                          to="/gift-shop"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="px-4 py-2 hover:bg-amber-50 hover:text-amber-800 flex items-center space-x-2 transition"
+                        >
+                          <span className="text-sm">🎁</span>
+                          <span className="text-amber-700 font-extrabold">Cửa Hàng Quà 4.0</span>
+                        </Link>
 
-                    <Link
-                      to="/film-reel"
-                      onClick={() => setIsUserDropdownOpen(false)}
-                      className="px-4 py-2 hover:bg-purple-50 hover:text-purple-800 flex items-center space-x-2 transition"
-                    >
-                      <span className="text-sm">🎞️</span>
-                      <span className="text-purple-700 font-extrabold">Cuộn Phim Kỷ Niệm</span>
-                    </Link>
+                        <Link
+                          to="/film-reel"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="px-4 py-2 hover:bg-purple-50 hover:text-purple-800 flex items-center space-x-2 transition"
+                        >
+                          <span className="text-sm">🎞️</span>
+                          <span className="text-purple-700 font-extrabold">Cuộn Phim Kỷ Niệm</span>
+                        </Link>
 
-                    <Link
-                      to="/analytics"
-                      onClick={() => setIsUserDropdownOpen(false)}
-                      className="px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800 flex items-center space-x-2 transition"
-                    >
-                      <Award className="w-4 h-4 text-purple-600" />
-                      <span>Grades (Bảng điểm)</span>
-                    </Link>
+                        <Link
+                          to="/analytics"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800 flex items-center space-x-2 transition"
+                        >
+                          <Award className="w-4 h-4 text-purple-600" />
+                          <span>Grades (Bảng điểm)</span>
+                        </Link>
+                      </>
+                    )}
 
                     <Link
                       to="/profile"
