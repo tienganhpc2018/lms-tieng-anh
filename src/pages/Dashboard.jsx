@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import CenterToastModal from '../components/common/CenterToastModal';
 import UserManagementModal from '../components/lms/UserManagementModal';
 import AssignModal from '../components/lms/AssignModal';
-import ClassFeed from '../features/community/ClassFeed';
+import Footer from '../components/common/Footer';
 import { 
   BookOpen, Plus, Users, Search, Key, Sparkles, FolderOpen, Crown, ChevronRight, 
   ChevronDown, Home, Lock, BarChart3, HelpCircle, FileText, CheckCircle2, Copy, 
@@ -966,22 +966,10 @@ export default function Dashboard() {
       </div>
     )}
 
-        {/* CẬP NHẬT YÊU CẦU MỚI: BẢNG TIN THÔNG BÁO DẶN DÒ BÀI HỌC CỦA THẦY NẰM DƯỚI CÙNG (DƯỚI CẢ NAVIGATION VÀ KHÓA HỌC - ẢNH 1) */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span>📢 BẢNG TIN THÔNG BÁO & DẶN DÒ BÀI HỌC CỦA THẦY (HỌC SINH XEM VÀ BÌNH LUẬN)</span>
-            </h3>
-            {isTeacher && (
-              <Link to="/community" className="text-xs font-bold text-emerald-700 hover:underline">
-                Quản trị diễn đàn Module 9-10 →
-              </Link>
-            )}
-          </div>
-          <ClassFeed courseId="general_announcement" />
-        </div>
       </div>
+
+      {/* CHÂN TRANG FOOTER CHUẨN ẢNH MẪU 2 */}
+      <Footer />
 
       {/* MODAL NGÂN HÀNG CÂU HỎI & ĐỀ THI THỬ CÓ TAB KHÓA HỌC VÀ GIAO BÀI (ẢNH 2) */}
       {isQuestionBankOpen && (

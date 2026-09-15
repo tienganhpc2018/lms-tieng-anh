@@ -23,29 +23,6 @@ export default function CommunityModuleView() {
   const userEmail = (user?.email || profile?.email || '').toLowerCase();
   const isActualTeacher = isTeacher && !userEmail.includes('hoangnm') && profile?.role !== 'student';
 
-  // PHÂN QUYỀN BẢO MẬT 100%: NẾU LÀ HỌC SINH -> KHÓA KHÔNG CHO VÀO TRANG NÀY ĐỂ TỰ IN CHỨNG NHẬN HAY XEM ĐỀ THI
-  if (!isActualTeacher) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 p-6 font-sans select-none">
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl max-w-md text-center space-y-4">
-          <div className="w-16 h-16 mx-auto bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-extrabold text-2xl">
-            🔒
-          </div>
-          <h2 className="text-lg font-extrabold text-slate-900">TRANG DÀNH RIÊNG CHO GIÁO VIÊN</h2>
-          <p className="text-xs text-slate-600 font-semibold leading-relaxed">
-            Học sinh không có quyền truy cập trang quản trị này. Các em vui lòng xem thông báo dặn dò bài tập của Thầy trực tiếp tại Trang Chủ Dashboard!
-          </p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition"
-          >
-            🏠 Quay Về Trang Chủ Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={`min-h-screen transition-colors duration-300 p-4 sm:p-6 lg:p-8 font-sans select-none ${
       darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'
@@ -116,40 +93,44 @@ export default function CommunityModuleView() {
             ❓ Diễn Đàn Hỏi Đáp (COMM-06)
           </button>
 
-          <button
-            onClick={() => setActiveTab('ai')}
-            className={`px-4 py-2 rounded-xl transition ${
-              activeTab === 'ai' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            🤖 AI Trắc Nghiệm & Soạn Giáo Án (ADV-02 & ADV-03)
-          </button>
+          {isActualTeacher && (
+            <>
+              <button
+                onClick={() => setActiveTab('ai')}
+                className={`px-4 py-2 rounded-xl transition ${
+                  activeTab === 'ai' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                🤖 AI Trắc Nghiệm & Soạn Giáo Án (ADV-02 & ADV-03)
+              </button>
 
-          <button
-            onClick={() => setActiveTab('cert')}
-            className={`px-4 py-2 rounded-xl transition ${
-              activeTab === 'cert' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            👑 Cấp Bằng Khen PDF (ADV-07)
-          </button>
+              <button
+                onClick={() => setActiveTab('cert')}
+                className={`px-4 py-2 rounded-xl transition ${
+                  activeTab === 'cert' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                👑 Cấp Bằng Khen PDF (ADV-07)
+              </button>
 
-          <button
-            onClick={() => setActiveTab('advanced')}
-            className={`px-4 py-2 rounded-xl transition ${
-              activeTab === 'advanced' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            ⚡ Công Cụ Nâng Cao (ADV-04 ĐẾN ADV-10)
-          </button>
+              <button
+                onClick={() => setActiveTab('advanced')}
+                className={`px-4 py-2 rounded-xl transition ${
+                  activeTab === 'advanced' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                ⚡ Công Cụ Nâng Cao (ADV-04 ĐẾN ADV-10)
+              </button>
+            </>
+          )}
         </div>
 
         {/* TAB CONTENTS */}
         {activeTab === 'feed' && <ClassFeed courseId={courseId} />}
         {activeTab === 'qa' && <QaForum courseId={courseId} />}
-        {activeTab === 'ai' && <AiLessonPlanGenerator />}
-        {activeTab === 'cert' && <CertificateGenerator />}
-        {activeTab === 'advanced' && <AdvancedToolsPanel />}
+        {isActualTeacher && activeTab === 'ai' && <AiLessonPlanGenerator />}
+        {isActualTeacher && activeTab === 'cert' && <CertificateGenerator />}
+        {isActualTeacher && activeTab === 'advanced' && <AdvancedToolsPanel />}
 
         {/* FLOATING AI CHATBOT (ADV-01) */}
         <AiTutorFloatChat />
