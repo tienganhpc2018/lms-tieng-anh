@@ -1,34 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import FooterEditModal, { DEFAULT_FOOTER_CONFIG } from './FooterEditModal';
-import { Settings, Edit2 } from 'lucide-react';
+import { Edit2 } from 'lucide-react';
+import { getSiteSetting, saveSiteSetting } from '../../services/siteSettingsService';
 
-const STORAGE_KEY = 'lms_footer_custom_config';
+const SETTING_KEY = 'footer_config';
 
 export default function Footer() {
   const { isTeacher } = useAuth();
   const [config, setConfig] = useState(DEFAULT_FOOTER_CONFIG);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Nạp cấu hình tùy chỉnh từ localStorage khi mở trang
+  // Nạp cấu hình từ Supabase DB (ưu tiên) kết hợp cache localStorage
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setConfig({ ...DEFAULT_FOOTER_CONFIG, ...JSON.parse(saved) });
+    let isMounted = true;
+    const loadConfig = async () => {
+      const data = await getSiteSetting(SETTING_KEY, DEFAULT_FOOTER_CONFIG);
+      if (isMounted && data) {
+        setConfig(data);
       }
-    } catch (e) {
-      console.error('Lỗi nạp cấu hình footer:', e);
-    }
+    };
+    loadConfig();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleSaveConfig = (newConfig) => {
+  const handleSaveConfig = async (newConfig) => {
     setConfig(newConfig);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
-    } catch (e) {
-      console.error('Lỗi lưu cấu hình footer:', e);
-    }
+    await saveSiteSetting(SETTING_KEY, newConfig);
   };
 
   return (
