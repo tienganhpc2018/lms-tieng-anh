@@ -9,6 +9,27 @@
   }
 }
 
+/* Hiệu ứng tia sáng ngọc bích lướt nhẹ qua các nút bấm (Shimmer Effect) mỗi 4s */
+@keyframes shimmerWave {
+  0% { transform: translateX(-150%) skewX(-20deg); opacity: 0; }
+  15% { opacity: 0.6; }
+  35% { transform: translateX(250%) skewX(-20deg); opacity: 0; }
+  100% { transform: translateX(250%) skewX(-20deg); opacity: 0; }
+}
+
+.animate-shimmer {
+  animation: shimmerWave 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Ẩn thanh cuộn nhưng vẫn cuộn ngang mượt mà cho thước phim */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

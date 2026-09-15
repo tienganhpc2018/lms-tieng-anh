@@ -183,10 +183,11 @@ export default function FeaturedCoursesBox({ courses = [], userIsTeacher = false
                   <button
                     type="button"
                     onClick={() => handleOpenCourse(item)}
-                    className="flex-1 py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 font-black text-xs rounded-xl border border-emerald-300/90 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer group/btn"
+                    className="relative overflow-hidden flex-1 py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 font-black text-xs rounded-xl border border-emerald-300/90 shadow-2xs transition flex items-center justify-center space-x-1.5 cursor-pointer group/btn"
                   >
-                    <span>Tìm hiểu thêm</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-emerald-700 group-hover/btn:translate-x-0.5 transition transform" />
+                    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-emerald-300/50 to-transparent pointer-events-none" />
+                    <span className="relative z-10">Tìm hiểu thêm</span>
+                    <ArrowRight className="relative z-10 w-3.5 h-3.5 text-emerald-700 group-hover/btn:translate-x-0.5 transition transform" />
                   </button>
 
                   <button

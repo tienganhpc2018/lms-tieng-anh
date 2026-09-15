@@ -187,12 +187,12 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={handleToggleBell}
-        className="relative p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition border border-slate-700 focus:outline-hidden cursor-pointer"
+        className="relative p-2 bg-white hover:bg-emerald-100/80 text-emerald-950 rounded-2xl transition border border-emerald-300/90 shadow-2xs focus:outline-hidden cursor-pointer group"
         title="Thông báo hệ thống"
       >
-        <Bell className="w-5 h-5 text-amber-400" />
+        <Bell className="w-5 h-5 text-emerald-700 group-hover:text-emerald-800 transition" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-600 text-white font-black text-[10px] rounded-full flex items-center justify-center border-2 border-slate-900 animate-bounce shadow-sm">
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white font-black text-[10px] rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-xs">
             {unreadCount}
           </span>
         )}

@@ -572,9 +572,10 @@ export default function Dashboard() {
                   filter: activeFilterCss,
                 }}
               />
+              {/* LỚP PHỦ TRONG SUỐT BẢO VỆ CHỮ NHẸ NHÀNG, KHÔNG LÀM MỜ ẢNH GỐC */}
               <div 
-                className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/60 to-transparent transition-opacity duration-500"
-                style={{ opacity: (bannerConfig.overlayOpacity !== undefined ? bannerConfig.overlayOpacity : 70) / 100 }}
+                className="absolute inset-0 bg-gradient-to-r from-emerald-950/50 via-emerald-950/15 to-transparent transition-opacity duration-500"
+                style={{ opacity: (bannerConfig.overlayOpacity !== undefined ? bannerConfig.overlayOpacity : 30) / 100 }}
               />
 
               {/* HIỆU ỨNG HẠT RƠI LỄ HỘI (HOA MAI, TRUNG THU, BÔNG TUYẾT, PHÁO GIẤY) */}
@@ -583,7 +584,7 @@ export default function Dashboard() {
               )}
 
               <div className="relative z-10 p-6 sm:p-8 w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="space-y-2.5 max-w-2xl select-text">
+                <div className="space-y-3 max-w-2xl select-text">
                   {/* HUY HIỆU BADGE THEO MÙA LỄ HỘI / THI CỬ + ĐỒNG HỒ ĐẾM NGƯỢC */}
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-xl flex items-center space-x-1.5 backdrop-blur-xs w-fit border shadow-xs ${
@@ -631,11 +632,11 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 select-none">
-                  {/* NÚT PHÁT CHUÔNG CHÀO MỪNG ĐẦU GIỜ */}
+                  {/* NÚT PHÁT CHUÔNG CHÀO MỪNG ĐẦU GIỜ - TÔNG TRẮNG VIỀN XANH LÁ ĐỒNG BỘ */}
                   <button
                     type="button"
                     onClick={playWelcomeChime}
-                    className="p-2.5 bg-slate-900/80 hover:bg-slate-900 text-emerald-400 hover:text-emerald-300 rounded-xl backdrop-blur-md border border-white/20 shadow-md transition cursor-pointer"
+                    className="p-2.5 bg-white/95 hover:bg-white text-emerald-800 hover:text-emerald-950 rounded-xl border border-emerald-300 shadow-md transition cursor-pointer"
                     title="Phát chuông chào mừng nhẹ nhàng đầu giờ học (Audio Chime)"
                   >
                     <Volume2 className="w-4 h-4" />
@@ -645,10 +646,10 @@ export default function Dashboard() {
                     <button
                       type="button"
                       onClick={() => setIsBannerModalOpen(true)}
-                      className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-900/80 hover:bg-slate-900 text-white hover:text-emerald-400 text-xs font-bold rounded-xl backdrop-blur-md border border-white/20 shadow-md transition cursor-pointer"
+                      className="flex items-center space-x-1.5 px-3.5 py-2 bg-white/95 hover:bg-white text-emerald-950 hover:text-emerald-700 text-xs font-black rounded-xl border border-emerald-300 shadow-md transition cursor-pointer"
                       title="Thay đổi ảnh nền banner, kích hoạt Slideshow, bộ lọc màu hoặc mùa lễ hội"
                     >
-                      <Camera className="w-4 h-4 text-emerald-400" />
+                      <Camera className="w-4 h-4 text-emerald-700" />
                       <span>📷 Đổi ảnh nền & Slideshow</span>
                     </button>
                   )}

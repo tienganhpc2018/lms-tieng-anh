@@ -1,107 +1,215 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Film, Calendar, Eye, Heart, Sparkles, ArrowRight, Camera } from 'lucide-react';
+import { Film, Calendar, Heart, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
 export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const navigate = useNavigate();
   const [activeModalPost, setActiveModalPost] = useState(null);
+  const [selectedGrade, setSelectedGrade] = useState('all');
+  const scrollContainerRef = useRef(null);
 
-  // 3 BÀI MẪU CUỘN PHIM HỒI ỨC CHUẨN ĐÚNG THEO YÊU CẦU CỦA THẦY
+  // DANH SÁCH 7 BÀI MẪU CUỘN PHIM HỒI ỨC CHO CẢ 3 KHỐI LỚP 9, 8, 7
   const FILM_MEMORIES = [
     {
       id: 'mem_1',
+      grade: '9',
       title: 'Giờ học dự án Speaking sôi nổi của lớp 9A',
       date: '12/09/2026',
       classTag: 'Lớp 9A',
       category: 'Thuyết Trình Tiếng Anh',
       coverImage: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80',
       description:
-        'Các nhóm học sinh cùng nhau tự tin thuyết trình về chủ đề "Community Services", sử dụng 100% tiếng Anh kèm sơ đồ tư duy tương tác. Không khí thảo luận vô cùng hào hứng và tràn ngập năng lượng tích cực.',
+        'Các nhóm học sinh cùng nhau tự tin thuyết trình về chủ đề "Community Services", sử dụng 100% tiếng Anh kèm sơ đồ tư duy tương tác. Không khí thảo luận vô cùng hào hứng.',
       tags: ['🎤 Thuyết Trình', '⭐ Xuất Sắc', '✨ Tiếng Anh 9'],
       likes: 42,
     },
     {
       id: 'mem_2',
+      grade: '8',
       title: 'Hoạt động đóng kịch Role-play Tiếng Anh lớp 8B',
       date: '08/09/2026',
       classTag: 'Lớp 8B',
       category: 'Sân Khấu Hóa Bài Học',
       coverImage: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&auto=format&fit=crop&q=80',
       description:
-        'Buổi thực hành kỹ năng Nói đầy ắp tiếng cười với các vở kịch ngắn về tình huống giao tiếp đời sống. Học sinh vận dụng xuất sắc ngữ điệu bản xứ và biểu cảm tự nhiên trước cả lớp.',
+        'Buổi thực hành kỹ năng Nói đầy ắp tiếng cười với các vở kịch ngắn về tình huống giao tiếp đời sống. Học sinh vận dụng xuất sắc ngữ điệu bản xứ và biểu cảm tự nhiên.',
       tags: ['🎭 Kịch Ngắn', '💬 Giao Tiếp', '🌟 Sáng Tạo'],
       likes: 38,
     },
     {
       id: 'mem_3',
+      grade: '7',
       title: 'Lễ trao thưởng vinh danh Ngôi Sao Thi Đua tháng',
       date: '05/09/2026',
       classTag: 'Khối 7-8-9',
       category: 'Vinh Danh & Trao Quà',
       coverImage: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=80',
       description:
-        'Vinh danh những gương mặt học sinh tiêu biểu đạt nhiều điểm cộng nhất trong Sổ nề nếp 4.0 và đổi thưởng những món quà ý nghĩa từ Cửa hàng quà tặng. Chúc mừng các em đã luôn nỗ lực!',
+        'Vinh danh những gương mặt học sinh tiêu biểu đạt nhiều điểm cộng nhất trong Sổ nề nếp 4.0 và đổi thưởng những món quà ý nghĩa từ Cửa hàng quà tặng. Chúc mừng các em!',
       tags: ['🏆 Vinh Danh', '🎁 Đổi Quà', '🎉 Tự Hào'],
       likes: 56,
     },
+    {
+      id: 'mem_4',
+      grade: '9',
+      title: 'Chuyên đề giải đề thi vào lớp 10 bứt phá điểm 9+',
+      date: '02/09/2026',
+      classTag: 'Lớp 9C',
+      category: 'Ôn Thi Tuyển Sinh',
+      coverImage: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80',
+      description:
+        'Buổi phân tích ma trận đề thi tuyển sinh vào 10 chuẩn CV7991 của Thầy Hải. Các chiến thuật bấm giờ làm bài trắc nghiệm và xử lý bẫy từ vựng hay gặp.',
+      tags: ['🎯 Ôn Thi 10', '🔥 Quyết Tâm', '📈 Điểm 9+'],
+      likes: 49,
+    },
+    {
+      id: 'mem_5',
+      grade: '8',
+      title: 'CLB Tiếng Anh tranh biện: City Life vs Country Life',
+      date: '28/08/2026',
+      classTag: 'Lớp 8A',
+      category: 'Tranh Biện Hùng Biện',
+      coverImage: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&auto=format&fit=crop&q=80',
+      description:
+        'Màn tranh luận nảy lửa và giàu sức thuyết phục giữa hai đội ủng hộ cuộc sống thành thị và nông thôn. Khả năng phản xạ tiếng Anh tự nhiên của học sinh được khen ngợi.',
+      tags: ['🗣️ Tranh Biện', '💡 Tư Duy', '🌟 Xuất Sắc'],
+      likes: 61,
+    },
+    {
+      id: 'mem_6',
+      grade: '7',
+      title: 'Đấu trường từ vựng Kahoot rộn rã tiếng cười lớp 7B',
+      date: '25/08/2026',
+      classTag: 'Lớp 7B',
+      category: 'Trò Chơi Học Tập',
+      coverImage: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&auto=format&fit=crop&q=80',
+      description:
+        'Không khí lớp học bùng nổ trong vòng đấu loại trực tiếp của trò chơi từ vựng Unit 1. Tinh thần đồng đội và phản xạ nhanh nhạy giúp các em tiếp thu bài rất hào hứng.',
+      tags: ['🎮 Gamification', '⚡ Phản Xạ', '👏 Sôi Động'],
+      likes: 53,
+    },
+  ];
+
+  // BỘ LỌC KỶ NIỆM THEO KHỐI LỚP
+  const filteredMemories = selectedGrade === 'all' 
+    ? FILM_MEMORIES 
+    : FILM_MEMORIES.filter((m) => m.grade === selectedGrade || m.classTag.includes(selectedGrade));
+
+  // HÀM CUỘN NGANG THƯỚC PHIM BẰNG NÚT MŨI TÊN
+  const handleScrollReel = (direction) => {
+    if (!scrollContainerRef.current) return;
+    const scrollAmount = direction === 'left' ? -380 : 380;
+    scrollContainerRef.current.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  const GRADE_FILTERS = [
+    { id: 'all', label: '🌟 Tất cả khối' },
+    { id: '9', label: '🎓 Lớp 9' },
+    { id: '8', label: '📖 Lớp 8' },
+    { id: '7', label: '🎒 Lớp 7' },
   ];
 
   return (
-    <div className="space-y-6">
-      {/* TIÊU ĐỀ BOX 3 */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 border-b border-slate-200 pb-3">
+    <div className="space-y-4 select-text">
+      {/* THANH TIÊU ĐỀ + BỘ LỌC KHỐI LỚP + NÚT CUỘN THƯỚC PHIM */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-3 border-b border-emerald-200/80 pb-3">
         <div className="flex items-center space-x-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
+          <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
             <Film className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight">
               Cuộn phim hồi ức
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            <p className="text-xs sm:text-sm text-slate-600 font-medium">
               Lưu giữ những khoảnh khắc học tập và kỷ niệm đáng nhớ của các thế hệ học trò
             </p>
           </div>
         </div>
 
-        {userIsTeacher && (
-          <Link
-            to="/film-reel"
-            className="text-xs font-black text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-xl border border-emerald-300 transition flex items-center space-x-1 shadow-2xs"
-          >
-            <span>Quản lý cuộn phim ➔</span>
-          </Link>
-        )}
+        {/* CỤM NÚT BỘ LỌC KHỐI LỚP (TẤT CẢ / LỚP 9 / LỚP 8 / LỚP 7) + ĐIỀU HƯỚNG CUỘN */}
+        <div className="flex flex-wrap items-center gap-2 select-none">
+          <div className="flex items-center space-x-1 bg-emerald-50/80 p-1 rounded-2xl border border-emerald-200/80 shadow-2xs">
+            {GRADE_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setSelectedGrade(f.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                  selectedGrade === f.id
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-emerald-950 hover:bg-white/80'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* CẶP NÚT CUỘN NGANG THƯỚC PHIM (❮ VÀ ❯) */}
+          <div className="hidden sm:flex items-center space-x-1">
+            <button
+              type="button"
+              onClick={() => handleScrollReel('left')}
+              className="p-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs transition cursor-pointer"
+              title="Cuộn sang trái"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleScrollReel('right')}
+              className="p-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs transition cursor-pointer"
+              title="Cuộn sang phải"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {userIsTeacher && (
+            <Link
+              to="/film-reel"
+              className="text-xs font-black text-emerald-800 hover:text-emerald-950 bg-white hover:bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-300 transition flex items-center space-x-1 shadow-2xs"
+            >
+              <span>Quản lý ➔</span>
+            </Link>
+          )}
+        </div>
       </div>
 
-      {/* DẢI PHIM NHỰA 3 KHUNG HÌNH (FILM REEL) - NỀN TRONG SUỐT KHỚP MÀU MENU NGANG */}
-      <div className="bg-transparent rounded-3xl p-4 sm:p-6 lg:p-7 border-2 border-emerald-200/90 relative overflow-hidden shadow-xs">
+      {/* DẢI PHIM NHỰA ĐIỆN ẢNH - NỀN TRONG SUỐT LIỀN MẠCH, KHÔNG MỜ, ẢNH GỐC SẮC NÉT */}
+      <div className="bg-transparent rounded-3xl p-4 sm:p-5 border-2 border-emerald-200/90 relative overflow-hidden shadow-2xs">
         {/* DẢI LỖ RĂNG CƯA PHIM TRÊN CÙNG TÔNG XANH LÁ NHẠT */}
-        <div className="flex justify-between items-center space-x-2 overflow-hidden pb-4 opacity-90">
-          {Array.from({ length: 28 }).map((_, i) => (
+        <div className="flex justify-between items-center space-x-2 overflow-hidden pb-3 opacity-90 select-none">
+          {Array.from({ length: 32 }).map((_, i) => (
             <div key={`sprocket_top_${i}`} className="w-3.5 h-2 bg-emerald-100/90 rounded-xs flex-shrink-0 border border-emerald-300/80 shadow-2xs" />
           ))}
         </div>
 
-        {/* 3 KHUNG HÌNH PHIM CHỨA 3 BÀI MẪU NỀN TRẮNG SÁNG THANH LỊCH */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {FILM_MEMORIES.map((post, idx) => (
+        {/* DẢI CUỘN NGANG CHỨA CÁC KHUNG HÌNH KỶ NIỆM (HORIZONTAL FILM SCROLL) */}
+        <div 
+          ref={scrollContainerRef}
+          className="flex space-x-5 overflow-x-auto scroll-smooth no-scrollbar py-2 px-1"
+        >
+          {filteredMemories.map((post, idx) => (
             <div
               key={post.id}
               onClick={() => setActiveModalPost(post)}
-              className="bg-white rounded-2xl border-2 border-emerald-200 hover:border-emerald-500 p-4 transition duration-300 group cursor-pointer flex flex-col justify-between space-y-4 shadow-sm hover:shadow-xl hover:scale-[1.02]"
+              className="w-[300px] sm:w-[340px] md:w-[360px] flex-shrink-0 bg-white rounded-2xl border-2 border-emerald-200 hover:border-emerald-500 p-4 transition duration-300 group cursor-pointer flex flex-col justify-between space-y-4 shadow-sm hover:shadow-xl hover:scale-[1.01]"
             >
-              {/* KHUNG ẢNH KỶ NIỆM */}
+              {/* KHUNG ẢNH KỶ NIỆM NGUYÊN BẢN SẮC NÉT KHÔNG MỜ */}
               <div className="relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-100 border border-emerald-200/80">
                 <img
                   src={post.coverImage}
                   alt={post.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition duration-500 filter sepia-[0.10] contrast-105"
+                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
 
                 {/* SỐ FRAME PHIM */}
-                <div className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-950/85 backdrop-blur-xs text-emerald-300 font-mono text-[10px] font-bold rounded border border-emerald-400/50">
+                <div className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-950/85 text-emerald-300 font-mono text-[10px] font-bold rounded border border-emerald-400/50">
                   FRAME #{String(idx + 1).padStart(2, '0')}
                 </div>
 
@@ -109,7 +217,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                   {post.classTag}
                 </div>
 
-                <div className="absolute bottom-2 left-2 flex items-center space-x-1.5 text-white text-[11px] font-bold drop-shadow-md">
+                <div className="absolute bottom-2 left-2 flex items-center space-x-1.5 px-2 py-0.5 bg-black/60 rounded text-white text-[11px] font-bold">
                   <Calendar className="w-3.5 h-3.5 text-amber-300" />
                   <span>{post.date}</span>
                 </div>
@@ -150,8 +258,8 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
         </div>
 
         {/* DẢI LỖ RĂNG CƯA PHIM DƯỚI CÙNG TÔNG XANH LÁ NHẠT */}
-        <div className="flex justify-between items-center space-x-2 overflow-hidden pt-4 opacity-90">
-          {Array.from({ length: 28 }).map((_, i) => (
+        <div className="flex justify-between items-center space-x-2 overflow-hidden pt-3 opacity-90 select-none">
+          {Array.from({ length: 32 }).map((_, i) => (
             <div key={`sprocket_bottom_${i}`} className="w-3.5 h-2 bg-emerald-100/90 rounded-xs flex-shrink-0 border border-emerald-300/80 shadow-2xs" />
           ))}
         </div>
@@ -159,7 +267,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
 
       {/* MODAL XEM CHI TIẾT KHOẢNH KHẮC PHIM */}
       {activeModalPost && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 space-y-0 text-slate-900">
             <div className="relative aspect-video w-full bg-slate-950">
               <img
@@ -188,7 +296,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
               </p>
               <div className="flex flex-wrap gap-1.5 pt-2">
                 {activeModalPost.tags.map((tg, idx) => (
-                  <span key={idx} className="px-3 py-1 bg-amber-50 text-amber-900 font-bold rounded-full text-xs border border-amber-200">
+                  <span key={idx} className="px-3 py-1 bg-emerald-50 text-emerald-900 font-bold rounded-full text-xs border border-emerald-200">
                     {tg}
                   </span>
                 ))}
@@ -198,7 +306,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                 <button
                   type="button"
                   onClick={() => setActiveModalPost(null)}
-                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl text-xs transition cursor-pointer"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition cursor-pointer"
                 >
                   Đóng (Close)
                 </button>

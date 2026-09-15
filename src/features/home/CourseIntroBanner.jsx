@@ -41,10 +41,12 @@ export default function CourseIntroBanner({ onExploreClick }) {
               <button
                 type="button"
                 onClick={() => setShowDetailModal(true)}
-                className="px-6 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 rounded-2xl font-black text-sm border border-emerald-300/90 shadow-2xs transition cursor-pointer flex items-center space-x-2 group"
+                className="relative overflow-hidden px-6 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-950 rounded-2xl font-black text-sm border border-emerald-300/90 shadow-2xs transition cursor-pointer flex items-center space-x-2 group"
               >
-                <span>Tìm hiểu thêm</span>
-                <ArrowRight className="w-4 h-4 text-emerald-700 group-hover:translate-x-1 transition transform" />
+                {/* VỆT SÁNG NGỌC BÍCH LƯỚT NHẸ MỖI 4 GIÂY (SHIMMER EFFECT) */}
+                <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-emerald-300/50 to-transparent pointer-events-none" />
+                <span className="relative z-10">Tìm hiểu thêm</span>
+                <ArrowRight className="relative z-10 w-4 h-4 text-emerald-700 group-hover:translate-x-1 transition transform" />
               </button>
 
               <button
@@ -105,15 +107,16 @@ export default function CourseIntroBanner({ onExploreClick }) {
                 </div>
               </div>
 
-              {/* NÚT LEARN NOW > */}
+              {/* NÚT LEARN NOW > CÓ HIỆU ỨNG SHIMMER LƯỚT SÁNG */}
               <div className="relative z-10 pt-1 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={onExploreClick}
-                  className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 uppercase tracking-wider group"
+                  className="relative overflow-hidden px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 uppercase tracking-wider group"
                 >
-                  <span>LEARN NOW</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition transform" />
+                  <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
+                  <span className="relative z-10">LEARN NOW</span>
+                  <ArrowRight className="relative z-10 w-3.5 h-3.5 group-hover:translate-x-1 transition transform" />
                 </button>
 
                 <span className="text-[11px] font-bold text-emerald-200 italic">
