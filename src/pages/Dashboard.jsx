@@ -6,13 +6,13 @@ import CenterToastModal from '../components/common/CenterToastModal';
 import UserManagementModal from '../components/lms/UserManagementModal';
 import AssignModal from '../components/lms/AssignModal';
 import Footer from '../components/common/Footer';
-import HeroBannerModal, { DEFAULT_BANNER_CONFIG, BANNER_FILTERS } from '../components/lms/HeroBannerModal';
+import HeroBannerModal, { DEFAULT_BANNER_CONFIG, BANNER_FILTERS, getActiveSeasonalTheme } from '../components/lms/HeroBannerModal';
 import { getSiteSetting, saveSiteSetting } from '../services/siteSettingsService';
 import { 
   BookOpen, Plus, Users, Search, Key, Sparkles, FolderOpen, Crown, ChevronRight, 
   ChevronDown, Home, Lock, BarChart3, HelpCircle, FileText, CheckCircle2, Copy, 
   Check, Palette, Layers, Award, FileQuestion, ArrowRight, X, Clock, Eye, EyeOff,
-  Camera
+  Camera, Play, Pause
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import HomeLandingView from '../features/home/HomeLandingView';
@@ -26,10 +26,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Banner tùy chỉnh ảnh nền & Slideshow 8s & Bộ lọc màu & Đồng bộ Supabase
+  // Banner tùy chỉnh ảnh nền & Slideshow 8s & Ken Burns & Pause on Hover & Mùa sự kiện
   const [bannerConfig, setBannerConfig] = useState(DEFAULT_BANNER_CONFIG);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+  const [isSlideshowHovered, setIsSlideshowHovered] = useState(false);
+  const [isSlideshowPaused, setIsSlideshowPaused] = useState(false);
 
   // Nạp cấu hình Banner từ Supabase DB (ưu tiên) kết hợp cache localStorage
   useEffect(() => {
@@ -47,16 +49,28 @@ export default function Dashboard() {
   }, []);
 
   // Vòng lặp chuyển ảnh Slideshow tự động sau mỗi 8s (hoặc theo cấu hình)
+  // Hỗ trợ Pause on Hover (tạm dừng khi rê chuột) và nút Play/Pause thủ công
   useEffect(() => {
     if (!bannerConfig.slideshowEnabled || !bannerConfig.slideshowImages || bannerConfig.slideshowImages.length <= 1) {
       return;
     }
+    if (isSlideshowPaused || (bannerConfig.pauseOnHover && isSlideshowHovered)) {
+      return;
+    }
+
     const intervalMs = (bannerConfig.slideshowInterval || 8) * 1000;
     const timer = setInterval(() => {
       setCurrentSlideIndex((prev) => (prev + 1) % bannerConfig.slideshowImages.length);
     }, intervalMs);
     return () => clearInterval(timer);
-  }, [bannerConfig.slideshowEnabled, bannerConfig.slideshowInterval, bannerConfig.slideshowImages]);
+  }, [
+    bannerConfig.slideshowEnabled, 
+    bannerConfig.slideshowInterval, 
+    bannerConfig.slideshowImages, 
+    bannerConfig.pauseOnHover, 
+    isSlideshowHovered, 
+    isSlideshowPaused
+  ]);
 
   const handleSaveBannerConfig = async (newConfig) => {
     setBannerConfig(newConfig);
@@ -506,21 +520,30 @@ export default function Dashboard() {
       />
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* HERO BANNER - TÙY BIẾN ẢNH NỀN KHÔNG BỊ KHUẤT MẶT & SLIDESHOW 8S & BỘ LỌC MÀU */}
+        {/* HERO BANNER - TÙY BIẾN ẢNH NỀN KHÔNG BỊ KHUẤT MẶT & SLIDESHOW 8S & BỘ LỌC MÀU & KEN BURNS & MÙA THI */}
         {(() => {
+          const activeSeason = getActiveSeasonalTheme(bannerConfig.seasonalTheme);
+
           const activeSlideImage = (bannerConfig.slideshowEnabled && bannerConfig.slideshowImages?.length > 0)
             ? bannerConfig.slideshowImages[currentSlideIndex % bannerConfig.slideshowImages.length]
-            : (bannerConfig.imageUrl || DEFAULT_BANNER_CONFIG.imageUrl);
+            : (activeSeason?.presetUrl || bannerConfig.imageUrl || DEFAULT_BANNER_CONFIG.imageUrl);
 
           const activeFilterCss = BANNER_FILTERS.find((f) => f.id === bannerConfig.colorFilter)?.css || 'none';
 
           return (
-            <div className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group">
+            <div 
+              onMouseEnter={() => setIsSlideshowHovered(true)}
+              onMouseLeave={() => setIsSlideshowHovered(false)}
+              className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group select-none"
+            >
+              {/* LỚP ẢNH NỀN VỚI HIỆU ỨNG THU PHÓNG KEN BURNS 3-5% */}
               <div
-                className="absolute inset-0 bg-cover transition-all duration-1000 ease-in-out"
+                className={`absolute inset-0 bg-cover transition-all ease-in-out ${
+                  bannerConfig.kenBurnsEnabled ? 'scale-105 duration-[8000ms]' : 'scale-100 duration-1000'
+                }`}
                 style={{
                   backgroundImage: `url('${activeSlideImage}')`,
-                  backgroundPosition: bannerConfig.position || DEFAULT_BANNER_CONFIG.position,
+                  backgroundPosition: activeSeason?.position || bannerConfig.position || DEFAULT_BANNER_CONFIG.position,
                   filter: activeFilterCss,
                 }}
               />
@@ -530,10 +553,13 @@ export default function Dashboard() {
               />
 
               <div className="relative z-10 p-6 sm:p-8 w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="space-y-2.5 max-w-2xl">
-                  <span className="text-[11px] font-extrabold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-xl flex items-center space-x-1.5 backdrop-blur-xs w-fit">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>SỔ TAY DẠY HỌC THCS • GLOBAL SUCCESS</span>
+                <div className="space-y-2.5 max-w-2xl select-text">
+                  {/* HUY HIỆU BADGE THEO MÙA LỄ HỘI / THI CỬ */}
+                  <span className={`text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-xl flex items-center space-x-1.5 backdrop-blur-xs w-fit border shadow-xs ${
+                    activeSeason?.colorClass || 'text-emerald-400 bg-emerald-950/80 border-emerald-500/30'
+                  }`}>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{activeSeason?.badge || 'SỔ TAY DẠY HỌC THCS • GLOBAL SUCCESS'}</span>
                   </span>
 
                   <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-md">
@@ -541,13 +567,13 @@ export default function Dashboard() {
                   </h1>
 
                   <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-semibold drop-shadow-sm">
-                    Khám phá nền tảng giáo dục thông minh với đầy đủ công cụ quản lý chuyên môn, bài giảng E-learning tương tác và ngân hàng đề thi bám sát ma trận CV7991.
+                    {activeSeason?.slogan || 'Khám phá nền tảng giáo dục thông minh với đầy đủ công cụ quản lý chuyên môn, bài giảng E-learning tương tác và ngân hàng đề thi bám sát ma trận CV7991.'}
                   </p>
 
-                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <div className="flex flex-wrap items-center gap-3 pt-1 select-none">
                     <button
                       onClick={() => setIsJoinModalOpen(true)}
-                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-lg transition flex items-center space-x-2 border border-amber-300/40"
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-lg transition flex items-center space-x-2 border border-amber-300/40 cursor-pointer"
                     >
                       <Key className="w-4 h-4 text-slate-950" />
                       <span>🔑 Nhập Mã Gia Nhập Lớp</span>
@@ -556,7 +582,7 @@ export default function Dashboard() {
                     {isTeacher && (
                       <button
                         onClick={() => setIsModalOpen(true)}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs shadow-lg transition flex items-center space-x-2 border border-emerald-400/40"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs shadow-lg transition flex items-center space-x-2 border border-emerald-400/40 cursor-pointer"
                       >
                         <Plus className="w-4 h-4" />
                         <span>+ Add a new course (Tạo Khóa Học)</span>
@@ -565,13 +591,13 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 select-none">
                   {userIsTeacher && (
                     <button
                       type="button"
                       onClick={() => setIsBannerModalOpen(true)}
                       className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-900/80 hover:bg-slate-900 text-white hover:text-emerald-400 text-xs font-bold rounded-xl backdrop-blur-md border border-white/20 shadow-md transition cursor-pointer"
-                      title="Thay đổi ảnh nền banner, kích hoạt Slideshow hoặc chỉnh bộ lọc màu nghệ thuật"
+                      title="Thay đổi ảnh nền banner, kích hoạt Slideshow, bộ lọc màu hoặc mùa lễ hội"
                     >
                       <Camera className="w-4 h-4 text-emerald-400" />
                       <span>📷 Đổi ảnh nền & Slideshow</span>
@@ -585,22 +611,39 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* CHẤM TRÒN CHỈ BÁO SLIDESHOW (DOT INDICATORS) */}
+              {/* CHẤM TRÒN CHỈ BÁO SLIDESHOW & NÚT PAUSE/PLAY */}
               {bannerConfig.slideshowEnabled && bannerConfig.slideshowImages?.length > 1 && (
-                <div className="absolute bottom-3 right-6 z-20 flex items-center space-x-1.5 bg-slate-950/50 backdrop-blur-xs px-2.5 py-1 rounded-full border border-white/10">
-                  {bannerConfig.slideshowImages.map((_, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setCurrentSlideIndex(idx)}
-                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                        currentSlideIndex % bannerConfig.slideshowImages.length === idx
-                          ? 'w-5 bg-emerald-400'
-                          : 'w-2 bg-white/40 hover:bg-white/80'
-                      }`}
-                      title={`Chuyển đến ảnh ${idx + 1}`}
-                    />
-                  ))}
+                <div className="absolute bottom-3 right-6 z-20 flex items-center space-x-2 bg-slate-950/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setIsSlideshowPaused(!isSlideshowPaused)}
+                    className="text-white/70 hover:text-white transition cursor-pointer p-0.5"
+                    title={isSlideshowPaused ? 'Tiếp tục trình chiếu' : 'Tạm dừng trình chiếu (Pause on Hover)'}
+                  >
+                    {isSlideshowPaused ? (
+                      <Play className="w-3 h-3 text-amber-400 fill-amber-400" />
+                    ) : (
+                      <Pause className="w-3 h-3 text-white/80 fill-white/80" />
+                    )}
+                  </button>
+
+                  <div className="w-[1px] h-3 bg-white/20" />
+
+                  <div className="flex items-center space-x-1.5">
+                    {bannerConfig.slideshowImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setCurrentSlideIndex(idx)}
+                        className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                          currentSlideIndex % bannerConfig.slideshowImages.length === idx
+                            ? 'w-5 bg-emerald-400'
+                            : 'w-2 bg-white/40 hover:bg-white/80'
+                        }`}
+                        title={`Chuyển đến ảnh ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

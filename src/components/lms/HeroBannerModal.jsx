@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { 
   X, Image as ImageIcon, Upload, Link as LinkIcon, Check, RotateCcw, 
-  Sparkles, Sliders, Play, Palette, Layers, Plus, Trash2 
+  Sparkles, Sliders, Play, Palette, Layers, Plus, Trash2, Calendar, 
+  ZoomIn, Pause, Sun, BookOpen, Heart, Award
 } from 'lucide-react';
 
 export const BANNER_PRESETS = [
@@ -58,6 +59,89 @@ export const BANNER_FILTERS = [
   { id: 'monochrome', name: 'Trầm tĩnh thanh lịch', css: 'grayscale(35%) contrast(105%)', desc: 'Nhẹ nhàng tinh tế' },
 ];
 
+export const SEASONAL_THEMES = [
+  {
+    id: 'auto',
+    name: 'Tự động theo lịch năm học (Khuyên dùng)',
+    badge: '📅 THEO LỊCH NĂM HỌC TỰ ĐỘNG',
+    slogan: 'Tự động kích hoạt chủ đề Khai giảng, 20/11, Tết hoặc Mùa thi theo ngày tháng',
+    icon: '📅',
+    colorClass: 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30',
+  },
+  {
+    id: 'khai_giang',
+    name: 'Mùa Khai Giảng & Tựu Trường (Tháng 9)',
+    badge: '🎒 CHÀO NĂM HỌC MỚI • TỰ HÀO THCS CÁT MINH',
+    slogan: 'Chúc các em học sinh một năm học mới nhiều hứng khởi, bứt phá xuất sắc môn Tiếng Anh!',
+    icon: '🎒',
+    presetUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1600&auto=format&fit=crop&q=80',
+    position: 'center 20%',
+    colorClass: 'bg-amber-950/90 text-amber-400 border-amber-500/40',
+  },
+  {
+    id: 'tri_an_2011',
+    name: 'Kỷ Niệm Ngày Nhà Giáo Việt Nam 20/11',
+    badge: '💐 TRI ÂN THẦY CÔ • KỶ NIỆM 20/11',
+    slogan: 'Tôn sư trọng đạo - Kính chúc Quý Thầy Cô luôn dồi dào sức khỏe, nhiệt huyết và hạnh phúc!',
+    icon: '💐',
+    presetUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1600&auto=format&fit=crop&q=80',
+    position: 'center center',
+    colorClass: 'bg-rose-950/90 text-rose-300 border-rose-500/40',
+  },
+  {
+    id: 'tet_xuan',
+    name: 'Mừng Xuân Mới & Tết Cổ Truyền (Tháng 1-2)',
+    badge: '🌸 CHÚC MỪNG NĂM MỚI • XUÂN RỰC RỠ',
+    slogan: 'Xuân mới thắng lợi mới, chúc Thầy Cô và các em an khang thịnh vượng, vạn sự cát tường!',
+    icon: '🌸',
+    presetUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1600&auto=format&fit=crop&q=80',
+    position: 'center 15%',
+    colorClass: 'bg-red-950/90 text-yellow-300 border-yellow-500/40',
+  },
+  {
+    id: 'on_thi_hk',
+    name: 'Chiến Dịch Ôn Thi Học Kỳ & Tuyển Sinh (Tháng 12, 4-5)',
+    badge: '🎯 CHIẾN DỊCH ÔN THI HỌC KỲ • TỰ TIN BỨT PHÁ ĐIỂM 10',
+    slogan: 'Nỗ lực hôm nay, thành công ngày mai - Chúc các em học sinh làm bài tự tin và đạt điểm số tối đa!',
+    icon: '🎯',
+    presetUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1600&auto=format&fit=crop&q=80',
+    position: 'center center',
+    colorClass: 'bg-blue-950/90 text-cyan-300 border-cyan-500/40',
+  },
+  {
+    id: 'none',
+    name: 'Tắt chủ đề sự kiện (Dùng chuẩn thông thường)',
+    badge: 'SỔ TAY DẠY HỌC THCS • GLOBAL SUCCESS',
+    slogan: 'Khám phá nền tảng giáo dục thông minh với đầy đủ công cụ quản lý chuyên môn, bài giảng tương tác.',
+    icon: '✨',
+    colorClass: 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30',
+  },
+];
+
+/**
+ * Tự động phát hiện chủ đề sự kiện dựa trên ngày tháng thực tế
+ */
+export function getActiveSeasonalTheme(selectedId) {
+  if (!selectedId || selectedId === 'none') return null;
+
+  if (selectedId === 'auto') {
+    const month = new Date().getMonth() + 1; // 1 đến 12
+    if (month === 9) {
+      return SEASONAL_THEMES.find((t) => t.id === 'khai_giang');
+    } else if (month === 11) {
+      return SEASONAL_THEMES.find((t) => t.id === 'tri_an_2011');
+    } else if (month === 1 || month === 2) {
+      return SEASONAL_THEMES.find((t) => t.id === 'tet_xuan');
+    } else if (month === 12 || month === 4 || month === 5) {
+      return SEASONAL_THEMES.find((t) => t.id === 'on_thi_hk');
+    } else {
+      return null;
+    }
+  }
+
+  return SEASONAL_THEMES.find((t) => t.id === selectedId) || null;
+}
+
 export const DEFAULT_BANNER_CONFIG = {
   imageUrl: BANNER_PRESETS[0].url,
   position: 'center 20%', // Giữ trọn khuôn mặt học sinh ở góc trên
@@ -65,6 +149,9 @@ export const DEFAULT_BANNER_CONFIG = {
   colorFilter: 'none',
   slideshowEnabled: true,
   slideshowInterval: 8, // Chuyển sau mỗi 8 giây
+  kenBurnsEnabled: true, // Hiệu ứng thu phóng nhẹ 3-5% sống động như phim
+  pauseOnHover: true, // Tạm dừng slideshow khi rê chuột vào để đọc
+  seasonalTheme: 'auto', // Tự động theo lịch năm học
   slideshowImages: [
     BANNER_PRESETS[0].url,
     BANNER_PRESETS[1].url,
@@ -83,11 +170,12 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
       : DEFAULT_BANNER_CONFIG.slideshowImages,
   });
 
-  const [activeTab, setActiveTab] = useState('photos'); // 'photos' | 'slideshow' | 'filters'
+  const [activeTab, setActiveTab] = useState('photos'); // 'photos' | 'slideshow' | 'filters' | 'seasonal'
   const [inputUrl, setInputUrl] = useState('');
   const fileInputRef = useRef(null);
 
   const currentFilterObj = BANNER_FILTERS.find((f) => f.id === config.colorFilter) || BANNER_FILTERS[0];
+  const activeSeason = getActiveSeasonalTheme(config.seasonalTheme);
 
   const handleSelectPreset = (preset) => {
     setConfig((prev) => ({
@@ -194,8 +282,8 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
               <ImageIcon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold tracking-tight">Tùy Chỉnh Banner & Slideshow Trang Chủ</h3>
-              <p className="text-[11px] text-slate-300 font-medium">Đổi ảnh trọn vẹn mặt, kích hoạt Slideshow 8s & Bộ lọc màu nghệ thuật</p>
+              <h3 className="text-base font-extrabold tracking-tight">Tùy Chỉnh Banner, Slideshow & Mùa Lễ Hội</h3>
+              <p className="text-[11px] text-slate-300 font-medium">Ken Burns Effect, Pause on Hover, Bộ lọc màu & Tự động đổi theo mùa thi</p>
             </div>
           </div>
           <button
@@ -208,60 +296,73 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
         </div>
 
         {/* TABS NAVIGATION */}
-        <div className="flex items-center space-x-1 px-6 pt-3 border-b border-slate-200 bg-slate-50 text-xs font-bold">
+        <div className="flex items-center space-x-1 px-6 pt-3 border-b border-slate-200 bg-slate-50 text-xs font-bold overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('photos')}
-            className={`px-4 py-2.5 rounded-t-xl transition flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-3.5 py-2.5 rounded-t-xl transition flex items-center space-x-1.5 cursor-pointer flex-shrink-0 ${
               activeTab === 'photos'
                 ? 'bg-white text-emerald-700 border-t-2 border-emerald-600 shadow-2xs font-extrabold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <ImageIcon className="w-4 h-4 text-emerald-600" />
-            <span>🖼️ Ảnh Nền & Bố Cục</span>
+            <span>🖼️ Ảnh Nền</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('slideshow')}
-            className={`px-4 py-2.5 rounded-t-xl transition flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-3.5 py-2.5 rounded-t-xl transition flex items-center space-x-1.5 cursor-pointer flex-shrink-0 ${
               activeTab === 'slideshow'
                 ? 'bg-white text-emerald-700 border-t-2 border-emerald-600 shadow-2xs font-extrabold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Play className="w-4 h-4 text-amber-600" />
-            <span>🎞️ Slideshow Tự Động ({config.slideshowImages.length} ảnh)</span>
+            <span>🎞️ Slideshow & Hiệu Ứng</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('filters')}
-            className={`px-4 py-2.5 rounded-t-xl transition flex items-center space-x-1.5 cursor-pointer ${
+            className={`px-3.5 py-2.5 rounded-t-xl transition flex items-center space-x-1.5 cursor-pointer flex-shrink-0 ${
               activeTab === 'filters'
                 ? 'bg-white text-emerald-700 border-t-2 border-emerald-600 shadow-2xs font-extrabold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Palette className="w-4 h-4 text-indigo-600" />
-            <span>🎨 Bộ Lọc Màu & Độ Sáng</span>
+            <span>🎨 Bộ Lọc Màu</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('seasonal')}
+            className={`px-3.5 py-2.5 rounded-t-xl transition flex items-center space-x-1.5 cursor-pointer flex-shrink-0 ${
+              activeTab === 'seasonal'
+                ? 'bg-white text-rose-700 border-t-2 border-rose-600 shadow-2xs font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Calendar className="w-4 h-4 text-rose-600" />
+            <span>🎊 Lễ Hội & Mùa Thi</span>
           </button>
         </div>
 
         {/* BODY */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[72vh] overflow-y-auto">
-          {/* LIVE PREVIEW BANNER VỚI BỘ LỌC MÀU VÀ VỊ TRÍ THỰC TẾ */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+          {/* LIVE PREVIEW BANNER VỚI BỘ LỌC MÀU, CHỦ ĐỀ SỰ KIỆN */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-black text-slate-800 uppercase tracking-wider">
               <span>👁️ Khung Xem Trước Banner Thực Tế</span>
               <span className="text-[11px] font-bold text-emerald-700 normal-case bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
-                Bộ lọc: {currentFilterObj.name} • {config.slideshowEnabled ? `Slideshow ${config.slideshowInterval}s` : 'Ảnh tĩnh'}
+                {activeSeason ? `Sự kiện: ${activeSeason.name}` : `Bộ lọc: ${currentFilterObj.name}`}
               </span>
             </div>
             <div className="relative h-44 rounded-2xl overflow-hidden border-2 border-emerald-500/50 shadow-inner">
               <div
-                className="absolute inset-0 bg-cover transition-all duration-500"
+                className={`absolute inset-0 bg-cover transition-all duration-500 ${config.kenBurnsEnabled ? 'scale-105' : 'scale-100'}`}
                 style={{
                   backgroundImage: `url('${config.imageUrl}')`,
                   backgroundPosition: config.position,
@@ -273,13 +374,13 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
                 style={{ opacity: config.overlayOpacity / 100 }}
               />
               <div className="relative z-10 p-5 h-full flex flex-col justify-between text-white">
-                <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-widest bg-emerald-950/80 px-2.5 py-0.5 rounded-lg w-fit border border-emerald-500/30">
-                  SỔ TAY DẠY HỌC THCS • GLOBAL SUCCESS
+                <span className={`text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-lg w-fit border ${activeSeason?.colorClass || 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30'}`}>
+                  {activeSeason?.badge || 'SỔ TAY DẠY HỌC THCS • GLOBAL SUCCESS'}
                 </span>
                 <div className="space-y-1">
                   <h4 className="text-lg font-black drop-shadow-md">Chào mừng trở lại, Thầy Nguyễn Văn Hải! 👋</h4>
                   <p className="text-[11px] text-slate-200 font-medium line-clamp-1">
-                    Khám phá nền tảng giáo dục thông minh với đầy đủ công cụ quản lý chuyên môn và bài giảng tương tác.
+                    {activeSeason?.slogan || 'Khám phá nền tảng giáo dục thông minh với đầy đủ công cụ quản lý chuyên môn và bài giảng tương tác.'}
                   </p>
                 </div>
               </div>
@@ -289,7 +390,6 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
           {/* TAB 1: ẢNH NỀN & BỐ CỤC */}
           {activeTab === 'photos' && (
             <div className="space-y-4">
-              {/* CHỌN NHANH TỪ PRESETS */}
               <div className="space-y-2">
                 <label className="block text-xs font-black text-slate-800 uppercase tracking-wider flex items-center space-x-1.5">
                   <Sparkles className="w-4 h-4 text-emerald-600" />
@@ -402,7 +502,7 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
             </div>
           )}
 
-          {/* TAB 2: SLIDESHOW TỰ ĐỘNG (8S) */}
+          {/* TAB 2: SLIDESHOW & HIỆU ỨNG (KEN BURNS + PAUSE ON HOVER) */}
           {activeTab === 'slideshow' && (
             <div className="space-y-4">
               <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200 flex items-center justify-between">
@@ -412,7 +512,7 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
                     <span>Kích hoạt Trình Chiếu Ảnh Tự Động (Slideshow)</span>
                   </h4>
                   <p className="text-[11px] text-amber-800 font-medium">
-                    Banner sẽ tự động đổi qua lại giữa các hình ảnh Thầy đã chọn một cách mềm mại.
+                    Banner tự động luân chuyển mềm mại giữa các ảnh đã chọn.
                   </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -426,10 +526,57 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
                 </label>
               </div>
 
+              {/* 2 HIỆU ỨNG NÂNG CAO: KEN BURNS & PAUSE ON HOVER */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* KEN BURNS EFFECT */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                  <div className="space-y-0.5 pr-2">
+                    <h5 className="text-xs font-bold text-slate-900 flex items-center space-x-1">
+                      <ZoomIn className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Hiệu ứng Ken Burns (Thu phóng nhẹ 3-5%)</span>
+                    </h5>
+                    <p className="text-[10px] text-slate-500">
+                      Ảnh phóng to chậm tạo cảm giác sống động như phim tư liệu
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={config.kenBurnsEnabled}
+                      onChange={(e) => setConfig((prev) => ({ ...prev, kenBurnsEnabled: e.target.checked }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600" />
+                  </label>
+                </div>
+
+                {/* PAUSE ON HOVER */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                  <div className="space-y-0.5 pr-2">
+                    <h5 className="text-xs font-bold text-slate-900 flex items-center space-x-1">
+                      <Pause className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Tạm dừng khi rê chuột (Pause on Hover)</span>
+                    </h5>
+                    <p className="text-[10px] text-slate-500">
+                      Dừng chuyển ảnh khi đang đọc dòng chữ để không bị rối mắt
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={config.pauseOnHover}
+                      onChange={(e) => setConfig((prev) => ({ ...prev, pauseOnHover: e.target.checked }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
+                  </label>
+                </div>
+              </div>
+
               {/* CHỌN CHU KỲ CHUYỂN ẢNH (8S MẶC ĐỊNH) */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700">
-                  ⏱️ Thời gian chuyển đổi giữa các ảnh:
+                  ⏱️ Thời gian chu kỳ chuyển đổi giữa các ảnh:
                 </label>
                 <div className="flex items-center space-x-3">
                   {[
@@ -456,7 +603,7 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
               {/* CHỌN CÁC ẢNH VÀO SLIDESHOW */}
               <div className="space-y-2">
                 <label className="block text-xs font-black text-slate-800 uppercase tracking-wider flex items-center justify-between">
-                  <span>Chọn 2 - 4 Tấm Ảnh Cho Slideshow:</span>
+                  <span>Chọn các ảnh trình chiếu trong Slideshow:</span>
                   <span className="text-[11px] font-bold text-emerald-700">
                     Đã chọn: {config.slideshowImages.length} ảnh
                   </span>
@@ -501,7 +648,7 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
             </div>
           )}
 
-          {/* TAB 3: BỘ LỌC MÀU SẮC NGHỆ THUẬT (COLOR FILTERS) */}
+          {/* TAB 3: BỘ LỌC MÀU SẮC NGHỆ THUẬT */}
           {activeTab === 'filters' && (
             <div className="space-y-4">
               <label className="block text-xs font-black text-slate-800 uppercase tracking-wider">
@@ -527,7 +674,6 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
                       </div>
                       <p className="text-[10px] text-slate-500 leading-tight">{filterItem.desc}</p>
                       
-                      {/* MINI COLOR SWATCH PREVIEW */}
                       <div className="mt-2 h-7 rounded-lg overflow-hidden border border-slate-200">
                         <div
                           className="w-full h-full bg-cover"
@@ -543,7 +689,7 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
                 })}
               </div>
 
-              {/* THANH TRƯỢT ĐỘ TỐI LỚP PHỦ OVERLAY */}
+              {/* THANH TRƯỢT ĐỘ TỐI LỚP PHỦ */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                   <span>🌑 Độ tối lớp phủ để chữ trắng tương phản sắc nét:</span>
@@ -558,9 +704,52 @@ export default function HeroBannerModal({ isOpen, onClose, currentConfig, onSave
                   onChange={(e) => setConfig((prev) => ({ ...prev, overlayOpacity: Number(e.target.value) }))}
                   className="w-full accent-indigo-600 cursor-pointer"
                 />
-                <p className="text-[11px] text-slate-500 font-medium">
-                  Khuyên dùng mức 65% - 75% để ảnh vẫn rực rỡ mà tiêu đề chữ trắng luôn nổi bật, dễ đọc nhất.
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: SỰ KIỆN LỄ HỘI & MÙA THI (SEASONAL THEMES) */}
+          {activeTab === 'seasonal' && (
+            <div className="space-y-4">
+              <div className="p-4 bg-rose-50/70 rounded-2xl border border-rose-200 space-y-1">
+                <h4 className="text-xs font-black text-rose-950 flex items-center space-x-1.5">
+                  <Calendar className="w-4 h-4 text-rose-600" />
+                  <span>Chủ Đề Sự Kiện Mùa & Lễ Hội Năm Học THCS</span>
+                </h4>
+                <p className="text-[11px] text-rose-800 font-medium leading-relaxed">
+                  Tự động thay đổi diện mạo banner theo các mốc thời gian ý nghĩa trong năm (Khai giảng tháng 9, Tri ân 20/11, Tết cổ truyền, Mùa ôn thi học kỳ).
                 </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {SEASONAL_THEMES.map((theme) => {
+                  const isSelected = config.seasonalTheme === theme.id;
+                  return (
+                    <div
+                      key={theme.id}
+                      onClick={() => setConfig((prev) => ({ ...prev, seasonalTheme: theme.id }))}
+                      className={`p-3.5 rounded-2xl border-2 cursor-pointer transition transform hover:-translate-y-0.5 text-left ${
+                        isSelected
+                          ? 'border-rose-600 bg-rose-50/50 ring-2 ring-rose-400/50 shadow-md'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-black text-slate-900 flex items-center space-x-1.5">
+                          <span className="text-sm">{theme.icon}</span>
+                          <span>{theme.name}</span>
+                        </span>
+                        {isSelected && <Check className="w-4 h-4 text-rose-600 flex-shrink-0 ml-1" />}
+                      </div>
+                      <span className={`inline-block text-[9px] font-extrabold px-2 py-0.5 rounded border mb-1.5 ${theme.colorClass}`}>
+                        {theme.badge}
+                      </span>
+                      <p className="text-[10px] text-slate-600 line-clamp-2 leading-relaxed">
+                        {theme.slogan}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
