@@ -459,6 +459,15 @@ export default function BehaviorPage() {
                 <span>Cửa Hàng Đổi Quà 4.0</span>
               </a>
 
+              {/* 7c. Cuộn Phim Kỷ Niệm 🎞️ */}
+              <a
+                href="/film-reel"
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
+              >
+                <span className="text-sm">🎞️</span>
+                <span>Cuộn Phim Kỷ Niệm</span>
+              </a>
+
               {/* 8. Gọi Nhiều (Xem Full Lớp) 👥 */}
               <button
                 type="button"

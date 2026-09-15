@@ -15,6 +15,7 @@ import CommunityModuleView from './pages/CommunityModuleView';
 import InteractiveLessonBookView from './pages/InteractiveLessonBookView';
 import BehaviorPage from './features/behavior/BehaviorPage';
 import GiftShopView from './features/gift-shop/GiftShopView';
+import FilmReelView from './features/film-reel/FilmReelView';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import NotFound from './pages/NotFound';
 
@@ -207,6 +208,17 @@ export default function App() {
                   <ProtectedRoute>
                     <ErrorBoundary>
                       <GiftShopView />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/film-reel"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <FilmReelView />
                     </ErrorBoundary>
                   </ProtectedRoute>
                 }

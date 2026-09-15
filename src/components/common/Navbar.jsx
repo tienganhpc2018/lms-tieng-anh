@@ -105,6 +105,18 @@ export default function Navbar() {
                 <span>🎁</span>
                 <span>Cửa Hàng Quà 4.0</span>
               </Link>
+
+              <Link
+                to="/film-reel"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-sm border ${
+                  location.pathname === '/film-reel'
+                    ? 'bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 text-white border-purple-400'
+                    : 'bg-slate-800 hover:bg-slate-700 text-purple-200 border-purple-500/30'
+                }`}
+              >
+                <span>🎞️</span>
+                <span>Cuộn Phim Kỷ Niệm</span>
+              </Link>
             </div>
           )}
 
@@ -126,6 +138,14 @@ export default function Navbar() {
                   title="Cửa Hàng Đổi Quà 4.0"
                 >
                   🎁
+                </Link>
+
+                <Link
+                  to="/film-reel"
+                  className="md:hidden p-2 rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold"
+                  title="Cuộn Phim Kỷ Niệm"
+                >
+                  🎞️
                 </Link>
 
                 {/* 🔔 QUẢ CHUÔNG THÔNG BÁO THẬT NHẢY CHẤM ĐỎ DÀNH CHO HỌC SINH */}
@@ -183,6 +203,15 @@ export default function Navbar() {
                     >
                       <span className="text-sm">🎁</span>
                       <span className="text-amber-700 font-extrabold">Cửa Hàng Quà 4.0</span>
+                    </Link>
+
+                    <Link
+                      to="/film-reel"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="px-4 py-2 hover:bg-purple-50 hover:text-purple-800 flex items-center space-x-2 transition"
+                    >
+                      <span className="text-sm">🎞️</span>
+                      <span className="text-purple-700 font-extrabold">Cuộn Phim Kỷ Niệm</span>
                     </Link>
 
                     <Link
