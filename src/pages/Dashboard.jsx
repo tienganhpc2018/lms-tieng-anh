@@ -12,6 +12,7 @@ import {
   Check, Palette, Layers, Award, FileQuestion, ArrowRight, X, Clock, Eye, EyeOff
 } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import HomeLandingView from '../features/home/HomeLandingView';
 
 export default function Dashboard() {
   const { user, profile, isTeacher } = useAuth();
@@ -70,6 +71,7 @@ export default function Dashboard() {
   const [editingCourse, setEditingCourse] = useState(null);
   const [editCourseTitle, setEditCourseTitle] = useState('');
   const [coverPickerCourse, setCoverPickerCourse] = useState(null);
+  const [isAllCoursesOpen, setIsAllCoursesOpen] = useState(false);
 
   const AI_COVER_LIBRARY = [
     { id: 1, title: 'English Global Success 3D', url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&auto=format&fit=crop&q=80' },
@@ -517,8 +519,50 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* BỐ CỤC 2 CỘT: SIDEBAR NAVIGATION NGUYÊN BẢN CHUẨN MOODLE + MAIN CONTENT */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+        {/* =================================================================== */}
+        {/* GIAO DIỆN TRANG CHỦ CHUẨN ẢNH 2 MẪU: GỒM ĐẦY ĐỦ 5 BOX THÀNH PHẦN */}
+        {/* =================================================================== */}
+        <HomeLandingView
+          courses={courses}
+          userIsTeacher={userIsTeacher}
+        />
+
+        {/* BẢNG ĐIỀU KHIỂN QUẢN TRỊ NÂNG CAO CHO GIÁO VIÊN & HỌC SINH (COLLAPSIBLE) */}
+        {userIsTeacher && (
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+            <button
+              type="button"
+              onClick={() => setIsAllCoursesOpen(!isAllCoursesOpen)}
+              className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-slate-50 transition text-left cursor-pointer"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-800 flex items-center justify-center font-black text-lg">
+                  ⚙️
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base sm:text-lg">
+                    Quản Trị Hệ Thống Toàn Bộ Khóa Học & Mã Lớp (Moodle Manager)
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Nhấp để mở bảng quản lý danh sách toàn bộ {courses.length} khóa học, mã PIN gửi học sinh, đổi ảnh bìa AI 3D, xóa và phân quyền.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-slate-500 hidden sm:inline">
+                  {isAllCoursesOpen ? 'Thu gọn ▲' : `Mở quản trị (${filteredCourses.length} khóa) ▼`}
+                </span>
+                <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
+                  {isAllCoursesOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </div>
+              </div>
+            </button>
+
+            {isAllCoursesOpen && (
+              <div className="p-5 sm:p-6 bg-slate-50/70 border-t border-slate-100 space-y-6 animate-fade-in">
+                {/* BỐ CỤC 2 CỘT: SIDEBAR NAVIGATION NGUYÊN BẢN CHUẨN MOODLE + MAIN CONTENT */}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           {/* CỘT TRÁI: NAVIGATION BLOCK CỐ ĐỊNH CHUẨN MOODLE 100% */}
           <div className="lg:col-span-1 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 font-sans text-xs">
             <h2 className="text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-2.5 flex items-center justify-between">
@@ -916,7 +960,11 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-        </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )}
 
         {/* CẬP NHẬT YÊU CẦU MỚI: BẢNG TIN THÔNG BÁO DẶN DÒ BÀI HỌC CỦA THẦY NẰM DƯỚI CÙNG (DƯỚI CẢ NAVIGATION VÀ KHÓA HỌC - ẢNH 1) */}
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
