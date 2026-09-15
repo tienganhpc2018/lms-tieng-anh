@@ -8,18 +8,18 @@ import { playWelcomeChime } from '../../utils/audioChime';
 
 export const BANNER_PRESETS = [
   {
-    id: 'classroom-wide',
-    title: 'Học sinh & Lớp học tươi vui (Trọn mặt)',
-    url: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1600&auto=format&fit=crop&q=80',
-    position: 'center 20%',
-    description: 'Bố cục góc rộng, học sinh tươi cười trọn vẹn trong khung hình',
+    id: 'classroom-sharp-hd',
+    title: 'Lớp học hiện đại sắc nét 100% (Không mờ, trọn mặt)',
+    url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1600&auto=format&fit=crop&q=90',
+    position: 'center center',
+    description: 'Không gian sư phạm hiện đại, cô giáo và học sinh vui tươi, ảnh sắc nét sáng rõ từng chi tiết',
   },
   {
     id: 'smart-classroom',
     title: 'Lớp học số & Công nghệ thông minh 4.0',
-    url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1600&auto=format&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=1600&auto=format&fit=crop&q=90',
     position: 'center center',
-    description: 'Không gian sư phạm hiện đại, truyền cảm hứng học tập',
+    description: 'Phòng học tương tác chất lượng cao, độ nét cao không bị nhòe mờ',
   },
   {
     id: 'study-group',
@@ -170,8 +170,8 @@ export function getActiveSeasonalTheme(selectedId) {
 
 export const DEFAULT_BANNER_CONFIG = {
   imageUrl: BANNER_PRESETS[0].url,
-  position: 'center 20%', // Giữ trọn khuôn mặt học sinh ở góc trên
-  overlayOpacity: 70, // % tối lớp phủ để chữ trắng tương phản sắc nét
+  position: 'center center',
+  overlayOpacity: 0, // Tắt hoàn toàn độ mờ/tối, giữ bức ảnh trong suốt sắc nét 100%
   colorFilter: 'none',
   slideshowEnabled: true,
   slideshowInterval: 8, // Chuyển sau mỗi 8 giây

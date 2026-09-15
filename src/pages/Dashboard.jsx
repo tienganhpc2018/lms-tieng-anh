@@ -545,13 +545,23 @@ export default function Dashboard() {
       />
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* HERO BANNER - TÙY BIẾN ẢNH NỀN KHÔNG BỊ KHUẤT MẶT & SLIDESHOW 8S & BỘ LỌC MÀU & KEN BURNS & MÙA THI */}
+        {/* HERO BANNER - TÙY BIẾN ẢNH NỀN SẮC NÉT 100% KHÔNG MỜ & SLIDESHOW 8S & BỘ LỌC MÀU & KEN BURNS & MÙA THI */}
         {(() => {
           const activeSeason = getActiveSeasonalTheme(bannerConfig.seasonalTheme);
 
-          const activeSlideImage = (bannerConfig.slideshowEnabled && bannerConfig.slideshowImages?.length > 0)
+          // Tự động thay thế các link ảnh cũ bị bokeh mờ nét bằng ảnh lớp học sắc nét 100%
+          const sanitizeBannerUrl = (url) => {
+            if (!url || url.includes('1577896851231')) {
+              return 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1600&auto=format&fit=crop&q=90';
+            }
+            return url;
+          };
+
+          const rawSlideImage = (bannerConfig.slideshowEnabled && bannerConfig.slideshowImages?.length > 0)
             ? bannerConfig.slideshowImages[currentSlideIndex % bannerConfig.slideshowImages.length]
             : (activeSeason?.presetUrl || bannerConfig.imageUrl || DEFAULT_BANNER_CONFIG.imageUrl);
+
+          const activeSlideImage = sanitizeBannerUrl(rawSlideImage);
 
           const activeFilterCss = BANNER_FILTERS.find((f) => f.id === bannerConfig.colorFilter)?.css || 'none';
 
@@ -561,7 +571,7 @@ export default function Dashboard() {
               onMouseLeave={() => setIsSlideshowHovered(false)}
               className="relative rounded-3xl overflow-hidden shadow-xl border border-slate-200 group select-none"
             >
-              {/* LỚP ẢNH NỀN VỚI HIỆU ỨNG THU PHÓNG KEN BURNS 3-5% */}
+              {/* LỚP ẢNH NỀN SẮC NÉT 100%, KHÔNG DÙNG CHẾ ĐỘ ẢNH MỜ */}
               <div
                 className={`absolute inset-0 bg-cover transition-all ease-in-out ${
                   bannerConfig.kenBurnsEnabled ? 'scale-105 duration-[8000ms]' : 'scale-100 duration-1000'
@@ -572,11 +582,13 @@ export default function Dashboard() {
                   filter: activeFilterCss,
                 }}
               />
-              {/* LỚP PHỦ TRONG SUỐT BẢO VỆ CHỮ NHẸ NHÀNG, KHÔNG LÀM MỜ ẢNH GỐC */}
-              <div 
-                className="absolute inset-0 bg-gradient-to-r from-emerald-950/50 via-emerald-950/15 to-transparent transition-opacity duration-500"
-                style={{ opacity: (bannerConfig.overlayOpacity !== undefined ? bannerConfig.overlayOpacity : 30) / 100 }}
-              />
+              {/* LỚP PHỦ BẢO VỆ CHỮ - HOÀN TOÀN TRONG SUỐT NẾU overlayOpacity = 0, KHÔNG LÀM MỜ ĐỤC ẢNH */}
+              {bannerConfig.overlayOpacity > 0 && (
+                <div 
+                  className="absolute inset-0 bg-gradient-to-r from-emerald-950/40 via-emerald-950/10 to-transparent transition-opacity duration-500 pointer-events-none"
+                  style={{ opacity: Math.min(bannerConfig.overlayOpacity, 40) / 100 }}
+                />
+              )}
 
               {/* HIỆU ỨNG HẠT RƠI LỄ HỘI (HOA MAI, TRUNG THU, BÔNG TUYẾT, PHÁO GIẤY) */}
               {bannerConfig.particlesEnabled && (
@@ -602,11 +614,11 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-md">
+                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
                     Chào mừng trở lại, {getDisplayName(profile, user)}! 👋
                   </h1>
 
-                  <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-semibold drop-shadow-sm">
+                  <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]">
                     {activeSeason?.slogan || 'Khám phá nền tảng giáo dục thông minh với đầy đủ công cụ quản lý chuyên môn, bài giảng E-learning tương tác và ngân hàng đề thi bám sát ma trận CV7991.'}
                   </p>
 
