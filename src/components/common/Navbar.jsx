@@ -79,10 +79,35 @@ export default function Navbar() {
             </div>
           </Link>
 
+          {/* NÚT TRUY CẬP NHANH SỔ NỀ NẾP 4.0 TRÊN THANH ĐIỀU HƯỚNG */}
+          {user && location.pathname !== '/auth' && (
+            <div className="hidden md:flex items-center space-x-2">
+              <Link
+                to="/behavior"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-sm border ${
+                  location.pathname === '/behavior'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-400'
+                    : 'bg-slate-800 hover:bg-slate-700 text-purple-200 border-purple-500/30'
+                }`}
+              >
+                <span>🛡️</span>
+                <span>Sổ Nề Nếp 4.0</span>
+              </Link>
+            </div>
+          )}
+
           {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO (GÓC PHẢI NAV BAR) - ẨN HOÀN TOÀN KHI Ở TRANG AUTH */}
           <div className="flex items-center space-x-3" ref={dropdownRef}>
             {user && location.pathname !== '/auth' ? (
               <div className="flex items-center space-x-2">
+                <Link
+                  to="/behavior"
+                  className="md:hidden p-2 rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold"
+                  title="Sổ Nề Nếp 4.0"
+                >
+                  🛡️
+                </Link>
+
                 {/* 🔔 QUẢ CHUÔNG THÔNG BÁO THẬT NHẢY CHẤM ĐỎ DÀNH CHO HỌC SINH */}
                 <NotificationBell />
 
@@ -120,6 +145,15 @@ export default function Navbar() {
                     >
                       <User className="w-4 h-4 text-emerald-600" />
                       <span>Profile (Hồ sơ cá nhân)</span>
+                    </Link>
+
+                    <Link
+                      to="/behavior"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="px-4 py-2 hover:bg-purple-50 hover:text-purple-800 flex items-center space-x-2 transition"
+                    >
+                      <span className="text-sm">🛡️</span>
+                      <span className="text-purple-700 font-extrabold">Sổ Nề Nếp 4.0</span>
                     </Link>
 
                     <Link

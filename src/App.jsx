@@ -13,6 +13,7 @@ import WhiteboardView from './pages/WhiteboardView';
 import MockExamView from './pages/MockExamView';
 import CommunityModuleView from './pages/CommunityModuleView';
 import InteractiveLessonBookView from './pages/InteractiveLessonBookView';
+import BehaviorPage from './features/behavior/BehaviorPage';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import NotFound from './pages/NotFound';
 
@@ -184,6 +185,17 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <CommunityModuleView />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/behavior"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <BehaviorPage />
+                    </ErrorBoundary>
                   </ProtectedRoute>
                 }
               />
