@@ -79,7 +79,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* NÚT TRUY CẬP NHANH SỔ NỀ NẾP 4.0 TRÊN THANH ĐIỀU HƯỚNG */}
+          {/* NÚT TRUY CẬP NHANH SỔ NỀ NẾP 4.0 & CỬA HÀNG QUÀ TRÊN THANH ĐIỀU HƯỚNG */}
           {user && location.pathname !== '/auth' && (
             <div className="hidden md:flex items-center space-x-2">
               <Link
@@ -92,6 +92,18 @@ export default function Navbar() {
               >
                 <span>🛡️</span>
                 <span>Sổ Nề Nếp 4.0</span>
+              </Link>
+
+              <Link
+                to="/gift-shop"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-sm border ${
+                  location.pathname === '/gift-shop'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-400'
+                    : 'bg-slate-800 hover:bg-slate-700 text-amber-200 border-amber-500/30'
+                }`}
+              >
+                <span>🎁</span>
+                <span>Cửa Hàng Quà 4.0</span>
               </Link>
             </div>
           )}
@@ -106,6 +118,14 @@ export default function Navbar() {
                   title="Sổ Nề Nếp 4.0"
                 >
                   🛡️
+                </Link>
+
+                <Link
+                  to="/gift-shop"
+                  className="md:hidden p-2 rounded-xl bg-amber-900/60 border border-amber-500/40 text-amber-200 text-xs font-bold"
+                  title="Cửa Hàng Đổi Quà 4.0"
+                >
+                  🎁
                 </Link>
 
                 {/* 🔔 QUẢ CHUÔNG THÔNG BÁO THẬT NHẢY CHẤM ĐỎ DÀNH CHO HỌC SINH */}
@@ -154,6 +174,15 @@ export default function Navbar() {
                     >
                       <span className="text-sm">🛡️</span>
                       <span className="text-purple-700 font-extrabold">Sổ Nề Nếp 4.0</span>
+                    </Link>
+
+                    <Link
+                      to="/gift-shop"
+                      onClick={() => setIsUserDropdownOpen(false)}
+                      className="px-4 py-2 hover:bg-amber-50 hover:text-amber-800 flex items-center space-x-2 transition"
+                    >
+                      <span className="text-sm">🎁</span>
+                      <span className="text-amber-700 font-extrabold">Cửa Hàng Quà 4.0</span>
                     </Link>
 
                     <Link

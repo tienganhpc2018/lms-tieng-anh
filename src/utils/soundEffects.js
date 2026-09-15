@@ -181,3 +181,132 @@ export const playTimerAlarm = () => {
     });
   } catch (e) {}
 };
+
+// 8. Tiếng tíc tắc cơ học khi bánh xe may mắn lướt qua nan quạt
+export const playWheelTick = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(950, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(350, ctx.currentTime + 0.025);
+
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.025);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.025);
+  } catch (e) {}
+};
+
+// 9. Âm teng teng khôi phục điểm ngân vang khi hoàn tác giao dịch
+export const playUndoRestore = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const notes = [440, 554.37, 659.25]; // A4, C#5, E5
+    notes.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.07);
+
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.07 + 0.4);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.07);
+      osc.stop(ctx.currentTime + i * 0.07 + 0.4);
+    });
+  } catch (e) {}
+};
+
+// 10. Âm thanh nhịp cơ học máy in mini kết hợp chuông hoàn tất
+export const playPrintVoucher = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    // Chuỗi tiếng lách cách kéo giấy
+    for (let i = 0; i < 5; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(300 + (i % 2) * 80, ctx.currentTime + i * 0.06);
+
+      gain.gain.setValueAtTime(0.05, ctx.currentTime + i * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.04);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.06);
+      osc.stop(ctx.currentTime + i * 0.06 + 0.04);
+    }
+
+    // Chuông ding xong ở cuối
+    setTimeout(() => {
+      try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1174.66, ctx.currentTime); // D6
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch (e) {}
+    }, 320);
+  } catch (e) {}
+};
+
+// 11. Âm thanh ma thuật ánh sáng khi mở hộp quà bí ẩn Gacha
+export const playMysteryBoxOpen = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    // Rung kịch tính tần số thấp rồi vút cao
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.6);
+
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.7);
+
+    // Vang hợp âm lung linh sau 0.5s
+    setTimeout(() => {
+      const sparkleNotes = [659.25, 830.61, 987.77, 1318.51];
+      sparkleNotes.forEach((freq, idx) => {
+        const sOsc = ctx.createOscillator();
+        const sGain = ctx.createGain();
+        sOsc.type = 'triangle';
+        sOsc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+
+        sGain.gain.setValueAtTime(0.18, ctx.currentTime + idx * 0.08);
+        sGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.45);
+
+        sOsc.connect(sGain);
+        sGain.connect(ctx.destination);
+        sOsc.start(ctx.currentTime + idx * 0.08);
+        sOsc.stop(ctx.currentTime + idx * 0.08 + 0.45);
+      });
+    }, 500);
+  } catch (e) {}
+};
+

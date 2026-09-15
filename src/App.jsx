@@ -14,6 +14,7 @@ import MockExamView from './pages/MockExamView';
 import CommunityModuleView from './pages/CommunityModuleView';
 import InteractiveLessonBookView from './pages/InteractiveLessonBookView';
 import BehaviorPage from './features/behavior/BehaviorPage';
+import GiftShopView from './features/gift-shop/GiftShopView';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import NotFound from './pages/NotFound';
 
@@ -195,6 +196,17 @@ export default function App() {
                   <ProtectedRoute>
                     <ErrorBoundary>
                       <BehaviorPage />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/gift-shop"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <GiftShopView />
                     </ErrorBoundary>
                   </ProtectedRoute>
                 }

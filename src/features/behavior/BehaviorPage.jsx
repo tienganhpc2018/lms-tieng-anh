@@ -450,6 +450,15 @@ export default function BehaviorPage() {
                 <span>Túi Mù (32 Hộp Quà) 🎁</span>
               </button>
 
+              {/* 7b. Cửa Hàng Đổi Quà 4.0 🏪 */}
+              <a
+                href="/gift-shop"
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
+              >
+                <span className="text-sm">🏪</span>
+                <span>Cửa Hàng Đổi Quà 4.0</span>
+              </a>
+
               {/* 8. Gọi Nhiều (Xem Full Lớp) 👥 */}
               <button
                 type="button"
