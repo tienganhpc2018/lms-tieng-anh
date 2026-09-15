@@ -61,19 +61,19 @@ export default function Navbar() {
   const avatarImage = profile?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
   return (
-    <nav className="bg-navy-900 text-white sticky top-0 z-[60] shadow-md border-b border-slate-800 font-sans select-none">
+    <nav className="bg-emerald-50/95 backdrop-blur-md text-slate-800 sticky top-0 z-[60] shadow-xs border-b border-emerald-200/90 font-sans select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo & Branding */}
           <Link to="/dashboard" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:bg-emerald-500 transition">
+            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md group-hover:bg-emerald-500 transition">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
             <div>
-              <span className="font-extrabold text-lg tracking-tight text-white block leading-tight">
+              <span className="font-black text-lg tracking-tight text-emerald-950 block leading-tight">
                 LMS TIẾNG ANH
               </span>
-              <span className="text-[10px] font-semibold text-emerald-400 block tracking-wider uppercase">
+              <span className="text-[10px] font-extrabold text-emerald-700 block tracking-wider uppercase">
                 SMART E-LEARNING PLATFORM
               </span>
             </div>
@@ -84,10 +84,10 @@ export default function Navbar() {
             <div className="hidden md:flex items-center space-x-2">
               <Link
                 to="/behavior"
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-sm border ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-2xs border ${
                   location.pathname === '/behavior'
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-400'
-                    : 'bg-slate-800 hover:bg-slate-700 text-purple-200 border-purple-500/30'
+                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                    : 'bg-white/90 hover:bg-emerald-100 text-emerald-950 border-emerald-300/80'
                 }`}
               >
                 <span>🛡️</span>
@@ -96,10 +96,10 @@ export default function Navbar() {
 
               <Link
                 to="/gift-shop"
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-sm border ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-2xs border ${
                   location.pathname === '/gift-shop'
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-400'
-                    : 'bg-slate-800 hover:bg-slate-700 text-amber-200 border-amber-500/30'
+                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                    : 'bg-white/90 hover:bg-emerald-100 text-emerald-950 border-emerald-300/80'
                 }`}
               >
                 <span>🎁</span>
@@ -108,10 +108,10 @@ export default function Navbar() {
 
               <Link
                 to="/film-reel"
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-sm border ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-2xs border ${
                   location.pathname === '/film-reel'
-                    ? 'bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 text-white border-purple-400'
-                    : 'bg-slate-800 hover:bg-slate-700 text-purple-200 border-purple-500/30'
+                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                    : 'bg-white/90 hover:bg-emerald-100 text-emerald-950 border-emerald-300/80'
                 }`}
               >
                 <span>🎞️</span>
@@ -129,7 +129,7 @@ export default function Navbar() {
                   <>
                     <Link
                       to="/behavior"
-                      className="md:hidden p-2 rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold"
+                      className="md:hidden p-2 rounded-xl bg-white/90 border border-emerald-300 text-emerald-900 text-xs font-bold shadow-2xs"
                       title="Sổ Nề Nếp 4.0"
                     >
                       🛡️
@@ -137,7 +137,7 @@ export default function Navbar() {
 
                     <Link
                       to="/gift-shop"
-                      className="md:hidden p-2 rounded-xl bg-amber-900/60 border border-amber-500/40 text-amber-200 text-xs font-bold"
+                      className="md:hidden p-2 rounded-xl bg-white/90 border border-emerald-300 text-emerald-900 text-xs font-bold shadow-2xs"
                       title="Cửa Hàng Đổi Quà 4.0"
                     >
                       🎁
@@ -145,7 +145,7 @@ export default function Navbar() {
 
                     <Link
                       to="/film-reel"
-                      className="md:hidden p-2 rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold"
+                      className="md:hidden p-2 rounded-xl bg-white/90 border border-emerald-300 text-emerald-900 text-xs font-bold shadow-2xs"
                       title="Cuộn Phim Kỷ Niệm"
                     >
                       🎞️
@@ -160,17 +160,17 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                  className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-750 px-3 py-1.5 rounded-2xl border border-slate-700 transition cursor-pointer group shadow-sm"
+                  className="flex items-center space-x-2 bg-white hover:bg-emerald-100/70 px-3 py-1.5 rounded-2xl border border-emerald-300/80 text-emerald-950 shadow-2xs transition cursor-pointer group"
                 >
                   <img
                     src={avatarImage}
                     alt={displayName}
-                    className="w-7 h-7 rounded-full object-cover border border-emerald-400 shadow-2xs"
+                    className="w-7 h-7 rounded-full object-cover border border-emerald-500 shadow-2xs"
                   />
-                  <span className="text-xs font-extrabold text-slate-100 group-hover:text-emerald-400 transition">
+                  <span className="text-xs font-black text-emerald-950 group-hover:text-emerald-700 transition">
                     {displayName}
                   </span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 text-emerald-700 transition transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* DROPDOWN MENU CHUẨN MOODLE GNOMIO */}

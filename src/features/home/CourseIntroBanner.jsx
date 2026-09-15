@@ -8,7 +8,7 @@ export default function CourseIntroBanner({ onExploreClick }) {
     <div className="space-y-6">
       {/* KHẨU HIỆU ĐẦU TRANG CHUẨN ẢNH MẪU */}
       <div className="text-center py-2">
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-800 tracking-wide font-serif italic select-text">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-emerald-800 tracking-wide font-serif italic select-text">
           &ldquo;Học để khẳng định mình.&rdquo;
         </h2>
         <div className="w-24 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 mx-auto mt-2 rounded-full" />
@@ -24,7 +24,7 @@ export default function CourseIntroBanner({ onExploreClick }) {
               <span>Học Liệu Tiếng Anh Thông Minh 4.0</span>
             </div>
 
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            <h3 className="text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight leading-tight">
               Giới thiệu các khóa học
             </h3>
 
@@ -41,7 +41,7 @@ export default function CourseIntroBanner({ onExploreClick }) {
               <button
                 type="button"
                 onClick={() => setShowDetailModal(true)}
-                className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-extrabold text-sm shadow-md hover:shadow-lg transition cursor-pointer flex items-center space-x-2 group"
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-extrabold text-sm shadow-md hover:shadow-lg transition cursor-pointer flex items-center space-x-2 group"
               >
                 <span>Tìm hiểu thêm</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition transform" />

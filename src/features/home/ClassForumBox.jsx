@@ -58,7 +58,7 @@ export default function ClassForumBox() {
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h3 className="text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight">
               Forum & Thông Báo Lớp Học
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 font-medium">
@@ -69,7 +69,7 @@ export default function ClassForumBox() {
 
         <Link
           to="/community"
-          className="text-xs font-extrabold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3.5 py-1.5 rounded-xl border border-blue-200 transition flex items-center space-x-1"
+          className="text-xs font-extrabold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-xl border border-emerald-300 transition flex items-center space-x-1"
         >
           <span>Mở Diễn Đàn Trao Đổi ➔</span>
         </Link>
@@ -81,7 +81,7 @@ export default function ClassForumBox() {
           <div
             key={post.id}
             onClick={() => setSelectedNotice(post)}
-            className="bg-white rounded-3xl border-2 border-slate-200 hover:border-blue-500 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-4 group cursor-pointer"
+            className="bg-white rounded-3xl border-2 border-slate-200 hover:border-emerald-500 p-6 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-4 group cursor-pointer"
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between">

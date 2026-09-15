@@ -36,14 +36,14 @@ export default function TopStudentsBox() {
   return (
     <div className="space-y-4 select-text">
       {/* THANH TIÊU ĐỀ HỌC VIÊN TIÊU BIỂU CHUẨN ẢNH MẪU */}
-      <div className="bg-slate-200/90 text-slate-800 px-6 py-3 rounded-2xl flex items-center justify-between border border-slate-300/80 shadow-2xs">
+      <div className="bg-emerald-50/90 text-emerald-950 px-6 py-3 rounded-2xl flex items-center justify-between border border-emerald-200/90 shadow-2xs">
         <div className="flex items-center space-x-2.5">
           <Trophy className="w-5 h-5 text-amber-600" />
-          <h3 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
+          <h3 className="text-xl sm:text-2xl font-black tracking-tight text-emerald-800">
             Học viên tiêu biểu
           </h3>
         </div>
-        <span className="text-xs font-extrabold text-slate-600 bg-white/70 px-3 py-1 rounded-full">
+        <span className="text-xs font-extrabold text-emerald-800 bg-white/90 px-3 py-1 rounded-full border border-emerald-200">
           Gương Sáng Thi Đua
         </span>
       </div>

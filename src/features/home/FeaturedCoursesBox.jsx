@@ -87,7 +87,7 @@ export default function FeaturedCoursesBox({ courses = [], userIsTeacher = false
       {/* TIÊU ĐỀ BOX 2 CHUẨN ẢNH MẪU */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 border-b border-slate-200 pb-3">
         <div>
-          <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h3 className="text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight">
             Các khóa học
           </h3>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
@@ -109,7 +109,7 @@ export default function FeaturedCoursesBox({ courses = [], userIsTeacher = false
             <div
               key={item.grade}
               onClick={() => handleOpenCourse(item)}
-              className="bg-white rounded-3xl border-2 border-slate-200 hover:border-blue-600 shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer"
+              className="bg-white rounded-3xl border-2 border-slate-200 hover:border-emerald-500 shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer"
             >
               {/* PHẦN ẢNH BÌA SÁCH THỰC HÀNH TIẾNG ANH THEO PHONG CÁCH ẢNH MẪU */}
               <div className={`relative h-60 w-full bg-gradient-to-b ${item.coverTheme} text-white p-5 flex flex-col justify-between overflow-hidden shadow-inner`}>

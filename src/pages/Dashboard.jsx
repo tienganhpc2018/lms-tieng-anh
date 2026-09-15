@@ -10,7 +10,7 @@ import HeroBannerModal, { DEFAULT_BANNER_CONFIG, BANNER_FILTERS, getActiveSeason
 import BannerParticles from '../components/lms/BannerParticles';
 import BannerCountdown from '../components/lms/BannerCountdown';
 import { playWelcomeChime } from '../utils/audioChime';
-import { getSiteSetting, saveSiteSetting } from '../services/siteSettingsService';
+import { getSiteSetting, saveSiteSetting, subscribeSiteSetting } from '../services/siteSettingsService';
 import { 
   BookOpen, Plus, Users, Search, Key, Sparkles, FolderOpen, Crown, ChevronRight, 
   ChevronDown, Home, Lock, BarChart3, HelpCircle, FileText, CheckCircle2, Copy, 
@@ -22,6 +22,7 @@ import HomeLandingView from '../features/home/HomeLandingView';
 
 export default function Dashboard() {
   const { user, profile, isTeacher } = useAuth();
+  const userIsTeacher = isTeacher || profile?.role === 'teacher' || profile?.is_teacher || user?.email?.toLowerCase().includes('nguyensea') || user?.email?.toLowerCase().includes('nguyenvanhai');
   const navigate = useNavigate();
 
   const [courses, setCourses] = useState([]);
@@ -36,7 +37,7 @@ export default function Dashboard() {
   const [isSlideshowHovered, setIsSlideshowHovered] = useState(false);
   const [isSlideshowPaused, setIsSlideshowPaused] = useState(false);
 
-  // Nạp cấu hình Banner từ Supabase DB (ưu tiên) kết hợp cache localStorage
+  // Nạp cấu hình Banner và kết nối Real-Time từ Supabase để đồng bộ ngay lập tức giữa GV và HS
   useEffect(() => {
     let isMounted = true;
     const loadBannerConfig = async () => {
@@ -46,8 +47,17 @@ export default function Dashboard() {
       }
     };
     loadBannerConfig();
+
+    // Lắng nghe thay đổi Real-Time từ Giáo viên để cập nhật ngay lập tức trên máy Học sinh
+    const unsubscribe = subscribeSiteSetting('hero_banner_config', (newConfig) => {
+      if (isMounted && newConfig) {
+        setBannerConfig(newConfig);
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
@@ -473,8 +483,6 @@ export default function Dashboard() {
   };
 
   // KIỂM TRA PHÂN QUYỀN GIÁO VIÊN / ADMIN CHUẨN XÁC: CHỈ GIÁO VIÊN VÀ ADMIN MỚI XEM TẤT CẢ KHÓA HỌC & MÃ LỚP. HỌC SINH BỊ CHẶN BẢO MẬT 100%.
-  const userIsTeacher = isTeacher || profile?.is_teacher || profile?.role === 'admin' || profile?.role === 'teacher' || (user?.email && (user.email.toLowerCase().includes('hai') || user.email.toLowerCase().includes('nguyensea')));
-
   const displayableCourses = userIsTeacher
     ? courses
     : courses.filter((c) => userEnrollments.includes(c.id) && !hiddenCourseIds.includes(c.id));

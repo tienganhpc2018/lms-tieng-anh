@@ -55,7 +55,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
             <Film className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h3 className="text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight">
               Cuộn phim hồi ức
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 font-medium">
