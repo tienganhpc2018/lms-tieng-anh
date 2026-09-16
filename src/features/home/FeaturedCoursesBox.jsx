@@ -12,42 +12,39 @@ export default function FeaturedCoursesBox({ courses = [], userIsTeacher = false
       title: 'Tiếng Anh 9',
       subtitle: 'Global success',
       edition: 'Trial version',
-      coverBadge: 'THỰC HÀNH TIẾNG ANH 9',
-      coverTheme: 'from-blue-900 via-blue-800 to-indigo-950',
-      accentColor: 'blue',
+      classTag: 'Lớp 9A',
+      badgeText: 'Lớp 9 • Ôn Thi Vào 10',
       description:
         'Với 12 chủ đề bao gồm kiến thức phù hợp với lứa tuổi của học sinh, sách Tiếng Anh 9 sẽ dạy các bạn nhớ những kỹ năng sống cần thiết, có trách nhiệm đối với cộng đồng mình đang sống. Học sinh sẽ được rèn luyện kỹ năng nghe, nói, đọc và viết thông qua các bài học sinh động.',
-      badgeText: 'Lớp 9 • Ôn Thi Vào 10',
       keywords: ['9', 'chín', 'nine', 'english 9'],
-      imageIllustration: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&auto=format&fit=crop&q=80',
+      // Ảnh thật 100% sắc nét như FRAME #01 ở dưới
+      imageIllustration: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=90',
     },
     {
       grade: 8,
       title: 'Tiếng Anh 8',
       subtitle: 'Global success',
       edition: 'Standard edition',
-      coverBadge: 'THỰC HÀNH TIẾNG ANH 8',
-      coverTheme: 'from-indigo-900 via-purple-900 to-slate-950',
-      accentColor: 'indigo',
+      classTag: 'Lớp 8B',
+      badgeText: 'Lớp 8 • Bứt Phá Điểm Số',
       description:
         'Sách Tiếng Anh 8 được biên soạn theo định hướng giao tiếp, bám sát các chủ đề đời sống học sinh, nâng cao vốn từ vựng và tự tin trong các tình huống thực tế. Tích hợp bài tập tương tác số hóa, game từ vựng và video bài giảng tương tác dừng mốc.',
-      badgeText: 'Lớp 8 • Bứt Phá Điểm Số',
       keywords: ['8', 'tám', 'eight', 'english 8'],
-      imageIllustration: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
+      // Ảnh thật 100% sắc nét như FRAME #02 ở dưới
+      imageIllustration: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=800&auto=format&fit=crop&q=90',
     },
     {
       grade: 7,
       title: 'Tiếng Anh 7',
       subtitle: 'Global success',
       edition: 'Standard edition',
-      coverBadge: 'THỰC HÀNH TIẾNG ANH 7',
-      coverTheme: 'from-sky-900 via-teal-900 to-slate-950',
-      accentColor: 'teal',
+      classTag: 'Khối 7-8-9',
+      badgeText: 'Lớp 7 • Nền Tảng Vững Chắc',
       description:
         'Cuốn sách này được biên soạn với mục đích phát triển toàn diện cho học sinh ở cả 4 kỹ năng nghe, nói, đọc, viết. Đồng thời chú trọng vào kỹ năng giao tiếp, kèm tích hợp nhiều hoạt động thú vị, kích thích trí sáng tạo của học sinh giúp học sinh hứng thú hơn.',
-      badgeText: 'Lớp 7 • Nền Tảng Vững Chắc',
       keywords: ['7', 'bảy', 'seven', 'english 7'],
-      imageIllustration: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&auto=format&fit=crop&q=80',
+      // Ảnh thật 100% sắc nét như FRAME #03 ở dưới
+      imageIllustration: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&auto=format&fit=crop&q=90',
     },
   ];
 
@@ -111,49 +108,33 @@ export default function FeaturedCoursesBox({ courses = [], userIsTeacher = false
               onClick={() => handleOpenCourse(item)}
               className="bg-white rounded-3xl border-2 border-slate-200 hover:border-emerald-500 shadow-sm hover:shadow-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer"
             >
-              {/* PHẦN ẢNH BÌA SÁCH THỰC HÀNH TIẾNG ANH THEO PHONG CÁCH ẢNH MẪU */}
-              <div className={`relative h-60 w-full bg-gradient-to-b ${item.coverTheme} text-white p-5 flex flex-col justify-between overflow-hidden shadow-inner`}>
-                {/* ẢNH MINH HỌA NỀN MỜ */}
+              {/* PHẦN ẢNH BÌA THẬT 100% SẮC NÉT, KHÔNG CHE MỜ, ĐÃ XÓA KHUNG CHỮ TIẾNG ANH 7,8,9 */}
+              <div className="relative h-60 w-full bg-slate-100 overflow-hidden flex flex-col justify-between p-3.5 select-none">
+                {/* ẢNH THẬT NGUYÊN BẢN SẮC NÉT NHƯ 3 ẢNH DƯỚI */}
                 <img
                   src={item.imageIllustration}
                   alt={item.title}
-                  className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:scale-110 transition duration-700 pointer-events-none"
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500"
                 />
 
-                {/* DÒNG TIÊU ĐỀ BÌA TRÊN CÙNG */}
+                {/* DÒNG TIÊU ĐỀ BÌA TRÊN CÙNG: BADGE ENGLISH VÀ TAG LỚP */}
                 <div className="relative z-10 flex items-center justify-between">
-                  <span className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-lg text-[10px] font-black uppercase tracking-wider text-white border border-white/30">
+                  <span className="px-2.5 py-1 bg-black/60 backdrop-blur-xs rounded-lg text-[10px] font-black uppercase tracking-wider text-white border border-white/20 shadow-xs">
                     ENGLISH {item.grade}
                   </span>
 
-                  <span className="text-xs font-black text-amber-300 bg-slate-950/50 px-2 py-0.5 rounded-md">
-                    ⋮
+                  <span className="px-2.5 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-md shadow-xs">
+                    {item.classTag}
                   </span>
                 </div>
 
-                {/* BANNER HUY HIỆU THỰC HÀNH TIẾNG ANH CHÍNH GIỮA */}
-                <div className="relative z-10 text-center space-y-2 my-auto">
-                  <div className="inline-block bg-white text-slate-950 px-4 py-2 rounded-2xl shadow-xl border-2 border-amber-400 transform group-hover:scale-105 transition">
-                    <span className="block text-[11px] font-black uppercase tracking-widest text-blue-900">
-                      THỰC HÀNH
-                    </span>
-                    <span className="block text-xl font-black uppercase tracking-wider text-slate-950">
-                      TIẾNG ANH {item.grade}
-                    </span>
-                    <span className="block text-[9px] font-extrabold text-emerald-700 uppercase">
-                      BẢN ĐIỆN TỬ 4.0
-                    </span>
-                  </div>
-
-                  <p className="text-[10px] text-slate-300 font-semibold tracking-wide">
-                    https://tienganhpc.online
-                  </p>
-                </div>
-
-                {/* DƯỚI CÙNG BÌA */}
-                <div className="relative z-10 flex items-center justify-between text-[11px] text-slate-300 font-bold border-t border-white/20 pt-2">
-                  <span>{item.badgeText}</span>
-                  <span className="text-emerald-400">● Đang mở</span>
+                {/* DƯỚI CÙNG KHUNG ẢNH: THANH THÔNG TIN GỌN GÀNG KHÔNG CHE MẶT */}
+                <div className="relative z-10 flex items-center justify-between text-xs px-3 py-1.5 bg-black/60 backdrop-blur-xs rounded-xl text-white font-bold border border-white/20 shadow-xs">
+                  <span className="text-[11px] text-slate-100">{item.badgeText}</span>
+                  <span className="text-emerald-400 font-extrabold flex items-center space-x-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[11px]">Đang mở</span>
+                  </span>
                 </div>
               </div>
 
