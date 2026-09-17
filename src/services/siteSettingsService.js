@@ -34,11 +34,20 @@ export async function getSiteSetting(key, fallbackDefault) {
   const localKey = `lms_${key}`;
   let cachedValue = fallbackDefault;
 
+  const mergeValues = (base, incoming) => {
+    if (incoming === undefined || incoming === null) return base;
+    if (Array.isArray(incoming)) return incoming;
+    if (typeof incoming === 'object' && typeof base === 'object' && !Array.isArray(base)) {
+      return { ...base, ...incoming };
+    }
+    return incoming;
+  };
+
   // 1. Đọc nhanh từ cache cục bộ
   try {
     const localData = localStorage.getItem(localKey);
     if (localData) {
-      cachedValue = { ...fallbackDefault, ...JSON.parse(localData) };
+      cachedValue = mergeValues(fallbackDefault, JSON.parse(localData));
     }
   } catch (e) {
     console.warn(`[SiteSettings] Lỗi đọc cache ${key}:`, e);
@@ -52,8 +61,8 @@ export async function getSiteSetting(key, fallbackDefault) {
       .eq('key', key)
       .maybeSingle();
 
-    if (!error && data && data.value) {
-      const merged = { ...fallbackDefault, ...data.value };
+    if (!error && data && data.value !== undefined && data.value !== null) {
+      const merged = mergeValues(fallbackDefault, data.value);
       localStorage.setItem(localKey, JSON.stringify(merged));
       return merged;
     }
@@ -71,8 +80,8 @@ export async function getSiteSetting(key, fallbackDefault) {
       const resp = await fetch(`${pubUrlData.publicUrl}?t=${Date.now()}`);
       if (resp.ok) {
         const cloudData = await resp.json();
-        if (cloudData && typeof cloudData === 'object') {
-          const merged = { ...fallbackDefault, ...cloudData };
+        if (cloudData !== undefined && cloudData !== null) {
+          const merged = mergeValues(fallbackDefault, cloudData);
           localStorage.setItem(localKey, JSON.stringify(merged));
           return merged;
         }

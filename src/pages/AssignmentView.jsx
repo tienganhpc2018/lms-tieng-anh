@@ -88,7 +88,7 @@ export default function AssignmentView() {
       try {
         const { data: act } = await supabase
           .from('activities')
-          .select('*, section:section_id (course_id)')
+          .select('*, section:section_id (id, title, course:course_id (id, title))')
           .eq('id', targetActivityId)
           .maybeSingle();
 
@@ -109,7 +109,33 @@ export default function AssignmentView() {
     };
 
     fetchData();
-    return () => { isMounted = false; };
+
+    // TÍCH HỢP SUPABASE REALTIME ĐỒNG BỘ TỨC THÌ TẤT CẢ DỮ LIỆU SOẠN BÀI CHO HỌC SINH
+    const channel = supabase
+      .channel(`realtime_activity_${targetActivityId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'activities',
+          filter: `id=eq.${targetActivityId}`,
+        },
+        (payload) => {
+          if (payload.new) {
+            setActivity((prev) => ({
+              ...prev,
+              ...payload.new,
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
   }, [targetActivityId]);
 
   if (loading) {
@@ -250,7 +276,7 @@ export default function AssignmentView() {
     }
   };
 
-    const handleSaveVocabularySettings = async (vocabSettings) => {
+  const handleSaveVocabularySettings = async (vocabSettings) => {
     try {
       const updatedSettings = {
         ...(activity?.settings || {}),
@@ -277,9 +303,10 @@ export default function AssignmentView() {
   };
 
   const activeAct = activity || { id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử Online', type: 'quiz' };
-    const userEmail = (user?.email || profile?.email || '').toLowerCase();
+  const userEmail = (user?.email || profile?.email || '').toLowerCase();
   const isMasterTeacherEmail = userEmail.includes('nguyensea') || userEmail.includes('nguyenvanhai') || userEmail.includes('tienganhpc2018');
-  const userIsTeacher = Boolean(
+  const isExplicitStudent = profile?.role === 'student' || userEmail.includes('hoangnm');
+  const userIsTeacher = !isExplicitStudent && Boolean(
     isTeacher || 
     profile?.is_teacher || 
     profile?.role === 'teacher' || 

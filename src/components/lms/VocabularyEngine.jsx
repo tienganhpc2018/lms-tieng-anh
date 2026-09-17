@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Download,
   Clipboard,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { uploadLMSFile } from '../../lib/supabase';
+import { getSiteSetting, saveSiteSetting, subscribeSiteSetting } from '../../services/siteSettingsService';
 
 // DIALOGUE KEYWORDS DICTIONARY FOR INTERACTIVE TOOLTIPS (V298)
 const DIALOGUE_KEY_WORDS_DICT = {
@@ -1466,9 +1467,145 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   };
 };
 
-export default function VocabularyEngine({ activity, isTeacher = false, onSaveActivity }) {
-  const { user } = useAuth();
+// HELPER XÁC ĐỊNH KHỐI LỚP HOẠT ĐỘNG
+const detectActivityGrade = (act) => {
+  const explicit = (
+    (act?.settings?.grade || '') + ' ' +
+    (act?.grade || '') + ' ' +
+    (act?.courseGrade || '') + ' ' +
+    (act?.course?.grade || '') + ' ' +
+    (act?.section?.course?.grade || '') + ' ' +
+    (act?.selectedGrade || '')
+  ).toString().toLowerCase();
+
+  if (explicit.includes('7') || explicit.includes('lớp 7') || explicit.includes('grade 7')) return 'Lớp 7';
+  if (explicit.includes('9') || explicit.includes('lớp 9') || explicit.includes('grade 9')) return 'Lớp 9';
+  if (explicit.includes('8') || explicit.includes('lớp 8') || explicit.includes('grade 8')) return 'Lớp 8';
+  if (explicit.includes('6') || explicit.includes('lớp 6') || explicit.includes('grade 6')) return 'Lớp 6';
+
+  const textStr = (
+    (act?.title || '') + ' ' +
+    (act?.course_title || '') + ' ' +
+    (act?.course_name || '') + ' ' +
+    (act?.course?.title || '') + ' ' +
+    (act?.section?.title || '') + ' ' +
+    (act?.section?.course?.title || '')
+  ).toString().toLowerCase();
+
+  if (/\b(lớp\s*7|lop\s*7|grade\s*7|tiếng\s*anh\s*7|english\s*7|unit\s*1.*hobbies|my\s*favourite\s*hobby)\b/i.test(textStr)) return 'Lớp 7';
+  if (/\b(lớp\s*9|lop\s*9|grade\s*9|tiếng\s*anh\s*9|english\s*9)\b/i.test(textStr)) return 'Lớp 9';
+  if (/\b(lớp\s*8|lop\s*8|grade\s*8|tiếng\s*anh\s*8|english\s*8)\b/i.test(textStr)) return 'Lớp 8';
+  if (/\b(lớp\s*6|lop\s*6|grade\s*6|tiếng\s*anh\s*6|english\s*6)\b/i.test(textStr)) return 'Lớp 6';
+
+  const words = Array.isArray(act?.settings?.vocabularyList)
+    ? act.settings.vocabularyList.map(i => (i?.word || '').toLowerCase()).join(' ')
+    : '';
+  if (words.includes('cardboard') || words.includes('dollhouse') || words.includes('horse riding')) return 'Lớp 7';
+  if (words.includes('suburb') || words.includes('facilities') || words.includes('craft village')) return 'Lớp 9';
+
+  return 'Lớp 9';
+};
+
+// DANH SÁCH BÀI HỘI THOẠI CHUẨN MẶC ĐỊNH CHO TỪNG KHỐI LỚP
+const defaultInitialDialogueTabs = [
+  {
+    id: 'tab1',
+    title: 'Đoạn 1: Ann & Mi (I really love where I live now)',
+    grade: 'Lớp 9',
+    unit: 'Unit 1: Local Community',
+    introOffset: 2.5,
+    lines: [
+      { speaker: 'Ann', text: 'Hi, Mi. Long time no see. How’re you doing?', vi: 'Chào Mi. Lâu rồi không gặp. Dạo này bạn thế nào?' },
+      { speaker: 'Mi', text: 'I’m fine, thanks. By the way, we moved to a new house in a suburb last month.', vi: 'Mình khỏe, cảm ơn bạn. Nhân tiện, tháng trước nhà mình mới chuyển đến một ngôi nhà ở vùng ngoại ô.' },
+      { speaker: 'Ann', text: 'Oh, that’s why I haven’t seen you in the Reading Club very often.', vi: 'Ồ, thảo nào dạo này mình ít thấy bạn ở Câu lạc bộ Đọc sách.' },
+      { speaker: 'Mi', text: 'Yes. We’re still busy moving in, you know.', vi: 'Đúng vậy. Bạn biết đấy, bọn mình vẫn đang bận rộn dọn dẹp chuyển nhà.' },
+      { speaker: 'Ann', text: 'How’s your new neighbourhood?', vi: 'Khu phố mới của bạn như thế nào?' },
+      { speaker: 'Mi', text: 'It’s much bigger than our old one. The streets are wider, and there are fewer people.', vi: 'Nó rộng hơn nhiều so với khu cũ. Đường xá rộng rãi hơn và ít người hơn.' },
+      { speaker: 'Ann', text: 'What about the facilities?', vi: 'Thế còn các cơ sở vật chất tiện ích thì sao?' }
+    ]
+  },
+  {
+    id: 'tab_g7_u1_hobby',
+    title: 'My favourite hobby',
+    grade: 'Lớp 7',
+    unit: 'Unit 1: Hobbies',
+    audioUrl: 'https://wjphcawebrxdvituvuac.supabase.co/storage/v1/object/public/lms-files/audio/1789049630584_yegj1sx.mp3',
+    introOffset: 2.5,
+    lines: [
+      { speaker: 'Ann', text: 'Your house is very nice, Trang.', vi: 'Ngôi nhà của bạn đẹp thật đấy, Trang à.', startTime: 2.5, endTime: 5.9 },
+      { speaker: 'Trang', text: 'Thanks! Let’s go upstairs. I’ll show you my room.', vi: 'Cảm ơn bạn! Chúng mình cùng lên gác nhé. Mình sẽ cho bạn xem phòng của mình.', startTime: 5.9, endTime: 11.6 },
+      { speaker: 'Ann', text: 'I love your dollhouse. It’s amazing. Did you make it yourself?', vi: 'Mình mê ngôi nhà búp bê của bạn quá. Nó thật tuyệt vời. Bạn tự làm nó đấy à?', startTime: 11.6, endTime: 18.1 },
+      { speaker: 'Trang', text: 'Yes. I like building dollhouses very much.', vi: 'Đúng rồi. Mình rất thích tự tay làm những ngôi nhà búp bê.', startTime: 18.1, endTime: 22.6 },
+      { speaker: 'Ann', text: 'Really? Is it hard to build one?', vi: 'Thật sao? Làm một ngôi nhà như thế có khó không bạn?', startTime: 22.6, endTime: 27.2 },
+      { speaker: 'Trang', text: 'Not really. All you need is some cardboard and glue. Then just use a bit of creativity. What do you do in your free time?', vi: 'Không hẳn đâu. Tất cả những gì bạn cần chỉ là một ít bìa các tông và keo dán. Rồi chỉ cần thêm một chút sáng tạo nữa thôi. Bạn thường làm gì vào thời gian rảnh?', startTime: 27.2, endTime: 39.7 },
+      { speaker: 'Ann', text: 'I like horse riding.', vi: 'Mình thích cưỡi ngựa.', startTime: 39.7, endTime: 42.6 },
+      { speaker: 'Trang', text: 'That’s rather unusual. Not many people do that.', vi: 'Sở thích đó khá là đặc biệt và khác lạ đấy. Không có nhiều người làm như vậy đâu.', startTime: 42.6, endTime: 47.5 },
+      { speaker: 'Ann', text: 'Actually, it’s more common than you think. There are some horse riding clubs in Ha Noi now. I go to the Riders’ Club every Sunday.', vi: 'Thực ra nó phổ biến hơn bạn nghĩ đấy. Hiện nay ở Hà Nội có một số câu lạc bộ cưỡi ngựa rồi. Mình đến Câu lạc bộ Những người cưỡi ngựa vào mỗi Chủ Nhật.', startTime: 47.5, endTime: 59.9 },
+      { speaker: 'Trang', text: 'I’d love to go to your club this Sunday. I want to learn how to ride.', vi: 'Mình rất muốn đến câu lạc bộ của bạn vào Chủ Nhật này. Mình muốn học cách cưỡi ngựa.', startTime: 59.9, endTime: 68.1 },
+      { speaker: 'Ann', text: 'Sure. My lesson starts at 8 a.m.', vi: 'Chắc chắn rồi. Buổi học của mình bắt đầu lúc 8 giờ sáng.', startTime: 68.1, endTime: 73.0 }
+    ]
+  },
+  {
+    id: 'tab_g7_u1_1',
+    title: 'Đoạn 1: Ann & Trang (Your house is very nice - Lớp 7 Unit 1)',
+    grade: 'Lớp 7',
+    unit: 'Unit 1: Hobbies',
+    introOffset: 2.5,
+    lines: [
+      { speaker: 'Ann', text: 'Your house is very nice, Trang.', vi: 'Ngôi nhà của bạn đẹp thật đấy, Trang à.' },
+      { speaker: 'Trang', text: 'Thanks! Let’s go upstairs. I’ll show you my room.', vi: 'Cảm ơn bạn! Chúng mình cùng lên gác nhé. Mình sẽ cho bạn xem phòng của mình.' },
+      { speaker: 'Ann', text: 'I love your dollhouse. It’s amazing. Did you make it yourself?', vi: 'Mình mê ngôi nhà búp bê của bạn quá. Nó thật tuyệt vời. Bạn tự làm nó đấy à?' },
+      { speaker: 'Trang', text: 'Yes. I like building dollhouses very much.', vi: 'Đúng rồi. Mình rất thích tự tay làm những ngôi nhà búp bê.' },
+      { speaker: 'Ann', text: 'Really? Is it hard to build one?', vi: 'Thật sao? Làm một ngôi nhà như thế có khó không bạn?' },
+      { speaker: 'Trang', text: 'Not really. All you need is some cardboard and glue. Then just use a bit of creativity. What do you do in your free time?', vi: 'Không hẳn đâu. Tất cả những gì bạn cần chỉ là một ít bìa các tông và keo dán. Rồi chỉ cần thêm một chút sáng tạo nữa thôi. Bạn thường làm gì vào thời gian rảnh?' },
+      { speaker: 'Ann', text: 'I like horse riding.', vi: 'Mình thích cưỡi ngựa.' },
+      { speaker: 'Trang', text: 'That’s rather unusual. Not many people do that.', vi: 'Sở thích đó khá là đặc biệt và khác lạ đấy. Không có nhiều người làm như vậy đâu.' },
+      { speaker: 'Ann', text: 'Actually, it’s more common than you think. There are some horse riding clubs in Ha Noi now. I go to the Riders’ Club every Sunday.', vi: 'Thực ra nó phổ biến hơn bạn nghĩ đấy. Hiện nay ở Hà Nội có một số câu lạc bộ cưỡi ngựa rồi. Mình đến Câu lạc bộ Những người cưỡi ngựa vào mỗi Chủ Nhật.' },
+      { speaker: 'Trang', text: 'I’d love to go to your club this Sunday. I want to learn how to ride.', vi: 'Mình rất muốn đến câu lạc bộ của bạn vào Chủ Nhật này. Mình muốn học cách cưỡi ngựa.' },
+      { speaker: 'Ann', text: 'Sure. My lesson starts at 8 a.m.', vi: 'Chắc chắn rồi. Buổi học của mình bắt đầu lúc 8 giờ sáng.' }
+    ]
+  },
+  {
+    id: 'tab2',
+    title: 'Đoạn 2: Ann & Trang (Making dollhouses & Horse riding - English 7 Unit 1)',
+    grade: 'Lớp 7',
+    unit: 'Unit 1: Hobbies',
+    introOffset: 2.5,
+    lines: [
+      { speaker: 'Ann', text: 'Hi, Trang. What are your favorite hobbies in your free time?', vi: 'Chào Trang. Những sở thích yêu thích của bạn trong thời gian rảnh là gì?' },
+      { speaker: 'Trang', text: 'I love making models using cardboard and glue. It is very creative!', vi: 'Mình thích làm nhà mô hình bằng bìa các tông và keo dán. Nó rất sáng tạo!' },
+      { speaker: 'Ann', text: 'That sounds unusual and interesting. I enjoy horse riding and gardening.', vi: 'Nghe có vẻ độc đáo và thú vị đấy. Mình thích cưỡi ngựa và làm vườn.' },
+      { speaker: 'Trang', text: 'Do you need anything special for horse riding?', vi: 'Bạn có cần đồ dùng đặc biệt nào khi cưỡi ngựa không?' },
+      { speaker: 'Ann', text: 'Yes, a riding helmet and proper boots to keep safe.', vi: 'Có chứ, một chiếc mũ bảo hiểm cưỡi ngựa và đôi bốt phù hợp để giữ an toàn.' }
+    ]
+  }
+];
+
+export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = false, onSaveActivity }) {
+  const { user, profile } = useAuth();
   const settings = activity?.settings || {};
+
+  // SMART GRADE DETECTOR & PREVIEW MODE
+  const activityGrade = detectActivityGrade(activity);
+  const [isStudentPreviewMode, setIsStudentPreviewMode] = useState(false);
+  
+  // BẢO MẬT PHÂN QUYỀN CHẶT CHẼ TUYỆT ĐỐI (ROLE-BASED ACCESS CONTROL)
+  const userEmail = (user?.email || profile?.email || '').toLowerCase();
+  const userRole = (profile?.role || '').toLowerCase();
+  const isMasterAdminEmail = userEmail.includes('nguyensea') || userEmail.includes('nguyenvanhai') || userEmail.includes('tienganhpc2018');
+  
+  // Chỉ tài khoản Giáo viên / Admin thực thụ mới có quyền biên soạn bài (Học sinh khóa 100%)
+  const isConfirmedTeacher = Boolean(
+    (userRole === 'teacher' || userRole === 'admin' || isMasterAdminEmail || profile?.is_teacher === true) &&
+    userRole !== 'student' &&
+    !userEmail.includes('hoangnm') &&
+    !isStudentPreviewMode &&
+    Boolean(rawIsTeacher)
+  );
+
+  // ÉP CẢ 2 BIẾN effectiveIsTeacher VÀ isTeacher = isConfirmedTeacher ĐỂ TẤT CẢ GIAO DIỆN CON KHÓA 100%
+  const effectiveIsTeacher = isConfirmedTeacher;
+  const isTeacher = isConfirmedTeacher;
 
   // HOISTED V297 & V298 DIALOGUE & BG MUSIC STATES AT COMPONENT TOP
   const [dialogueSpeed, setDialogueSpeed] = useState(0.8);
@@ -1511,7 +1648,226 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
   const [isAudioTranscribing, setIsAudioTranscribing] = useState(false);
   const [liveVoiceCoachFeedback, setLiveVoiceCoachFeedback] = useState(null);
-  // SMART GRADE DETECTOR FOR ACCURATE SGK VOCABULARY SELECTION
+
+  // INTERACTIVE SGK DIALOGUE LESSON STATE (SUPABASE PERSISTENCE & REALTIME AUTO-RESTORE)
+  const [dialogueTabs, setDialogueTabs] = useState(() => {
+    try {
+      if (Array.isArray(activity?.settings?.dialogueTabs) && activity.settings.dialogueTabs.length > 0) {
+        return activity.settings.dialogueTabs;
+      }
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = localStorage.getItem('lms_dialogue_tabs_v317') || 
+                      localStorage.getItem('lms_dialogue_tabs_v315') || 
+                      localStorage.getItem('lms_dialogue_tabs_v312') || 
+                      localStorage.getItem('lms_dialogue_tabs_v316');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            let merged = [...parsed];
+            defaultInitialDialogueTabs.forEach(defTab => {
+              if (!merged.some(t => t.id === defTab.id || (t.grade === defTab.grade && t.title === defTab.title))) {
+                merged.push(defTab);
+              }
+            });
+            return merged;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Load saved dialogue tabs error:', e);
+    }
+    return defaultInitialDialogueTabs;
+  });
+
+  const [activeDialogueTabId, setActiveDialogueTabId] = useState(() => {
+    if (activity?.settings?.activeDialogueTabId) {
+      return activity.settings.activeDialogueTabId;
+    }
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const savedActive = localStorage.getItem('lms_active_dialogue_tab_id');
+      if (savedActive) return savedActive;
+    }
+    return activityGrade === 'Lớp 7' ? 'tab_g7_u1_hobby' : 'tab1';
+  });
+
+  const [playingDialogueLineIndex, setPlayingDialogueLineIndex] = useState(null);
+  const [isPlayingFullDialogue, setIsPlayingFullDialogue] = useState(false);
+  const [isDialogueEditorOpen, setIsDialogueEditorOpen] = useState(false);
+  const [rawDialogueInputText, setRawDialogueInputText] = useState('');
+  const [selectedDialogueGradeFilter, setSelectedDialogueGradeFilter] = useState(() => (effectiveIsTeacher ? 'Tất Cả' : (activityGrade || 'Lớp 9')));
+  const [selectedDialogueUnitFilter, setSelectedDialogueUnitFilter] = useState('Tất Cả');
+  const [rawTextPasteInput, setRawTextPasteInput] = useState('');
+  const [isEditingDialogueModalOpen, setIsEditingDialogueModalOpen] = useState(false);
+  const [editingDialogueObj, setEditingDialogueObj] = useState(null);
+  const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
+  const [isUploadingDialogueAudio, setIsUploadingDialogueAudio] = useState(false);
+  const customDialogueAudioRef = useRef(null);
+  const [newTabTitleInput, setNewTabTitleInput] = useState('');
+
+  // HÀM LƯU ĐỒNG BỘ VĨNH VIỄN LÊN SUPABASE DB VÀ PHÁT SÓNG REALTIME CHO HỌC SINH
+  const persistDialogueTabs = (updatedTabs, targetActiveId = null) => {
+    const finalTabs = Array.isArray(updatedTabs) ? updatedTabs : dialogueTabs;
+    const finalActiveId = targetActiveId || activeDialogueTabId;
+
+    setDialogueTabs(finalTabs);
+    if (targetActiveId) {
+      setActiveDialogueTabId(targetActiveId);
+    }
+
+    try {
+      localStorage.setItem('lms_dialogue_tabs_v317', JSON.stringify(finalTabs));
+      localStorage.setItem('lms_dialogue_tabs_v315', JSON.stringify(finalTabs));
+      localStorage.setItem('lms_dialogue_tabs_v312', JSON.stringify(finalTabs));
+      localStorage.setItem('lms_active_dialogue_tab_id', finalActiveId);
+    } catch (e) {
+      console.warn('Lưu local cache dialogue tabs lỗi:', e);
+    }
+
+    // 1. Lưu trực tiếp vào bài học trong bảng activities (Supabase DB)
+    if (onSaveActivity) {
+      onSaveActivity({
+        ...settings,
+        vocabularyList: vocabList,
+        voiceOption,
+        masterAudioUrl,
+        lockGamesForStudents,
+        lockAheadLessonsForStudents,
+        individualGameLocks,
+        individualSectionLocks,
+        dialogueTabs: finalTabs,
+        activeDialogueTabId: finalActiveId,
+      });
+    }
+
+    // 2. Lưu toàn cục qua siteSettingsService (Supabase site_settings + Realtime broadcast tới học sinh)
+    saveSiteSetting('global_dialogue_tabs', finalTabs).catch(err => console.warn('Sync global_dialogue_tabs error:', err));
+    saveSiteSetting('global_active_dialogue_tab_id', finalActiveId).catch(err => console.warn('Sync global_active_dialogue_tab_id error:', err));
+  };
+
+  // HÀM CHỌN TAB ĐOẠN HỘI THOẠI (TỰ ĐỘNG ĐỒNG BỘ NẾU LÀ GIÁO VIÊN)
+  const handleSelectDialogueTab = (tabId) => {
+    handleStopDialogueAudio();
+    setActiveDialogueTabId(tabId);
+    try {
+      localStorage.setItem('lms_active_dialogue_tab_id', tabId);
+    } catch (e) {}
+
+    if (effectiveIsTeacher) {
+      if (onSaveActivity) {
+        onSaveActivity({
+          ...settings,
+          vocabularyList: vocabList,
+          voiceOption,
+          masterAudioUrl,
+          lockGamesForStudents,
+          lockAheadLessonsForStudents,
+          individualGameLocks,
+          individualSectionLocks,
+          dialogueTabs,
+          activeDialogueTabId: tabId,
+        });
+      }
+      saveSiteSetting('global_active_dialogue_tab_id', tabId).catch(() => {});
+    }
+  };
+
+  // ĐỒNG BỘ REALTIME TỪ SUPABASE (CHO CẢ HỌC SINH VÀ GIÁO VIÊN)
+  useEffect(() => {
+    if (Array.isArray(activity?.settings?.dialogueTabs) && activity.settings.dialogueTabs.length > 0) {
+      setDialogueTabs(activity.settings.dialogueTabs);
+    } else {
+      getSiteSetting('global_dialogue_tabs', defaultInitialDialogueTabs).then((savedTabs) => {
+        if (Array.isArray(savedTabs) && savedTabs.length > 0) {
+          setDialogueTabs(prev => {
+            let merged = [...savedTabs];
+            defaultInitialDialogueTabs.forEach(defTab => {
+              if (!merged.some(t => t.id === defTab.id || (t.grade === defTab.grade && t.title === defTab.title))) {
+                merged.push(defTab);
+              }
+            });
+            return merged;
+          });
+        }
+      }).catch(err => console.warn('Load global_dialogue_tabs error:', err));
+    }
+
+    if (activity?.settings?.activeDialogueTabId) {
+      setActiveDialogueTabId(activity.settings.activeDialogueTabId);
+    } else {
+      getSiteSetting('global_active_dialogue_tab_id', null).then((savedActiveId) => {
+        if (savedActiveId) {
+          setActiveDialogueTabId(savedActiveId);
+        }
+      }).catch(() => {});
+    }
+
+    const unsubTabs = subscribeSiteSetting('global_dialogue_tabs', (newTabs) => {
+      if (Array.isArray(newTabs) && newTabs.length > 0) {
+        setDialogueTabs(newTabs);
+      }
+    });
+
+    const unsubActiveId = subscribeSiteSetting('global_active_dialogue_tab_id', (newActiveId) => {
+      if (newActiveId) {
+        setActiveDialogueTabId(newActiveId);
+      }
+    });
+
+    return () => {
+      if (typeof unsubTabs === 'function') unsubTabs();
+      if (typeof unsubActiveId === 'function') unsubActiveId();
+    };
+  }, [activity?.id, activity?.settings?.dialogueTabs, activity?.settings?.activeDialogueTabId]);
+
+  // DANH SÁCH BÀI HỘI THOẠI KHẢ DỤNG CHO HỌC SINH (LUÔN ĐẢM BẢO CÓ DỮ LIỆU ĐỂ HỌC VÀ ĐÚNG KHỐI LỚP)
+  const studentAvailableTabs = useMemo(() => {
+    if (!dialogueTabs || dialogueTabs.length === 0) return defaultInitialDialogueTabs;
+    const gradeTabs = dialogueTabs.filter(t => (t.grade || 'Lớp 9') === activityGrade);
+    if (gradeTabs.length > 0) {
+      return gradeTabs;
+    }
+    const activeTab = dialogueTabs.find(t => t.id === activeDialogueTabId);
+    if (activeTab) {
+      return [activeTab, ...dialogueTabs.filter(t => t.id !== activeTab.id)];
+    }
+    return dialogueTabs;
+  }, [dialogueTabs, activityGrade]);
+
+  // ĐẢM BẢO TAB ĐƯỢC CHỌN CHO HỌC SINH LUÔN KHỚP VỚI KHỐI LỚP CỦA BÀI HỌC
+  useEffect(() => {
+    if (!effectiveIsTeacher && studentAvailableTabs.length > 0) {
+      const isCurrentInAvailable = studentAvailableTabs.some(t => t.id === activeDialogueTabId);
+      if (!isCurrentInAvailable) {
+        const preferredTab = activityGrade === 'Lớp 7'
+          ? (studentAvailableTabs.find(t => t.id === 'tab_g7_u1_hobby') || studentAvailableTabs[0])
+          : studentAvailableTabs[0];
+        if (preferredTab) {
+          setActiveDialogueTabId(preferredTab.id);
+        }
+      }
+    }
+  }, [effectiveIsTeacher, studentAvailableTabs, activeDialogueTabId, activityGrade]);
+
+  // DANH SÁCH NHÂN VẬT THOẠI ĐỂ HỌC SINH ĐÓNG VAI TỰ ĐỘNG THEO NỘI DUNG
+  const currentTabObjForSpeaker = useMemo(() => {
+    const list = effectiveIsTeacher ? dialogueTabs : studentAvailableTabs;
+    return list.find(t => t.id === activeDialogueTabId)
+      || list[0]
+      || dialogueTabs[0];
+  }, [effectiveIsTeacher, dialogueTabs, activeDialogueTabId, studentAvailableTabs]);
+
+  const dialogueSpeakers = useMemo(() => {
+    if (!currentTabObjForSpeaker?.lines) return ['Ann', 'Trang'];
+    const spks = Array.from(new Set(currentTabObjForSpeaker.lines.map(l => (l.speaker || '').trim()).filter(Boolean)));
+    return spks.length > 0 ? spks : ['Ann', 'Trang'];
+  }, [currentTabObjForSpeaker]);
+
+  // TỰ ĐỘNG CHUYỂN NHÂN VẬT ĐÓNG VAI NẾU NHÂN VẬT HIỆN TẠI KHÔNG CÓ TRONG ĐOẠN THOẠI
+  useEffect(() => {
+    if (dialogueSpeakers.length > 0 && !dialogueSpeakers.some(s => s.toLowerCase() === userSelectedCharacter.toLowerCase())) {
+      setUserSelectedCharacter(dialogueSpeakers[0]);
+    }
+  }, [dialogueSpeakers]);
   
   // WEB AUDIO API AMBIENT SOUND GENERATOR (V298)
   const playAmbientSoundEffect = (type = 'chime') => {
@@ -1687,7 +2043,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   };
 
   const handlePlaySingleDialogueLine = (index, lineObj) => {
-    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+    const activeTabObj = currentTabObjForSpeaker;
     setIsPlayingFullDialogue(false);
     setPlayingDialogueLineIndex(index);
 
@@ -1783,7 +2139,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
   // DOWNLOAD MULTI-VOICE DIALOGUE AUDIO AS WAV/MP3 FILE
   const handleDownloadDialogueAudio = async () => {
-    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+    const activeTabObj = currentTabObjForSpeaker;
     if (!activeTabObj || !activeTabObj.lines || activeTabObj.lines.length === 0) return;
 
     setIsDownloadingAudio(true);
@@ -1977,7 +2333,8 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       alert("Vui lòng nhập tên đoạn hội thoại!");
       return;
     }
-    setDialogueTabs(prev => prev.map(t => t.id === editingDialogueObj.id ? editingDialogueObj : t));
+    const updatedTabs = dialogueTabs.map(t => t.id === editingDialogueObj.id ? editingDialogueObj : t);
+    persistDialogueTabs(updatedTabs, editingDialogueObj.id);
     setIsEditingDialogueModalOpen(false);
     playSuccessSound();
     alert("🎉 Đã lưu thay đổi cho đoạn hội thoại: [" + editingDialogueObj.title + "]!");
@@ -1990,8 +2347,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     }
     if (window.confirm("Thầy/Cô có chắc chắn muốn xóa đoạn hội thoại này không?")) {
       const remaining = dialogueTabs.filter(t => t.id !== tabId);
-      setDialogueTabs(remaining);
-      setActiveDialogueTabId(remaining[0].id);
+      persistDialogueTabs(remaining, remaining[0]?.id || null);
       playSuccessSound();
     }
   };
@@ -1999,13 +2355,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   // KHÔI PHỤC TOÀN BỘ CÁC ĐOẠN HỘI THOẠI SGK MẪU (LỚP 7 UNIT 1 & LỚP 9 UNIT 1)
   const handleRestoreDefaultDialogues = () => {
     if (window.confirm("Thầy có muốn khôi phục lại toàn bộ các đoạn hội thoại SGK mẫu chuẩn (Lớp 7 Unit 1: Hobbies & Lớp 9 Unit 1) không? Toàn bộ các đoạn chuẩn sẽ được nạp lại đầy đủ.")) {
-      setDialogueTabs(defaultInitialDialogueTabs);
-      setActiveDialogueTabId('tab_g7_u1_1');
-      try {
-        localStorage.setItem('lms_dialogue_tabs_v317', JSON.stringify(defaultInitialDialogueTabs));
-        localStorage.setItem('lms_dialogue_tabs_v315', JSON.stringify(defaultInitialDialogueTabs));
-        localStorage.setItem('lms_dialogue_tabs_v312', JSON.stringify(defaultInitialDialogueTabs));
-      } catch (e) {}
+      persistDialogueTabs(defaultInitialDialogueTabs, 'tab_g7_u1_hobby');
       playSuccessSound();
       alert("🎉 Đã khôi phục thành công toàn bộ Đoạn 1 & Đoạn 2 (Lớp 7 Unit 1: Hobbies) và Lớp 9!");
     }
@@ -2013,7 +2363,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
   // KHỚP NHANH MỐC GIÂY HỘI THOẠI THEO NHỊP TỰ NHIÊN / AUDIO MP3
   const handleQuickSyncDialogueTiming = () => {
-    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+    const activeTabObj = currentTabObjForSpeaker;
     if (!activeTabObj || !activeTabObj.lines || activeTabObj.lines.length === 0) return;
 
     const introOffset = activeTabObj.introOffset !== undefined ? activeTabObj.introOffset : 2.5;
@@ -2046,13 +2396,14 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     });
 
     const updatedTab = { ...activeTabObj, lines: updatedLines };
-    setDialogueTabs(prev => prev.map(t => t.id === activeTabObj.id ? updatedTab : t));
+    const updatedTabs = dialogueTabs.map(t => t.id === activeTabObj.id ? updatedTab : t);
+    persistDialogueTabs(updatedTabs, activeTabObj.id);
     playSuccessSound();
     alert("🎉 Đã khớp chính xác mốc giây cho " + updatedLines.length + " câu thoại theo nhịp chuẩn SGK (" + duration.toFixed(0) + "s)!");
   };
 
   const handlePlayFullDialogue = () => {
-    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+    const activeTabObj = currentTabObjForSpeaker;
     if (!activeTabObj || !activeTabObj.lines || activeTabObj.lines.length === 0) return;
 
     // IF CUSTOM MP3 AUDIO IS UPLOADED BY TEACHER, PLAY WITH WORD-WEIGHTED & TIMESTAMP PRECISION SYNC
@@ -2196,7 +2547,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
 
   // ROLE-PLAY INTERACTIVE MODE HANDLERS WITH SWAP CHARACTERS
   const handleStartRolePlay = () => {
-    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+    const activeTabObj = currentTabObjForSpeaker;
     if (!activeTabObj || !activeTabObj.lines) return;
 
     setIsPlayingFullDialogue(true);
@@ -2233,7 +2584,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   };
 
   const handleUserFinishedReadingLine = () => {
-    const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+    const activeTabObj = currentTabObjForSpeaker;
     if (!activeTabObj || !activeTabObj.lines) return;
 
     setIsWaitingForUserRead(false);
@@ -2356,53 +2707,18 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     const newTab = {
       id: newId,
       title: title,
+      grade: selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : (activityGrade || 'Lớp 9'),
       lines: parsedLines
     };
 
-    setDialogueTabs(prev => [...prev, newTab]);
-    setActiveDialogueTabId(newId);
+    const updated = [...dialogueTabs, newTab];
+    persistDialogueTabs(updated, newId);
     setRawDialogueInputText('');
     setNewTabTitleInput('');
     setIsDialogueEditorOpen(false);
     playSuccessSound();
   };
 
-  const detectActivityGrade = (act) => {
-    const explicit = (
-      (act?.settings?.grade || '') + ' ' +
-      (act?.grade || '') + ' ' +
-      (act?.courseGrade || '') + ' ' +
-      (act?.course?.grade || '') + ' ' +
-      (act?.selectedGrade || '')
-    ).toString().toLowerCase();
-
-    if (explicit.includes('7') || explicit.includes('lớp 7')) return 'Lớp 7';
-    if (explicit.includes('9') || explicit.includes('lớp 9')) return 'Lớp 9';
-    if (explicit.includes('8') || explicit.includes('lớp 8')) return 'Lớp 8';
-    if (explicit.includes('6') || explicit.includes('lớp 6')) return 'Lớp 6';
-
-    const textStr = (
-      (act?.title || '') + ' ' +
-      (act?.course_title || '') + ' ' +
-      (act?.course_name || '') + ' ' +
-      (act?.course?.title || '')
-    ).toString().toLowerCase();
-
-    if (/\b(lớp\s*7|lop\s*7|grade\s*7|tiếng\s*anh\s*7|unit\s*1.*hobbies)\b/i.test(textStr)) return 'Lớp 7';
-    if (/\b(lớp\s*9|lop\s*9|grade\s*9|tiếng\s*anh\s*9)\b/i.test(textStr)) return 'Lớp 9';
-    if (/\b(lớp\s*8|lop\s*8|grade\s*8|tiếng\s*anh\s*8)\b/i.test(textStr)) return 'Lớp 8';
-    if (/\b(lớp\s*6|lop\s*6|grade\s*6|tiếng\s*anh\s*6)\b/i.test(textStr)) return 'Lớp 6';
-
-    // Check vocabulary contents to auto-detect grade accurately
-    const words = Array.isArray(act?.settings?.vocabularyList)
-      ? act.settings.vocabularyList.map(i => (i?.word || '').toLowerCase()).join(' ')
-      : '';
-    if (words.includes('cardboard') || words.includes('dollhouse') || words.includes('horse riding')) return 'Lớp 7';
-    if (words.includes('suburb') || words.includes('facilities') || words.includes('craft village')) return 'Lớp 9';
-
-    return 'Lớp 9';
-  };
-  const activityGrade = detectActivityGrade(activity);
   // MAIN VOCABULARY LIST (STRICTLY SCOPED BY GRADE ACCORDING TO THẦY HẢI)
   
   // ALWAYS KEEP VOCABLIST SYNCED WITH SAVED ACTIVITY SETTINGS
@@ -2436,6 +2752,7 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
     () => settings.lockAheadLessonsForStudents || false
   );
         const handleClearAllVocabulary = () => {
+    if (!effectiveIsTeacher) return;
     if (window.confirm('Thầy Hải có chắc chắn muốn xóa toàn bộ từ vựng trong bài học này để soạn lại bài mới từ đầu không?')) {
       const emptyList = [];
       setVocabList(emptyList);
@@ -2609,7 +2926,6 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
   });
 
   const [isSectionLockConfigModalOpen, setIsSectionLockConfigModalOpen] = useState(false);
-  const [isStudentPreviewMode, setIsStudentPreviewMode] = useState(false);
 
     const handleToggleIndividualSectionLock = (secName, e) => {
     if (e) e.stopPropagation();
@@ -2642,8 +2958,6 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       });
     }
   };
-
-  const effectiveIsTeacher = isTeacher && !isStudentPreviewMode;
 
         // HELPER CHECK IF A LESSON SECTION IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
     // HELPER CHECK IF A LESSON SECTION IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
@@ -3254,141 +3568,6 @@ export default function VocabularyEngine({ activity, isTeacher = false, onSaveAc
       // AI VOCAB STORYTELLER STATE
   const [aiStoryModalOpen, setAiStoryModalOpen] = useState(false);
 
-  const defaultInitialDialogueTabs = [
-    {
-      id: 'tab1',
-      title: 'Đoạn 1: Ann & Mi (I really love where I live now)',
-      grade: 'Lớp 9',
-      unit: 'Unit 1: Local Community',
-      introOffset: 2.5,
-      lines: [
-        { speaker: 'Ann', text: 'Hi, Mi. Long time no see. How’re you doing?', vi: 'Chào Mi. Lâu rồi không gặp. Dạo này bạn thế nào?' },
-        { speaker: 'Mi', text: 'I’m fine, thanks. By the way, we moved to a new house in a suburb last month.', vi: 'Mình khỏe, cảm ơn bạn. Nhân tiện, tháng trước nhà mình mới chuyển đến một ngôi nhà ở vùng ngoại ô.' },
-        { speaker: 'Ann', text: 'Oh, that’s why I haven’t seen you in the Reading Club very often.', vi: 'Ồ, thảo nào dạo này mình ít thấy bạn ở Câu lạc bộ Đọc sách.' },
-        { speaker: 'Mi', text: 'Yes. We’re still busy moving in, you know.', vi: 'Đúng vậy. Bạn biết đấy, bọn mình vẫn đang bận rộn dọn dẹp chuyển nhà.' },
-        { speaker: 'Ann', text: 'How’s your new neighbourhood?', vi: 'Khu phố mới của bạn như thế nào?' },
-        { speaker: 'Mi', text: 'It’s much bigger than our old one. The streets are wider, and there are fewer people.', vi: 'Nó rộng hơn nhiều so với khu cũ. Đường xá rộng rãi hơn và ít người hơn.' },
-        { speaker: 'Ann', text: 'What about the facilities?', vi: 'Thế còn các cơ sở vật chất tiện ích thì sao?' }
-      ]
-    },
-    {
-      id: 'tab_g7_u1_1',
-      title: 'Đoạn 1: Ann & Trang (Your house is very nice - Lớp 7 Unit 1)',
-      grade: 'Lớp 7',
-      unit: 'Unit 1: Hobbies',
-      introOffset: 2.5,
-      lines: [
-        { speaker: 'Ann', text: 'Your house is very nice, Trang.', vi: 'Ngôi nhà của bạn đẹp thật đấy, Trang à.' },
-        { speaker: 'Trang', text: 'Thanks! Let’s go upstairs. I’ll show you my room.', vi: 'Cảm ơn bạn! Chúng mình cùng lên gác nhé. Mình sẽ cho bạn xem phòng của mình.' },
-        { speaker: 'Ann', text: 'I love your dollhouse. It’s amazing. Did you make it yourself?', vi: 'Mình mê ngôi nhà búp bê của bạn quá. Nó thật tuyệt vời. Bạn tự làm nó đấy à?' },
-        { speaker: 'Trang', text: 'Yes. I like building dollhouses very much.', vi: 'Đúng rồi. Mình rất thích tự tay làm những ngôi nhà búp bê.' },
-        { speaker: 'Ann', text: 'Really? Is it hard to build one?', vi: 'Thật sao? Làm một ngôi nhà như thế có khó không bạn?' },
-        { speaker: 'Trang', text: 'Not really. All you need is some cardboard and glue. Then just use a bit of creativity. What do you do in your free time?', vi: 'Không hẳn đâu. Tất cả những gì bạn cần chỉ là một ít bìa các tông và keo dán. Rồi chỉ cần thêm một chút sáng tạo nữa thôi. Bạn thường làm gì vào thời gian rảnh?' },
-        { speaker: 'Ann', text: 'I like horse riding.', vi: 'Mình thích cưỡi ngựa.' },
-        { speaker: 'Trang', text: 'That’s rather unusual. Not many people do that.', vi: 'Sở thích đó khá là đặc biệt và khác lạ đấy. Không có nhiều người làm như vậy đâu.' },
-        { speaker: 'Ann', text: 'Actually, it’s more common than you think. There are some horse riding clubs in Ha Noi now. I go to the Riders’ Club every Sunday.', vi: 'Thực ra nó phổ biến hơn bạn nghĩ đấy. Hiện nay ở Hà Nội có một số câu lạc bộ cưỡi ngựa rồi. Mình đến Câu lạc bộ Những người cưỡi ngựa vào mỗi Chủ Nhật.' },
-        { speaker: 'Trang', text: 'I’d love to go to your club this Sunday. I want to learn how to ride.', vi: 'Mình rất muốn đến câu lạc bộ của bạn vào Chủ Nhật này. Mình muốn học cách cưỡi ngựa.' },
-        { speaker: 'Ann', text: 'Sure. My lesson starts at 8 a.m.', vi: 'Chắc chắn rồi. Buổi học của mình bắt đầu lúc 8 giờ sáng.' }
-      ]
-    },
-    {
-      id: 'tab2',
-      title: 'Đoạn 2: Ann & Trang (Making dollhouses & Horse riding - English 7 Unit 1)',
-      grade: 'Lớp 7',
-      unit: 'Unit 1: Hobbies',
-      introOffset: 2.5,
-      lines: [
-        { speaker: 'Ann', text: 'Hi, Trang. What are your favorite hobbies in your free time?', vi: 'Chào Trang. Những sở thích yêu thích của bạn trong thời gian rảnh là gì?' },
-        { speaker: 'Trang', text: 'I love making models using cardboard and glue. It is very creative!', vi: 'Mình thích làm nhà mô hình bằng bìa các tông và keo dán. Nó rất sáng tạo!' },
-        { speaker: 'Ann', text: 'That sounds unusual and interesting. I enjoy horse riding and gardening.', vi: 'Nghe có vẻ độc đáo và thú vị đấy. Mình thích cưỡi ngựa và làm vườn.' },
-        { speaker: 'Trang', text: 'Do you need anything special for horse riding?', vi: 'Bạn có cần đồ dùng đặc biệt nào khi cưỡi ngựa không?' },
-        { speaker: 'Ann', text: 'Yes, a riding helmet and proper boots to keep safe.', vi: 'Có chứ, một chiếc mũ bảo hiểm cưỡi ngựa và đôi bốt phù hợp để giữ an toàn.' }
-      ]
-    }
-  ];
-
-  // INTERACTIVE SGK DIALOGUE LESSON STATE (V317 FULL DATA PERSISTENCE & AUTO-RESTORE)
-  const [dialogueTabs, setDialogueTabs] = useState(() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        // Ưu tiên đọc từ các bản lưu của Thầy trước đó để không bị mất đoạn đã căn chỉnh mốc giây
-        const saved = localStorage.getItem('lms_dialogue_tabs_v315') || 
-                      localStorage.getItem('lms_dialogue_tabs_v312') || 
-                      localStorage.getItem('lms_dialogue_tabs_v316') ||
-                      localStorage.getItem('lms_dialogue_tabs_v317');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            // Giữ nguyên 100% nội dung hội thoại và mốc thời gian Thầy đã căn chỉnh
-            let merged = [...parsed];
-            defaultInitialDialogueTabs.forEach(defTab => {
-              if (!merged.some(t => t.id === defTab.id || (t.grade === defTab.grade && t.title === defTab.title))) {
-                merged.push(defTab);
-              }
-            });
-            return merged;
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Load saved dialogue tabs error:', e);
-    }
-    return defaultInitialDialogueTabs;
-  });
-
-  // AUTO-SYNC DIALOGUE TABS TO LOCALSTORAGE ON ANY CHANGE (ZERO DATA LOSS)
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage && Array.isArray(dialogueTabs) && dialogueTabs.length > 0) {
-        localStorage.setItem('lms_dialogue_tabs_v317', JSON.stringify(dialogueTabs));
-        localStorage.setItem('lms_dialogue_tabs_v315', JSON.stringify(dialogueTabs));
-        localStorage.setItem('lms_dialogue_tabs_v312', JSON.stringify(dialogueTabs));
-      }
-    } catch (e) {
-      console.warn('Save dialogue tabs error:', e);
-    }
-  }, [dialogueTabs]);
-
-  const [activeDialogueTabId, setActiveDialogueTabId] = useState('tab1');
-  const [playingDialogueLineIndex, setPlayingDialogueLineIndex] = useState(null);
-  const [isPlayingFullDialogue, setIsPlayingFullDialogue] = useState(false);
-  const [isDialogueEditorOpen, setIsDialogueEditorOpen] = useState(false);
-  const [rawDialogueInputText, setRawDialogueInputText] = useState('');
-  const [selectedDialogueGradeFilter, setSelectedDialogueGradeFilter] = useState(() => (effectiveIsTeacher ? 'Tất Cả' : (activityGrade || 'Lớp 9')));
-  const [selectedDialogueUnitFilter, setSelectedDialogueUnitFilter] = useState('Tất Cả');
-
-  // LOCK DIALOGUE GRADE FILTER TO ACTIVITY GRADE FOR STUDENTS
-  useEffect(() => {
-    if (!effectiveIsTeacher && activityGrade) {
-      setSelectedDialogueGradeFilter(activityGrade);
-    }
-  }, [effectiveIsTeacher, activityGrade]);
-
-  // AUTO SWITCH ACTIVE TAB TO FIRST MATCHING TAB WHEN GRADE/UNIT FILTER CHANGES
-  useEffect(() => {
-    if (dialogueTabs && dialogueTabs.length > 0) {
-      const filteredTabs = dialogueTabs.filter(t => {
-        const matchGrade = selectedDialogueGradeFilter === 'Tất Cả' || (t.grade || 'Lớp 9') === selectedDialogueGradeFilter;
-        const matchUnit = selectedDialogueUnitFilter === 'Tất Cả' || (t.unit || '').includes(selectedDialogueUnitFilter);
-        return matchGrade && matchUnit;
-      });
-      if (filteredTabs.length > 0) {
-        const isCurrentActive = filteredTabs.some(t => t.id === activeDialogueTabId);
-        if (!isCurrentActive) {
-          setActiveDialogueTabId(filteredTabs[0].id);
-        }
-      }
-    }
-  }, [selectedDialogueGradeFilter, selectedDialogueUnitFilter, dialogueTabs]);
-
-  const [rawTextPasteInput, setRawTextPasteInput] = useState('');
-  const [isEditingDialogueModalOpen, setIsEditingDialogueModalOpen] = useState(false);
-  const [editingDialogueObj, setEditingDialogueObj] = useState(null);
-  const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
-  const [isUploadingDialogueAudio, setIsUploadingDialogueAudio] = useState(false);
-  const customDialogueAudioRef = useRef(null);
-  // SPEED, VIETNAMESE TOGGLE, ROLE-PLAY & RECORDING STATES (V297)
-  const [newTabTitleInput, setNewTabTitleInput] = useState('');
   const [isEditingStoryText, setIsEditingStoryText] = useState(false);
   const [customStoryEn, setCustomStoryEn] = useState('');
   const [customStoryVi, setCustomStoryVi] = useState('');
@@ -4751,6 +4930,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
     }
   };
   const handleOpenStudio = (itemToEdit = null) => {
+    if (!effectiveIsTeacher) return;
     if (itemToEdit) {
       setEditingItem(itemToEdit);
       setEditWord(itemToEdit.word || '');
@@ -5845,7 +6025,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             <span>🗣️ Bài Học Hội Thoại SGK</span>
           </button>
 
-          {isTeacher && (
+          {effectiveIsTeacher && (
             <button
               type="button"
               onClick={() => {
@@ -5865,7 +6045,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               <span>📸 Quản Lý Ngữ Cảnh SGK</span>
             </button>
           )}
-          {isTeacher && (
+          {effectiveIsTeacher && (
             <>
               <button
                 type="button"
@@ -6534,7 +6714,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             {isRolePlayMode && (
               <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-xl border border-purple-200">
                 <span className="text-xs font-black text-purple-950">Học Sinh Đóng Vai:</span>
-                {['School Counsellor', 'Ann', 'Mi', 'Nick', 'Mai'].map((char) => (
+                {dialogueSpeakers.map((char) => (
                   <button
                     key={char}
                     type="button"
@@ -6583,15 +6763,15 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           )}
 
           {/* MULTI-TAB SELECTOR FOR DIALOGUE LESSONS */}
-          {/* V307 FEATURE: KHỐI LỚP FILTER BAR */}
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-purple-100 via-indigo-50 to-purple-50 p-3 rounded-2xl border-2 border-purple-200 shadow-sm print:hidden">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs font-black text-purple-950 uppercase tracking-wide flex items-center space-x-1 mr-1">
-                <span>🎓</span>
-                <span>Khối Lớp:</span>
-              </span>
-              {effectiveIsTeacher ? (
-                ['Tất Cả', 'Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9'].map((g) => (
+          {/* V307 FEATURE: KHỐI LỚP FILTER BAR (CHỈ DÀNH CHO GIÁO VIÊN BIÊN SOẠN) */}
+          {effectiveIsTeacher && (
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-purple-100 via-indigo-50 to-purple-50 p-3 rounded-2xl border-2 border-purple-200 shadow-sm print:hidden">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-black text-purple-950 uppercase tracking-wide flex items-center space-x-1 mr-1">
+                  <span>🎓</span>
+                  <span>Khối Lớp:</span>
+                </span>
+                {['Tất Cả', 'Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9'].map((g) => (
                   <button
                     key={g}
                     type="button"
@@ -6604,29 +6784,23 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   >
                     {g}
                   </button>
-                ))
-              ) : (
-                <span className="px-3 py-1 bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs ring-2 ring-purple-300 flex items-center space-x-1">
-                  <span>🔒 {activityGrade || 'Lớp 9'}</span>
-                </span>
-              )}
-
-              <span className="text-xs font-black text-purple-950 uppercase tracking-wide flex items-center space-x-1 ml-2 mr-1">
-                <span>📘</span>
-                <span>Unit SGK:</span>
-              </span>
-              <select
-                value={selectedDialogueUnitFilter}
-                onChange={(e) => setSelectedDialogueUnitFilter(e.target.value)}
-                className="px-2.5 py-1 rounded-xl text-xs font-black bg-white text-purple-950 border border-purple-300 focus:outline-none cursor-pointer"
-              >
-                {['Tất Cả Units', 'Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Unit 6', 'Unit 7', 'Unit 8', 'Unit 9', 'Unit 10', 'Unit 11', 'Unit 12'].map((u) => (
-                  <option key={u} value={u === 'Tất Cả Units' ? 'Tất Cả' : u}>{u}</option>
                 ))}
-              </select>
-            </div>
 
-            {effectiveIsTeacher && (
+                <span className="text-xs font-black text-purple-950 uppercase tracking-wide flex items-center space-x-1 ml-2 mr-1">
+                  <span>📘</span>
+                  <span>Unit SGK:</span>
+                </span>
+                <select
+                  value={selectedDialogueUnitFilter}
+                  onChange={(e) => setSelectedDialogueUnitFilter(e.target.value)}
+                  className="px-2.5 py-1 rounded-xl text-xs font-black bg-white text-purple-950 border border-purple-300 focus:outline-none cursor-pointer"
+                >
+                  {['Tất Cả Units', 'Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Unit 6', 'Unit 7', 'Unit 8', 'Unit 9', 'Unit 10', 'Unit 11', 'Unit 12'].map((u) => (
+                    <option key={u} value={u === 'Tất Cả Units' ? 'Tất Cả' : u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
@@ -6657,8 +6831,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                         { speaker: 'Nick', text: 'Thank you! I am ready to practice speaking.', vi: 'Cảm ơn bạn! Mình đã sẵn sàng thực hành nói.' }
                       ]
                     };
-                    setDialogueTabs(prev => [...prev, newTab]);
-                    setActiveDialogueTabId(newId);
+                    const updatedTabs = [...dialogueTabs, newTab];
+                    persistDialogueTabs(updatedTabs, newId);
                     handleOpenEditDialogueModal(newTab);
                   }}
                   className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-purple-400"
@@ -6666,49 +6840,73 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   <span>➕ Thêm Đoạn Mới</span>
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* MULTI-TAB SELECTOR FOR DIALOGUE LESSONS (FILTERED BY GRADE) */}
-          <div className="flex flex-wrap items-center gap-2 bg-purple-50/90 p-2.5 rounded-2xl border border-purple-200 print:hidden">
-            <span className="text-xs font-black text-purple-900 px-1">Danh Sách Đoạn ({selectedDialogueGradeFilter}):</span>
-            {(() => {
-              const filteredTabs = dialogueTabs.filter(t => {
-                const matchGrade = selectedDialogueGradeFilter === 'Tất Cả' || (t.grade || 'Lớp 9') === selectedDialogueGradeFilter;
-                const matchUnit = selectedDialogueUnitFilter === 'Tất Cả' || (t.unit || '').includes(selectedDialogueUnitFilter);
-                return matchGrade && matchUnit;
-              });
-              if (filteredTabs.length === 0) {
+          {/* MULTI-TAB SELECTOR FOR DIALOGUE LESSONS (FILTERED BY GRADE) - CHỈ CHO GIÁO VIÊN */}
+          {effectiveIsTeacher && (
+            <div className="flex flex-wrap items-center gap-2 bg-purple-50/90 p-2.5 rounded-2xl border border-purple-200 print:hidden">
+              <span className="text-xs font-black text-purple-900 px-1">Danh Sách Đoạn ({selectedDialogueGradeFilter}):</span>
+              {(() => {
+                const filteredTabs = dialogueTabs.filter(t => {
+                  const matchGrade = selectedDialogueGradeFilter === 'Tất Cả' || (t.grade || 'Lớp 9') === selectedDialogueGradeFilter;
+                  const matchUnit = selectedDialogueUnitFilter === 'Tất Cả' || (t.unit || '').includes(selectedDialogueUnitFilter);
+                  return matchGrade && matchUnit;
+                });
+                if (filteredTabs.length === 0) {
+                  return (
+                    <span className="text-xs font-bold text-rose-600 bg-white px-3 py-1 rounded-xl border border-rose-200">
+                      Chưa có bài hội thoại cho [{selectedDialogueGradeFilter}]. Bấm '🤖 AI Tạo Hội Thoại' hoặc '+ Thêm Đoạn Mới'!
+                    </span>
+                  );
+                }
+                return filteredTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => handleSelectDialogueTab(tab.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-1.5 shadow-2xs ${
+                      activeDialogueTabId === tab.id
+                        ? 'bg-purple-700 text-white ring-2 ring-purple-400 scale-105 shadow-sm'
+                        : 'bg-white text-purple-900 hover:bg-purple-100 border border-purple-200'
+                    }`}
+                  >
+                    <span className="px-1.5 py-0.5 bg-purple-200 text-purple-950 rounded font-black text-[10px]">
+                      {tab.grade || 'Lớp 9'} - {tab.unit || 'Unit 1'}
+                    </span>
+                    <span>🗣️ {tab.title}</span>
+                  </button>
+                ));
+              })()}
+            </div>
+          )}
+
+          {/* STUDENT DIALOGUE TABS SELECTOR (CHỈ HIỆN KHI CÓ TRÊN 1 BÀI ĐỂ HS LỰA CHỌN) */}
+          {!effectiveIsTeacher && studentAvailableTabs.length > 1 && (
+            <div className="flex flex-wrap items-center gap-2 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 p-2.5 rounded-2xl border border-emerald-200/80 shadow-2xs print:hidden">
+              <span className="text-xs font-black text-emerald-950 flex items-center space-x-1 px-1">
+                <span>📚</span>
+                <span>Chọn Bài Hội Thoại:</span>
+              </span>
+              {studentAvailableTabs.map((tab) => {
+                const isActive = (activeDialogueTabId === tab.id);
                 return (
-                  <span className="text-xs font-bold text-rose-600 bg-white px-3 py-1 rounded-xl border border-rose-200">
-                    {effectiveIsTeacher
-                      ? `Chưa có bài hội thoại cho [${selectedDialogueGradeFilter}]. Bấm '🤖 AI Tạo Hội Thoại' hoặc '+ Thêm Đoạn Mới'!`
-                      : `Chưa có bài hội thoại cho [${selectedDialogueGradeFilter}]. Vui lòng chọn Unit khác hoặc liên hệ Thầy Cô!`}
-                  </span>
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => handleSelectDialogueTab(tab.id)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-1.5 shadow-2xs ${
+                      isActive
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white ring-2 ring-emerald-400 scale-105 shadow-sm'
+                        : 'bg-white text-emerald-950 hover:bg-emerald-100 border border-emerald-300'
+                    }`}
+                  >
+                    <span>🗣️ {tab.title}</span>
+                  </button>
                 );
-              }
-              return filteredTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => {
-                    handleStopDialogueAudio();
-                    setActiveDialogueTabId(tab.id);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center space-x-1.5 shadow-2xs ${
-                    activeDialogueTabId === tab.id
-                      ? 'bg-purple-700 text-white ring-2 ring-purple-400 scale-105 shadow-sm'
-                      : 'bg-white text-purple-900 hover:bg-purple-100 border border-purple-200'
-                  }`}
-                >
-                  <span className="px-1.5 py-0.5 bg-purple-200 text-purple-950 rounded font-black text-[10px]">
-                    {tab.grade || 'Lớp 9'} - {tab.unit || 'Unit 1'}
-                  </span>
-                  <span>🗣️ {tab.title}</span>
-                </button>
-              ));
-            })()}
-          </div>
+              })}
+            </div>
+          )}
 
           
       {/* V307 ACTIVE MODAL FOR EDITING DIALOGUE LESSON */}
@@ -7071,8 +7269,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                         { speaker: 'Mi', text: `I love speaking with proper UK Oxford pronunciation every day!`, vi: `Mình thích luyện phát âm chuẩn Anh-Anh Oxford mỗi ngày!` }
                       ]
                     };
-                    setDialogueTabs((prev) => [...prev, newTab]);
-                    setActiveDialogueTabId(newId);
+                    const updated = [...dialogueTabs, newTab];
+                    persistDialogueTabs(updated, newId);
                     setIsGeneratingAiTopic(false);
                     setIsAiTopicModalOpen(false);
                     playSuccessSound();
@@ -7091,7 +7289,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
       {/* ACTIVE DIALOGUE DISPLAY PLAYER WITH ACCURATE GENDER BADGES & INTERACTIVE KEYWORDS */}
           {(() => {
-            const activeTabObj = dialogueTabs.find(t => t.id === activeDialogueTabId) || dialogueTabs[0];
+            const activeTabObj = currentTabObjForSpeaker;
             if (!activeTabObj) return null;
 
             return (
@@ -7430,7 +7628,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
           )}
 
           {/* TEACHER EDITOR MODAL FOR DIALOGUE LESSONS */}
-          {isDialogueEditorOpen && (
+          {isDialogueEditorOpen && effectiveIsTeacher && (
             <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in print:hidden">
               <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-xl w-full border-4 border-purple-500 shadow-2xl space-y-4 text-slate-900">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-3">
@@ -7563,7 +7761,7 @@ Ann: How's your new neighbourhood?`}
                   <span>{sec.num}{sec.name}</span>
 
                                     {/* THAY CHỮ LINK BẰNG NÚT HIDE / SHOW ĐẨY ẨN/HIỆN TIẾT HỌC CHO GIÁO VIÊN */}
-                  {isTeacher && sec.fullSec !== 'All' && (
+                  {effectiveIsTeacher && sec.fullSec !== 'All' && (
                     <span
                       onClick={(e) => handleToggleIndividualSectionLock(sec.fullSec, e)}
                       title={isLocked ? 'Nhấp để HIỆN tiết học này cho HS' : 'Nhấp để ẨN tiết học này với HS'}
@@ -7587,7 +7785,7 @@ Ann: How's your new neighbourhood?`}
                     </span>
                   )}
 
-                  {!isTeacher && isLockedForStudent && (
+                  {!effectiveIsTeacher && isLockedForStudent && (
                     <span className="bg-rose-600 text-white text-[9px] px-1.5 py-0.5 rounded font-mono font-black ml-1 border border-rose-400">
                       🔒 ĐÃ ẨN
                     </span>
@@ -7607,30 +7805,37 @@ Ann: How's your new neighbourhood?`}
               {filteredList.length === 0 ? (
                 <div className="p-6 text-center bg-amber-950/40 rounded-xl border border-amber-500/30 my-4">
                   <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 text-2xl font-black">
-                    ✨
+                    {activeTab === 'bookmarks' ? '⭐' : '✨'}
                   </div>
                   <h4 className="text-amber-200 font-extrabold text-sm mb-1">
-                    Bài học hiện chưa có từ vựng
+                    {activeTab === 'bookmarks' ? 'Danh sách Từ Cần Nhớ đang trống' : 'Tiết học hiện chưa có từ vựng'}
                   </h4>
-                  <p className="text-amber-300/80 text-xs mb-4">
-                    Thầy Hải có thể bấm nút dưới đây để nạp từ vựng mới hoặc dùng AI sinh tự động trọn bộ cho tiết học này!
+                  <p className="text-amber-300/80 text-xs mb-3">
+                    {activeTab === 'bookmarks'
+                      ? '⭐ Danh sách Từ Cần Nhớ đang trống. Em chưa lưu từ vựng nào vào mục Cần Nhớ. Hãy bấm biểu tượng ngôi sao ⭐ bên cạnh từ vựng để lưu lại ôn tập nhé!'
+                      : (effectiveIsTeacher
+                          ? 'Thầy Hải có thể bấm nút dưới đây để nạp từ vựng mới hoặc dùng AI sinh tự động trọn bộ cho tiết học này!'
+                          : '📚 Tiết học hiện chưa có từ vựng. Em hãy chọn tiết học khác trong sơ đồ để tiếp tục luyện tập nhé!')}
                   </p>
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsBulkAiModalOpen(true)}
-                      className="px-3.5 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
-                    >
-                      <span>✨ 🤖 AI Nhập Hàng Loạt Từ</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenStudio()}
-                      className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
-                    >
-                      <span>➕ Soạn Từ Vựng Studio</span>
-                    </button>
-                  </div>
+                  {/* TUYỆT ĐỐI CHỈ HIỆN 2 NÚT NÀY CHO GIÁO VIÊN KHI ĐANG Ở TIẾT HỌC TRỐNG (KHÓA 100% Ở TAB TỪ CẦN NHỚ VÀ KHÓA 100% CHO HỌC SINH) */}
+                  {effectiveIsTeacher && activeTab !== 'bookmarks' && (
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkAiModalOpen(true)}
+                        className="px-3.5 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <span>✨ 🤖 AI Nhập Hàng Loạt Từ</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenStudio()}
+                        className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
+                      >
+                        <span>➕ Soạn Từ Vựng Studio</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 filteredList.map((item, idx) => {
@@ -7659,7 +7864,7 @@ Ann: How's your new neighbourhood?`}
                         {item.pos && <span className="text-[11px] font-normal text-slate-600">({item.pos})</span>}
                         {item.audioUrl && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded">MP3</span>}
                       </span>
-                      {isTeacher && (
+                      {effectiveIsTeacher && (
                         <span
                           onClick={(e) => {
                             e.stopPropagation();
@@ -7948,7 +8153,7 @@ Ann: How's your new neighbourhood?`}
                 <Swords className="w-4 h-4 text-amber-300" />
                 <span>{isVersusMode ? '⚔️ Chế Độ 2 Người (Đang Bật)' : '👥 Đấu 2 Người (Versus)'}</span>
               </button>
-              {isTeacher && (
+              {effectiveIsTeacher && (
                 <button
                   type="button"
                   onClick={() => handleOpenStudio()}
@@ -8101,7 +8306,7 @@ Ann: How's your new neighbourhood?`}
               </div>
             </div>
             <div className="flex items-center space-x-3 text-xs font-black">
-              {isTeacher && (
+              {effectiveIsTeacher && (
                 <button
                   type="button"
                   onClick={() => handleOpenStudio(currentSpellingItem)}
@@ -9501,7 +9706,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
               <span>BỘ THẺ FLASHCARD H5P GHI NHỚ</span>
             </h3>
             <div className="flex items-center space-x-2">
-              {isTeacher && (
+              {effectiveIsTeacher && (
                 <button
                   type="button"
                   onClick={() => handleOpenStudio(currentItem)}
@@ -9620,7 +9825,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {isTeacher && (
+              {effectiveIsTeacher && (
                 <button
                   type="button"
                   onClick={() => handleOpenStudio()}
@@ -10048,7 +10253,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
         </div>
       )}
       {/* MODAL QUẢN LÝ NGỮ CẢNH BÀI HỌC SGK GỐC (V228) - CÂY THƯ MỤC MULTI-UNIT & TAB CHỌN 8 TIẾT HỌC 1-CLICK */}
-      {isContextStudioOpen && (
+      {isContextStudioOpen && effectiveIsTeacher && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-5 animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-2xl w-full border-4 border-pink-500 shadow-2xl space-y-4 text-slate-900 my-auto">
             
@@ -10712,7 +10917,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
             <span>Examples</span>
           </label>
         </div>
-        {isTeacher && (
+        {effectiveIsTeacher && (
           <div className="flex items-center space-x-2">
             <button
               type="button"
@@ -10881,7 +11086,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
         </div>
       )}
       {/* TEACHER STUDIO EDIT MODAL FOR DICTIONARY */}
-      {isStudioOpen && (
+      {isStudioOpen && effectiveIsTeacher && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto relative shadow-2xl animate-scale-up text-slate-900 border-2 border-amber-600">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
@@ -11092,7 +11297,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
         </div>
       )}
       {/* PRESET SGK IMPORTER MODAL */}
-      {isPresetModalOpen && (
+      {isPresetModalOpen && effectiveIsTeacher && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 relative shadow-2xl animate-scale-up text-slate-900 border-2 border-amber-600">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
@@ -11165,7 +11370,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
         </div>
       )}
       {/* FEATURE: BULK AI VOCABULARY GENERATOR MODAL */}
-      {isBulkAiModalOpen && (
+      {isBulkAiModalOpen && effectiveIsTeacher && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-xs overflow-y-auto">
           <div className="bg-white rounded-3xl p-6 max-w-xl w-full space-y-4 relative shadow-2xl animate-scale-up text-slate-900 border-4 border-purple-600">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
