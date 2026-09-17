@@ -346,8 +346,48 @@ const getVietnameseTranslation = (enText, targetWord = '') => {
     return 'Dịch: "Bát Tràng là một trong những làng nghề gốm sứ truyền thống nổi tiếng nhất."';
   } else if (lower.includes('suburb')) {
     return 'Dịch: "Khu vực ngoại ô rất yên bình với nhiều cây xanh và không khí trong lành."';
+  } else if (lower.includes('clay') && lower.includes('vase')) {
+    return 'Dịch: "Các nghệ nhân nặn đất sét ướt trên bàn xoay để làm thành những chiếc bình gốm tuyệt đẹp."';
   } else if (lower.includes('clay')) {
     return 'Dịch: "Đất sét là nguyên liệu chính để tạo nên các sản phẩm gốm sứ độc đáo."';
+  } else if (lower.includes('function') && lower.includes('preserve traditional pottery skills')) {
+    return 'Dịch: "Chức năng chính của làng nghề này là bảo tồn các kỹ thuật làm gốm truyền thống."';
+  } else if (lower.includes('function') && lower.includes('artisan workshop')) {
+    return 'Dịch: "Mỗi dụng cụ trong xưởng của nghệ nhân đều có một chức năng cụ thể."';
+  } else if (lower.includes('fragrance') && lower.includes('lotus tea')) {
+    return 'Dịch: "Hương thơm ngọt ngào của trà sen thu hút rất nhiều du khách đến thăm làng."';
+  } else if (lower.includes('fragrance') && lower.includes('spring flowers')) {
+    return 'Dịch: "Những bông hoa mùa xuân mang đến hương thơm tự nhiên tươi mát cho cả khu phố."';
+  } else if (lower.includes('original beauty') && lower.includes('bat trang')) {
+    return 'Dịch: "Các sản phẩm Bát Tràng vẫn giữ được nét đẹp nguyên bản và thiết kế đặc trưng."';
+  } else if (lower.includes('preserve') && lower.includes('pottery-making methods')) {
+    return 'Dịch: "Các nghệ nhân địa phương nỗ lực hết mình để bảo tồn phương pháp làm gốm cổ truyền cho các thế hệ tương lai."';
+  } else if (lower.includes('preserve') && lower.includes('craft villages')) {
+    return 'Dịch: "Chúng ta nên bảo tồn các làng nghề thủ công truyền thống như một phần của văn hóa dân tộc."';
+  } else if (lower.includes('process') && lower.includes('ceramic teapot')) {
+    return 'Dịch: "Làm ra một chiếc ấm trà gốm hoàn chỉnh là một quy trình dài và tỉ mỉ."';
+  } else if (lower.includes('process') && lower.includes('kiln')) {
+    return 'Dịch: "Hãy làm theo quy trình từng bước để nung nồi đất sét đúng cách trong lò."';
+  } else if (lower.includes('shorten') && lower.includes('bake pottery')) {
+    return 'Dịch: "Máy móc hiện đại giúp các nghệ nhân rút ngắn thời gian cần thiết để nung gốm."';
+  } else if (lower.includes('shorten') && lower.includes('travel time')) {
+    return 'Dịch: "Cây cầu mới sẽ rút ngắn thời gian đi lại giữa làng nghề và trung tâm thành phố."';
+  } else if (lower.includes('symbolise') && lower.includes('lotus flower')) {
+    return 'Dịch: "Họa tiết hoa sen trên những chiếc bình tượng trưng cho sự thuần khiết và bình yên trong văn hóa Việt Nam."';
+  } else if (lower.includes('symbolise') && lower.includes('dragons')) {
+    return 'Dịch: "Hình tượng rồng trong các đồ thủ công truyền thống tượng trưng cho quyền lực cao quý và sự thịnh vượng."';
+  } else if (lower.includes('technique') && lower.includes('painting techniques')) {
+    return 'Dịch: "Các bậc thầy làm gốm truyền lại kỹ thuật vẽ bí truyền cho con cháu họ."';
+  } else if (lower.includes('technique') && lower.includes('regular practice')) {
+    return 'Dịch: "Học kỹ thuật làm gốm này đòi hỏi nhiều năm kiên trì luyện tập đều đặn."';
+  } else if (lower.includes('tourist attraction') && lower.includes('bat trang')) {
+    return 'Dịch: "Làng nghề Bát Tràng là một trong những điểm thu hút khách du lịch nổi tiếng nhất gần Hà Nội."';
+  } else if (lower.includes('tourist attraction') && lower.includes('ancient street')) {
+    return 'Dịch: "Khu phố cổ đã trở thành một điểm đến du lịch thu hút đông đảo du khách trong và ngoài nước."';
+  } else if (lower.includes('mind map') && lower.includes('organize information')) {
+    return 'Dịch: "Vẽ sơ đồ tư duy giúp bạn sắp xếp thông tin mạch lạc trước khi viết."';
+  } else if (lower.includes('dollhouse curtains') && lower.includes('pieces of colourful cloth')) {
+    return 'Dịch: "Bạn ấy sử dụng những mảnh vải nhiều màu sắc để làm rèm cho nhà búp bê."';
   }
 
   // Trigger background async translation fetch to populate cache for next renders
@@ -580,73 +620,647 @@ const generateWordSearchGrid = (list, currentGrade = 'Lớp 7', shape = 'square'
   }
   return { grid, size, placedWords, shape: 'square' };
 };
+// =============================================================================
+// COMPREHENSIVE OXFORD VOCABULARY MASTER DATABASE (100% OXFORD IPA, IMAGES, PHRASES & EXAMPLES)
+// =============================================================================
+export const OXFORD_VOCABULARY_MASTER_DATABASE = {
+  // --- GRADE 9 UNIT 1: LOCAL COMMUNITY (SKILLS 1 & ALL SECTIONS) ---
+  'function': {
+    word: 'function',
+    pos: 'n',
+    phonetic: '/ˈfʌŋkʃn/',
+    meaning: 'chức năng, vai trò',
+    imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80', // Real technical mechanical precision mechanism
+    phrases: ['main function', 'perform a function', 'social function', 'have a specific function'],
+    examples: [
+      'The main function of this craft village is to preserve traditional pottery skills.',
+      'Each tool in the artisan workshop has a specific function.'
+    ]
+  },
+  'fragrance': {
+    word: 'fragrance',
+    pos: 'n',
+    phonetic: '/ˈfreɪɡrəns/',
+    meaning: 'hương thơm, mùi thơm dịu nhẹ',
+    imageUrl: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&auto=format&fit=crop&q=80', // Real aromatic perfume essence & flowers
+    phrases: ['sweet fragrance', 'delicate fragrance', 'natural fragrance', 'pleasant fragrance'],
+    examples: [
+      'The sweet fragrance of lotus tea attracts many visitors to the village.',
+      'Spring flowers bring a fresh natural fragrance to the whole neighbourhood.'
+    ]
+  },
+  'clay': {
+    word: 'clay',
+    pos: 'n',
+    phonetic: '/kleɪ/',
+    meaning: 'đất sét (làm gốm)',
+    imageUrl: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600&auto=format&fit=crop&q=80', // Real ceramic pottery clay
+    phrases: ['mould clay into shapes', 'soft clay', 'clay pot', 'natural clay'],
+    examples: [
+      'Artisans mould wet clay on the turning wheel to make beautiful ceramic vases.',
+      'Children enjoy shaping clay into small animals during pottery workshops.'
+    ]
+  },
+  'original': {
+    word: 'original',
+    pos: 'adj',
+    phonetic: '/əˈrɪdʒənl/',
+    meaning: 'nguyên bản, ban đầu, độc đáo',
+    imageUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80', // Original artwork painting
+    phrases: ['original design', 'original version', 'original painting', 'retain original beauty'],
+    examples: [
+      'Bat Trang products still keep their original beauty and distinctive designs.',
+      'This handicraft is an original work of art made by a local master.'
+    ]
+  },
+  'preserve': {
+    word: 'preserve',
+    pos: 'v',
+    phonetic: '/prɪˈzɜːv/',
+    meaning: 'bảo tồn, gìn giữ',
+    imageUrl: 'https://images.unsplash.com/photo-1590766940554-634a7ed41450?w=600&auto=format&fit=crop&q=80', // Heritage temple preservation
+    phrases: ['preserve traditional culture', 'preserve historical heritage', 'preserve the environment'],
+    examples: [
+      'Local artisans work hard to preserve ancient pottery-making methods for future generations.',
+      'We should preserve traditional craft villages as part of our national culture.'
+    ]
+  },
+  'process': {
+    word: 'process',
+    pos: 'n',
+    phonetic: '/ˈprəʊses/',
+    meaning: 'quy trình, quá trình',
+    imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&auto=format&fit=crop&q=80', // Detailed step-by-step craft process
+    phrases: ['manufacturing process', 'step-by-step process', 'complex process', 'learning process'],
+    examples: [
+      'Making a finished ceramic teapot is a long and careful process.',
+      'Follow the step-by-step process to bake the clay pots properly in the kiln.'
+    ]
+  },
+  'shorten': {
+    word: 'shorten',
+    pos: 'v',
+    phonetic: '/ˈʃɔːtn/',
+    meaning: 'rút ngắn (thời gian, khoảng cách)',
+    imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80', // Clock time shortening
+    phrases: ['shorten the time', 'shorten the distance', 'shorten the process'],
+    examples: [
+      'Modern machines help artisans shorten the time required to bake pottery.',
+      'The new bridge will shorten travel time between the craft village and the city center.'
+    ]
+  },
+  'symbolise': {
+    word: 'symbolise',
+    pos: 'v',
+    phonetic: '/ˈsɪmbəlaɪz/',
+    meaning: 'tượng trưng cho, biểu tượng cho',
+    imageUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80', // Cultural symbol lotus
+    phrases: ['symbolise peace', 'symbolise good fortune', 'symbolise prosperity', 'symbolise purity'],
+    examples: [
+      'The lotus flower patterns on the vases symbolise purity and peace in Vietnamese culture.',
+      'Dragons in traditional crafts symbolise noble power and prosperity.'
+    ]
+  },
+  'technique': {
+    word: 'technique',
+    pos: 'n',
+    phonetic: '/tekˈniːk/',
+    meaning: 'kỹ thuật, kỹ xảo',
+    imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&auto=format&fit=crop&q=80', // Skilled craftsman hand technique
+    phrases: ['traditional technique', 'pottery-making technique', 'master a technique', 'modern technique'],
+    examples: [
+      'Pottery masters pass down their secret painting techniques to their children.',
+      'Learning this pottery technique requires years of regular practice and patience.'
+    ]
+  },
+  'tourist attraction': {
+    word: 'tourist attraction',
+    pos: 'n',
+    phonetic: '/ˈtʊərɪst əˈtrækʃn/',
+    meaning: 'điểm thu hút khách du lịch, danh lam thắng cảnh',
+    imageUrl: 'https://images.unsplash.com/photo-1528127269322-539801943592?w=600&auto=format&fit=crop&q=80', // Famous Vietnam tourist spot Ha Long / Hoi An
+    phrases: ['major tourist attraction', 'famous tourist attraction', 'popular tourist attraction'],
+    examples: [
+      'Bat Trang craft village is one of the most famous tourist attractions near Hanoi.',
+      'The ancient street has become a popular tourist attraction for domestic and foreign visitors.'
+    ]
+  },
+  'artisan': {
+    word: 'artisan',
+    pos: 'n',
+    phonetic: '/ˌɑːtɪˈzæn/',
+    meaning: 'thợ thủ công, nghệ nhân',
+    imageUrl: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80',
+    phrases: ['skilled artisan', 'local artisans', 'traditional artisan'],
+    examples: [
+      'Skilled artisans in the pottery village make beautiful hand-crafted vases.',
+      'Visitors can watch local artisans work and buy traditional souvenirs.'
+    ]
+  },
+  'craft village': {
+    word: 'craft village',
+    pos: 'n',
+    phonetic: '/krɑːft ˈvɪlɪdʒ/',
+    meaning: 'làng nghề thủ công truyền thống',
+    imageUrl: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80',
+    phrases: ['traditional craft village', 'visit a craft village', 'local craft village'],
+    examples: [
+      'Bat Trang is a famous traditional craft village near Hanoi.',
+      'Tourists love visiting local craft villages to buy handmade pottery.'
+    ]
+  },
+  'handicraft': {
+    word: 'handicraft',
+    pos: 'n',
+    phonetic: '/ˈhændikrɑːft/',
+    meaning: 'sản phẩm thủ công mỹ nghệ',
+    imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80',
+    phrases: ['traditional handicraft', 'handicraft village', 'make handicrafts'],
+    examples: [
+      'Bat Trang is famous for its ceramic handicrafts and pottery.',
+      'Tourists enjoy buying handmade handicrafts as souvenirs for friends.'
+    ]
+  },
+  'pottery': {
+    word: 'pottery',
+    pos: 'n',
+    phonetic: '/ˈpɒtəri/',
+    meaning: 'đồ gốm, nghề làm gốm',
+    imageUrl: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80',
+    phrases: ['traditional pottery', 'handmade pottery', 'pottery workshop'],
+    examples: [
+      'Many tourists visit Bat Trang to try making pottery on the wheel.',
+      'Her family has been in the pottery business for three generations.'
+    ]
+  },
+  'suburb': {
+    word: 'suburb',
+    pos: 'n',
+    phonetic: '/ˈsʌbɜːb/',
+    meaning: 'vùng ngoại thành, ngoại ô',
+    imageUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80',
+    phrases: ['live in the suburbs', 'quiet suburb', 'suburban area'],
+    examples: [
+      'Many families prefer living in the quiet suburbs away from city noise.',
+      'The new housing development is located in a green suburb of the city.'
+    ]
+  },
+  'facilities': {
+    word: 'facilities',
+    pos: 'n',
+    phonetic: '/fəˈsɪlətiz/',
+    meaning: 'cơ sở vật chất, tiện ích công cộng',
+    imageUrl: 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&auto=format&fit=crop&q=80',
+    phrases: ['modern facilities', 'sports facilities', 'school facilities'],
+    examples: [
+      'Our school provides modern facilities for sports and science experiments.',
+      'The city has excellent public facilities for residents and visitors.'
+    ]
+  },
+  'community': {
+    word: 'community',
+    pos: 'n',
+    phonetic: '/kəˈmjuːnəti/',
+    meaning: 'cộng đồng',
+    imageUrl: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&auto=format&fit=crop&q=80',
+    phrases: ['local community', 'community service', 'sense of community'],
+    examples: [
+      'Students participate in community service to help elderly people.',
+      'Working together builds a strong and friendly local community.'
+    ]
+  },
+  'check-up': {
+    word: 'check-up',
+    pos: 'n',
+    phonetic: '/ˈtʃek ʌp/',
+    meaning: 'khám sức khỏe tổng quát',
+    imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80',
+    phrases: ['regular check-up', 'medical check-up', 'health check-up'],
+    examples: [
+      'Having a regular medical check-up helps prevent illness.',
+      'She went to the clinic for her annual health check-up.'
+    ]
+  },
+  'community helper': {
+    word: 'community helper',
+    pos: 'n',
+    phonetic: '/kəˈmjuːnəti ˈhelpə(r)/',
+    meaning: 'người trợ giúp cộng đồng',
+    imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80',
+    phrases: ['essential community helper', 'support community helpers'],
+    examples: [
+      'Firefighters and doctors are brave community helpers who protect us.',
+      'My aunt works as a community helper at the local health center.'
+    ]
+  },
+  'police officer': {
+    word: 'police officer',
+    pos: 'n',
+    phonetic: '/pəˈliːs ɒfɪsə(r)/',
+    meaning: 'cảnh sát, sĩ quan công an',
+    imageUrl: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&auto=format&fit=crop&q=80',
+    phrases: ['police officer on duty', 'call a police officer'],
+    examples: [
+      'The police officer directed traffic smoothly during rush hour.',
+      'A police officer maintains peace and safety in our town.'
+    ]
+  },
+  'firefighter': {
+    word: 'firefighter',
+    pos: 'n',
+    phonetic: '/ˈfaɪəfaɪtə(r)/',
+    meaning: 'lính chữa cháy, lính cứu hỏa',
+    imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd4e?w=600&auto=format&fit=crop&q=80',
+    phrases: ['brave firefighter', 'call the firefighters'],
+    examples: [
+      'Firefighters arrived quickly to put out the blaze.',
+      'The firefighter rescued a small kitten from the burning building.'
+    ]
+  },
+  'garbage collector': {
+    word: 'garbage collector',
+    pos: 'n',
+    phonetic: '/ˈɡɑːbɪdʒ kəlektə(r)/',
+    meaning: 'nhân viên thu gom rác, người lao công',
+    imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop&q=80',
+    phrases: ['garbage collector team', 'respect garbage collectors'],
+    examples: [
+      'Garbage collectors work hard early in the morning to keep streets clean.',
+      'We should pack our waste properly to help garbage collectors.'
+    ]
+  },
+  'get on with': {
+    word: 'get on with',
+    pos: 'phr v',
+    phonetic: '/ɡet ɒn wɪð/',
+    meaning: 'hòa hợp với, có mối quan hệ tốt',
+    imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80',
+    phrases: ['get on well with classmates', 'get on with neighbors'],
+    examples: [
+      'Minh is friendly and gets on very well with all his classmates.',
+      'It is important to get on well with your group members.'
+    ]
+  },
+  'move in': {
+    word: 'move in',
+    pos: 'phr v',
+    phonetic: '/muːv ɪn/',
+    meaning: 'chuyển đến nhà mới',
+    imageUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80',
+    phrases: ['move in next week', 'ready to move in', 'move in together'],
+    examples: [
+      'Our new neighbors are going to move in this weekend.',
+      'They unpacked their boxes after moving in to the new apartment.'
+    ]
+  },
+  'remind': {
+    word: 'remind',
+    pos: 'v',
+    phonetic: '/rɪˈmaɪnd/',
+    meaning: 'nhắc nhở, gợi nhớ',
+    imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
+    phrases: ['remind someone to do something', 'gentle reminder'],
+    examples: [
+      'Please remind me to hand in my homework tomorrow morning.',
+      'This song reminds me of our fun summer holiday with friends.'
+    ]
+  },
+  'stuff': {
+    word: 'stuff',
+    pos: 'n',
+    phonetic: '/stʌf/',
+    meaning: 'đồ đạc, những thứ linh tinh',
+    imageUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80',
+    phrases: ['pack your stuff', 'school stuff', 'useful stuff'],
+    examples: [
+      'I need to pack all my school stuff into my backpack.',
+      'He organized his bedroom stuff neatly on the shelves.'
+    ]
+  },
+
+  // --- GRADE 7 UNIT 1: HOBBIES & SKILLS 2 ---
+  'mind map': {
+    word: 'mind map',
+    pos: 'n',
+    phonetic: '/ˈmaɪnd mæp/',
+    meaning: 'sơ đồ tư duy',
+    imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
+    phrases: ['draw a mind map', 'create a mind map', 'mind map ideas'],
+    examples: [
+      'Drawing a mind map helps you organize information clearly before writing.',
+      'Students make a mind map to plan their hobby project.'
+    ]
+  },
+  'cousin': {
+    word: 'cousin',
+    pos: 'n',
+    phonetic: '/ˈkʌzn/',
+    meaning: 'anh chị em họ',
+    imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80',
+    phrases: ['cousin on weekends', 'play with my cousin', 'visit my cousin'],
+    examples: [
+      'I often build miniature houses with my cousin on Sunday afternoons.',
+      'Her cousin helps her prepare paper and cardboard for the project.'
+    ]
+  },
+  'cloth': {
+    word: 'cloth',
+    pos: 'n',
+    phonetic: '/klɒθ/',
+    meaning: 'vải, mảnh vải',
+    imageUrl: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&auto=format&fit=crop&q=80',
+    phrases: ['pieces of cloth', 'cotton cloth', 'cut cloth into shapes'],
+    examples: [
+      'She uses small pieces of colourful cloth to make dollhouse curtains.',
+      'Clean cloth is great for making handmade decorations.'
+    ]
+  },
+  'decorate': {
+    word: 'decorate',
+    pos: 'v',
+    phonetic: '/ˈdekəreɪt/',
+    meaning: 'trang trí',
+    imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80',
+    phrases: ['decorate a room', 'decorate with lights', 'beautifully decorate'],
+    examples: [
+      'We decorate our dollhouse with colourful paper and tiny lights.',
+      'Students decorate the classroom before the New Year party.'
+    ]
+  },
+  'build': {
+    word: 'build',
+    pos: 'v',
+    phonetic: '/bɪld/',
+    meaning: 'xây dựng, tự tay làm',
+    imageUrl: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80',
+    phrases: ['build dollhouses', 'build models', 'build confidence'],
+    examples: [
+      'Trang likes building dollhouses using cardboard and glue.',
+      'Building models helps develop creativity and patience.'
+    ]
+  },
+  'cardboard': {
+    word: 'cardboard',
+    pos: 'n',
+    phonetic: '/ˈkɑːdbɔːd/',
+    meaning: 'bìa các tông',
+    imageUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80',
+    phrases: ['cardboard boxes', 'a piece of cardboard'],
+    examples: [
+      'She packed her books in cardboard boxes.',
+      'He opened the cardboard box and took out each item.'
+    ]
+  },
+  'dollhouse': {
+    word: 'dollhouse',
+    pos: 'n',
+    phonetic: '/ˈdɒlhaʊs/',
+    meaning: 'nhà mô hình (nhà búp bê)',
+    imageUrl: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&auto=format&fit=crop&q=80',
+    phrases: ['wooden dollhouse', 'build a dollhouse'],
+    examples: [
+      'My sister loves playing with her wooden dollhouse.',
+      'Building a dollhouse requires patience and creativity.'
+    ]
+  },
+  'gardening': {
+    word: 'gardening',
+    pos: 'n',
+    phonetic: '/ˈɡɑːdnɪŋ/',
+    meaning: 'làm vườn',
+    imageUrl: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&auto=format&fit=crop&q=80',
+    phrases: ['enjoy gardening', 'gardening tools'],
+    examples: [
+      'My grandmother spends time gardening every morning.',
+      'Gardening brings people closer to nature and relieves stress.'
+    ]
+  },
+  'glue': {
+    word: 'glue',
+    pos: 'n',
+    phonetic: '/ɡluː/',
+    meaning: 'keo dán',
+    imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=600&auto=format&fit=crop&q=80',
+    phrases: ['paper glue', 'stick with glue'],
+    examples: [
+      'Use glue to stick the paper models together.',
+      'Make sure the glue is completely dry before painting.'
+    ]
+  },
+  'horse riding': {
+    word: 'horse riding',
+    pos: 'n',
+    phonetic: '/ˈhɔːs raɪdɪŋ/',
+    meaning: 'cưỡi ngựa',
+    imageUrl: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=600&auto=format&fit=crop&q=80',
+    phrases: ['go horse riding', 'horse riding club'],
+    examples: [
+      'Horse riding is an exciting outdoor hobby.',
+      'I go to the Riders Club to practice horse riding every Sunday.'
+    ]
+  },
+  'making models': {
+    word: 'making models',
+    pos: 'v phr',
+    phonetic: '/ˈmeɪkɪŋ ˈmɒdlz/',
+    meaning: 'làm mô hình',
+    imageUrl: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80',
+    phrases: ['making plane models', 'enjoy making models'],
+    examples: [
+      'Making models requires patience and care.',
+      'He spends hours making models of antique airplanes.'
+    ]
+  },
+  'popular': {
+    word: 'popular',
+    pos: 'adj',
+    phonetic: '/ˈpɒpjələ(r)/',
+    meaning: 'phổ biến, được ưa thích',
+    imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80',
+    phrases: ['popular hobby', 'popular among students'],
+    examples: [
+      'Football is a very popular sport in Viet Nam.',
+      'Horse riding is becoming more popular than you think.'
+    ]
+  },
+  'unusual': {
+    word: 'unusual',
+    pos: 'adj',
+    phonetic: '/ʌnˈjuːʒuəl/',
+    meaning: 'độc lạ, khác thường',
+    imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
+    phrases: ['unusual hobby', 'find something unusual'],
+    examples: [
+      'Collecting insect specimens is an unusual hobby.',
+      'She has an unusual interest in studying old coins.'
+    ]
+  },
+  'creativity': {
+    word: 'creativity',
+    pos: 'n',
+    phonetic: '/ˌkriːeɪˈtɪvəti/',
+    meaning: 'sự sáng tạo',
+    imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
+    phrases: ['creativity and originality', 'enhance creativity', 'artistic creativity'],
+    examples: [
+      'Big companies are always looking for creativity and originality.',
+      'Our teacher has a lot of activities to help us enhance creativity.'
+    ]
+  },
+  'coin': {
+    word: 'coin',
+    pos: 'n',
+    phonetic: '/kɔɪn/',
+    meaning: 'tiền xu',
+    imageUrl: 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=600&auto=format&fit=crop&q=80',
+    phrases: ['collect coins', 'flip a coin'],
+    examples: [
+      'They like collecting old coins from different countries.',
+      'I could not decide, so I flipped a coin.'
+    ]
+  },
+  'jogging': {
+    word: 'jogging',
+    pos: 'n',
+    phonetic: '/ˈdʒɒɡɪŋ/',
+    meaning: 'chạy bộ / đi bộ thể thao',
+    imageUrl: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=80',
+    phrases: ['go jogging', 'morning jogging'],
+    examples: [
+      'My father goes jogging around the park every morning.',
+      'Jogging is a great way to stay healthy and active.'
+    ]
+  },
+  'model': {
+    word: 'model',
+    pos: 'n',
+    phonetic: '/ˈmɒdl/',
+    meaning: 'mô hình',
+    imageUrl: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80',
+    phrases: ['scale model', 'build a model'],
+    examples: [
+      'He built a beautiful scale model of a sailboat.',
+      'The architecture model shows how the school will look.'
+    ]
+  },
+  'yoga': {
+    word: 'yoga',
+    pos: 'n',
+    phonetic: '/ˈjəʊɡə/',
+    meaning: 'môn tập yoga',
+    imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&auto=format&fit=crop&q=80',
+    phrases: ['do yoga', 'yoga class'],
+    examples: [
+      'Doing yoga helps improve flexibility and reduce mental stress.',
+      'She attends a yoga class three times a week.'
+    ]
+  },
+  'insect': {
+    word: 'insect',
+    pos: 'n',
+    phonetic: '/ˈɪnsekt/',
+    meaning: 'côn trùng',
+    imageUrl: 'https://images.unsplash.com/photo-1534142463423-019e2388942e?w=600&auto=format&fit=crop&q=80',
+    phrases: ['insect species', 'beneficial insects', 'study insects'],
+    examples: [
+      'Bees and butterflies are beneficial insects in our garden.',
+      'Students learn about different insect species in biology class.'
+    ]
+  },
+  'patient': {
+    word: 'patient',
+    pos: 'adj',
+    phonetic: '/ˈpeɪʃnt/',
+    meaning: 'kiên nhẫn, nhẫn nại',
+    imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
+    phrases: ['be patient with someone', 'patient teacher', 'patiently wait'],
+    examples: [
+      'Teachers need to be patient with young learners.',
+      'She was very patient while explaining the difficult lesson again.'
+    ]
+  },
+  'maturity': {
+    word: 'maturity',
+    pos: 'n',
+    phonetic: '/məˈtʃʊərəti/',
+    meaning: 'sự trưởng thành, sự chín chắn',
+    imageUrl: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=600&auto=format&fit=crop&q=80',
+    phrases: ['emotional maturity', 'reach maturity', 'show great maturity'],
+    examples: [
+      'He showed great maturity in handling the difficult situation.',
+      'Personal growth leads to emotional maturity over time.'
+    ]
+  },
+  'responsibility': {
+    word: 'responsibility',
+    pos: 'n',
+    phonetic: '/rɪˌspɒnsəˈbɪləti/',
+    meaning: 'trách nhiệm, sự chịu trách nhiệm',
+    imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&auto=format&fit=crop&q=80',
+    phrases: ['take responsibility', 'sense of responsibility', 'personal responsibility'],
+    examples: [
+      'Students should take responsibility for their own learning.',
+      'Doing chores at home helps children build a sense of responsibility.'
+    ]
+  },
+  'stress': {
+    word: 'stress',
+    pos: 'n',
+    phonetic: '/stres/',
+    meaning: 'sự căng thẳng, áp lực',
+    imageUrl: 'https://images.unsplash.com/photo-1541199249251-f713e6145474?w=600&auto=format&fit=crop&q=80',
+    phrases: ['reduce stress', 'manage stress', 'under great stress'],
+    examples: [
+      'Doing regular exercise is a great way to reduce stress.',
+      'Students need to learn how to manage exam stress effectively.'
+    ]
+  },
+  'take on': {
+    word: 'take on',
+    pos: 'phr v',
+    phonetic: '/teɪk ɒn/',
+    meaning: 'đảm nhận, gánh vác',
+    imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
+    phrases: ['take on a new challenge', 'take on responsibility', 'take on a project'],
+    examples: [
+      'She is ready to take on a new challenge in her studies.',
+      'Our group decided to take on a community environmental project.'
+    ]
+  },
+  'valuable': {
+    word: 'valuable',
+    pos: 'adj',
+    phonetic: '/ˈvæljuəbl/',
+    meaning: 'có giá trị, quý giá',
+    imageUrl: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80',
+    phrases: ['valuable lesson', 'valuable experience', 'valuable contribution'],
+    examples: [
+      'Learning from mistakes is a valuable experience for students.',
+      'She made a valuable contribution to our class group presentation.'
+    ]
+  }
+};
+
 // UNIVERSAL DICTIONARY MAPPING FOR AUTOMATIC VIETNAMESE TRANSLATION
 const STATIC_VOCAB_DICT = {
-  'creativity': 'sự sáng tạo',
-  'insect': 'côn trùng',
-  'maturity': 'sự trưởng thành',
-  'patient': 'kiên nhẫn / bệnh nhân',
-  'responsibility': 'trách nhiệm',
-  'stress': 'căng thẳng, áp lực',
-  'take on': 'đảm nhận, gánh vác',
-  'valuable': 'có giá trị, quý giá',
-  'cardboard': 'bìa các tông',
-  'dollhouse': 'nhà mô hình (nhà búp bê)',
-  'gardening': 'làm vườn',
-  'glue': 'keo dán',
-  'horse riding': 'cưỡi ngựa',
-  'making models': 'làm mô hình',
-  'popular': 'phổ biến, được ưa thích',
-  'unusual': 'độc lạ, khác thường',
-  'coin': 'tiền xu',
-  'jogging': 'chạy bộ / đi bộ thể thao',
-  'model': 'mô hình',
-  'yoga': 'tập yoga',
-  'artisan': 'thợ thủ công, nghệ nhân',
-  'suburb': 'khu vực ngoại ô (ngoại thành)',
-  'craft village': 'làng nghề thủ công',
-  'police officer': 'cảnh sát, sĩ quan công an',
-  'community helper': 'người trợ giúp cộng đồng',
-  'firefighter': 'lính cứu hỏa (chữa cháy)',
-  'garbage collector': 'nhân viên thu gom rác',
-  'clay': 'đất sét',
-  'check-up': 'khám sức khỏe'
+  ...Object.fromEntries(
+    Object.entries(OXFORD_VOCABULARY_MASTER_DATABASE).map(([k, v]) => [k, v.meaning])
+  ),
+  'campaign': 'chiến dịch',
+  'illustrate': 'minh họa',
+  'poster': 'áp phích',
+  'tip': 'mẹo, bí quyết'
 };
+
 // UNIVERSAL IPA PHONETIC MAPPING FOR SGK VOCABULARY
 const STATIC_IPA_DICT = {
-  'illustrate': "/'ɪləstreɪt/",
-  'campaign': "/kæm'peɪn/",
-  'poster': "/'pəʊstə(r)/",
-  'tip': "/tɪp/",
-  'creativity': "/ˌkriːeɪ'tɪvəti/",
-  'insect': "/'ɪnsekt/",
-  'maturity': "/mə'tʃʊərəti/",
-  'patient': "/'peɪʃnt/",
-  'responsibility': "/rɪˌspɒnsə'bɪləti/",
-  'stress': "/stres/",
-  'take on': "/teɪk ɒn/",
-  'valuable': "/'væljuəbl/",
-  'cardboard': "/'kɑːdboːd/",
-  'dollhouse': "/'dɒlhaʊs/",
-  'gardening': "/'ɡɑːdnɪŋ/",
-  'glue': "/ɡluː/",
-  'horse riding': "/'hɔːs raɪdɪŋ/",
-  'making models': "/'meɪkɪŋ 'mɒdlz/",
-  'popular': "/'pɒpjələ(r)/",
-  'unusual': "/ʌn'juːʒuəl/",
-  'coin': "/kɔɪn/",
-  'jogging': "/'dʒɒɡɪŋ/",
-  'model': "/'mɒdl/",
-  'yoga': "/'jəʊɡə/",
-  'artisan': "/ˌɑːtɪ'zæn/",
-  'suburb': "/'sʌbɜːb/",
-  'craft village': "/krɑːft 'vɪlɪdʒ/",
-  'police officer': "/pə'liːs 'ɒfɪsə(r)/",
-  'community helper': "/kə'mjuːnəti 'helpə(r)/",
-  'firefighter': "/'faɪəfaɪtə(r)/",
-  'garbage collector': "/'ɡɑːbɪdʒ kə'lektə(r)/",
-  'clay': "/kleɪ/",
-  'check-up': "/'tʃek ʌp/"
+  ...Object.fromEntries(
+    Object.entries(OXFORD_VOCABULARY_MASTER_DATABASE).map(([k, v]) => [k, v.phonetic])
+  ),
+  'illustrate': '/ˈɪləstreɪt/',
+  'campaign': '/kæmˈpeɪn/',
+  'poster': '/ˈpəʊstə(r)/',
+  'tip': '/tɪp/'
 };
 // PRESET VOCABULARY DATABASE SGK GLOBAL SUCCESS (GRADES 6 - 12)
 const GLOBAL_SUCCESS_PRESETS = {
@@ -975,415 +1589,106 @@ const GLOBAL_SUCCESS_PRESETS = {
 
 // TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V276)
 // TOP-LEVEL GUARANTEED TOPIC IMAGE RESOLVER (V277)
+// TOP-LEVEL GUARANTEED TOPIC IMAGE RESOLVER (V299 100% MATCHING WORD MEANING)
 const getGuaranteedTopicImage = (word) => {
   const lower = (word || '').toLowerCase().trim();
 
-  // EXPLICIT VERIFIED UNSPLASH TOPIC IMAGES (100% MATCHING WORD MEANING)
-  if (lower === 'seagull') {
-    return 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&auto=format&fit=crop&q=80'; // Real seagull bird in blue sky over sea
-  }
-  if (lower === 'pedestrian street') {
-    return 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80'; // Real bustling pedestrian walking street with shops
-  }
-  if (lower === 'place of interest') {
-    return 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&auto=format&fit=crop&q=80'; // Famous tourist landmark landmark Eiffel tower / Paris
-  }
-  if (lower === 'suitcase') {
-    return 'https://images.unsplash.com/photo-1581553680321-4fffae59fccd?w=600&auto=format&fit=crop&q=80'; // Real travel suitcase luggage
-  }
-  if (lower === 'artisan' || lower === 'craft village') {
-    return 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80'; // Real pottery artisan
-  }
-  if (lower === 'facilities') {
-    return 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&auto=format&fit=crop&q=80'; // Real school modern facilities
-  }
-  if (lower === 'community') {
-    return 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&auto=format&fit=crop&q=80'; // Community group
-  }
-  if (lower === 'check-up' || lower === 'checkup') {
-    return 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80'; // Medical checkup
-  }
-  if (lower === 'get on with') {
-    return 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80'; // Friends getting on well
-  }
-  if (lower === 'move in') {
-    return 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80'; // Moving in new house
-  }
-  if (lower === 'remind') {
-    return 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80'; // Reminder note
-  }
-  if (lower === 'stuff') {
-    return 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80'; // Packed stuff
-  }
-  if (lower === 'handicraft') {
-    return 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80'; // Real traditional handmade crafts
-  }
-  if (lower === 'suburb') {
-    return 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80'; // Real suburban neighborhood houses
-  }
-  if (lower === 'creativity') {
-    return 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80'; // Lightbulb idea creativity
-  }
-  if (lower === 'insect') {
-    return 'https://images.unsplash.com/photo-1534142463423-019e2388942e?w=600&auto=format&fit=crop&q=80'; // Real insect bug
+  // 1. TRA CỨU TRỰC TIẾP TỪ CƠ SỞ DỮ LIỆU TỪ ĐIỂN MASTER OXFORD
+  if (OXFORD_VOCABULARY_MASTER_DATABASE[lower]?.imageUrl) {
+    return OXFORD_VOCABULARY_MASTER_DATABASE[lower].imageUrl;
   }
 
-  // DYNAMIC TOPIC-BASED KEYWORD MATCHING
-  if (lower.includes('street') || lower.includes('road') || lower.includes('city')) {
-    return 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80';
+  // 2. DYNAMIC TOPIC-BASED KEYWORD MATCHING THEO NGỮ NGHĨA SÁT THỰC TẾ
+  if (lower.includes('fragrance') || lower.includes('perfume') || lower.includes('scent') || lower.includes('flower') || lower.includes('blossom')) {
+    return 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&auto=format&fit=crop&q=80'; // Lọ nước hoa / tinh dầu hoa thơm ngát
   }
-  if (lower.includes('bird') || lower.includes('gull') || lower.includes('animal') || lower.includes('nature')) {
+  if (lower.includes('function') || lower.includes('gear') || lower.includes('machine') || lower.includes('mechanism') || lower.includes('technical')) {
+    return 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80'; // Cơ cấu máy móc chức năng chính xác
+  }
+  if (lower.includes('clay') || lower.includes('pottery') || lower.includes('ceramic') || lower.includes('vase')) {
+    return 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600&auto=format&fit=crop&q=80'; // Đất sét nặn gốm
+  }
+  if (lower.includes('tourist') || lower.includes('attraction') || lower.includes('sightseeing') || lower.includes('travel') || lower.includes('landscape')) {
+    return 'https://images.unsplash.com/photo-1528127269322-539801943592?w=600&auto=format&fit=crop&q=80'; // Danh thắng du lịch Việt Nam (Hạ Long / Hội An)
+  }
+  if (lower.includes('preserve') || lower.includes('heritage') || lower.includes('ancient') || lower.includes('temple') || lower.includes('historical')) {
+    return 'https://images.unsplash.com/photo-1590766940554-634a7ed41450?w=600&auto=format&fit=crop&q=80'; // Bảo tồn di tích lịch sử
+  }
+  if (lower.includes('symbol') || lower.includes('peace') || lower.includes('culture') || lower.includes('tradition')) {
+    return 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80'; // Biểu tượng văn hóa hoa sen
+  }
+  if (lower.includes('technique') || lower.includes('skill') || lower.includes('craftsman') || lower.includes('method')) {
+    return 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&auto=format&fit=crop&q=80'; // Kỹ xảo bàn tay nghệ nhân
+  }
+  if (lower.includes('process') || lower.includes('step') || lower.includes('production') || lower.includes('making')) {
+    return 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&auto=format&fit=crop&q=80'; // Quy trình từng bước tỉ mỉ
+  }
+  if (lower.includes('shorten') || lower.includes('time') || lower.includes('clock') || lower.includes('speed')) {
+    return 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80'; // Đồng hồ rút ngắn thời gian
+  }
+  if (lower.includes('original') || lower.includes('artwork') || lower.includes('painting') || lower.includes('genuine')) {
+    return 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80'; // Tác phẩm nghệ thuật nguyên bản
+  }
+  if (lower.includes('mind map') || lower.includes('idea') || lower.includes('brainstorm')) {
+    return 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('cloth') || lower.includes('fabric') || lower.includes('curtain')) {
+    return 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('decorate') || lower.includes('design') || lower.includes('craft')) {
+    return 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('seagull') || lower.includes('bird')) {
     return 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&auto=format&fit=crop&q=80';
   }
-  if (lower.includes('travel') || lower.includes('case') || lower.includes('bag') || lower.includes('luggage')) {
+  if (lower.includes('street') || lower.includes('road') || lower.includes('pedestrian')) {
+    return 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('suitcase') || lower.includes('luggage')) {
     return 'https://images.unsplash.com/photo-1581553680321-4fffae59fccd?w=600&auto=format&fit=crop&q=80';
   }
-  if (lower.includes('place') || lower.includes('landmark') || lower.includes('tourism')) {
-    return 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&auto=format&fit=crop&q=80';
+  if (lower.includes('facilities') || lower.includes('school')) {
+    return 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('community') || lower.includes('neighbour') || lower.includes('friend')) {
+    return 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('check-up') || lower.includes('doctor') || lower.includes('health') || lower.includes('medical')) {
+    return 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80';
+  }
+  if (lower.includes('suburb') || lower.includes('house') || lower.includes('village')) {
+    return 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80';
   }
 
-  return 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&auto=format&fit=crop&q=80';
+  // 3. ẢNH HỌC TẬP TRI THỨC HIỆN ĐẠI (TUYỆT ĐỐI KHÔNG DÙNG ẢNH CẦU PARIS CŨ)
+  return 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80';
 };
 
-
+// TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V299)
 const generateSmartPhrasesAndExamples = (word, posType = null) => {
   const lower = (word || '').toLowerCase().trim();
 
-  // 1. EXPLICIT BUILT-IN OXFORD DICTIONARY (MATCHING IMAGES 1 & 2 100% PERFECTLY)
-  if (lower === 'craft village') {
+  // 1. TRA CỨU ĐẦY ĐỦ TRONG TỪ ĐIỂN MASTER OXFORD ĐỘC QUYỀN
+  if (OXFORD_VOCABULARY_MASTER_DATABASE[lower]) {
+    const entry = OXFORD_VOCABULARY_MASTER_DATABASE[lower];
     return {
-      pos: 'n',
-      phonetic: '/krɑːft ˈvɪl.ɪdʒ/',
-      meaning: 'làng nghề thủ công',
-      imageUrl: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80',
-      phrases: ['traditional craft village', 'visit a craft village', 'local craft village'],
-      examples: [
-        'Bat Trang is a famous traditional craft village near Hanoi.',
-        'Tourists love visiting local craft villages to buy handmade pottery.'
-      ]
-    };
-  }
-  if (lower === 'facilities') {
-    return {
-      pos: 'n',
-      phonetic: '/fəˈsɪl.ə.tiz/',
-      meaning: 'cơ sở vật chất, tiện ích',
-      imageUrl: 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&auto=format&fit=crop&q=80',
-      phrases: ['modern facilities', 'sports facilities', 'school facilities'],
-      examples: [
-        'Our school provides modern facilities for sports and science experiments.',
-        'The city has excellent public facilities for residents and visitors.'
-      ]
-    };
-  }
-  if (lower === 'community') {
-    return {
-      pos: 'n',
-      phonetic: '/kəˈmjuː.nə.ti/',
-      meaning: 'cộng đồng',
-      imageUrl: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&auto=format&fit=crop&q=80',
-      phrases: ['local community', 'community service', 'sense of community'],
-      examples: [
-        'Students participate in community service to help elderly people.',
-        'Working together builds a strong and friendly local community.'
-      ]
-    };
-  }
-  if (lower === 'check-up' || lower === 'checkup') {
-    return {
-      pos: 'n',
-      phonetic: '/ˈtʃek.ʌp/',
-      meaning: 'khám sức khỏe tổng quát',
-      imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80',
-      phrases: ['regular check-up', 'medical check-up', 'health check-up'],
-      examples: [
-        'Having a regular medical check-up helps prevent illness.',
-        'She went to the clinic for her annual health check-up.'
-      ]
-    };
-  }
-  if (lower === 'get on with') {
-    return {
-      pos: 'phr v',
-      phonetic: '/ɡet ɒn wɪð/',
-      meaning: 'hòa hợp với, có mối quan hệ tốt',
-      imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80',
-      phrases: ['get on well with classmates', 'get on with neighbors', 'easy to get on with'],
-      examples: [
-        'Minh is friendly and gets on very well with all his classmates.',
-        'It is important to get on well with your group members.'
-      ]
-    };
-  }
-  if (lower === 'move in') {
-    return {
-      pos: 'phr v',
-      phonetic: '/muːv ɪn/',
-      meaning: 'chuyển đến nhà mới',
-      imageUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80',
-      phrases: ['move in next week', 'ready to move in', 'move in together'],
-      examples: [
-        'Our new neighbors are going to move in this weekend.',
-        'They unpacked their boxes after moving in to the new apartment.'
-      ]
-    };
-  }
-  if (lower === 'remind') {
-    return {
-      pos: 'v',
-      phonetic: '/rɪˈmaɪnd/',
-      meaning: 'nhắc nhở, gợi nhớ',
-      imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
-      phrases: ['remind someone to do something', 'remind me about', 'gentle reminder'],
-      examples: [
-        'Please remind me to hand in my homework tomorrow morning.',
-        'This song reminds me of our fun summer holiday with friends.'
-      ]
-    };
-  }
-  if (lower === 'stuff') {
-    return {
-      pos: 'n',
-      phonetic: '/stʌf/',
-      meaning: 'đồ đạc, những thứ',
-      imageUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80',
-      phrases: ['pack your stuff', 'school stuff', 'useful stuff'],
-      examples: [
-        'I need to pack all my school stuff into my backpack.',
-        'He organized his bedroom stuff neatly on the shelves.'
-      ]
-    };
-  }
-  if (lower === 'pedestrian street') {
-    return {
-      pos: 'n',
-      phonetic: '/pəˈdes.tri.ən striːt/',
-      meaning: 'phố đi bộ',
-      imageUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80',
-      phrases: ['famous pedestrian street', 'walk along the pedestrian street', 'pedestrian zone'],
-      examples: [
-        'Many people gather at the pedestrian street on weekends to enjoy music and food.',
-        'The town center has a beautiful pedestrian street lined with trees and shops.'
-      ]
-    };
-  }
-  if (lower === 'place of interest') {
-    return {
-      pos: 'n',
-      phonetic: '/pleɪs əv ˈɪn.trəst/',
-      meaning: 'địa điểm ưa thích / danh lam thắng cảnh',
-      imageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&auto=format&fit=crop&q=80',
-      phrases: ['famous place of interest', 'visit places of interest', 'top tourist attractions'],
-      examples: [
-        'Hanoi has many famous places of interest that attract thousands of tourists every year.',
-        'During our holiday, we visited several historical places of interest in the city.'
-      ]
-    };
-  }
-  if (lower === 'seagull') {
-    return {
-      pos: 'n',
-      phonetic: '/ˈsiː.ɡʌl/',
-      meaning: 'mòng biển',
-      imageUrl: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&auto=format&fit=crop&q=80',
-      phrases: ['seagulls flying', 'coastal seagull', 'flock of seagulls'],
-      examples: [
-        'A flock of seagulls was flying over the ocean beach.',
-        'We watched the seagulls catch fish near the fishing boats.'
-      ]
-    };
-  }
-  if (lower === 'suitcase') {
-    return {
-      pos: 'n',
-      phonetic: '/ˈsuːt.keɪs/',
-      meaning: 'va li',
-      imageUrl: 'https://images.unsplash.com/photo-1581553680321-4fffae59fccd?w=600&auto=format&fit=crop&q=80',
-      phrases: ['pack a suitcase', 'heavy suitcase', 'travel suitcase'],
-      examples: [
-        'She packed her suitcase carefully before heading to the airport.',
-        'He carried a heavy luggage suitcase up the hotel stairs.'
-      ]
-    };
-  }
-  if (lower === 'artisan') {
-    return {
-      pos: 'n',
-      phonetic: '/ˌɑː.tɪˈzæn/',
-      meaning: 'nghệ nhân, thợ làm đồ thủ công',
-      imageUrl: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80',
-      phrases: ['skilled artisan', 'local artisans', 'traditional artisan'],
-      examples: [
-        'Skilled artisans in the pottery village make beautiful hand-crafted vases.',
-        'Visitors can watch local artisans work and buy traditional souvenirs.'
-      ]
-    };
-  }
-  if (lower === 'suburb') {
-    return {
-      pos: 'n',
-      phonetic: '/ˈsʌb.ɜːb/',
-      meaning: 'vùng ngoại thành, ngoại ô',
-      imageUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80',
-      phrases: ['live in the suburbs', 'quiet suburb', 'suburban area'],
-      examples: [
-        'Many families prefer living in the quiet suburbs away from city noise.',
-        'The new housing development is located in a green suburb of the city.'
-      ]
-    };
-  }
-  if (lower === 'handicraft') {
-    return {
-      pos: 'n',
-      phonetic: '/ˈhæn.di.krɑːft/',
-      meaning: 'sản phẩm thủ công mỹ nghệ',
-      imageUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80',
-      phrases: ['traditional handicraft', 'handicraft village', 'make handicrafts'],
-      examples: [
-        'Bat Trang is famous for its ceramic handicrafts and pottery.',
-        'Tourists enjoy buying handmade handicrafts as souvenirs for friends.'
-      ]
+      pos: entry.pos,
+      phonetic: entry.phonetic,
+      meaning: entry.meaning,
+      imageUrl: entry.imageUrl || getGuaranteedTopicImage(lower),
+      phrases: entry.phrases || [],
+      examples: entry.examples || []
     };
   }
 
-  if (lower === 'creativity') {
-    return {
-      pos: 'n',
-      phonetic: "/,kriːeɪ'tɪvəti/",
-      meaning: 'sự sáng tạo',
-      imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
-      phrases: ['creativity and originality', 'enhance creativity', 'artistic creativity'],
-      examples: [
-        'Big companies are always looking for creativity and originality.',
-        'Our teacher has a lot of activities to help us enhance creativity.'
-      ]
-    };
-  }
-  if (lower === 'insect') {
-    return {
-      pos: 'n',
-      phonetic: "/'ɪnsekt/",
-      meaning: 'côn trùng',
-      imageUrl: 'https://images.unsplash.com/photo-1534142463423-019e2388942e?w=600&auto=format&fit=crop&q=80',
-      phrases: ['insect species', 'beneficial insects', 'study insects'],
-      examples: [
-        'Bees and butterflies are beneficial insects in our garden.',
-        'Students learn about different insect species in biology class.'
-      ]
-    };
-  }
-  if (lower === 'maturity') {
-    return {
-      pos: 'n',
-      phonetic: "/mə'tʃʊərəti/",
-      meaning: 'sự trưởng thành, sự chín chắn',
-      imageUrl: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=600&auto=format&fit=crop&q=80',
-      phrases: ['emotional maturity', 'reach maturity', 'show great maturity'],
-      examples: [
-        'He showed great maturity in handling the difficult situation.',
-        'Personal growth leads to emotional maturity over time.'
-      ]
-    };
-  }
-  if (lower === 'patient') {
-    return {
-      pos: 'adj',
-      phonetic: "/'peɪʃnt/",
-      meaning: 'kiên nhẫn, nhẫn nại',
-      imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
-      phrases: ['be patient with someone', 'patient teacher', 'patiently wait'],
-      examples: [
-        'Teachers need to be patient with young learners.',
-        'She was very patient while explaining the lesson again.'
-      ]
-    };
-  }
-  if (lower === 'responsibility') {
-    return {
-      pos: 'n',
-      phonetic: "/rɪ,spɒnsə'bɪləti/",
-      meaning: 'trách nhiệm, sự chịu trách nhiệm',
-      imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=600&auto=format&fit=crop&q=80',
-      phrases: ['take responsibility', 'sense of responsibility', 'personal responsibility'],
-      examples: [
-        'Students should take responsibility for their own learning.',
-        'Doing chores at home helps children build a sense of responsibility.'
-      ]
-    };
-  }
-  if (lower === 'stress') {
-    return {
-      pos: 'n',
-      phonetic: "/stres/",
-      meaning: 'sự căng thẳng, áp lực',
-      imageUrl: 'https://images.unsplash.com/photo-1541199249251-f713e6145474?w=600&auto=format&fit=crop&q=80',
-      phrases: ['reduce stress', 'manage stress', 'under great stress'],
-      examples: [
-        'Doing regular exercise is a great way to reduce stress.',
-        'Students need to learn how to manage exam stress effectively.'
-      ]
-    };
-  }
-  if (lower === 'take on') {
-    return {
-      pos: 'phr v',
-      phonetic: "/teɪk ɒn/",
-      meaning: 'đảm nhận, gánh vác',
-      imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
-      phrases: ['take on a new challenge', 'take on responsibility', 'take on a project'],
-      examples: [
-        'She is ready to take on a new challenge in her career.',
-        'Our team decided to take on a science project this semester.'
-      ]
-    };
-  }
-  if (lower === 'valuable') {
-    return {
-      pos: 'adj',
-      phonetic: "/'væljuəbl/",
-      meaning: 'có giá trị, quý giá',
-      imageUrl: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80',
-      phrases: ['valuable lesson', 'valuable experience', 'valuable contribution'],
-      examples: [
-        'Learning from mistakes is a valuable experience for students.',
-        'She made a valuable contribution to our class group presentation.'
-      ]
-    };
-  }
-  if (lower === 'campaign') {
-    return {
-      pos: 'n',
-      phonetic: "/kæm'peɪn/",
-      meaning: 'chiến dịch',
-      imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=600&auto=format&fit=crop&q=80',
-      phrases: ['campaign for something', 'campaign to do something', 'launch a campaign'],
-      examples: [
-        'Please join our campaign for a greener living environment.',
-        'We will start our campaign to clean the school campus this weekend.'
-      ]
-    };
-  }
-  if (lower === 'illustrate') {
-    return {
-      pos: 'v',
-      phonetic: "/'ɪl.ə.streɪt/",
-      meaning: 'minh họa, làm rõ ý',
-      imageUrl: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80',
-      phrases: ['illustrate a point', 'illustrate a concept', 'clearly illustrate'],
-      examples: [
-        'The diagrams clearly illustrate how the water cycle works.',
-        'She drew pictures to illustrate her story for the class.'
-      ]
-    };
-  }
-
-  // 2. DETECT POS AUTOMATICALLY FROM VERBS / ADJECTIVES / ADVERBS / PHRASAL VERBS / NOUNS
+  // 2. PHÂN LOẠI TỪ LOẠI (POS) VÀ TẠO PHRASES & EXAMPLES CHUẨN SƯ PHẠM
   const commonVerbs = [
     'illustrate', 'spend', 'encourage', 'collect', 'build', 'make', 'do', 'enjoy', 'play',
     'talk', 'watch', 'listen', 'study', 'learn', 'help', 'visit', 'take',
     'go', 'give', 'keep', 'start', 'try', 'use', 'find', 'read', 'write',
     'speak', 'sing', 'dance', 'cook', 'fly', 'swim', 'ride', 'drive', 'buy',
-    'sell', 'think', 'know', 'feel', 'see', 'look', 'hear', 'practice', 'create', 'remind'
+    'sell', 'think', 'know', 'feel', 'see', 'look', 'hear', 'practice', 'create', 'remind',
+    'preserve', 'shorten', 'symbolise', 'decorate'
   ];
 
   const isPhrasalVerb = posType === 'phr v' || (lower.includes(' ') && (lower.startsWith('take ') || lower.startsWith('go ') || lower.startsWith('turn ') || lower.startsWith('look ') || lower.startsWith('get ') || lower.startsWith('give ') || lower.startsWith('put ') || lower.startsWith('keep ') || lower.startsWith('move ')));
@@ -1391,22 +1696,33 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   const isDetectedAdv = posType === 'adv' || lower.endsWith('ly');
   const isDetectedAdj = posType === 'adj' || lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al') || lower.endsWith('able') || lower.endsWith('ent');
 
-  // SMART OXFORD IPA GENERATOR
-  const formatSmartPhonetic = (w) => {
+  // TRA CỨU PHIÊN ÂM IPA OXFORD CHO TỪ MỚI
+  const getSmartOxfordIpa = (w) => {
+    if (STATIC_IPA_DICT[w]) return STATIC_IPA_DICT[w];
+    if (OXFORD_VOCABULARY_MASTER_DATABASE[w]?.phonetic) return OXFORD_VOCABULARY_MASTER_DATABASE[w].phonetic;
+    // Nếu là cụm từ (ví dụ: tourist attraction) -> ghép IPA từng từ
+    if (w.includes(' ')) {
+      const parts = w.split(/\s+/);
+      const ipaParts = parts.map(p => STATIC_IPA_DICT[p] || OXFORD_VOCABULARY_MASTER_DATABASE[p]?.phonetic || p.replace(/e$/, 'eɪ').replace(/ea/, 'iː').replace(/ee/, 'iː'));
+      return '/' + ipaParts.map(ip => ip.replace(/^\/|\/$/g, '')).join(' ') + '/';
+    }
     let clean = w.replace(/e$/, 'eɪ').replace(/ea/, 'iː').replace(/ee/, 'iː').replace(/ou/, 'aʊ').replace(/oo/, 'uː');
     return '/' + clean + '/';
   };
 
+  const img = getGuaranteedTopicImage(lower);
+  const phonetic = getSmartOxfordIpa(lower);
+
   if (isPhrasalVerb) {
     return {
       pos: 'phr v',
-      phonetic: formatSmartPhonetic(lower),
-      meaning: lower,
-      imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80',
-      phrases: [lower + ' with friends', 'ready to ' + lower, 'learn to ' + lower],
+      phonetic,
+      meaning: STATIC_VOCAB_DICT[lower] || lower,
+      imageUrl: img,
+      phrases: ['ready to ' + lower, 'try to ' + lower, 'time to ' + lower],
       examples: [
-        'Students are ready to ' + lower + ' new opportunities at school.',
-        'Learning how to ' + lower + ' smoothly helps build group confidence.'
+        'Students are ready to ' + lower + ' and practice actively.',
+        'Learning how to ' + lower + ' helps build communication confidence.'
       ]
     };
   }
@@ -1414,12 +1730,12 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (isDetectedVerb) {
     return {
       pos: 'v',
-      phonetic: formatSmartPhonetic(lower),
-      meaning: lower,
-      imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80',
-      phrases: [lower + ' a concept', lower + ' actively', 'learn how to ' + lower],
+      phonetic,
+      meaning: STATIC_VOCAB_DICT[lower] || lower,
+      imageUrl: img,
+      phrases: ['learn to ' + lower, 'plan to ' + lower, 'practice to ' + lower],
       examples: [
-        'Teachers encourage students to ' + lower + ' actively during class.',
+        'Students learn how to ' + lower + ' effectively in the classroom.',
         'We plan to ' + lower + ' together for our upcoming group project.'
       ]
     };
@@ -1428,12 +1744,12 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (isDetectedAdv) {
     return {
       pos: 'adv',
-      phonetic: formatSmartPhonetic(lower),
-      meaning: lower,
-      imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
+      phonetic,
+      meaning: STATIC_VOCAB_DICT[lower] || lower,
+      imageUrl: img,
       phrases: ['work ' + lower, 'speak ' + lower, 'act ' + lower],
       examples: [
-        'She ' + lower + ' completes all her assignments before class.',
+        'She completes all her English assignments ' + lower + '.',
         'Students should practice speaking English ' + lower + '.'
       ]
     };
@@ -1442,27 +1758,27 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
   if (isDetectedAdj) {
     return {
       pos: 'adj',
-      phonetic: formatSmartPhonetic(lower),
-      meaning: lower,
-      imageUrl: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=600&auto=format&fit=crop&q=80',
-      phrases: ['very ' + lower, 'a ' + lower + ' approach', 'remain ' + lower],
+      phonetic,
+      meaning: STATIC_VOCAB_DICT[lower] || lower,
+      imageUrl: img,
+      phrases: ['very ' + lower, 'become ' + lower, 'remain ' + lower],
       examples: [
-        'This ' + lower + ' method helps students learn vocabulary effectively.',
-        'It is ' + lower + ' for everyone to practice speaking English every day.'
+        'This lesson activity is very ' + lower + ' for everyone.',
+        'The presentation was both ' + lower + ' and inspiring.'
       ]
     };
   }
 
-  // 3. DEFAULT NOUN (NATURAL COLLOCATIONS - NO DUMMY PATTERNS LIKE "and development")
+  // 3. DANH TỪ TỰ NHIÊN (KHÔNG DÙNG CỤM GHÉP NGÔ NGHÊ TRADITIONAL + WORD)
   return {
     pos: 'n',
-    phonetic: formatSmartPhonetic(lower),
-    meaning: lower,
-    imageUrl: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&auto=format&fit=crop&q=80',
-    phrases: ['traditional ' + lower, 'local ' + lower, 'important ' + lower + ' topic'],
+    phonetic,
+    meaning: STATIC_VOCAB_DICT[lower] || lower,
+    imageUrl: img,
+    phrases: ['useful ' + lower, 'learn about ' + lower, 'important ' + lower],
     examples: [
-      'The local ' + lower + ' plays an important role in our daily lives.',
-      'Students enjoyed learning about the ' + lower + ' during the lesson.'
+      'Students learn about the ' + lower + ' during their English lesson.',
+      'Understanding the ' + lower + ' helps improve our communication skills.'
     ]
   };
 };
@@ -3333,7 +3649,7 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     }
   }, [activity]);
 // REMOVED AUTO-REPAIR EFFECT (NEVER OVERWRITE TEACHER VOCABULARY LIST WITH GRADE 7 PRESET)
-  // AUTO REPAIR UNTRANSLATED VOCABULARY MEANINGS & FALLBACK IPA PHONETICS
+  // AUTO REPAIR UNTRANSLATED VOCABULARY MEANINGS, FALLBACK IPA PHONETICS, WRONG FALLBACK IMAGES & DUMMY PHRASES/EXAMPLES (V300)
   useEffect(() => {
     if (Array.isArray(vocabList) && vocabList.length > 0) {
       let hasChanges = false;
@@ -3341,25 +3657,76 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
         const wLower = (item.word || '').trim().toLowerCase();
         const mLower = (item.meaning || '').trim().toLowerCase();
         const pLower = (item.phonetic || '').trim().toLowerCase();
+        const imgUrl = (item.imageUrl || '').trim();
         let newItem = { ...item };
-        // Auto repair Vietnamese meaning
-        if (!mLower || mLower === wLower || mLower.includes('(nghĩa tự động)') || mLower.includes('(nghĩa mới)')) {
-          if (STATIC_VOCAB_DICT[wLower]) {
+
+        const masterEntry = OXFORD_VOCABULARY_MASTER_DATABASE[wLower];
+
+        if (masterEntry) {
+          // 1. Chuẩn hóa phiên âm IPA Oxford chuẩn quốc tế
+          if (!pLower || pLower === `/${wLower}/` || pLower === `/${item.word}/` || !pLower.includes('/') || pLower.length <= wLower.length + 2) {
+            hasChanges = true;
+            newItem.phonetic = masterEntry.phonetic;
+          }
+
+          // 2. Chuẩn hóa nghĩa dịch tiếng Việt chuẩn SGK
+          if (!mLower || mLower === wLower || mLower.includes('(nghĩa tự động)') || mLower.includes('(nghĩa mới)') || mLower === 'chức năng') {
+            if (masterEntry.meaning && newItem.meaning !== masterEntry.meaning) {
+              hasChanges = true;
+              newItem.meaning = masterEntry.meaning;
+            }
+          }
+
+          // 3. Chuẩn hóa đúng từ loại (POS)
+          if (masterEntry.pos && (!newItem.pos || (masterEntry.pos === 'v' && newItem.pos === 'n') || (masterEntry.pos === 'adj' && newItem.pos === 'n'))) {
+            hasChanges = true;
+            newItem.pos = masterEntry.pos;
+          }
+
+          // 4. Chuẩn hóa ảnh minh họa đúng 100% nghĩa tiếng Việt (thay thế ảnh cây cầu Paris cũ)
+          if (!imgUrl || imgUrl.includes('photo-1499856871958-5b9627545d1a') || imgUrl.includes('photo-1456513080510-7bf3a84b82f8')) {
+            hasChanges = true;
+            newItem.imageUrl = masterEntry.imageUrl;
+          }
+
+          // 5. Chuẩn hóa phrases (loại bỏ template thô traditional function / local function)
+          const hasDummyPhrases = !newItem.phrases || newItem.phrases.length === 0 || newItem.phrases.some(p => p.includes('traditional ') || p.includes('local ') || p.includes('important '));
+          if (hasDummyPhrases && Array.isArray(masterEntry.phrases) && masterEntry.phrases.length > 0) {
+            hasChanges = true;
+            newItem.phrases = masterEntry.phrases;
+          }
+
+          // 6. Chuẩn hóa câu ví dụ mẫu (loại bỏ câu ghép ngô nghê The local function plays an important role...)
+          const hasDummyExamples = !newItem.examples || newItem.examples.length === 0 || newItem.examples.some(e => typeof e === 'string' && (e.includes('plays an important role in our daily lives') || e.includes('during the lesson') || e.includes('This is an example')));
+          if (hasDummyExamples && Array.isArray(masterEntry.examples) && masterEntry.examples.length > 0) {
+            hasChanges = true;
+            newItem.examples = masterEntry.examples;
+          }
+        } else {
+          // Xử lý từ chưa có trong Master Database
+          if (STATIC_VOCAB_DICT[wLower] && (!mLower || mLower === wLower || mLower.includes('(nghĩa tự động)') || mLower.includes('(nghĩa mới)'))) {
             hasChanges = true;
             newItem.meaning = STATIC_VOCAB_DICT[wLower];
           }
-        }
-        // Auto repair IPA phonetics
-        if (!pLower || pLower === `/${wLower}/` || pLower === `/${item.word}/`) {
-          if (STATIC_IPA_DICT[wLower]) {
+          if (STATIC_IPA_DICT[wLower] && (!pLower || pLower === `/${wLower}/` || pLower === `/${item.word}/`)) {
             hasChanges = true;
             newItem.phonetic = STATIC_IPA_DICT[wLower];
           }
+          if (imgUrl.includes('photo-1499856871958-5b9627545d1a')) {
+            hasChanges = true;
+            newItem.imageUrl = getGuaranteedTopicImage(wLower);
+          }
         }
+
         return newItem;
       });
+
       if (hasChanges) {
         setVocabList(updated);
+        // Tự động lưu đồng bộ cập nhật chuẩn lên Supabase
+        syncFullActivitySettings({
+          vocabularyList: updated,
+        });
       }
     }
   }, [vocabList]);
@@ -5058,71 +5425,47 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
       }
       if (generatedEntries.length === 0) {
         generatedEntries = wordsToProcess.map((w, idx) => {
-          const lower = w.toLowerCase();
-          let pos = 'n';
-          let phonetic = `/${lower}/`;
-          let meaning = lower;
-          let img = 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80';
-          const fallbackData = generateSmartPhrasesAndExamples(w, null);
-          let phrases = fallbackData.phrases;
-          let examples = fallbackData.examples;
-          if (fallbackData.pos) pos = fallbackData.pos;
-          if (fallbackData.phonetic) phonetic = fallbackData.phonetic;
-          if (fallbackData.meaning) meaning = fallbackData.meaning;
-          if (lower === 'cardboard') { phonetic = "/'kɑːdboːd/"; meaning = 'bìa các tông'; img = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80'; phrases = ['cardboard boxes', 'a piece of cardboard']; examples = ['She packed her books in cardboard boxes.']; }
-          else if (lower === 'dollhouse') { phonetic = "/'dɒlhaʊs/"; meaning = 'nhà mô hình (nhà búp bê)'; img = 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&auto=format&fit=crop&q=80'; phrases = ['wooden dollhouse']; examples = ['My sister loves playing with her dollhouse.']; }
-          else if (lower === 'gardening') { phonetic = "/'ɡɑːdnɪŋ/"; meaning = 'làm vườn'; img = 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&auto=format&fit=crop&q=80'; phrases = ['enjoy gardening']; examples = ['My grandmother spends time gardening.']; }
-          else if (lower === 'glue') { phonetic = '/ɡluː/'; meaning = 'keo dán'; img = 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=600&auto=format&fit=crop&q=80'; phrases = ['paper glue']; examples = ['Use glue to stick paper models together.']; }
-          else if (lower === 'horse riding') { phonetic = "/'hɔːs raɪdɪŋ/"; meaning = 'cưỡi ngựa'; img = 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=600&auto=format&fit=crop&q=80'; phrases = ['go horse riding']; examples = ['Horse riding is an exciting outdoor hobby.']; }
-          else if (lower.includes('making models')) { pos = 'v phr'; phonetic = "/'meɪkɪŋ 'mɒdlz/"; meaning = 'làm mô hình'; img = 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80'; phrases = ['making plane models']; examples = ['Making models requires patience.']; }
-          else if (lower === 'popular') { pos = 'adj'; phonetic = "/'pɒpjələ(r)/"; meaning = 'phổ biến, được ưa thích'; img = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80'; phrases = ['popular hobby']; examples = ['Football is a popular sport.']; }
-          else if (lower === 'unusual') { pos = 'adj'; phonetic = "/ʌn'juːʒuəl/"; meaning = 'độc lạ, khác thường'; img = 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80'; phrases = ['unusual hobby']; examples = ['Collecting insect specimens is an unusual hobby.']; }
-          else if (lower === 'coin') { phonetic = '/kɔɪn/'; meaning = 'tiền xu'; img = 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=600&auto=format&fit=crop&q=80'; phrases = ['collect coins']; examples = ['They like collecting old coins.']; }
-          else if (lower === 'jogging') { phonetic = "/'dʒɒɡɪŋ/"; meaning = 'đi bộ thể dục / chạy bộ'; img = 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=80'; phrases = ['go jogging']; examples = ['My father goes jogging every morning.']; }
-          else if (lower === 'model') { phonetic = "/'mɒdl/"; meaning = 'mô hình'; img = 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80'; phrases = ['scale model']; examples = ['He built a scale model.']; }
-          else if (lower === 'yoga') { phonetic = "/'jəʊɡə/"; meaning = 'tập yoga'; img = 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&auto=format&fit=crop&q=80'; phrases = ['do yoga']; examples = ['Doing yoga helps reduce stress.']; }
+          const lower = w.toLowerCase().trim();
+          const masterEntry = OXFORD_VOCABULARY_MASTER_DATABASE[lower] || generateSmartPhrasesAndExamples(w, null);
           return {
             id: 'vocab_' + Date.now() + '_' + idx,
             word: w,
-            pos,
-            phonetic,
-            meaning,
+            pos: masterEntry.pos || 'n',
+            phonetic: masterEntry.phonetic || `/${lower}/`,
+            meaning: masterEntry.meaning || STATIC_VOCAB_DICT[lower] || lower,
             unit: bulkUnit,
             section: bulkSection,
-            imageUrl: img,
+            imageUrl: masterEntry.imageUrl || getGuaranteedTopicImage(lower),
             audioUrl: '',
-            phrases,
-            examples
+            phrases: masterEntry.phrases || [],
+            examples: masterEntry.examples || []
           };
         });
       }
-      // SANITIZE POS, PHRASES, EXAMPLES & IMAGES FOR EVERY GENERATED ITEM (V275)
-        for (let i = 0; i < generatedEntries.length; i++) {
-          const item = generatedEntries[i];
-          const wLower = (item.word || '').toLowerCase().trim();
-
-          // UNCONDITIONALLY ASSIGN 100% ACCURATE TOPIC IMAGE
+      // SANITIZE POS, PHRASES, EXAMPLES & IMAGES FOR EVERY GENERATED ITEM (V300 100% OXFORD PRECISION)
+      for (let i = 0; i < generatedEntries.length; i++) {
+        const item = generatedEntries[i];
+        const wLower = (item.word || '').toLowerCase().trim();
+        const master = OXFORD_VOCABULARY_MASTER_DATABASE[wLower];
+        if (master) {
+          item.pos = master.pos;
+          item.phonetic = master.phonetic;
+          item.meaning = master.meaning;
+          item.imageUrl = master.imageUrl;
+          item.phrases = master.phrases;
+          item.examples = master.examples;
+        } else {
           item.imageUrl = getGuaranteedTopicImage(wLower);
-
-          // CHECK IF HIGH-QUALITY DICTIONARY ENTRY EXISTS
           const dictEntry = generateSmartPhrasesAndExamples(wLower, item.pos);
           if (dictEntry) {
             if (dictEntry.pos) item.pos = dictEntry.pos;
-            if (dictEntry.phonetic && (!item.phonetic || item.phonetic.length < 3 || item.phonetic.includes('/' + wLower + '/'))) item.phonetic = dictEntry.phonetic;
-            if (dictEntry.meaning && (item.meaning.includes('nghĩa') || item.meaning === item.word)) item.meaning = dictEntry.meaning;
-
-            // IF PHRASES/EXAMPLES ARE DUMMY/GENERIC OR EMPTY, OVERRIDE WITH HIGH-QUALITY DICTIONARY DATA
-            const hasDummyPhrase = !item.phrases || item.phrases.length === 0 || item.phrases.some(p => p.includes('learn ') || p.includes('use ') || p.includes('important ') || p.includes('great '));
-            const hasDummyExample = !item.examples || item.examples.length === 0 || item.examples.some(e => e.includes('useful in daily conversation') || e.includes('introduced the topic'));
-
-            if (hasDummyPhrase && dictEntry.phrases && dictEntry.phrases.length > 0) {
-              item.phrases = dictEntry.phrases;
-            }
-            if (hasDummyExample && dictEntry.examples && dictEntry.examples.length > 0) {
-              item.examples = dictEntry.examples;
-            }
+            if (dictEntry.phonetic) item.phonetic = dictEntry.phonetic;
+            if (dictEntry.meaning && (!item.meaning || item.meaning === item.word || item.meaning.includes('nghĩa'))) item.meaning = dictEntry.meaning;
+            if (dictEntry.phrases && dictEntry.phrases.length > 0) item.phrases = dictEntry.phrases;
+            if (dictEntry.examples && dictEntry.examples.length > 0) item.examples = dictEntry.examples;
           }
         }
+      }
 
       // GUARANTEE VIETNAMESE TRANSLATION FOR EVERY GENERATED ITEM
       for (let i = 0; i < generatedEntries.length; i++) {
