@@ -1624,6 +1624,7 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   const [fillBlankInputs, setFillBlankInputs] = useState({});
   const [activeWordTooltip, setActiveWordTooltip] = useState(null);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isDialogueAdminMode, setIsDialogueAdminMode] = useState(false);
 
   // V299 6 ADVANCED DIALOGUE UPGRADE STATES
   const [isKaraokeSyncMode, setIsKaraokeSyncMode] = useState(true);
@@ -2736,6 +2737,52 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     // FOR ANY NEW ACTIVITY: START WITH CLEAN EMPTY WORKSPACE (NO INJECTION IN GETTING STARTED)
     return [];
   });
+
+  // TÍCH HỢP TỰ ĐỘNG TOÀN BỘ TỪ VỰNG TỪ DANH MỤC BÀI HỌC (VOCABLIST) ĐỂ HIGHLIGHT TRONG ĐOẠN HỘI THOẠI
+  const dialogueLookup = useMemo(() => {
+    const map = new Map();
+    // 1. Nạp từ điển từ vựng mẫu bổ trợ
+    if (typeof DIALOGUE_KEY_WORDS_DICT === 'object' && DIALOGUE_KEY_WORDS_DICT) {
+      Object.keys(DIALOGUE_KEY_WORDS_DICT).forEach((kw) => {
+        const clean = kw.toLowerCase().trim();
+        map.set(clean, {
+          word: kw,
+          ipa: DIALOGUE_KEY_WORDS_DICT[kw].ipa || '',
+          vi: DIALOGUE_KEY_WORDS_DICT[kw].vi || '',
+          icon: DIALOGUE_KEY_WORDS_DICT[kw].icon || '✨',
+          pos: '',
+          imageUrl: null,
+          audioUrl: null,
+        });
+      });
+    }
+    // 2. Nạp toàn bộ danh mục từ vựng mà Thầy đã soạn (vocabList) - Ưu tiên hàng đầu
+    (vocabList || []).forEach((item) => {
+      if (item && item.word && typeof item.word === 'string') {
+        const clean = item.word.toLowerCase().trim();
+        if (clean.length >= 2) {
+          map.set(clean, {
+            word: item.word,
+            ipa: item.phonetic || '',
+            vi: item.meaning || '',
+            pos: item.pos || '',
+            icon: '✨',
+            imageUrl: item.imageUrl || null,
+            audioUrl: item.audioUrl || null,
+          });
+        }
+      }
+    });
+    return map;
+  }, [vocabList]);
+
+  // Sắp xếp các từ khóa theo độ dài giảm dần (cụm từ dài ưu tiên khớp trước từ đơn)
+  const sortedKeywordList = useMemo(() => {
+    return Array.from(dialogueLookup.keys())
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length);
+  }, [dialogueLookup]);
+
   // TEACHER CONTROLS FOR LOCKING/UNLOCKING GAMES AND LESSON SECTIONS FOR STUDENTS
   const [lockGamesForStudents, setLockGamesForStudents] = useState(() => {
     try {
@@ -6851,45 +6898,64 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 </select>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  onClick={handleRestoreDefaultDialogues}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-emerald-400"
-                  title="Khôi phục lại đầy đủ Đoạn 1 & Đoạn 2 (Lớp 7 Unit 1: Hobbies) và Lớp 9 chuẩn SGK nếu lỡ tay xóa mất"
-                >
-                  <span>🔄 Khôi Phục Đoạn SGK Chuẩn</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleQuickSyncDialogueTiming}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-amber-400"
-                  title="Khớp nhịp mốc giây từng câu thoại theo đúng nhịp độ tự nhiên của bài nghe Audio SGK"
-                >
-                  <span>⚡ Khớp Nhịp Audio MP3</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newId = 'tab_' + Date.now();
-                    const newTab = {
-                      id: newId,
-                      title: `Đoạn Hội Thoại ${selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : 'Mới'}`,
-                      grade: selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : (activityGrade || 'Lớp 9'),
-                      lines: [
-                        { speaker: 'Ann', text: 'Hi! Welcome to our new dialogue lesson.', vi: 'Chào bạn! Chào mừng đến với bài học hội thoại mới.' },
-                        { speaker: 'Nick', text: 'Thank you! I am ready to practice speaking.', vi: 'Cảm ơn bạn! Mình đã sẵn sàng thực hành nói.' }
-                      ]
-                    };
-                    const updatedTabs = [...dialogueTabs, newTab];
-                    persistDialogueTabs(updatedTabs, newId);
-                    handleOpenEditDialogueModal(newTab);
-                  }}
-                  className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-purple-400"
-                >
-                  <span>➕ Thêm Đoạn Mới</span>
-                </button>
-              </div>
+              {effectiveIsTeacher && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsDialogueAdminMode(!isDialogueAdminMode)}
+                    className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 border shadow-xs ${
+                      isDialogueAdminMode
+                        ? 'bg-amber-500 text-slate-950 border-amber-300 ring-2 ring-amber-300 scale-105'
+                        : 'bg-purple-900 text-purple-200 border-purple-400 hover:bg-purple-800'
+                    }`}
+                    title="Bật/Tắt chế độ biên soạn để trải nghiệm bài học của học sinh hoặc chỉnh sửa đoạn thoại"
+                  >
+                    <span>{isDialogueAdminMode ? '👁️ Đóng Chế Độ Soạn (Xem Như HS)' : '✏️ Bật Chế Độ Biên Soạn'}</span>
+                  </button>
+
+                  {isDialogueAdminMode && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleRestoreDefaultDialogues}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-emerald-400"
+                        title="Khôi phục lại đầy đủ Đoạn 1 & Đoạn 2 (Lớp 7 Unit 1: Hobbies) và Lớp 9 chuẩn SGK nếu lỡ tay xóa mất"
+                      >
+                        <span>🔄 Khôi Phục Đoạn SGK Chuẩn</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleQuickSyncDialogueTiming}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-amber-400"
+                        title="Khớp nhịp mốc giây từng câu thoại theo đúng nhịp độ tự nhiên của bài nghe Audio SGK"
+                      >
+                        <span>⚡ Khớp Nhịp Audio MP3</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newId = 'tab_' + Date.now();
+                          const newTab = {
+                            id: newId,
+                            title: `Đoạn Hội Thoại ${selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : 'Mới'}`,
+                            grade: selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : (activityGrade || 'Lớp 9'),
+                            lines: [
+                              { speaker: 'Ann', text: 'Hi! Welcome to our new dialogue lesson.', vi: 'Chào bạn! Chào mừng đến với bài học hội thoại mới.' },
+                              { speaker: 'Nick', text: 'Thank you! I am ready to practice speaking.', vi: 'Cảm ơn bạn! Mình đã sẵn sàng thực hành nói.' }
+                            ]
+                          };
+                          const updatedTabs = [...dialogueTabs, newTab];
+                          persistDialogueTabs(updatedTabs, newId);
+                          handleOpenEditDialogueModal(newTab);
+                        }}
+                        className="px-3 py-1.5 bg-purple-700 hover:bg-purple-800 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1 border border-purple-400"
+                      >
+                        <span>➕ Thêm Đoạn Mới</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -7359,7 +7425,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     <span className="text-xs font-bold text-slate-500 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
                       🎧 Track Audio UK Oxford ({dialogueSpeed}x)
                     </span>
-                    {effectiveIsTeacher && (
+                    {effectiveIsTeacher && isDialogueAdminMode && (
                       <>
                         <button
                           type="button"
@@ -7432,32 +7498,54 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                                   ))
                                 ) : (
                                   (() => {
-                                    const text = line.text;
-                                    let matchedKey = null;
-                                    Object.keys(DIALOGUE_KEY_WORDS_DICT).forEach(kw => {
-                                      if (text.toLowerCase().includes(kw)) matchedKey = kw;
-                                    });
+                                    const text = line.text || '';
+                                    if (!text || !sortedKeywordList || sortedKeywordList.length === 0) return text;
 
-                                    if (matchedKey) {
-                                      const parts = text.split(new RegExp(`(${matchedKey})`, 'gi'));
-                                      return parts.map((part, pIdx) => {
-                                        if (part.toLowerCase() === matchedKey) {
-                                          const kwObj = DIALOGUE_KEY_WORDS_DICT[matchedKey];
-                                          return (
-                                            <span
-                                              key={pIdx}
-                                              onClick={() => setActiveWordTooltip({ word: matchedKey, ...kwObj })}
-                                              className="bg-amber-200 text-amber-950 font-black border-b-2 border-amber-500 px-1 py-0.5 rounded cursor-pointer hover:bg-amber-300 transition mx-0.5 shadow-2xs print:bg-transparent print:border-none print:p-0"
-                                              title="Nhấp để xem từ vựng nổi bật IPA & ví dụ"
-                                            >
-                                              ✨ {part}
-                                            </span>
-                                          );
-                                        }
-                                        return part;
-                                      });
-                                    }
-                                    return text;
+                                    // Lập danh sách các từ vựng thực sự xuất hiện trong câu thoại này
+                                    const lowerText = text.toLowerCase();
+                                    const presentKeywords = sortedKeywordList.filter((kw) => lowerText.includes(kw));
+                                    if (presentKeywords.length === 0) return text;
+
+                                    // Escape ký tự regex đặc biệt
+                                    const pattern = presentKeywords
+                                      .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                                      .join('|');
+
+                                    // Tạo RegExp khớp từ trọn vẹn với word boundary \b
+                                    const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
+                                    const parts = text.split(regex);
+                                    if (parts.length <= 1) return text;
+
+                                    return parts.map((part, pIdx) => {
+                                      const cleanLower = (part || '').toLowerCase().trim();
+                                      const vocabData = dialogueLookup.get(cleanLower);
+
+                                      if (vocabData) {
+                                        return (
+                                          <span
+                                            key={pIdx}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveWordTooltip({
+                                                word: vocabData.word,
+                                                ipa: vocabData.ipa || '',
+                                                vi: vocabData.vi || '',
+                                                pos: vocabData.pos || '',
+                                                icon: vocabData.icon || '✨',
+                                                imageUrl: vocabData.imageUrl || null,
+                                                audioUrl: vocabData.audioUrl || null,
+                                              });
+                                            }}
+                                            className="bg-amber-200 text-amber-950 font-black border-b-2 border-amber-500 px-1.5 py-0.5 rounded-lg cursor-pointer hover:bg-amber-300 transition mx-0.5 shadow-xs inline-flex items-center space-x-1 print:bg-transparent print:border-none print:p-0"
+                                            title={`Nhấp để tra cứu từ vựng: [${vocabData.word}] - ${vocabData.vi || ''}`}
+                                          >
+                                            <span className="text-[11px]">✨</span>
+                                            <span>{part}</span>
+                                          </span>
+                                        );
+                                      }
+                                      return part;
+                                    });
                                   })()
                                 )
                               ) : (
@@ -7576,16 +7664,27 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   <X className="w-5 h-5" />
                 </button>
 
-                <div className="w-14 h-14 mx-auto rounded-full bg-amber-100 flex items-center justify-center text-3xl shadow-inner">
-                  {activeWordTooltip.icon}
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-100 flex items-center justify-center text-3xl shadow-inner overflow-hidden border-2 border-amber-300">
+                  {activeWordTooltip.imageUrl ? (
+                    <img src={activeWordTooltip.imageUrl} alt={activeWordTooltip.word} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{activeWordTooltip.icon || '✨'}</span>
+                  )}
                 </div>
 
-                <h3 className="font-black text-xl text-purple-950 capitalize">
-                  {activeWordTooltip.word}
-                </h3>
-                <p className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg inline-block border border-amber-200">
-                  {activeWordTooltip.ipa}
-                </p>
+                <div className="space-y-1">
+                  <h3 className="font-black text-xl text-purple-950 capitalize flex items-center justify-center space-x-1.5">
+                    <span>{activeWordTooltip.word}</span>
+                    {activeWordTooltip.pos && (
+                      <span className="text-xs font-bold text-slate-500">({activeWordTooltip.pos})</span>
+                    )}
+                  </h3>
+                  {activeWordTooltip.ipa && (
+                    <p className="text-xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg inline-block border border-amber-200">
+                      {activeWordTooltip.ipa}
+                    </p>
+                  )}
+                </div>
 
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-left space-y-1">
                   <p className="text-xs font-extrabold text-slate-800">
@@ -7596,12 +7695,16 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 <button
                   type="button"
                   onClick={() => {
-                    speakText(activeWordTooltip.word);
+                    if (activeWordTooltip.audioUrl) {
+                      speakText(activeWordTooltip.word, activeWordTooltip.audioUrl);
+                    } else {
+                      speakText(activeWordTooltip.word);
+                    }
                   }}
-                  className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer flex items-center justify-center space-x-1"
+                  className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer flex items-center justify-center space-x-1.5 active:scale-95 transition"
                 >
                   <Volume2 className="w-4 h-4 text-amber-300" />
-                  <span>Phát Âm Từ Này</span>
+                  <span>Phát Âm Từ Này (UK Oxford)</span>
                 </button>
               </div>
             </div>

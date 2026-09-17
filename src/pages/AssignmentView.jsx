@@ -404,7 +404,7 @@ export default function AssignmentView() {
 
         {/* MỞ GIAO DIỆN CHUẨN XÁC THEO LOẠI HOẠT ĐỘNG */}
         {isVocabularyType ? (
-          <VocabularyEngine activity={activeAct} isTeacher={userIsTeacher} onSaveActivity={handleSaveVocabularySettings} />
+          <VocabularyEngine activity={activeAct} isTeacher={userIsTeacher && !isStudentPreviewMode && !isExplicitStudentView} onSaveActivity={handleSaveVocabularySettings} />
         ) : isIframeType ? (
           <IframeGameView activity={activeAct} />
         ) : isWorksheetType ? (
