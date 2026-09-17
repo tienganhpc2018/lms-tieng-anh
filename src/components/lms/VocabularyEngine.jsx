@@ -2854,6 +2854,7 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       flashcard: false,
       dialog_cards: false,
       quest: false,
+      bookmarks: false,
     };
   });
 
@@ -2877,11 +2878,13 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       });
     }
   };
-  // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT
-    // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
-    // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
+  // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
   const isGameLockedForStudent = (gameKey) => {
     if (effectiveIsTeacher) return false;
+    // TAB TỪ CẦN NHỚ: KHÓA RIÊNG BIỆT KHI THẦY CHỦ ĐỘNG KHÓA
+    if (gameKey === 'bookmarks') {
+      return Boolean(individualGameLocks?.bookmarks);
+    }
     // EXPLICIT INDIVIDUAL UNLOCK TAKES HIGHEST PRIORITY!
     if (gameKey && individualGameLocks && individualGameLocks[gameKey] === false) return false;
     if (gameKey && individualGameLocks && individualGameLocks[gameKey] === true) return true;
@@ -2889,10 +2892,21 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     return false;
   };
 
+  // BẢO VỆ TỰ ĐỘNG: NẾU HỌC SINH ĐANG Ở TAB BỊ KHÓA -> CHUYỂN NGAY VỀ DICTIONARY
+  useEffect(() => {
+    if (!effectiveIsTeacher) {
+      if (activeTab === 'bookmarks' && isGameLockedForStudent('bookmarks')) {
+        setActiveTab('dictionary');
+      } else if (['memory_game', 'spelling_game', 'word_search', 'crossword', 'flashcard', 'dialog_cards', 'quest'].includes(activeTab) && isGameLockedForStudent(activeTab)) {
+        setActiveTab('dictionary');
+      }
+    }
+  }, [activeTab, effectiveIsTeacher, individualGameLocks, lockGamesForStudents]);
+
   const handleGameTabClick = (tabKey, gameLockKey = null) => {
     if (isGameLockedForStudent(gameLockKey)) {
       playSuccessSound();
-      alert('🔒 Trò chơi này đang được Giáo viên tạm khóa. Hãy hoàn thành các bài học khác hoặc chờ Thầy Mở Khóa nhé!');
+      alert('🔒 Mục này đang được Giáo viên tạm khóa.');
       return;
     }
     setActiveTab(tabKey);
@@ -6432,18 +6446,52 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               </button>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setActiveTab('bookmarks')}
-            className={`px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 cursor-pointer shrink-0 ${
-              activeTab === 'bookmarks'
-                ? 'bg-amber-300 text-slate-950 shadow-md font-extrabold'
-                : 'text-amber-200 hover:bg-amber-800/60'
-            }`}
-          >
-            <Star className="w-3.5 h-3.5 text-amber-950 fill-amber-950" />
-            <span>⭐ Từ Cần Nhớ ({bookmarkedIds.length})</span>
-          </button>
+          {/* TAB 8: TỪ CẦN NHỚ (BOOKMARKS) - CÓ NÚT KHÓA/ẨN VỚI HỌC SINH DÀNH CHO THẦY */}
+          {(!isGameLockedForStudent('bookmarks') || effectiveIsTeacher) && (
+            <div className="relative flex items-center shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (isGameLockedForStudent('bookmarks')) {
+                    alert('🔒 Mục Từ Cần Nhớ đang được Giáo viên tạm khóa.');
+                    return;
+                  }
+                  setActiveTab('bookmarks');
+                }}
+                className={`px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 cursor-pointer ${
+                  activeTab === 'bookmarks'
+                    ? 'bg-amber-300 text-slate-950 shadow-md font-extrabold'
+                    : 'text-amber-200 hover:bg-amber-800/60'
+                } ${isGameLockedForStudent('bookmarks') ? 'opacity-70 border border-rose-500/80 bg-rose-950/40 text-rose-200' : ''}`}
+              >
+                {isGameLockedForStudent('bookmarks') && <Lock className="w-3.5 h-3.5 text-rose-400 animate-pulse" />}
+                <Star className={`w-3.5 h-3.5 ${isGameLockedForStudent('bookmarks') ? 'text-rose-400' : 'text-amber-950 fill-amber-950'}`} />
+                <span>⭐ Từ Cần Nhớ ({bookmarkedIds.length})</span>
+                {effectiveIsTeacher && isGameLockedForStudent('bookmarks') && (
+                  <span className="bg-rose-600 text-white text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ml-1 border border-rose-400">
+                    ẨN VỚI HS
+                  </span>
+                )}
+              </button>
+              {effectiveIsTeacher && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleIndividualGameLock('bookmarks');
+                  }}
+                  className={`ml-0.5 p-1 rounded-md transition cursor-pointer ${
+                    individualGameLocks.bookmarks
+                      ? 'bg-rose-600 text-white hover:bg-rose-700 ring-1 ring-rose-300'
+                      : 'bg-slate-800/80 text-amber-300 hover:bg-slate-700'
+                  }`}
+                  title={individualGameLocks.bookmarks ? 'Mở khóa / Hiện tab Từ Cần Nhớ cho HS' : 'Khóa / Ẩn tab Từ Cần Nhớ với HS'}
+                >
+                  {individualGameLocks.bookmarks ? <Lock className="w-3 h-3 text-rose-200" /> : <Unlock className="w-3 h-3 text-emerald-400" />}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
       
@@ -7696,7 +7744,7 @@ Ann: How's your new neighbourhood?`}
 
 
       {/* 🔗 FRAME 2: SƠ ĐỒ LIÊN KẾT TỪ VỰNG TIẾT HỌC (UNIT LESSON MATRIX) - CÓ NÚT KHÓA NỔI BẬT NẰM TRỰC TIẾP TRÊN MỖI TIẾT HỌC */}
-      {(activeTab === 'dictionary' || activeTab === 'bookmarks') && (
+      {activeTab === 'dictionary' && (
         <div className="bg-amber-950/80 rounded-2xl p-4 border-2 border-amber-700/80 shadow-xl space-y-3 my-4 animate-fade-in">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-800/80 pb-2.5">
           <div className="flex items-center space-x-2 text-amber-300 font-black text-xs sm:text-sm uppercase tracking-wide">
@@ -7799,46 +7847,78 @@ Ann: How's your new neighbourhood?`}
       </div>
       )}{/* TAB 1: DICTIONARY / BOOKMARKS VIEW */}
       {(activeTab === 'dictionary' || activeTab === 'bookmarks') && (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-4 lg:col-span-3 bg-amber-100/90 rounded-2xl p-2.5 border-2 border-amber-300 shadow-inner flex flex-col justify-between max-h-[580px]">
-            <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 max-h-[500px]">
-              {filteredList.length === 0 ? (
-                <div className="p-6 text-center bg-amber-950/40 rounded-xl border border-amber-500/30 my-4">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-300 text-2xl font-black">
-                    {activeTab === 'bookmarks' ? '⭐' : '✨'}
-                  </div>
-                  <h4 className="text-amber-200 font-extrabold text-sm mb-1">
-                    {activeTab === 'bookmarks' ? 'Danh sách Từ Cần Nhớ đang trống' : 'Tiết học hiện chưa có từ vựng'}
-                  </h4>
-                  <p className="text-amber-300/80 text-xs mb-3">
-                    {activeTab === 'bookmarks'
-                      ? '⭐ Danh sách Từ Cần Nhớ đang trống. Em chưa lưu từ vựng nào vào mục Cần Nhớ. Hãy bấm biểu tượng ngôi sao ⭐ bên cạnh từ vựng để lưu lại ôn tập nhé!'
-                      : (effectiveIsTeacher
-                          ? 'Thầy Hải có thể bấm nút dưới đây để nạp từ vựng mới hoặc dùng AI sinh tự động trọn bộ cho tiết học này!'
-                          : '📚 Tiết học hiện chưa có từ vựng. Em hãy chọn tiết học khác trong sơ đồ để tiếp tục luyện tập nhé!')}
-                  </p>
-                  {/* TUYỆT ĐỐI CHỈ HIỆN 2 NÚT NÀY CHO GIÁO VIÊN KHI ĐANG Ở TIẾT HỌC TRỐNG (KHÓA 100% Ở TAB TỪ CẦN NHỚ VÀ KHÓA 100% CHO HỌC SINH) */}
-                  {effectiveIsTeacher && activeTab !== 'bookmarks' && (
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsBulkAiModalOpen(true)}
-                        className="px-3.5 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
-                      >
-                        <span>✨ 🤖 AI Nhập Hàng Loạt Từ</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenStudio()}
-                        className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer"
-                      >
-                        <span>➕ Soạn Từ Vựng Studio</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+        filteredList.length === 0 ? (
+          <div className="bg-amber-950/80 rounded-3xl p-8 sm:p-12 border-2 border-amber-700/80 shadow-2xl text-center max-w-2xl mx-auto my-6 animate-fade-in space-y-4">
+            <div className="w-20 h-20 mx-auto rounded-3xl bg-amber-500/20 border-2 border-amber-500/40 flex items-center justify-center text-4xl shadow-inner">
+              {activeTab === 'bookmarks' ? '⭐' : '📚'}
+            </div>
+            
+            <h3 className="text-xl sm:text-2xl font-black text-amber-300 uppercase tracking-wide">
+              {activeTab === 'bookmarks' 
+                ? 'Danh Sách Từ Cần Nhớ Đang Trống' 
+                : 'Tiết Học Này Chưa Có Từ Vựng'}
+            </h3>
+
+            <p className="text-amber-100/90 text-sm leading-relaxed max-w-lg mx-auto font-medium">
+              {activeTab === 'bookmarks' ? (
+                <span>
+                  Em chưa đánh dấu từ vựng nào vào mục <strong>Từ Cần Nhớ</strong>. Trong khi học từ điển, em hãy bấm vào biểu tượng <strong>ngôi sao ⭐</strong> bên cạnh các từ vựng để lưu lại vào danh sách ôn tập riêng nhé!
+                </span>
               ) : (
-                filteredList.map((item, idx) => {
+                effectiveIsTeacher ? (
+                  <span>Thầy Hải có thể bấm nút nạp từ vựng hoặc tạo tự động bằng AI dưới đây để đưa từ vựng vào tiết học này cho học sinh.</span>
+                ) : (
+                  <span>Tiết học này hiện chưa có dữ liệu từ vựng. Em hãy chọn các tiết học khác trên sơ đồ phía trên để tiếp tục luyện tập nhé!</span>
+                )
+              )}
+            </p>
+
+            {/* NÚT ĐIỀU HƯỚNG / THAO TÁC */}
+            <div className="pt-3 flex flex-wrap items-center justify-center gap-3">
+              {activeTab === 'bookmarks' ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('dictionary')}
+                  className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-sm rounded-2xl shadow-lg hover:shadow-xl transition transform hover:scale-105 flex items-center space-x-2 cursor-pointer border border-amber-300"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>📚 Quay Lại Học Từ Điển Bài Học</span>
+                </button>
+              ) : (
+                effectiveIsTeacher ? (
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsBulkAiModalOpen(true)}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer border border-purple-400"
+                    >
+                      <span>✨ 🤖 AI Nhập Hàng Loạt Từ</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenStudio()}
+                      className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer border border-emerald-400"
+                    >
+                      <span>➕ Soạn Từ Vựng Studio</span>
+                    </button>
+                  </div>
+                ) : null
+              )}
+            </div>
+
+            {/* BÁO TRẠNG THÁI CHO GIÁO VIÊN NẾU TAB NÀY ĐANG KHÓA VỚI HỌC SINH */}
+            {effectiveIsTeacher && activeTab === 'bookmarks' && individualGameLocks.bookmarks && (
+              <div className="mt-4 p-3 bg-rose-950/70 border border-rose-500/80 rounded-xl text-rose-200 text-xs font-bold inline-flex items-center space-x-2">
+                <Lock className="w-4 h-4 text-rose-400" />
+                <span>Tab Từ Cần Nhớ hiện đang <strong>KHÓA / ẨN</strong> đối với toàn bộ Học sinh.</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="md:col-span-4 lg:col-span-3 bg-amber-100/90 rounded-2xl p-2.5 border-2 border-amber-300 shadow-inner flex flex-col justify-between max-h-[580px]">
+              <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 max-h-[500px]">
+                {filteredList.map((item, idx) => {
                   const isSelected = selectedIndex === idx;
                   const isStaimed = bookmarkedIds.includes(item.id);
                   return (
@@ -7878,8 +7958,8 @@ Ann: How's your new neighbourhood?`}
                       )}
                     </button>
                   );
-                })
-              )}</div>
+                })}
+              </div>
             <div className="pt-2 border-t border-amber-300/80 mt-2 space-y-1.5">
               <button
                 type="button"
@@ -8128,7 +8208,8 @@ Ann: How's your new neighbourhood?`}
             </div>
           </div>
         </div>
-        )}
+        )
+      )}
       {/* TAB 2: GAME LẬT THẺ MEMORY MATCH */}
       {activeTab === 'memory_game' && (
         <div className="bg-amber-950/80 rounded-2xl p-4 sm:p-6 border-2 border-amber-700 text-white space-y-4 animate-fade-in">
@@ -11489,6 +11570,7 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                 { key: 'flashcard', label: '🎴 Flashcards Bộ Thẻ', icon: '🎴' },
                 { key: 'dialog_cards', label: '💬 Dialog Cards Hỏi Đáp', icon: '💬' },
                 { key: 'quest', label: '🏝️ Vocabulary Quest Bản Đồ', icon: '🏝️' },
+                { key: 'bookmarks', label: '⭐ Tab Từ Cần Nhớ (Bookmarks)', icon: '⭐' },
               ].map((g) => {
                 const isLocked = individualGameLocks[g.key];
                 return (
