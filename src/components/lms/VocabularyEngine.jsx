@@ -3813,10 +3813,13 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       const regex = new RegExp('(' + escaped + ')', 'gi');
       const parts = text.split(regex);
 
+      const seenStoryTargets = new Set();
       return parts.map((part, index) => {
         if (!part) return null;
-        const isMatch = allTargets.includes(part.toLowerCase());
-        if (isMatch) {
+        const lowerPart = part.toLowerCase();
+        const isMatch = allTargets.includes(lowerPart);
+        if (isMatch && !seenStoryTargets.has(lowerPart)) {
+          seenStoryTargets.add(lowerPart);
           return (
             <mark
               key={index}
@@ -7630,106 +7633,115 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 </div>
 
                 <div className="space-y-3 pt-2">
-                  {activeTabObj.lines.map((line, idx) => {
-                    const isHighlighted = playingDialogueLineIndex === idx;
-                    const gender = getSpeakerGender(line.speaker);
-                    const isFemale = gender === 'female';
-                    const isUserTurnLine = isRolePlayMode && (line.speaker || '').toLowerCase() === userSelectedCharacter.toLowerCase();
-                    const lineScore = lineScores[idx];
-                    const isCurrentlyRecording = recordingLineIndex === idx;
-                    const isRevealedVi = revealedTranslationIndexes[idx];
+                  {(() => {
+                    // TẬP HỢP THEO DÕI TỪ VỰNG ĐÃ NHẮC ĐẾN: MỖI TỪ MỚI CHỈ HIGHLIGHT LIGHTBOX ĐÚNG 1 LẦN DUY NHẤT (CHỐNG RỐI MẮT)
+                    const renderedDialogueWordsSet = new Set();
 
-                    return (
-                      <div
-                        key={idx}
-                        id={`dialogue-line-${idx}`}
-                        className={`p-3 sm:p-4 rounded-2xl transition-all duration-200 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:p-2 print:border-b print:rounded-none ${
-                          isHighlighted
-                            ? 'bg-purple-50/70 text-slate-950 font-bold border-2 border-purple-400 shadow-md ring-2 ring-purple-300'
-                            : isUserTurnLine && isWaitingForUserRead && rolePlayStepIndex === idx
-                            ? 'bg-emerald-100 text-emerald-950 font-bold border-2 border-emerald-500 shadow-md ring-4 ring-emerald-300 animate-pulse'
-                            : 'bg-white text-slate-900 border-slate-200 hover:border-purple-300 shadow-2xs'
-                        }`}
-                      >
-                        <div className="space-y-1 grow">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {/* PRECISE GENDER SPEAKER BADGE */}
-                            <span className={`text-xs font-black uppercase px-2.5 py-1 rounded-lg text-white shadow-2xs print:text-black print:bg-slate-200 shrink-0 flex items-center space-x-1 ${
-                              isFemale ? 'bg-purple-600 border border-purple-400' : 'bg-indigo-600 border border-indigo-400'
-                            }`}>
-                              <span>{isFemale ? '👩' : '👨'}</span>
-                              <span>{line.speaker}:</span>
-                            </span>
+                    return activeTabObj.lines.map((line, idx) => {
+                      const isHighlighted = playingDialogueLineIndex === idx;
+                      const gender = getSpeakerGender(line.speaker);
+                      const isFemale = gender === 'female';
+                      const isUserTurnLine = isRolePlayMode && (line.speaker || '').toLowerCase() === userSelectedCharacter.toLowerCase();
+                      const lineScore = lineScores[idx];
+                      const isCurrentlyRecording = recordingLineIndex === idx;
+                      const isRevealedVi = revealedTranslationIndexes[idx];
 
-                            {/* SENTENCE TEXT WITH REAL-TIME KARAOKE WORD HIGHLIGHTING & KEYWORD TOOLTIPS */}
-                            <div className={`text-sm sm:text-base font-black leading-snug grow ${isHighlighted ? 'text-blue-700 font-black' : 'text-slate-900'}`}>
-                              {!isFillBlanksMode ? (
-                                isKaraokeSyncMode && isHighlighted ? (
-                                  line.text.split(' ').map((word, wIdx) => (
-                                    <span
-                                      key={wIdx}
-                                      className={`inline-block mr-1.5 transition-all duration-150 rounded px-1.5 py-0.5 ${
-                                        highlightedWordIndex === wIdx
-                                          ? 'bg-red-600 text-white font-black scale-115 shadow-xl ring-4 ring-red-300 animate-pulse border-2 border-red-400 rounded-md px-2 py-0.5'
-                                          : 'hover:text-blue-700 cursor-pointer'
-                                      }`}
-                                    >
-                                      {word}
-                                    </span>
-                                  ))
+                      return (
+                        <div
+                          key={idx}
+                          id={`dialogue-line-${idx}`}
+                          className={`p-3 sm:p-4 rounded-2xl transition-all duration-200 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:p-2 print:border-b print:rounded-none ${
+                            isHighlighted
+                              ? 'bg-purple-50/70 text-slate-950 font-bold border-2 border-purple-400 shadow-md ring-2 ring-purple-300'
+                              : isUserTurnLine && isWaitingForUserRead && rolePlayStepIndex === idx
+                              ? 'bg-emerald-100 text-emerald-950 font-bold border-2 border-emerald-500 shadow-md ring-4 ring-emerald-300 animate-pulse'
+                              : 'bg-white text-slate-900 border-slate-200 hover:border-purple-300 shadow-2xs'
+                          }`}
+                        >
+                          <div className="space-y-1 grow">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {/* PRECISE GENDER SPEAKER BADGE */}
+                              <span className={`text-xs font-black uppercase px-2.5 py-1 rounded-lg text-white shadow-2xs print:text-black print:bg-slate-200 shrink-0 flex items-center space-x-1 ${
+                                isFemale ? 'bg-purple-600 border border-purple-400' : 'bg-indigo-600 border border-indigo-400'
+                              }`}>
+                                <span>{isFemale ? '👩' : '👨'}</span>
+                                <span>{line.speaker}:</span>
+                              </span>
+
+                              {/* SENTENCE TEXT WITH REAL-TIME KARAOKE WORD HIGHLIGHTING & KEYWORD TOOLTIPS */}
+                              <div className={`text-sm sm:text-base font-black leading-snug grow ${isHighlighted ? 'text-blue-700 font-black' : 'text-slate-900'}`}>
+                                {!isFillBlanksMode ? (
+                                  isKaraokeSyncMode && isHighlighted ? (
+                                    line.text.split(' ').map((word, wIdx) => (
+                                      <span
+                                        key={wIdx}
+                                        className={`inline-block mr-1.5 transition-all duration-150 rounded px-1.5 py-0.5 ${
+                                          highlightedWordIndex === wIdx
+                                            ? 'bg-red-600 text-white font-black scale-115 shadow-xl ring-4 ring-red-300 animate-pulse border-2 border-red-400 rounded-md px-2 py-0.5'
+                                            : 'hover:text-blue-700 cursor-pointer'
+                                        }`}
+                                      >
+                                        {word}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    (() => {
+                                      const text = line.text || '';
+                                      if (!text || !sortedKeywordList || sortedKeywordList.length === 0) return text;
+
+                                      // Lập danh sách các từ vựng thực sự xuất hiện trong câu thoại này
+                                      const lowerText = text.toLowerCase();
+                                      const presentKeywords = sortedKeywordList.filter((kw) => lowerText.includes(kw));
+                                      if (presentKeywords.length === 0) return text;
+
+                                      // Escape ký tự regex đặc biệt
+                                      const pattern = presentKeywords
+                                        .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                                        .join('|');
+
+                                      // Tạo RegExp khớp từ trọn vẹn với word boundary \b
+                                      const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
+                                      const parts = text.split(regex);
+                                      if (parts.length <= 1) return text;
+
+                                      return parts.map((part, pIdx) => {
+                                        const cleanLower = (part || '').toLowerCase().trim();
+                                        const vocabData = dialogueLookup.get(cleanLower);
+
+                                        if (vocabData) {
+                                          const baseKey = (vocabData.word || cleanLower).toLowerCase().trim();
+                                          // CHỈ HIGHLIGHT LIGHTBOX ĐÚNG 1 LẦN DUY NHẤT CHO MỖI TỪ VỰNG TRONG TOÀN BỘ BÀI HỌC
+                                          if (!renderedDialogueWordsSet.has(baseKey)) {
+                                            renderedDialogueWordsSet.add(baseKey);
+                                            return (
+                                              <span
+                                                key={pIdx}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setActiveWordTooltip({
+                                                    word: vocabData.word,
+                                                    ipa: vocabData.ipa || '',
+                                                    vi: vocabData.vi || '',
+                                                    pos: vocabData.pos || '',
+                                                    icon: vocabData.icon || '✨',
+                                                    imageUrl: vocabData.imageUrl || null,
+                                                    audioUrl: vocabData.audioUrl || null,
+                                                  });
+                                                }}
+                                                className="bg-amber-200 text-amber-950 font-black border-b-2 border-amber-500 px-1.5 py-0.5 rounded-lg cursor-pointer hover:bg-amber-300 transition mx-0.5 shadow-xs inline-flex items-center space-x-1 print:bg-transparent print:border-none print:p-0"
+                                                title={`Nhấp để tra cứu từ vựng: [${vocabData.word}] - ${vocabData.vi || ''}`}
+                                              >
+                                                <span className="text-[11px]">✨</span>
+                                                <span>{part}</span>
+                                              </span>
+                                            );
+                                          }
+                                        }
+                                        return part;
+                                      });
+                                    })()
+                                  )
                                 ) : (
-                                  (() => {
-                                    const text = line.text || '';
-                                    if (!text || !sortedKeywordList || sortedKeywordList.length === 0) return text;
-
-                                    // Lập danh sách các từ vựng thực sự xuất hiện trong câu thoại này
-                                    const lowerText = text.toLowerCase();
-                                    const presentKeywords = sortedKeywordList.filter((kw) => lowerText.includes(kw));
-                                    if (presentKeywords.length === 0) return text;
-
-                                    // Escape ký tự regex đặc biệt
-                                    const pattern = presentKeywords
-                                      .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-                                      .join('|');
-
-                                    // Tạo RegExp khớp từ trọn vẹn với word boundary \b
-                                    const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
-                                    const parts = text.split(regex);
-                                    if (parts.length <= 1) return text;
-
-                                    return parts.map((part, pIdx) => {
-                                      const cleanLower = (part || '').toLowerCase().trim();
-                                      const vocabData = dialogueLookup.get(cleanLower);
-
-                                      if (vocabData) {
-                                        return (
-                                          <span
-                                            key={pIdx}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setActiveWordTooltip({
-                                                word: vocabData.word,
-                                                ipa: vocabData.ipa || '',
-                                                vi: vocabData.vi || '',
-                                                pos: vocabData.pos || '',
-                                                icon: vocabData.icon || '✨',
-                                                imageUrl: vocabData.imageUrl || null,
-                                                audioUrl: vocabData.audioUrl || null,
-                                              });
-                                            }}
-                                            className="bg-amber-200 text-amber-950 font-black border-b-2 border-amber-500 px-1.5 py-0.5 rounded-lg cursor-pointer hover:bg-amber-300 transition mx-0.5 shadow-xs inline-flex items-center space-x-1 print:bg-transparent print:border-none print:p-0"
-                                            title={`Nhấp để tra cứu từ vựng: [${vocabData.word}] - ${vocabData.vi || ''}`}
-                                          >
-                                            <span className="text-[11px]">✨</span>
-                                            <span>{part}</span>
-                                          </span>
-                                        );
-                                      }
-                                      return part;
-                                    });
-                                  })()
-                                )
-                              ) : (
                                 // FILL IN THE BLANKS LISTENING MODE
                                 (() => {
                                   const words = line.text.split(' ');
@@ -7827,9 +7839,10 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                         </div>
                       </div>
                     );
-                  })}
-                </div>
+                  });
+                })()}
               </div>
+            </div>
             );
           })()}
 
