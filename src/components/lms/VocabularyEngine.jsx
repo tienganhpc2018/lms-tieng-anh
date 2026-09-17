@@ -2892,25 +2892,6 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     return false;
   };
 
-  // BẢO VỆ TỰ ĐỘNG: NẾU HỌC SINH ĐANG Ở TAB BỊ KHÓA -> CHUYỂN NGAY VỀ DICTIONARY
-  useEffect(() => {
-    if (!effectiveIsTeacher) {
-      if (activeTab === 'bookmarks' && isGameLockedForStudent('bookmarks')) {
-        setActiveTab('dictionary');
-      } else if (['memory_game', 'spelling_game', 'word_search', 'crossword', 'flashcard', 'dialog_cards', 'quest'].includes(activeTab) && isGameLockedForStudent(activeTab)) {
-        setActiveTab('dictionary');
-      }
-    }
-  }, [activeTab, effectiveIsTeacher, individualGameLocks, lockGamesForStudents]);
-
-  const handleGameTabClick = (tabKey, gameLockKey = null) => {
-    if (isGameLockedForStudent(gameLockKey)) {
-      playSuccessSound();
-      alert('🔒 Mục này đang được Giáo viên tạm khóa.');
-      return;
-    }
-    setActiveTab(tabKey);
-  };
   const [isLockConfigModalOpen, setIsLockConfigModalOpen] = useState(false);
               // FEATURE V204: PER-SECTION / PER-LESSON LOCKING SYSTEM (SUPABASE DB PRIORITY 100%)
   const [individualSectionLocks, setIndividualSectionLocks] = useState(() => {
@@ -3032,6 +3013,27 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   const [uploadingMasterAudio, setUploadingMasterAudio] = useState(false);
   // ACTIVE VIEW MODE TAB
   const [activeTab, setActiveTab] = useState('dictionary');
+
+  const handleGameTabClick = (tabKey, gameLockKey = null) => {
+    if (isGameLockedForStudent(gameLockKey)) {
+      playSuccessSound();
+      alert('🔒 Mục này đang được Giáo viên tạm khóa.');
+      return;
+    }
+    setActiveTab(tabKey);
+  };
+
+  // BẢO VỆ TỰ ĐỘNG: NẾU HỌC SINH ĐANG Ở TAB BỊ KHÓA -> CHUYỂN NGAY VỀ DICTIONARY
+  useEffect(() => {
+    if (!effectiveIsTeacher) {
+      if (activeTab === 'bookmarks' && isGameLockedForStudent('bookmarks')) {
+        setActiveTab('dictionary');
+      } else if (['memory_game', 'spelling_game', 'word_search', 'crossword', 'flashcard', 'dialog_cards', 'quest'].includes(activeTab) && isGameLockedForStudent(activeTab)) {
+        setActiveTab('dictionary');
+      }
+    }
+  }, [activeTab, effectiveIsTeacher, individualGameLocks, lockGamesForStudents]);
+
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUnit, setSelectedUnit] = useState('All');
