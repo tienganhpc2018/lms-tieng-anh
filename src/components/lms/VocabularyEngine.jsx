@@ -2191,33 +2191,28 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     setIsPlayingFullDialogue(false);
     setPlayingDialogueLineIndex(index);
 
-    // If custom audio exists, play the exact slice for this line
-    if (activeTabObj?.audioUrl) {
+    // KIỂM TRA MỐC GIÂY HỢP LỆ TRONG AUDIO MP3 GỐC
+    const hasValidMp3Timing = activeTabObj?.audioUrl && typeof lineObj.startTime === 'number' && typeof lineObj.endTime === 'number' && lineObj.endTime > lineObj.startTime;
+
+    if (hasValidMp3Timing) {
       if (customDialogueAudioRef.current) {
         customDialogueAudioRef.current.pause();
       }
       const audio = new Audio(activeTabObj.audioUrl);
       customDialogueAudioRef.current = audio;
       
-      let startTime = lineObj.startTime;
-      let endTime = lineObj.endTime;
-      
-      // Calculate proportional if not specified
-      if (startTime === undefined || endTime === undefined) {
-        const intro = activeTabObj.introOffset !== undefined ? activeTabObj.introOffset : 2.5;
-        const wordCounts = activeTabObj.lines.map(l => (l.text || '').trim().split(/\s+/).filter(Boolean).length || 1);
-        const totalWords = wordCounts.reduce((a, b) => a + b, 0) || 1;
-        const estTotalDur = 70;
-        let accum = intro;
-        for (let i = 0; i < index; i++) accum += (wordCounts[i] / totalWords) * estTotalDur;
-        startTime = accum;
-        endTime = accum + (wordCounts[index] / totalWords) * estTotalDur;
-      }
+      const startTime = lineObj.startTime;
+      const endTime = lineObj.endTime;
 
       audio.currentTime = Math.max(0, startTime || 0);
-      audio.play();
+      audio.play().catch(() => {
+        // Dự phòng giọng AI nếu file MP3 không phát được
+        speakDialogueLine(lineObj, () => {
+          setPlayingDialogueLineIndex(null);
+        });
+      });
 
-      const durationMs = Math.max(1200, ((endTime || startTime + 4) - startTime) * 1000);
+      const durationMs = Math.max(1200, (endTime - startTime) * 1000);
       setTimeout(() => {
         if (customDialogueAudioRef.current === audio) {
           audio.pause();
@@ -2227,6 +2222,7 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       return;
     }
 
+    // NẾU CÂU NÀY LÀ CÂU MỚI BỔ SUNG TỪ VỰNG (NHƯ MIND MAP) CHƯA CÓ TRONG AUDIO GỐC SGK -> PHÁT BẰNG GIỌNG AI OXFORD BẢN NGỮ CHUẨN XÁC TỪNG TỪ
     speakDialogueLine(lineObj, () => {
       setPlayingDialogueLineIndex(null);
     });
@@ -3206,6 +3202,102 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   const [selectedUnit, setSelectedUnit] = useState('All');
   const [selectedSection, setSelectedSection] = useState('All');
   const [selectedPos, setSelectedPos] = useState('All');
+
+  // DANH SÁCH TỪ VỰNG CỦA TIẾT HIỆN TẠI ĐÃ ĐƯỢC SOẠN
+  const currentSectionVocabList = useMemo(() => {
+    if (!selectedSection || selectedSection === 'All') return [];
+    return (vocabList || []).filter(item => (item.section || '').toUpperCase() === selectedSection.toUpperCase());
+  }, [vocabList, selectedSection]);
+
+  // PHÁT HIỆN CÁC TỪ VỰNG TRONG TIẾT MÀ CHƯA CÓ TRONG BÀI HỘI THOẠI ĐANG CHỌN
+  const missingSectionVocabInDialogue = useMemo(() => {
+    if (!currentTabObjForSpeaker || !currentTabObjForSpeaker.lines || currentSectionVocabList.length === 0) return [];
+    const dialogueText = currentTabObjForSpeaker.lines.map(l => (l.text || '').toLowerCase()).join(' ');
+
+    return currentSectionVocabList.filter(vItem => {
+      const w = (vItem.word || '').toLowerCase().trim();
+      if (!w) return false;
+      const variants = getWordVariants(w);
+      return !variants.some(v => dialogueText.includes(v));
+    });
+  }, [currentTabObjForSpeaker, currentSectionVocabList]);
+
+  // HÀM TỰ ĐỘNG BỔ SUNG CÂU THOẠI CHỨA CÁC TỪ VỰNG CÒN THIẾU (NHƯ MIND MAP, COUSIN, CLOTH, DECORATE)
+  const handleAppendMissingVocabToDialogue = (missingWords) => {
+    if (!currentTabObjForSpeaker || !Array.isArray(missingWords) || missingWords.length === 0) return;
+    const lines = [...(currentTabObjForSpeaker.lines || [])];
+    const spk1 = dialogueSpeakers[0] || 'Ann';
+    const spk2 = dialogueSpeakers[1] || 'Trang';
+
+    // Tập hợp xử lý thông minh theo ngữ cảnh sở thích làm nhà búp bê & sơ đồ tư duy
+    missingWords.forEach((item) => {
+      const w = (item.word || '').toLowerCase().trim();
+      const rawWord = item.word;
+      const m = item.meaning || '';
+
+      if (w === 'mind map') {
+        lines.push({
+          speaker: spk1,
+          text: `How do you plan your ideas before building?`,
+          vi: `Bạn lên kế hoạch các ý tưởng như thế nào trước khi bắt tay vào làm?`,
+        });
+        lines.push({
+          speaker: spk2,
+          text: `I always draw a mind map to organize all the steps.`,
+          vi: `Mình luôn vẽ một sơ đồ tư duy (mind map) để sắp xếp tất cả các bước.`,
+        });
+      } else if (w === 'cousin') {
+        lines.push({
+          speaker: spk1,
+          text: `Who do you often make dollhouses with?`,
+          vi: `Bạn thường làm những ngôi nhà búp bê này cùng với ai?`,
+        });
+        lines.push({
+          speaker: spk2,
+          text: `I often build and share them with my cousin.`,
+          vi: `Mình thường cùng làm và chia sẻ chúng với người em họ (cousin) của mình.`,
+        });
+      } else if (w === 'cloth') {
+        lines.push({
+          speaker: spk1,
+          text: `What do you use to make tiny curtains and bedsheets?`,
+          vi: `Bạn dùng gì để làm rèm cửa và ga trải giường nhỏ xíu vậy?`,
+        });
+        lines.push({
+          speaker: spk2,
+          text: `I cut small pieces of cloth to make them.`,
+          vi: `Mình cắt những mảnh vải (cloth) nhỏ để làm chúng đấy.`,
+        });
+      } else if (w === 'decorate') {
+        lines.push({
+          speaker: spk1,
+          text: `How do you decorate each room to make it look real?`,
+          vi: `Bạn trang trí (decorate) từng căn phòng như thế nào để trông giống thật vậy?`,
+        });
+        lines.push({
+          speaker: spk2,
+          text: `I use colourful paper and lights to decorate them beautifully.`,
+          vi: `Mình dùng giấy nhiều màu và đèn nhỏ để trang trí (decorate) chúng thật đẹp.`,
+        });
+      } else {
+        lines.push({
+          speaker: spk1,
+          text: `Can you tell me more about ${rawWord}?`,
+          vi: `Bạn có thể chia sẻ thêm cho mình về ${rawWord} (${m}) được không?`,
+        });
+        lines.push({
+          speaker: spk2,
+          text: `Sure! Using ${rawWord} makes our hobby even more exciting.`,
+          vi: `Chắc chắn rồi! Dùng ${rawWord} (${m}) giúp sở thích của chúng mình hào hứng hơn nhiều.`,
+        });
+      }
+    });
+
+    const updated = dialogueTabs.map(t => t.id === currentTabObjForSpeaker.id ? { ...t, lines } : t);
+    persistDialogueTabs(updated, currentTabObjForSpeaker.id);
+    playSuccessSound();
+    alert(`🎉 Đã tự động bổ sung câu thoại chứa đầy đủ từ vựng [${missingWords.map(i => i.word).join(', ')}] vào bài học! Khi bấm nghe, hệ thống sẽ phát âm chuẩn bằng giọng đọc AI Oxford!`);
+  };
   // AUTO-LINK LESSON SECTION EFFECT ACCORDING TO THẦY HẢI'S SPECIFICATION
   useEffect(() => {
     if (activity) {
@@ -7631,6 +7723,33 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     )}
                   </div>
                 </div>
+
+                {/* BANNER PHÁT HIỆN TỪ VỰNG CÒN THIẾU TRONG TIẾT HỌC & NÚT GHÉP TỰ ĐỘNG */}
+                {effectiveIsTeacher && missingSectionVocabInDialogue.length > 0 && (
+                  <div className="bg-amber-50 border-2 border-amber-300 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs print:hidden animate-fade-in my-2">
+                    <div className="flex items-start space-x-2.5">
+                      <span className="text-2xl shrink-0">💡</span>
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-black text-amber-950 flex flex-wrap items-center gap-1.5">
+                          <span>Phát hiện từ vựng tiết [{selectedSection !== 'All' ? selectedSection : 'Skills 2'}] chưa có trong bài thoại:</span>
+                          <span className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded-md font-black border border-rose-200">
+                            {missingSectionVocabInDialogue.map(i => i.word).join(', ')}
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-amber-800 font-medium leading-relaxed">
+                          (File MP3 SGK gốc chỉ có bài nghe sở thích của Trang, chưa có các từ này. Bấm nút để ghép câu thoại tự nhiên và phát âm chuẩn giọng Oxford!)
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleAppendMissingVocabToDialogue(missingSectionVocabInDialogue)}
+                      className="px-3.5 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center space-x-1.5 shrink-0 border border-amber-400"
+                    >
+                      <span>⚡ Ghép {missingSectionVocabInDialogue.length} Từ Còn Thiếu Vào Bài</span>
+                    </button>
+                  </div>
+                )}
 
                 <div className="space-y-3 pt-2">
                   {(() => {
