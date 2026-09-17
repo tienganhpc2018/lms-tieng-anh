@@ -3736,9 +3736,7 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
 
     if (hasChanges) {
       setVocabList(updated);
-      syncFullActivitySettings({
-        vocabularyList: updated,
-      });
+      // Chỉ cập nhật hiển thị mượt mà trên bộ nhớ RAM của client, TUYỆT ĐỐI không gọi ghi Supabase ngầm khi chỉ mở xem bài học!
     }
   }, [activity?.id, activity?.settings?.vocabularyList]);
   // OPEN TRANSLATIONS STATE FOR EXAMPLE SENTENCES

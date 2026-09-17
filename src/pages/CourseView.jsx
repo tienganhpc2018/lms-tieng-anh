@@ -106,11 +106,48 @@ export default function CourseView() {
   const navigate = useNavigate();
   const { user, profile, isTeacher } = useAuth();
 
-  const [course, setCourse] = useState(null);
-  const [sections, setSections] = useState([]);
-  const [activeSectionId, setActiveSectionId] = useState(null);
-  const [allActivities, setAllActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [course, setCourse] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`lms_cache_course_${courseId}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [sections, setSections] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`lms_cache_sections_${courseId}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [activeSectionId, setActiveSectionId] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`lms_cache_sections_${courseId}`);
+      const s = cached ? JSON.parse(cached) : [];
+      return s.length > 0 ? s[0].id : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [allActivities, setAllActivities] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`lms_cache_acts_${courseId}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`lms_cache_course_${courseId}`);
+      return !cached;
+    } catch (e) {
+      return true;
+    }
+  });
+  const [loadError, setLoadError] = useState(null);
 
   // Danh sách bài học của Unit đang được kích hoạt
   const activities = allActivities.filter((a) => a.section_id === activeSectionId);
@@ -483,14 +520,27 @@ export default function CourseView() {
   };
 
   const fetchCourseData = async () => {
-    setLoading(true);
-    try {
+    // Nếu chưa có dữ liệu trong cache thì mới bật loading spinner
+    if (!course) setLoading(true);
+    setLoadError(null);
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT_8S')), 8000)
+    );
+
+    const loadPromise = (async () => {
       const { data: cData } = await supabase
         .from('courses')
         .select('*, teacher:teacher_id (full_name, email)')
         .eq('id', courseId)
-        .single();
-      setCourse(cData);
+        .maybeSingle();
+
+      if (cData) {
+        setCourse(cData);
+        try {
+          localStorage.setItem(`lms_cache_course_${courseId}`, JSON.stringify(cData));
+        } catch (e) {}
+      }
 
       const { data: sData } = await supabase
         .from('course_sections')
@@ -501,22 +551,37 @@ export default function CourseView() {
       if (sData && sData.length > 0) {
         setSections(sData);
         setActiveSectionId((prev) => (prev && sData.some((s) => s.id === prev) ? prev : sData[0].id));
+        try {
+          localStorage.setItem(`lms_cache_sections_${courseId}`, JSON.stringify(sData));
+        } catch (e) {}
 
         const sectionIds = sData.map((s) => s.id);
         const { data: aData } = await supabase
           .from('activities')
-          .select('*')
+          .select('id, section_id, title, type, order_index, is_hidden, start_time, end_time, settings')
           .in('section_id', sectionIds)
           .order('order_index', { ascending: true });
 
-        setAllActivities(aData || []);
-      } else {
+        if (aData) {
+          setAllActivities(aData);
+          try {
+            localStorage.setItem(`lms_cache_acts_${courseId}`, JSON.stringify(aData));
+          } catch (e) {}
+        }
+      } else if (sData && sData.length === 0) {
         setSections([]);
         setActiveSectionId(null);
         setAllActivities([]);
       }
+    })();
+
+    try {
+      await Promise.race([loadPromise, timeoutPromise]);
     } catch (e) {
-      console.error('Lỗi nạp dữ liệu khóa học:', e);
+      console.warn('Cảnh báo kết nối máy chủ khi nạp khóa học:', e.message);
+      if (!course) {
+        setLoadError('Máy chủ đang phản hồi chậm. Thầy/Cô có thể bấm thử lại hoặc về Trang chủ để vào lại sau ít phút.');
+      }
     } finally {
       setLoading(false);
     }
@@ -705,20 +770,30 @@ export default function CourseView() {
       <div className="min-h-screen bg-slate-100 p-8 flex items-center justify-center font-sans">
         <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center space-y-4 max-w-md">
           <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-3xl font-extrabold shadow-2xs">
-            ⚠️
+            {loadError ? '⏳' : '⚠️'}
           </div>
           <h3 className="text-base font-extrabold text-slate-900 uppercase">
-            KHÔNG TÌM THẤY DỮ LIỆU KHÓA HỌC
+            {loadError ? 'MÁY CHỦ PHẢN HỒI CHẬM' : 'KHÔNG TÌM THẤY DỮ LIỆU KHÓA HỌC'}
           </h3>
-          <p className="text-xs text-slate-500 font-semibold">
-            Khóa học này hiện không tồn tại hoặc đã bị gỡ bỏ khỏi hệ thống.
+          <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+            {loadError || 'Khóa học này hiện không tồn tại hoặc đã bị gỡ bỏ khỏi hệ thống.'}
           </p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer"
-          >
-            Quay Lại Trang Chủ Khóa Học
-          </button>
+          <div className="flex flex-col gap-2 pt-2">
+            {loadError && (
+              <button
+                onClick={() => fetchCourseData()}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>🔄</span> Thử Nạp Lại Ngay
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className={`w-full py-2.5 ${loadError ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'bg-emerald-600 hover:bg-emerald-500 text-white'} font-extrabold text-xs rounded-xl shadow-xs transition cursor-pointer`}
+            >
+              Quay Lại Trang Chủ Khóa Học
+            </button>
+          </div>
         </div>
       </div>
     );

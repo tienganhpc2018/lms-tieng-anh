@@ -283,22 +283,18 @@ export default function AssignmentView() {
         ...vocabSettings,
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('activities')
         .update({
           settings: updatedSettings,
         })
-        .eq('id', targetActivityId)
-        .select()
-        .single();
+        .eq('id', targetActivityId);
 
       if (error) throw error;
-      if (data) {
-        setActivity(data);
-        console.log('Saved vocab settings to DB:', updatedSettings);
-      }
+      setActivity((prev) => (prev ? { ...prev, settings: updatedSettings } : prev));
+      console.log('Saved vocab settings to DB successfully');
     } catch (err) {
-      alert('❌ Lỗi lưu từ vựng: ' + err.message);
+      console.warn('Lỗi lưu từ vựng:', err.message);
     }
   };
 
