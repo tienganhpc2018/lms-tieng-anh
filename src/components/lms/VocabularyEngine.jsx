@@ -2164,6 +2164,7 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
   const [isUploadingDialogueAudio, setIsUploadingDialogueAudio] = useState(false);
   const customDialogueAudioRef = useRef(null);
+  const autoRepairActivityIdsRef = useRef(new Set());
   const [newTabTitleInput, setNewTabTitleInput] = useState('');
 
   // HÀM LƯU ĐỒNG BỘ TOÀN DIỆN CẢ TỪ VỰNG VÀ BÀI HỘI THOẠI LÊN SUPABASE DB (KHÔNG BAO GIỜ BỊ MẤT DỮ LIỆU)
@@ -3648,88 +3649,98 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       }
     }
   }, [activity]);
-// REMOVED AUTO-REPAIR EFFECT (NEVER OVERWRITE TEACHER VOCABULARY LIST WITH GRADE 7 PRESET)
-  // AUTO REPAIR UNTRANSLATED VOCABULARY MEANINGS, FALLBACK IPA PHONETICS, WRONG FALLBACK IMAGES & DUMMY PHRASES/EXAMPLES (V300)
+  // AUTO REPAIR UNTRANSLATED VOCABULARY MEANINGS, FALLBACK IPA PHONETICS, WRONG FALLBACK IMAGES & DUMMY PHRASES/EXAMPLES (V300 SAFE GUARDED)
   useEffect(() => {
-    if (Array.isArray(vocabList) && vocabList.length > 0) {
-      let hasChanges = false;
-      const updated = vocabList.map((item) => {
-        const wLower = (item.word || '').trim().toLowerCase();
-        const mLower = (item.meaning || '').trim().toLowerCase();
-        const pLower = (item.phonetic || '').trim().toLowerCase();
-        const imgUrl = (item.imageUrl || '').trim();
-        let newItem = { ...item };
+    const actId = activity?.id || 'default';
+    if (autoRepairActivityIdsRef.current.has(actId)) return;
 
-        const masterEntry = OXFORD_VOCABULARY_MASTER_DATABASE[wLower];
+    const rawList = Array.isArray(activity?.settings?.vocabularyList) && activity.settings.vocabularyList.length > 0
+      ? activity.settings.vocabularyList
+      : (Array.isArray(vocabList) && vocabList.length > 0 ? vocabList : null);
 
-        if (masterEntry) {
-          // 1. Chuẩn hóa phiên âm IPA Oxford chuẩn quốc tế
-          if (!pLower || pLower === `/${wLower}/` || pLower === `/${item.word}/` || !pLower.includes('/') || pLower.length <= wLower.length + 2) {
-            hasChanges = true;
-            newItem.phonetic = masterEntry.phonetic;
-          }
+    if (!rawList || rawList.length === 0) return;
 
-          // 2. Chuẩn hóa nghĩa dịch tiếng Việt chuẩn SGK
-          if (!mLower || mLower === wLower || mLower.includes('(nghĩa tự động)') || mLower.includes('(nghĩa mới)') || mLower === 'chức năng') {
-            if (masterEntry.meaning && newItem.meaning !== masterEntry.meaning) {
-              hasChanges = true;
-              newItem.meaning = masterEntry.meaning;
-            }
-          }
+    // Đánh dấu ngay lập tức để vĩnh viễn không chạy lại lần thứ 2 trên cùng 1 bài học
+    autoRepairActivityIdsRef.current.add(actId);
 
-          // 3. Chuẩn hóa đúng từ loại (POS)
-          if (masterEntry.pos && (!newItem.pos || (masterEntry.pos === 'v' && newItem.pos === 'n') || (masterEntry.pos === 'adj' && newItem.pos === 'n'))) {
-            hasChanges = true;
-            newItem.pos = masterEntry.pos;
-          }
+    let hasChanges = false;
+    const updated = rawList.map((item) => {
+      if (!item || typeof item !== 'object') return item;
+      const wLower = (item.word || '').trim().toLowerCase();
+      const mLower = (item.meaning || '').trim().toLowerCase();
+      const pLower = (item.phonetic || '').trim().toLowerCase();
+      const imgUrl = (item.imageUrl || '').trim();
+      let newItem = { ...item };
 
-          // 4. Chuẩn hóa ảnh minh họa đúng 100% nghĩa tiếng Việt (thay thế ảnh cây cầu Paris cũ)
-          if (!imgUrl || imgUrl.includes('photo-1499856871958-5b9627545d1a') || imgUrl.includes('photo-1456513080510-7bf3a84b82f8')) {
-            hasChanges = true;
-            newItem.imageUrl = masterEntry.imageUrl;
-          }
+      const masterEntry = OXFORD_VOCABULARY_MASTER_DATABASE[wLower];
 
-          // 5. Chuẩn hóa phrases (loại bỏ template thô traditional function / local function)
-          const hasDummyPhrases = !newItem.phrases || newItem.phrases.length === 0 || newItem.phrases.some(p => p.includes('traditional ') || p.includes('local ') || p.includes('important '));
-          if (hasDummyPhrases && Array.isArray(masterEntry.phrases) && masterEntry.phrases.length > 0) {
-            hasChanges = true;
-            newItem.phrases = masterEntry.phrases;
-          }
-
-          // 6. Chuẩn hóa câu ví dụ mẫu (loại bỏ câu ghép ngô nghê The local function plays an important role...)
-          const hasDummyExamples = !newItem.examples || newItem.examples.length === 0 || newItem.examples.some(e => typeof e === 'string' && (e.includes('plays an important role in our daily lives') || e.includes('during the lesson') || e.includes('This is an example')));
-          if (hasDummyExamples && Array.isArray(masterEntry.examples) && masterEntry.examples.length > 0) {
-            hasChanges = true;
-            newItem.examples = masterEntry.examples;
-          }
-        } else {
-          // Xử lý từ chưa có trong Master Database
-          if (STATIC_VOCAB_DICT[wLower] && (!mLower || mLower === wLower || mLower.includes('(nghĩa tự động)') || mLower.includes('(nghĩa mới)'))) {
-            hasChanges = true;
-            newItem.meaning = STATIC_VOCAB_DICT[wLower];
-          }
-          if (STATIC_IPA_DICT[wLower] && (!pLower || pLower === `/${wLower}/` || pLower === `/${item.word}/`)) {
-            hasChanges = true;
-            newItem.phonetic = STATIC_IPA_DICT[wLower];
-          }
-          if (imgUrl.includes('photo-1499856871958-5b9627545d1a')) {
-            hasChanges = true;
-            newItem.imageUrl = getGuaranteedTopicImage(wLower);
-          }
+      if (masterEntry) {
+        // 1. Chuẩn hóa phiên âm IPA Oxford chuẩn quốc tế
+        if (masterEntry.phonetic && newItem.phonetic !== masterEntry.phonetic && (!pLower || pLower === `/${wLower}/` || pLower === `/${item.word}/` || !pLower.includes('/') || pLower.length <= wLower.length + 2)) {
+          hasChanges = true;
+          newItem.phonetic = masterEntry.phonetic;
         }
 
-        return newItem;
-      });
+        // 2. Chuẩn hóa nghĩa dịch tiếng Việt chuẩn SGK
+        if (masterEntry.meaning && newItem.meaning !== masterEntry.meaning && (!mLower || mLower === wLower || mLower.includes('(nghĩa tự động)') || mLower.includes('(nghĩa mới)') || mLower === 'chức năng')) {
+          hasChanges = true;
+          newItem.meaning = masterEntry.meaning;
+        }
 
-      if (hasChanges) {
-        setVocabList(updated);
-        // Tự động lưu đồng bộ cập nhật chuẩn lên Supabase
-        syncFullActivitySettings({
-          vocabularyList: updated,
-        });
+        // 3. Chuẩn hóa đúng từ loại (POS)
+        if (masterEntry.pos && newItem.pos !== masterEntry.pos && (!newItem.pos || (masterEntry.pos === 'v' && newItem.pos === 'n') || (masterEntry.pos === 'adj' && newItem.pos === 'n'))) {
+          hasChanges = true;
+          newItem.pos = masterEntry.pos;
+        }
+
+        // 4. Chuẩn hóa ảnh minh họa đúng 100% nghĩa tiếng Việt (thay thế ảnh cây cầu Paris cũ)
+        if (masterEntry.imageUrl && newItem.imageUrl !== masterEntry.imageUrl && (!imgUrl || imgUrl.includes('photo-1499856871958-5b9627545d1a') || imgUrl.includes('photo-1456513080510-7bf3a84b82f8'))) {
+          hasChanges = true;
+          newItem.imageUrl = masterEntry.imageUrl;
+        }
+
+        // 5. Chuẩn hóa phrases (loại bỏ template thô traditional function / local function)
+        const isDummyPhrases = !newItem.phrases || !Array.isArray(newItem.phrases) || newItem.phrases.length === 0 || newItem.phrases.some(p => typeof p === 'string' && (p.includes('traditional function') || p.includes('local function')));
+        if (isDummyPhrases && Array.isArray(masterEntry.phrases) && masterEntry.phrases.length > 0) {
+          hasChanges = true;
+          newItem.phrases = masterEntry.phrases;
+        }
+
+        // 6. Chuẩn hóa câu ví dụ mẫu (loại bỏ câu ghép ngô nghê The local function plays an important role...)
+        const isDummyExamples = !newItem.examples || !Array.isArray(newItem.examples) || newItem.examples.length === 0 || newItem.examples.some(e => typeof e === 'string' && (e.includes('plays an important role in our daily lives') || e.includes('during the lesson') || e.includes('This is an example')));
+        if (isDummyExamples && Array.isArray(masterEntry.examples) && masterEntry.examples.length > 0) {
+          hasChanges = true;
+          newItem.examples = masterEntry.examples;
+        }
+      } else {
+        // Xử lý từ chưa có trong Master Database
+        if (STATIC_VOCAB_DICT[wLower] && newItem.meaning !== STATIC_VOCAB_DICT[wLower] && (!mLower || mLower === wLower || mLower.includes('(nghĩa tự động)') || mLower.includes('(nghĩa mới)'))) {
+          hasChanges = true;
+          newItem.meaning = STATIC_VOCAB_DICT[wLower];
+        }
+        if (STATIC_IPA_DICT[wLower] && newItem.phonetic !== STATIC_IPA_DICT[wLower] && (!pLower || pLower === `/${wLower}/` || pLower === `/${item.word}/`)) {
+          hasChanges = true;
+          newItem.phonetic = STATIC_IPA_DICT[wLower];
+        }
+        if (imgUrl.includes('photo-1499856871958-5b9627545d1a')) {
+          const guaranteedImg = getGuaranteedTopicImage(wLower);
+          if (newItem.imageUrl !== guaranteedImg) {
+            hasChanges = true;
+            newItem.imageUrl = guaranteedImg;
+          }
+        }
       }
+
+      return newItem;
+    });
+
+    if (hasChanges) {
+      setVocabList(updated);
+      syncFullActivitySettings({
+        vocabularyList: updated,
+      });
     }
-  }, [vocabList]);
+  }, [activity?.id, activity?.settings?.vocabularyList]);
   // OPEN TRANSLATIONS STATE FOR EXAMPLE SENTENCES
   const [openTranslations, setOpenTranslations] = useState({});
   const [asyncTranslations, setAsyncTranslations] = useState({});
