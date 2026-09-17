@@ -1581,6 +1581,151 @@ const defaultInitialDialogueTabs = [
   }
 ];
 
+// HÀM SINH CÁC BIẾN THỂ NGỮ PHÁP TIẾNG ANH (DANH TỪ SỐ NHIỀU, ĐỘNG TỪ ING/ED/S, TÍNH TỪ LY...)
+const getWordVariants = (baseWord) => {
+  if (!baseWord || typeof baseWord !== 'string') return [];
+  const w = baseWord.toLowerCase().trim();
+  if (w.length < 2) return [w];
+
+  const variants = new Set([w]);
+
+  // Xử lý cụm từ (ví dụ: "mind map", "craft village", "doll house")
+  if (w.includes(' ')) {
+    const parts = w.split(/\s+/);
+    const lastWord = parts[parts.length - 1];
+    if (lastWord.endsWith('y') && !/[aeiou]y$/.test(lastWord)) {
+      variants.add([...parts.slice(0, -1), lastWord.slice(0, -1) + 'ies'].join(' '));
+    } else if (lastWord.endsWith('s') || lastWord.endsWith('sh') || lastWord.endsWith('ch') || lastWord.endsWith('x')) {
+      variants.add([...parts.slice(0, -1), lastWord + 'es'].join(' '));
+    } else {
+      variants.add([...parts.slice(0, -1), lastWord + 's'].join(' '));
+    }
+    return Array.from(variants);
+  }
+
+  // Danh từ / Động từ kết thúc bằng 'y' (hobby -> hobbies)
+  if (w.endsWith('y') && !/[aeiou]y$/.test(w)) {
+    const root = w.slice(0, -1);
+    variants.add(root + 'ies');
+    variants.add(root + 'ied');
+    variants.add(w + 'ing');
+  } else {
+    if (w.endsWith('s') || w.endsWith('sh') || w.endsWith('ch') || w.endsWith('x') || w.endsWith('z')) {
+      variants.add(w + 'es');
+    } else if (w.endsWith('fe')) {
+      variants.add(w.slice(0, -2) + 'ves');
+    } else if (w.endsWith('f') && !w.endsWith('ff')) {
+      variants.add(w.slice(0, -1) + 'ves');
+    } else {
+      variants.add(w + 's');
+    }
+  }
+
+  // Động từ V-ing, V-ed
+  if (w.endsWith('e') && !w.endsWith('ee')) {
+    const root = w.slice(0, -1);
+    variants.add(root + 'ing');
+    variants.add(w + 'd');
+  } else {
+    variants.add(w + 'ing');
+    variants.add(w + 'ed');
+    if (/[bcdfghjklmnpqrstvwxyz][aeiou][bcdfghjklmnpqrstvwxyz]$/.test(w) && !/[wxy]$/.test(w)) {
+      const lastChar = w[w.length - 1];
+      variants.add(w + lastChar + 'ing');
+      variants.add(w + lastChar + 'ed');
+    }
+  }
+
+  // Bổ sung các từ bất quy tắc thông dụng
+  const irregulars = {
+    build: ['built', 'building', 'builds'],
+    make: ['made', 'making', 'makes'],
+    ride: ['rode', 'ridden', 'riding', 'rides'],
+    cloth: ['clothes', 'clothing', 'cloths'],
+    hobby: ['hobbies'],
+    dollhouse: ['dollhouses', 'doll house', 'doll houses'],
+    cardboard: ['cardboards'],
+    unusual: ['unusually'],
+    community: ['communities'],
+    facility: ['facilities'],
+    suburb: ['suburbs', 'suburban'],
+    pottery: ['potteries'],
+    artisan: ['artisans']
+  };
+
+  if (irregulars[w]) {
+    irregulars[w].forEach(v => variants.add(v));
+  }
+
+  return Array.from(variants);
+};
+
+// HÀM TỰ ĐỘNG SINH CÂU THOẠI CHUẨN TỪ TOÀN BỘ TỪ VỰNG TIẾT HỌC
+const generateDialogueLinesFromVocab = (wordsList, grade = 'Lớp 7', section = 'SKILLS 2') => {
+  if (!Array.isArray(wordsList) || wordsList.length === 0) {
+    return [
+      { speaker: 'Ann', text: 'Hi! Welcome to our new dialogue lesson.', vi: 'Chào bạn! Chào mừng đến với bài học hội thoại mới.' },
+      { speaker: 'Nick', text: 'Thank you! I am ready to practice speaking.', vi: 'Cảm ơn bạn! Mình đã sẵn sàng thực hành nói.' }
+    ];
+  }
+
+  const speakers = ['Ann', 'Trang'];
+  const lines = [];
+
+  // Câu chào mở đầu bài học
+  lines.push({
+    speaker: speakers[0],
+    text: `Hi ${speakers[1]}! What are you working on for our ${section} lesson?`,
+    vi: `Chào ${speakers[1]}! Bạn đang chuẩn bị nội dung gì cho bài học ${section} của chúng mình thế?`
+  });
+
+  // Tách từ vựng thành các nhóm 2 từ mỗi câu thoại để tự nhiên
+  const chunkSize = 2;
+  for (let i = 0; i < wordsList.length; i += chunkSize) {
+    const chunk = wordsList.slice(i, i + chunkSize);
+    const speaker = speakers[(lines.length) % 2];
+    const w1 = chunk[0];
+    const w2 = chunk[1];
+
+    if (w2) {
+      if (i === 0) {
+        lines.push({
+          speaker: speaker,
+          text: `I am using ${w1.word} to ${w2.word} our lesson ideas.`,
+          vi: `Mình đang dùng ${w1.word} (${w1.meaning}) để ${w2.word} (${w2.meaning}) các ý tưởng bài học.`
+        });
+      } else if (i === 2) {
+        lines.push({
+          speaker: speaker,
+          text: `That sounds great! Can we also ${w1.word} and ${w2.word} together?`,
+          vi: `Nghe tuyệt quá! Chúng mình có thể cùng ${w1.word} (${w1.meaning}) và ${w2.word} (${w2.meaning}) cùng nhau không?`
+        });
+      } else {
+        lines.push({
+          speaker: speaker,
+          text: `Yes, we can prepare ${w1.word} and then ${w2.word}.`,
+          vi: `Được chứ, chúng mình có thể chuẩn bị ${w1.word} (${w1.meaning}) rồi cùng ${w2.word} (${w2.meaning}).`
+        });
+      }
+    } else {
+      lines.push({
+        speaker: speaker,
+        text: `Don't forget to practice with ${w1.word} as well.`,
+        vi: `Đừng quên luyện tập thêm với ${w1.word} (${w1.meaning}) nữa nhé.`
+      });
+    }
+  }
+
+  // Câu kết thúc
+  lines.push({
+    speaker: speakers[(lines.length) % 2],
+    text: `Awesome! Let's practice speaking and learning together now.`,
+    vi: `Tuyệt vời! Chúng mình cùng bắt đầu luyện tập nói và học ngay bây giờ thôi.`
+  });
+
+  return lines;
+};
+
 export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = false, onSaveActivity }) {
   const { user, profile } = useAuth();
   const settings = activity?.settings || {};
@@ -1705,6 +1850,25 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   const customDialogueAudioRef = useRef(null);
   const [newTabTitleInput, setNewTabTitleInput] = useState('');
 
+  // HÀM LƯU ĐỒNG BỘ TOÀN DIỆN CẢ TỪ VỰNG VÀ BÀI HỘI THOẠI LÊN SUPABASE DB (KHÔNG BAO GIỜ BỊ MẤT DỮ LIỆU)
+  const syncFullActivitySettings = (overrides = {}) => {
+    if (!onSaveActivity) return;
+    const finalPayload = {
+      ...settings,
+      vocabularyList: overrides.vocabularyList !== undefined ? overrides.vocabularyList : vocabList,
+      dialogueTabs: overrides.dialogueTabs !== undefined ? overrides.dialogueTabs : dialogueTabs,
+      activeDialogueTabId: overrides.activeDialogueTabId !== undefined ? overrides.activeDialogueTabId : activeDialogueTabId,
+      voiceOption: overrides.voiceOption !== undefined ? overrides.voiceOption : voiceOption,
+      masterAudioUrl: overrides.masterAudioUrl !== undefined ? overrides.masterAudioUrl : masterAudioUrl,
+      lockGamesForStudents: overrides.lockGamesForStudents !== undefined ? overrides.lockGamesForStudents : lockGamesForStudents,
+      lockAheadLessonsForStudents: overrides.lockAheadLessonsForStudents !== undefined ? overrides.lockAheadLessonsForStudents : lockAheadLessonsForStudents,
+      individualGameLocks: overrides.individualGameLocks !== undefined ? overrides.individualGameLocks : individualGameLocks,
+      individualSectionLocks: overrides.individualSectionLocks !== undefined ? overrides.individualSectionLocks : individualSectionLocks,
+      ...overrides,
+    };
+    onSaveActivity(finalPayload);
+  };
+
   // HÀM LƯU ĐỒNG BỘ VĨNH VIỄN LÊN SUPABASE DB VÀ PHÁT SÓNG REALTIME CHO HỌC SINH
   const persistDialogueTabs = (updatedTabs, targetActiveId = null) => {
     const finalTabs = Array.isArray(updatedTabs) ? updatedTabs : dialogueTabs;
@@ -1724,21 +1888,11 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       console.warn('Lưu local cache dialogue tabs lỗi:', e);
     }
 
-    // 1. Lưu trực tiếp vào bài học trong bảng activities (Supabase DB)
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: vocabList,
-        voiceOption,
-        masterAudioUrl,
-        lockGamesForStudents,
-        lockAheadLessonsForStudents,
-        individualGameLocks,
-        individualSectionLocks,
-        dialogueTabs: finalTabs,
-        activeDialogueTabId: finalActiveId,
-      });
-    }
+    // 1. Lưu trực tiếp vào bài học trong bảng activities (Supabase DB) kèm theo toàn bộ từ vựng và cài đặt
+    syncFullActivitySettings({
+      dialogueTabs: finalTabs,
+      activeDialogueTabId: finalActiveId,
+    });
 
     // 2. Lưu toàn cục qua siteSettingsService (Supabase site_settings + Realtime broadcast tới học sinh)
     saveSiteSetting('global_dialogue_tabs', finalTabs).catch(err => console.warn('Sync global_dialogue_tabs error:', err));
@@ -1754,20 +1908,9 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     } catch (e) {}
 
     if (effectiveIsTeacher) {
-      if (onSaveActivity) {
-        onSaveActivity({
-          ...settings,
-          vocabularyList: vocabList,
-          voiceOption,
-          masterAudioUrl,
-          lockGamesForStudents,
-          lockAheadLessonsForStudents,
-          individualGameLocks,
-          individualSectionLocks,
-          dialogueTabs,
-          activeDialogueTabId: tabId,
-        });
-      }
+      syncFullActivitySettings({
+        activeDialogueTabId: tabId,
+      });
       saveSiteSetting('global_active_dialogue_tab_id', tabId).catch(() => {});
     }
   };
@@ -2738,14 +2881,14 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     return [];
   });
 
-  // TÍCH HỢP TỰ ĐỘNG TOÀN BỘ TỪ VỰNG TỪ DANH MỤC BÀI HỌC (VOCABLIST) ĐỂ HIGHLIGHT TRONG ĐOẠN HỘI THOẠI
+  // TÍCH HỢP TỰ ĐỘNG TOÀN BỘ TỪ VỰNG TỪ DANH MỤC BÀI HỌC (VOCABLIST) VÀ BIẾN THỂ NGỮ PHÁP ĐỂ HIGHLIGHT TRONG ĐOẠN HỘI THOẠI
   const dialogueLookup = useMemo(() => {
     const map = new Map();
     // 1. Nạp từ điển từ vựng mẫu bổ trợ
     if (typeof DIALOGUE_KEY_WORDS_DICT === 'object' && DIALOGUE_KEY_WORDS_DICT) {
       Object.keys(DIALOGUE_KEY_WORDS_DICT).forEach((kw) => {
         const clean = kw.toLowerCase().trim();
-        map.set(clean, {
+        const dictInfo = {
           word: kw,
           ipa: DIALOGUE_KEY_WORDS_DICT[kw].ipa || '',
           vi: DIALOGUE_KEY_WORDS_DICT[kw].vi || '',
@@ -2753,6 +2896,10 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
           pos: '',
           imageUrl: null,
           audioUrl: null,
+        };
+        map.set(clean, dictInfo);
+        getWordVariants(clean).forEach((v) => {
+          if (!map.has(v)) map.set(v, dictInfo);
         });
       });
     }
@@ -2761,7 +2908,7 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       if (item && item.word && typeof item.word === 'string') {
         const clean = item.word.toLowerCase().trim();
         if (clean.length >= 2) {
-          map.set(clean, {
+          const vocabData = {
             word: item.word,
             ipa: item.phonetic || '',
             vi: item.meaning || '',
@@ -2769,6 +2916,12 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
             icon: '✨',
             imageUrl: item.imageUrl || null,
             audioUrl: item.audioUrl || null,
+          };
+          map.set(clean, vocabData);
+          // Tự động map toàn bộ biến thể ngữ pháp (building -> build, dollhouses -> dollhouse, hobbies -> hobby...)
+          const variants = getWordVariants(clean);
+          variants.forEach((v) => {
+            map.set(v, vocabData);
           });
         }
       }
@@ -2813,13 +2966,10 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       } catch (e) {}
 
       if (onSaveActivity) {
-        onSaveActivity({
-          ...settings,
+        syncFullActivitySettings({
           vocabularyList: emptyList,
           individualSectionLocks: {},
           individualGameLocks: {},
-          voiceOption: voiceOption,
-          masterAudioUrl: masterAudioUrl,
         });
       }
       alert('⚡ Đã xóa sạch toàn bộ từ vựng của tất cả các tiết học! Màn hình bài học hiện tại đã trở về khung trống tinh tươm.');
@@ -2848,35 +2998,19 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     } catch (e) {}
 
     playSuccessSound();
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: vocabList,
-        voiceOption,
-        masterAudioUrl,
-        lockGamesForStudents: nextVal,
-        lockAheadLessonsForStudents,
-        individualGameLocks: syncedGameLocks,
-        individualSectionLocks,
-      });
-    }
+    syncFullActivitySettings({
+      lockGamesForStudents: nextVal,
+      individualGameLocks: syncedGameLocks,
+    });
   };
 
   const handleToggleLockAheadLessons = () => {
     const nextVal = !lockAheadLessonsForStudents;
     setLockAheadLessonsForStudents(nextVal);
     playSuccessSound();
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: vocabList,
-        voiceOption,
-        masterAudioUrl,
-        lockGamesForStudents,
-        lockAheadLessonsForStudents: nextVal,
-        individualGameLocks,
-      });
-    }
+    syncFullActivitySettings({
+      lockAheadLessonsForStudents: nextVal,
+    });
   };
           // GRANULAR PER-GAME LOCK CONTROL STATE (SUPABASE DB PRIORITY 100%)
   const [individualGameLocks, setIndividualGameLocks] = useState(() => {
@@ -2913,17 +3047,9 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     setIndividualGameLocks(updatedLocks);
     localStorage.setItem(`vocab_indiv_locks_${activity?.id || 'default'}`, JSON.stringify(updatedLocks));
     playSuccessSound();
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: vocabList,
-        voiceOption,
-        masterAudioUrl,
-        lockGamesForStudents,
-        lockAheadLessonsForStudents,
-        individualGameLocks: updatedLocks,
-      });
-    }
+    syncFullActivitySettings({
+      individualGameLocks: updatedLocks,
+    });
   };
   // HELPER CHECK IF A GAME IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
   const isGameLockedForStudent = (gameKey) => {
@@ -2987,18 +3113,9 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     playSuccessSound();
     alert(newLockState ? `🔒 Đã ẨN tiết học '${secName}' thành công đối với Học sinh!` : `👁️ Đã HIỆN tiết học '${secName}' thành công cho Học sinh vào học!`);
 
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: vocabList,
-        voiceOption,
-        masterAudioUrl,
-        lockGamesForStudents,
-        lockAheadLessonsForStudents,
-        individualGameLocks,
-        individualSectionLocks: updatedLocks,
-      });
-    }
+    syncFullActivitySettings({
+      individualSectionLocks: updatedLocks,
+    });
   };
 
         // HELPER CHECK IF A LESSON SECTION IS LOCKED FOR STUDENT (SMART PRECEDENCE ENGINE)
@@ -3026,11 +3143,14 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
         settings: {
           ...settings,
           vocabularyList: vocabList,
+          dialogueTabs: dialogueTabs,
+          activeDialogueTabId: activeDialogueTabId,
           voiceOption,
           masterAudioUrl,
           lockGamesForStudents,
           lockAheadLessonsForStudents,
           individualGameLocks,
+          individualSectionLocks,
         },
         duplicatedAt: new Date().toISOString(),
       };
@@ -4447,14 +4567,9 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
   };
   const handleChangeVoiceOption = (newOpt) => {
     setVoiceOption(newOpt);
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: vocabList,
-        voiceOption: newOpt,
-        masterAudioUrl: masterAudioUrl,
-      });
-    }
+    syncFullActivitySettings({
+      voiceOption: newOpt,
+    });
   };
   const handleTogglePlayAll = () => {
     if (isPlayingAll) {
@@ -4586,14 +4701,9 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
     setWordSearchData(data);
     setFoundWordList([]);
     alert(`➕ Đã thêm từ "${newWordClean}" thành công vào Game Find the Word!`);
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: updatedList,
-        voiceOption: voiceOption,
-        masterAudioUrl: masterAudioUrl,
-      });
-    }
+    syncFullActivitySettings({
+      vocabularyList: updatedList,
+    });
   };
   const handleDeleteWordFromSearchGame = (wordToDelete) => {
     const updatedList = vocabList.filter((item) => item.word.toUpperCase() !== wordToDelete.toUpperCase());
@@ -4602,14 +4712,9 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
     const data = generateWordSearchGrid(updatedList);
     setWordSearchData(data);
     setFoundWordList([]);
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: updatedList,
-        voiceOption: voiceOption,
-        masterAudioUrl: masterAudioUrl,
-      });
-    }
+    syncFullActivitySettings({
+      vocabularyList: updatedList,
+    });
   };
   // FEATURE: AI AUTO GENERATE ALL 10 WORDS / QUESTIONS FOR GAMES
   const handleAiGenerateDialogCards = async () => {
@@ -4977,14 +5082,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
       setIsBulkAiModalOpen(false);
       setBulkInputText('');
       playSuccessSound();
-      if (onSaveActivity) {
-        onSaveActivity({
-          ...settings,
-          vocabularyList: updatedList,
-          voiceOption: voiceOption,
-          masterAudioUrl: masterAudioUrl,
-        });
-      }
+      syncFullActivitySettings({
+        vocabularyList: updatedList,
+      });
       alert(`🎉 AI đã tự động nhập & tạo thành công ${processedCount} từ vựng chi tiết vào ${bulkUnit} - ${bulkSection}! Thầy Hải có thể bấm vào từng từ trên danh sách để điều chỉnh, xóa, hoặc sửa tùy ý.`);
     } catch (err) {
       alert('Lỗi tạo hàng loạt: ' + err.message);
@@ -5067,28 +5167,18 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
     setVocabList(updatedList);
     setIsStudioOpen(false);
     playSuccessSound();
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: updatedList,
-        voiceOption: voiceOption,
-        masterAudioUrl: masterAudioUrl,
-      });
-    }
+    syncFullActivitySettings({
+      vocabularyList: updatedList,
+    });
   };
   const handleDeleteStudioItem = (idToDelete) => {
     if (!window.confirm('Thầy Hải có chắc chắn muốn xóa từ vựng này khỏi từ điển không?')) return;
     const updatedList = vocabList.filter((item) => item.id !== idToDelete);
     setVocabList(updatedList);
     if (selectedIndex >= updatedList.length) setSelectedIndex(Math.max(0, updatedList.length - 1));
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: updatedList,
-        voiceOption: voiceOption,
-        masterAudioUrl: masterAudioUrl,
-      });
-    }
+    syncFullActivitySettings({
+      vocabularyList: updatedList,
+    });
   };
   const handleImportPreset = () => {
     const listToImport = GLOBAL_SUCCESS_PRESETS[selectedGrade]?.[selectedPresetUnit] || [];
@@ -5100,14 +5190,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
     setSelectedIndex(0);
     setIsPresetModalOpen(false);
     playSuccessSound();
-    if (onSaveActivity) {
-      onSaveActivity({
-        ...settings,
-        vocabularyList: listToImport,
-        voiceOption: voiceOption,
-        masterAudioUrl: masterAudioUrl,
-      });
-    }
+    syncFullActivitySettings({
+      vocabularyList: listToImport,
+    });
     alert(`🎉 Đã tự động nhập ${listToImport.length} từ vựng SGK ${selectedGrade} - ${selectedPresetUnit} thành công!`);
   };
   const handleImageUpload = async (e) => {
@@ -5147,14 +5232,10 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
       setMasterAudioUrl(url);
       setVoiceOption('custom');
       playSuccessSound();
-      if (onSaveActivity) {
-        onSaveActivity({
-          ...settings,
-          vocabularyList: vocabList,
-          voiceOption: 'custom',
-          masterAudioUrl: url,
-        });
-      }
+      syncFullActivitySettings({
+        voiceOption: 'custom',
+        masterAudioUrl: url,
+      });
       alert('✓ Đã nạp file giọng đọc mẫu MP3 thành công! AI sẽ dùng giọng này để Clone phát âm tất cả từ vựng.');
     } catch (err) {
       alert('Lỗi tải file giọng đọc mẫu: ' + err.message);
@@ -6935,14 +7016,29 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                         type="button"
                         onClick={() => {
                           const newId = 'tab_' + Date.now();
-                          const newTab = {
-                            id: newId,
-                            title: `Đoạn Hội Thoại ${selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : 'Mới'}`,
-                            grade: selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : (activityGrade || 'Lớp 9'),
-                            lines: [
+                          const curGrade = selectedDialogueGradeFilter !== 'Tất Cả' ? selectedDialogueGradeFilter : (activityGrade || 'Lớp 9');
+                          const curUnit = selectedUnit !== 'All' ? selectedUnit : (vocabList[0]?.unit || 'Unit 1');
+                          const curSec = selectedSection !== 'All' ? selectedSection : 'GETTING STARTED';
+                          const secWords = (vocabList || []).filter(item => (item.section || '').toUpperCase() === curSec.toUpperCase());
+
+                          let initialLines = [];
+                          if (secWords.length > 0) {
+                            initialLines = generateDialogueLinesFromVocab(secWords, curGrade, curSec);
+                          } else {
+                            initialLines = [
                               { speaker: 'Ann', text: 'Hi! Welcome to our new dialogue lesson.', vi: 'Chào bạn! Chào mừng đến với bài học hội thoại mới.' },
                               { speaker: 'Nick', text: 'Thank you! I am ready to practice speaking.', vi: 'Cảm ơn bạn! Mình đã sẵn sàng thực hành nói.' }
-                            ]
+                            ];
+                          }
+
+                          const newTab = {
+                            id: newId,
+                            title: `Đoạn: ${curSec} (${curGrade} - ${curUnit})`,
+                            grade: curGrade,
+                            unit: curUnit,
+                            section: curSec,
+                            lines: initialLines,
+                            introOffset: 2.5
                           };
                           const updatedTabs = [...dialogueTabs, newTab];
                           persistDialogueTabs(updatedTabs, newId);
@@ -7067,15 +7163,28 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     ))}
                   </select>
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-black text-slate-700 mb-1">📘 Nhãn Unit SGK (Ví dụ: Unit 1: Hobbies, Unit 2: City Life):</label>
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-black text-slate-700 mb-1">📘 Nhãn Unit SGK:</label>
                   <input
                     type="text"
                     value={editingDialogueObj.unit || 'Unit 1'}
                     onChange={(e) => setEditingDialogueObj({ ...editingDialogueObj, unit: e.target.value })}
-                    placeholder="Ví dụ: Unit 1: Local Community, Unit 2: City Life..."
+                    placeholder="Ví dụ: Unit 1: Hobbies, Unit 2: City Life..."
                     className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 focus:border-amber-500 font-bold text-sm bg-white"
                   />
+                </div>
+
+                <div className="sm:col-span-1">
+                  <label className="block text-xs font-black text-slate-700 mb-1">📑 Tiết Học (Section):</label>
+                  <select
+                    value={editingDialogueObj.section || selectedSection || 'GETTING STARTED'}
+                    onChange={(e) => setEditingDialogueObj({ ...editingDialogueObj, section: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border-2 border-amber-400 focus:border-amber-600 font-black text-xs bg-amber-50 text-slate-900"
+                  >
+                    {['GETTING STARTED', 'A CLOSER LOOK 1', 'A CLOSER LOOK 2', 'COMMUNICATION', 'SKILLS 1', 'SKILLS 2', 'LOOKING BACK', 'PROJECT'].map((sec) => (
+                      <option key={sec} value={sec}>{sec}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="sm:col-span-1">
@@ -7101,6 +7210,78 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     )}
                   </div>
                 </div>
+
+                {/* V318 KHU VỰC TỰ ĐỘNG ĐỒNG BỘ TỪ VỰNG CỦA TIẾT HỌC VÀO HỘI THOẠI */}
+                {(() => {
+                  const currentSec = (editingDialogueObj.section || selectedSection || 'GETTING STARTED').toUpperCase();
+                  const secVocabList = (vocabList || []).filter(item => (item.section || '').toUpperCase() === currentSec);
+                  return (
+                    <div className="sm:col-span-3 bg-gradient-to-r from-amber-50 to-orange-50 p-3.5 rounded-2xl border-2 border-amber-300 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center space-x-1.5">
+                          <span className="text-base">📚</span>
+                          <span className="text-xs font-black text-amber-950 uppercase">
+                            Từ Vựng Đã Soạn Trong Tiết [{currentSec}] ({secVocabList.length} từ)
+                          </span>
+                        </div>
+                        {secVocabList.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const generated = generateDialogueLinesFromVocab(secVocabList, editingDialogueObj.grade || activityGrade, currentSec);
+                              setEditingDialogueObj({
+                                ...editingDialogueObj,
+                                lines: generated
+                              });
+                              playSuccessSound();
+                              alert(`🎉 Đã tự động nạp & sinh ${generated.length} câu thoại lồng ghép toàn bộ ${secVocabList.length} từ vựng của tiết [${currentSec}]!`);
+                            }}
+                            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl shadow-xs transition flex items-center space-x-1 cursor-pointer"
+                            title="Tự động sinh các câu thoại chứa toàn bộ từ vựng đã soạn ở tiết này"
+                          >
+                            <span>⚡ Nạp & Sinh Câu Thoại Chứa Toàn Bộ Từ Này</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {secVocabList.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-white/70 rounded-xl border border-amber-200">
+                          {secVocabList.map((vItem, vIdx) => (
+                            <button
+                              key={vIdx}
+                              type="button"
+                              onClick={() => {
+                                const lines = [...editingDialogueObj.lines];
+                                if (lines.length === 0) {
+                                  lines.push({ speaker: 'Ann', text: `Let's practice with ${vItem.word}.`, vi: `Hãy cùng luyện tập với ${vItem.word} (${vItem.meaning || ''}).` });
+                                } else {
+                                  const lastIdx = lines.length - 1;
+                                  const curText = lines[lastIdx].text || '';
+                                  lines[lastIdx] = {
+                                    ...lines[lastIdx],
+                                    text: curText ? `${curText} ${vItem.word}` : vItem.word
+                                  };
+                                }
+                                setEditingDialogueObj({ ...editingDialogueObj, lines });
+                                playSuccessSound();
+                              }}
+                              className="inline-flex items-center space-x-1 px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs rounded-lg border border-amber-300 cursor-pointer shadow-2xs transition"
+                              title={`Bấm để chèn từ [${vItem.word}] vào câu thoại cuối: ${vItem.meaning || ''}`}
+                            >
+                              <span>✨</span>
+                              <span>{vItem.word}</span>
+                              <span className="text-[10px] text-amber-800">({vItem.meaning || ''})</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs font-bold text-amber-800 italic">
+                          Tiết [{currentSec}] hiện chưa có từ vựng trong từ điển. Thầy có thể nhập câu thoại trực tiếp hoặc vào mục "Soạn Từ Vựng Studio" để nạp từ vựng cho tiết này!
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {editingDialogueObj.audioUrl && (
                   <div className="sm:col-span-3 bg-emerald-50 p-3 rounded-2xl border-2 border-emerald-300 space-y-2">
