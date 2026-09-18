@@ -2172,6 +2172,10 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   const [isAudioTranscribing, setIsAudioTranscribing] = useState(false);
   const [liveVoiceCoachFeedback, setLiveVoiceCoachFeedback] = useState(null);
 
+  // CHẾ ĐỘ XEM ĐOẠN VĂN LIỀN MẠCH CHUẨN SÁCH GIÁO KHOA IN (CONTINUOUS READING VIEW)
+  const [isContinuousView, setIsContinuousView] = useState(false);
+  const [showContinuousTranslation, setShowContinuousTranslation] = useState(false);
+
   // INTERACTIVE SGK DIALOGUE LESSON STATE (SUPABASE PERSISTENCE & REALTIME AUTO-RESTORE)
   const [dialogueTabs, setDialogueTabs] = useState(() => {
     try {
@@ -7431,6 +7435,21 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
               >
                 <span>{isFillBlanksMode ? '✍️ Chế Độ: ĐIỀN TỪ (BẬT)' : '✍️ Chế Độ: ĐIỀN TỪ (TẮT)'}</span>
               </button>
+
+              {/* TOGGLE CHẾ ĐỘ XEM ĐOẠN VĂN LIỀN MẠCH (CONTINUOUS READING VIEW) */}
+              <button
+                type="button"
+                onClick={() => setIsContinuousView(!isContinuousView)}
+                className={`px-3.5 py-2.5 rounded-2xl font-extrabold text-xs transition cursor-pointer flex items-center space-x-1.5 border shadow-sm ${
+                  isContinuousView
+                    ? 'bg-emerald-700 text-white border-emerald-400 ring-2 ring-emerald-300'
+                    : 'bg-white text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                }`}
+                title="Chuyển đổi giữa chế độ xem từng câu thẻ rời và bài đọc liền mạch sách giáo khoa"
+              >
+                <BookOpen className={`w-4 h-4 ${isContinuousView ? 'text-amber-300' : 'text-emerald-700'}`} />
+                <span>{isContinuousView ? '📖 Chế Độ: BÀI ĐỌC SGK (BẬT)' : '📖 Chế Độ: BÀI ĐỌC LIỀN MẠCH'}</span>
+              </button>
             </div>
 
             {/* SELECTION FOR USER CHARACTER IN ROLE-PLAY MODE WITH SWAP BUTTON */}
@@ -8312,7 +8331,178 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   </div>
                 )}
 
-                <div className="space-y-3 pt-2">
+                {isContinuousView ? (
+                  /* GIAO DIỆN BÀI ĐỌC ĐOẠN VĂN LIỀN MẠCH CHUẨN SÁCH GIÁO KHOA IN (CONTINUOUS READING VIEW) */
+                  <div className="bg-[#fcfaf7] border-2 border-amber-200/90 rounded-3xl p-5 sm:p-8 shadow-sm space-y-5 animate-fade-in print:bg-white print:border-none print:p-0">
+                    {/* THANH TIÊU ĐỀ & ĐIỀU HƯỚNG NHANH CỦA CHẾ ĐỘ BÀI ĐỌC LIỀN MẠCH */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-amber-200/70 print:hidden">
+                      <div className="flex items-center space-x-3">
+                        <span className="p-2.5 rounded-2xl bg-amber-100 text-amber-900 shadow-inner">
+                          <BookOpen className="w-5 h-5 text-amber-800" />
+                        </span>
+                        <div>
+                          <h4 className="font-black text-slate-900 text-sm sm:text-base flex items-center space-x-2">
+                            <span>{activeTabObj.title || 'Bài Đọc Sách Giáo Khoa'}</span>
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 text-[11px] font-extrabold border border-emerald-300">
+                              SGK In Liền Mạch
+                            </span>
+                          </h4>
+                          <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                            {activeTabObj.lines.length} câu • Rê chuột vào từng câu để xem và nhấp để nghe phát âm chuẩn Oxford
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* TOGGLE BẬT/TẮT DỊCH SONG NGỮ TIẾNG VIỆT */}
+                        <button
+                          type="button"
+                          onClick={() => setShowContinuousTranslation(!showContinuousTranslation)}
+                          className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 border shadow-2xs ${
+                            showContinuousTranslation
+                              ? 'bg-emerald-700 text-white border-emerald-500 ring-2 ring-emerald-300'
+                              : 'bg-white text-emerald-950 hover:bg-emerald-50 border-emerald-300'
+                          }`}
+                          title="Bật/Tắt hiển thị bản dịch tiếng Việt song ngữ dưới từng câu"
+                        >
+                          {showContinuousTranslation ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          <span>{showContinuousTranslation ? 'Ẩn Dịch Song Ngữ' : 'Hiện Dịch Song Ngữ'}</span>
+                        </button>
+
+                        {/* NÚT QUAY LẠI XEM DẠNG THẺ CÂU */}
+                        <button
+                          type="button"
+                          onClick={() => setIsContinuousView(false)}
+                          className="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1 shadow-2xs"
+                          title="Chuyển về xem dạng từng thẻ câu rời"
+                        >
+                          <span>📑 Xem Dạng Thẻ</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* DÒNG HƯỚNG DẪN TƯƠNG TÁC THÂN THIỆN */}
+                    <div className="bg-amber-50 border border-amber-200/90 rounded-2xl px-3.5 py-2.5 text-xs text-amber-950 font-medium flex items-center justify-between gap-2 print:hidden shadow-2xs">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-base">💡</span>
+                        <span>
+                          <strong>Mẹo đọc tương tác:</strong> Rê chuột vào từng câu để làm nổi bật • Bấm vào câu để phát âm tức thì • Bấm vào từ vựng có biểu tượng <span className="px-1.5 py-0.5 bg-amber-200 text-amber-950 font-bold rounded-md border border-amber-400">✨</span> để xem nghĩa Oxford và ảnh minh họa.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* VÙNG NỘI DUNG ĐOẠN VĂN BÀI ĐỌC NGUYÊN VẸN LIỀN MẠCH */}
+                    <div className="bg-white/80 rounded-2xl p-5 sm:p-7 border border-amber-100 shadow-inner text-slate-800 text-base sm:text-lg leading-loose sm:leading-10 tracking-normal font-sans">
+                      {(() => {
+                        const renderedDialogueWordsSet = new Set();
+                        const isPassage = activeTabObj?.contentType === 'passage' || activeTabObj.lines.every(l => !l.speaker || l.speaker.toLowerCase() === 'passage' || l.speaker.toLowerCase() === 'narrator');
+
+                        return (
+                          <div className={isPassage ? "space-y-3" : "space-y-3.5"}>
+                            {activeTabObj.lines.map((line, idx) => {
+                              const isHighlighted = playingDialogueLineIndex === idx;
+                              const isLinePassage = isPassage || (line.speaker || '').toLowerCase() === 'passage' || (line.speaker || '').toLowerCase() === 'narrator';
+                              const gender = getSpeakerGender(line.speaker);
+                              const isFemale = gender === 'female';
+
+                              return (
+                                <span
+                                  key={idx}
+                                  id={`continuous-line-${idx}`}
+                                  onClick={() => handlePlaySingleDialogueLine(idx, line)}
+                                  className={`relative inline-block sm:inline rounded-xl px-2.5 py-1.5 mx-0.5 transition-all duration-200 cursor-pointer group select-text ${
+                                    isHighlighted
+                                      ? 'bg-amber-200 text-amber-950 font-bold ring-2 ring-amber-400 shadow-md scale-[1.01]'
+                                      : 'hover:bg-emerald-100 hover:text-emerald-950 hover:shadow-xs'
+                                  }`}
+                                  title="Nhấp để nghe phát âm câu này"
+                                >
+                                  {/* HIỂN THỊ TÊN NHÂN VẬT NẾU LÀ HỘI THOẠI */}
+                                  {!isLinePassage && line.speaker && (
+                                    <span className={`inline-flex items-center text-xs font-black uppercase px-2 py-0.5 rounded-lg mr-1.5 shadow-2xs select-none ${
+                                      isFemale ? 'bg-purple-600 text-white' : 'bg-indigo-600 text-white'
+                                    }`}>
+                                      {line.speaker}:
+                                    </span>
+                                  )}
+
+                                  {/* NỘI DUNG CHỮ VỚI TỪ VỰNG TƯƠNG TÁC */}
+                                  {(() => {
+                                    const text = line.text || '';
+                                    if (!text || !sortedKeywordList || sortedKeywordList.length === 0) return text;
+
+                                    const lowerText = text.toLowerCase();
+                                    const presentKeywords = sortedKeywordList.filter((kw) => lowerText.includes(kw));
+                                    if (presentKeywords.length === 0) return text;
+
+                                    const pattern = presentKeywords
+                                      .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                                      .join('|');
+
+                                    const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
+                                    const parts = text.split(regex);
+                                    if (parts.length <= 1) return text;
+
+                                    return parts.map((part, pIdx) => {
+                                      const cleanLower = (part || '').toLowerCase().trim();
+                                      const vocabData = dialogueLookup.get(cleanLower);
+
+                                      if (vocabData) {
+                                        const baseKey = (vocabData.word || cleanLower).toLowerCase().trim();
+                                        if (!renderedDialogueWordsSet.has(baseKey)) {
+                                          renderedDialogueWordsSet.add(baseKey);
+                                          return (
+                                            <span
+                                              key={pIdx}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveWordTooltip({
+                                                  word: vocabData.word,
+                                                  ipa: vocabData.ipa || '',
+                                                  vi: vocabData.vi || '',
+                                                  pos: vocabData.pos || '',
+                                                  icon: vocabData.icon || '✨',
+                                                  imageUrl: vocabData.imageUrl || null,
+                                                  audioUrl: vocabData.audioUrl || null,
+                                                });
+                                              }}
+                                              className="bg-amber-200 text-amber-950 font-black border-b-2 border-amber-500 px-1.5 py-0.5 rounded-lg cursor-pointer hover:bg-amber-300 transition mx-0.5 shadow-xs inline-flex items-center space-x-1"
+                                              title={`Nhấp để tra cứu từ vựng: [${vocabData.word}] - ${vocabData.vi || ''}`}
+                                            >
+                                              <span className="text-[11px]">✨</span>
+                                              <span>{part}</span>
+                                            </span>
+                                          );
+                                        }
+                                      }
+                                      return part;
+                                    });
+                                  })()}
+
+                                  {/* ICON LOA MINI PHÁT ÂM KHI HOVER HOẶC KHI ĐANG PHÁT */}
+                                  <span className={`inline-flex items-center ml-1.5 align-middle transition-opacity ${
+                                    isHighlighted ? 'opacity-100 text-amber-900' : 'opacity-0 group-hover:opacity-100 text-emerald-700'
+                                  }`}>
+                                    <Volume2 className="w-4 h-4 inline" />
+                                  </span>
+
+                                  {/* BẢN DỊCH TIẾNG VIỆT KHI BẬT TOGGLE SONG NGỮ */}
+                                  {showContinuousTranslation && line.vi && (
+                                    <span className="block text-xs sm:text-sm font-medium text-emerald-900 bg-emerald-50/95 border-l-3 border-emerald-500 pl-3 py-1 my-1.5 rounded-r-lg italic select-text shadow-2xs">
+                                      👉 {line.vi}
+                                    </span>
+                                  )}
+                                  {' '}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 pt-2">
                   {(() => {
                     // TẬP HỢP THEO DÕI TỪ VỰNG ĐÃ NHẮC ĐẾN: MỖI TỪ MỚI CHỈ HIGHLIGHT LIGHTBOX ĐÚNG 1 LẦN DUY NHẤT (CHỐNG RỐI MẮT)
                     const renderedDialogueWordsSet = new Set();
@@ -8532,6 +8722,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   });
                 })()}
               </div>
+                )}
             </div>
             );
           })()}
