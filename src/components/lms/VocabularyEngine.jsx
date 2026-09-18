@@ -2767,8 +2767,73 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   };
 
   // EDIT & DELETE DIALOGUE HANDLERS
-  // FEATURE: UPLOAD CUSTOM MP3 AUDIO FOR DIALOGUE LESSON
   const modalAudioPreviewRef = useRef(null);
+  const [previewPlayingLineIndex, setPreviewPlayingLineIndex] = useState(null);
+  const previewAudioTimerRef = useRef(null);
+
+  // HÀM NGHE THỬ TỪNG CÂU THOẠI THEO MỐC GIÂY [START -> END]
+  const handlePreviewLineAudio = (line, lIdx) => {
+    // 1. Nếu đang phát chính câu này thì bấm lần nữa sẽ dừng
+    if (previewPlayingLineIndex === lIdx) {
+      if (modalAudioPreviewRef.current) {
+        modalAudioPreviewRef.current.pause();
+      }
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      if (previewAudioTimerRef.current) {
+        clearTimeout(previewAudioTimerRef.current);
+        previewAudioTimerRef.current = null;
+      }
+      setPreviewPlayingLineIndex(null);
+      return;
+    }
+
+    // Xóa bộ đếm cũ nếu có
+    if (previewAudioTimerRef.current) {
+      clearTimeout(previewAudioTimerRef.current);
+      previewAudioTimerRef.current = null;
+    }
+
+    // 2. Nếu có file Audio MP3 đang nạp trong modal
+    if (editingDialogueObj?.audioUrl && modalAudioPreviewRef.current) {
+      const audio = modalAudioPreviewRef.current;
+      const start = Math.max(0, parseFloat(line.startTime) || 0);
+      let end = parseFloat(line.endTime);
+      if (isNaN(end) || end <= start) {
+        end = start + 3.0; // Dự phòng 3s nếu chưa đặt giây kết thúc
+      }
+
+      audio.currentTime = start;
+      audio.play().then(() => {
+        setPreviewPlayingLineIndex(lIdx);
+        const durationMs = Math.max(400, (end - start) * 1000);
+        previewAudioTimerRef.current = setTimeout(() => {
+          audio.pause();
+          setPreviewPlayingLineIndex(null);
+          previewAudioTimerRef.current = null;
+        }, durationMs);
+      }).catch(err => {
+        console.warn('Lỗi phát audio preview:', err);
+        setPreviewPlayingLineIndex(null);
+      });
+      return;
+    }
+
+    // 3. Nếu chưa có file Audio MP3, phát mẫu qua giọng đọc AI bản xứ Web Speech Synthesis
+    if (line.text && typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(line.text);
+      utter.lang = 'en-US';
+      utter.rate = 0.92;
+      utter.onend = () => setPreviewPlayingLineIndex(null);
+      utter.onerror = () => setPreviewPlayingLineIndex(null);
+      setPreviewPlayingLineIndex(lIdx);
+      window.speechSynthesis.speak(utter);
+    } else {
+      alert("Chưa có nội dung câu để phát!");
+    }
+  };
 
   // SMART AUTO-DISTRIBUTE TIMESTAMPS BASED ON SENTENCE WORD LENGTH
   const handleAutoDistributeTimestamps = (totalDurationSec = null, customIntro = null) => {
@@ -8069,57 +8134,138 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                           )}
                         </div>
 
-                        {/* PRECISION TIMESTAMP TIMELINE INPUTS */}
-                        <div className="flex items-center space-x-1.5 bg-slate-100 px-2 py-1 rounded-xl border border-slate-300">
-                          <span className="text-[11px] font-bold text-slate-600">⏱️ Giây:</span>
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            value={line.startTime !== undefined ? line.startTime : ''}
-                            onChange={(e) => {
-                              const lines = [...editingDialogueObj.lines];
-                              lines[lIdx].startTime = parseFloat(e.target.value) || 0;
-                              setEditingDialogueObj({ ...editingDialogueObj, lines });
-                            }}
-                            placeholder="Bắt đầu (s)"
-                            className="w-14 px-1.5 py-0.5 rounded border border-slate-300 text-xs font-black text-center bg-white"
-                            title="Giây bắt đầu câu trong audio MP3"
-                          />
-                          <span className="text-xs text-slate-400">➔</span>
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            value={line.endTime !== undefined ? line.endTime : ''}
-                            onChange={(e) => {
-                              const lines = [...editingDialogueObj.lines];
-                              lines[lIdx].endTime = parseFloat(e.target.value) || 0;
-                              setEditingDialogueObj({ ...editingDialogueObj, lines });
-                            }}
-                            placeholder="Kết thúc (s)"
-                            className="w-14 px-1.5 py-0.5 rounded border border-slate-300 text-xs font-black text-center bg-white"
-                            title="Giây kết thúc câu trong audio MP3"
-                          />
-                          {editingDialogueObj.audioUrl && (
+                        {/* PRECISION TIMESTAMP TIMELINE INPUTS VỚI NÚT TĂNG GIẢM +-0.5s & NÚT LẤY GIÂY */}
+                        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-300 shadow-2xs">
+                          <span className="text-[11px] font-black text-slate-600 flex items-center space-x-1">
+                            <span>⏱️</span>
+                            <span>Giây:</span>
+                          </span>
+
+                          {/* CỤM GIÂY BẮT ĐẦU VỚI NÚT -0.5 VÀ +0.5 */}
+                          <div className="flex items-center space-x-0.5">
                             <button
                               type="button"
                               onClick={() => {
-                                if (modalAudioPreviewRef.current) {
-                                  const cur = parseFloat(modalAudioPreviewRef.current.currentTime.toFixed(1));
-                                  const lines = [...editingDialogueObj.lines];
-                                  lines[lIdx].startTime = cur;
-                                  setEditingDialogueObj({ ...editingDialogueObj, lines });
-                                }
+                                const lines = [...editingDialogueObj.lines];
+                                const cur = parseFloat(lines[lIdx].startTime) || 0;
+                                lines[lIdx].startTime = Math.max(0, parseFloat((cur - 0.5).toFixed(1)));
+                                setEditingDialogueObj({ ...editingDialogueObj, lines });
                               }}
-                              className="px-1.5 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded"
-                              title="Lấy số giây hiện tại đang nghe trong trình phát audio ở trên"
+                              className="px-1.5 py-0.5 bg-white hover:bg-slate-200 active:scale-95 text-slate-700 text-[10px] font-black rounded border border-slate-300 transition cursor-pointer shadow-2xs"
+                              title="Giảm 0.5 giây mốc bắt đầu"
                             >
-                              📍 Lấy Giây
+                              -0.5
                             </button>
-                          )}
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              value={line.startTime !== undefined ? line.startTime : ''}
+                              onChange={(e) => {
+                                const lines = [...editingDialogueObj.lines];
+                                lines[lIdx].startTime = parseFloat(e.target.value) || 0;
+                                setEditingDialogueObj({ ...editingDialogueObj, lines });
+                              }}
+                              placeholder="0"
+                              className="w-13 px-1 py-0.5 rounded border border-slate-300 text-xs font-black text-center bg-white"
+                              title="Giây bắt đầu câu trong audio MP3"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const lines = [...editingDialogueObj.lines];
+                                const cur = parseFloat(lines[lIdx].startTime) || 0;
+                                lines[lIdx].startTime = parseFloat((cur + 0.5).toFixed(1));
+                                setEditingDialogueObj({ ...editingDialogueObj, lines });
+                              }}
+                              className="px-1.5 py-0.5 bg-white hover:bg-slate-200 active:scale-95 text-slate-700 text-[10px] font-black rounded border border-slate-300 transition cursor-pointer shadow-2xs"
+                              title="Tăng 0.5 giây mốc bắt đầu"
+                            >
+                              +0.5
+                            </button>
+                          </div>
+
+                          <span className="text-xs text-slate-400 font-black">➔</span>
+
+                          {/* CỤM GIÂY KẾT THÚC VỚI NÚT -0.5 VÀ +0.5 */}
+                          <div className="flex items-center space-x-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const lines = [...editingDialogueObj.lines];
+                                const cur = parseFloat(lines[lIdx].endTime) || 0;
+                                lines[lIdx].endTime = Math.max(0, parseFloat((cur - 0.5).toFixed(1)));
+                                setEditingDialogueObj({ ...editingDialogueObj, lines });
+                              }}
+                              className="px-1.5 py-0.5 bg-white hover:bg-slate-200 active:scale-95 text-slate-700 text-[10px] font-black rounded border border-slate-300 transition cursor-pointer shadow-2xs"
+                              title="Giảm 0.5 giây mốc kết thúc"
+                            >
+                              -0.5
+                            </button>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              value={line.endTime !== undefined ? line.endTime : ''}
+                              onChange={(e) => {
+                                const lines = [...editingDialogueObj.lines];
+                                lines[lIdx].endTime = parseFloat(e.target.value) || 0;
+                                setEditingDialogueObj({ ...editingDialogueObj, lines });
+                              }}
+                              placeholder="0"
+                              className="w-13 px-1 py-0.5 rounded border border-slate-300 text-xs font-black text-center bg-white"
+                              title="Giây kết thúc câu trong audio MP3"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const lines = [...editingDialogueObj.lines];
+                                const cur = parseFloat(lines[lIdx].endTime) || 0;
+                                lines[lIdx].endTime = parseFloat((cur + 0.5).toFixed(1));
+                                setEditingDialogueObj({ ...editingDialogueObj, lines });
+                              }}
+                              className="px-1.5 py-0.5 bg-white hover:bg-slate-200 active:scale-95 text-slate-700 text-[10px] font-black rounded border border-slate-300 transition cursor-pointer shadow-2xs"
+                              title="Tăng 0.5 giây mốc kết thúc"
+                            >
+                              +0.5
+                            </button>
+                          </div>
+
+                          {/* NÚT LẤY GIÂY CHUẨN XÁC */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (modalAudioPreviewRef.current) {
+                                const cur = parseFloat(modalAudioPreviewRef.current.currentTime.toFixed(1));
+                                const lines = [...editingDialogueObj.lines];
+                                lines[lIdx].startTime = cur;
+                                setEditingDialogueObj({ ...editingDialogueObj, lines });
+                              } else {
+                                alert("Vui lòng nạp hoặc phát audio ở trên để lấy mốc giây hiện tại!");
+                              }
+                            }}
+                            className="px-2 py-0.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-lg transition cursor-pointer flex items-center space-x-1 shadow-2xs"
+                            title="Lấy số giây hiện tại đang nghe trong trình phát audio ở trên"
+                          >
+                            <span>📍 Lấy Giây</span>
+                          </button>
                         </div>
 
+                        {/* NÚT NGHE THỬ CÂU THEO MỐC GIÂY (THEO YÊU CẦU CỦA THẦY - ẢNH 2) */}
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewLineAudio(line, lIdx)}
+                          className={`px-3 py-1 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 border shadow-xs ${
+                            previewPlayingLineIndex === lIdx
+                              ? 'bg-amber-500 text-slate-950 border-amber-600 ring-2 ring-amber-300 animate-pulse'
+                              : 'bg-white hover:bg-amber-50 text-amber-950 border-amber-400 hover:border-amber-500'
+                          }`}
+                          title={previewPlayingLineIndex === lIdx ? "Nhấp để dừng nghe thử" : "Nghe thử câu này từ mốc bắt đầu đến kết thúc"}
+                        >
+                          <span>{previewPlayingLineIndex === lIdx ? '⏹️ Dừng' : '▶ Nghe thử'}</span>
+                        </button>
+
+                        {/* NÚT XÓA CÂU */}
                         <button
                           type="button"
                           onClick={() => {
@@ -8127,9 +8273,10 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             const lines = editingDialogueObj.lines.filter((_, idx) => idx !== lIdx);
                             setEditingDialogueObj({ ...editingDialogueObj, lines });
                           }}
-                          className="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold rounded-md"
+                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 text-xs font-bold rounded-xl border border-rose-200 transition cursor-pointer flex items-center space-x-1 shrink-0"
+                          title="Xóa câu này khỏi bài"
                         >
-                          🗑️ Xóa câu
+                          <span>🗑️ Xóa câu</span>
                         </button>
                       </div>
 
