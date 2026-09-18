@@ -353,92 +353,106 @@ const describeAnnularSectorPath = (cx, cy, rIn, rOut, startAngle, endAngle) => {
   );
 };
 
-// DYNAMIC CIRCULAR WORD SEARCH GENERATOR (VÒNG XOAY PHÁO HOA LUNG LINH - THEO BẢN THIẾT KẾ CỦA THẦY HẢI)
+// DYNAMIC CIRCULAR WORD SEARCH GENERATOR (VÒNG XOAY PHÁO HOA LUNG LINH - THEO BẢN THIẾT KẾ CỦA THẦY HẢI - 10 TỪ VỰNG = 10 ĐIỂM)
 const generateCircularWordSearchGrid = (list, currentGrade = 'Lớp 7') => {
   let wordCandidates = list
     .map((v) => (v.word || '').toUpperCase().replace(/[^A-Z]/g, ''))
     .filter((w) => w.length >= 3 && w.length <= 10);
 
   const gradePresets = {
-    'Lớp 7': ['CARDBOARD', 'GARDENING', 'DOLLHOUSE', 'GLUE', 'POPULAR', 'UNUSUAL', 'COLLECTING', 'JOGGING', 'COOKING', 'PAINTING'],
-    'Lớp 8': ['BEEHIVE', 'CATTLE', 'HARVESTER', 'CROP', 'PADDY', 'FIELD', 'VAST', 'COUNTRY', 'FARMER', 'BUFFALO'],
-    'Lớp 9': ['ARTISAN', 'SUBURB', 'CHECKUP', 'CLAY', 'VILLAGE', 'HANDICRAFT', 'PRESERVE', 'POTTERY', 'COMMUNITY', 'GUIDANCE'],
+    'Lớp 7': ['CARDBOARD', 'GARDENING', 'DOLLHOUSE', 'GLUE', 'POPULAR', 'UNUSUAL', 'COLLECTING', 'JOGGING', 'COOKING', 'PAINTING', 'PATIENT', 'MATURITY'],
+    'Lớp 8': ['BEEHIVE', 'CATTLE', 'HARVESTER', 'CROP', 'PADDY', 'FIELD', 'VAST', 'COUNTRY', 'FARMER', 'BUFFALO', 'PEACEFUL', 'TRADITION'],
+    'Lớp 9': ['ARTISAN', 'SUBURB', 'CHECKUP', 'CLAY', 'VILLAGE', 'HANDICRAFT', 'PRESERVE', 'POTTERY', 'COMMUNITY', 'GUIDANCE', 'FACILITY', 'HERITAGE'],
   };
   const defaultWords = gradePresets[currentGrade] || gradePresets['Lớp 7'];
   defaultWords.forEach((dw) => {
-    if (wordCandidates.length < 10 && !wordCandidates.includes(dw)) {
+    if (wordCandidates.length < 15 && !wordCandidates.includes(dw)) {
       wordCandidates.push(dw);
     }
   });
 
-  const words = [...new Set(wordCandidates)].slice(0, 9);
+  const words = [...new Set(wordCandidates)].slice(0, 10);
   const numRings = 5;
   const sectors = 20;
-  const grid = Array.from({ length: numRings }, () => Array(sectors).fill(''));
-  const placedWords = [];
 
-  words.forEach((w) => {
-    let placed = false;
-    let attempts = 0;
-    while (!placed && attempts < 150) {
-      attempts++;
-      const dir = attempts < 80 ? 'ring_cw' : (w.length <= 5 && Math.random() < 0.4 ? 'radial_out' : 'ring_cw');
-      if (dir === 'ring_cw') {
-        const ring = Math.floor(Math.random() * numRings);
-        const startSec = Math.floor(Math.random() * sectors);
-        let canPlace = true;
-        for (let i = 0; i < w.length; i++) {
-          const s = (startSec + i) % sectors;
-          if (grid[ring][s] !== '' && grid[ring][s] !== w[i]) {
-            canPlace = false;
-            break;
-          }
-        }
-        if (canPlace) {
-          const coords = [];
+  let bestGrid = null;
+  let bestPlacedWords = [];
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const grid = Array.from({ length: numRings }, () => Array(sectors).fill(''));
+    const placedWords = [];
+
+    words.forEach((w) => {
+      let placed = false;
+      let tries = 0;
+      while (!placed && tries < 250) {
+        tries++;
+        const dir = tries < 150 ? 'ring_cw' : (w.length <= numRings ? 'radial_out' : 'ring_cw');
+        if (dir === 'ring_cw') {
+          const ring = Math.floor(Math.random() * numRings);
+          const startSec = Math.floor(Math.random() * sectors);
+          let canPlace = true;
           for (let i = 0; i < w.length; i++) {
             const s = (startSec + i) % sectors;
-            grid[ring][s] = w[i];
-            coords.push(`${ring}-${s}`);
+            if (grid[ring][s] !== '' && grid[ring][s] !== w[i]) {
+              canPlace = false;
+              break;
+            }
           }
-          placedWords.push({ word: w, coords, direction: 'ring_cw', ring });
-          placed = true;
-        }
-      } else if (dir === 'radial_out') {
-        const startRing = Math.floor(Math.random() * (numRings - w.length + 1));
-        const sec = Math.floor(Math.random() * sectors);
-        let canPlace = true;
-        for (let i = 0; i < w.length; i++) {
-          const r = startRing + i;
-          if (grid[r][sec] !== '' && grid[r][sec] !== w[i]) {
-            canPlace = false;
-            break;
+          if (canPlace) {
+            const coords = [];
+            for (let i = 0; i < w.length; i++) {
+              const s = (startSec + i) % sectors;
+              grid[ring][s] = w[i];
+              coords.push(`${ring}-${s}`);
+            }
+            placedWords.push({ word: w, coords, direction: 'ring_cw', ring });
+            placed = true;
           }
-        }
-        if (canPlace) {
-          const coords = [];
+        } else if (dir === 'radial_out' && w.length <= numRings) {
+          const startRing = Math.floor(Math.random() * (numRings - w.length + 1));
+          const sec = Math.floor(Math.random() * sectors);
+          let canPlace = true;
           for (let i = 0; i < w.length; i++) {
             const r = startRing + i;
-            grid[r][sec] = w[i];
-            coords.push(`${r}-${sec}`);
+            if (grid[r][sec] !== '' && grid[r][sec] !== w[i]) {
+              canPlace = false;
+              break;
+            }
           }
-          placedWords.push({ word: w, coords, direction: 'radial_out', sec });
-          placed = true;
+          if (canPlace) {
+            const coords = [];
+            for (let i = 0; i < w.length; i++) {
+              const r = startRing + i;
+              grid[r][sec] = w[i];
+              coords.push(`${r}-${sec}`);
+            }
+            placedWords.push({ word: w, coords, direction: 'radial_out', sec });
+            placed = true;
+          }
         }
       }
+    });
+
+    if (placedWords.length > bestPlacedWords.length) {
+      bestPlacedWords = placedWords;
+      bestGrid = grid;
     }
-  });
+    if (placedWords.length === words.length) {
+      break;
+    }
+  }
 
   const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   for (let r = 0; r < numRings; r++) {
     for (let c = 0; c < sectors; c++) {
-      if (grid[r][c] === '') {
-        grid[r][c] = alpha[Math.floor(Math.random() * alpha.length)];
+      if (bestGrid[r][c] === '') {
+        bestGrid[r][c] = alpha[Math.floor(Math.random() * alpha.length)];
       }
     }
   }
 
-  return { grid, numRings, sectors, size: numRings, placedWords, shape: 'circle' };
+  return { grid: bestGrid, numRings, sectors, size: numRings, placedWords: bestPlacedWords, shape: 'circle' };
 };
 
 // DYNAMIC WORD SEARCH GENERATOR WITH UP TO 10 WORDS & MULTI-SHAPE (SQUARE & CIRCLE PHÁO HOA)
@@ -451,27 +465,27 @@ const generateWordSearchGrid = (list, currentGrade = 'Lớp 7', shape = 'square'
     .map((v) => (v.word || '').toUpperCase().replace(/[^A-Z]/g, ''))
     .filter((w) => w.length >= 3 && w.length <= 10);
   const gradePresets = {
-    'Lớp 7': ['CARDBOARD', 'GARDENING', 'DOLLHOUSE', 'GLUE', 'POPULAR', 'UNUSUAL', 'COLLECTING', 'JOGGING', 'COOKING', 'PAINTING'],
-    'Lớp 8': ['BEEHIVE', 'CATTLE', 'HARVESTER', 'CROP', 'PADDY', 'FIELD', 'VAST', 'COUNTRY', 'FARMER', 'BUFFALO'],
-    'Lớp 9': ['ARTISAN', 'SUBURB', 'CHECKUP', 'CLAY', 'VILLAGE', 'HANDICRAFT', 'PRESERVE', 'POTTERY', 'COMMUNITY', 'GUIDANCE'],
+    'Lớp 7': ['CARDBOARD', 'GARDENING', 'DOLLHOUSE', 'GLUE', 'POPULAR', 'UNUSUAL', 'COLLECTING', 'JOGGING', 'COOKING', 'PAINTING', 'PATIENT', 'MATURITY'],
+    'Lớp 8': ['BEEHIVE', 'CATTLE', 'HARVESTER', 'CROP', 'PADDY', 'FIELD', 'VAST', 'COUNTRY', 'FARMER', 'BUFFALO', 'PEACEFUL', 'TRADITION'],
+    'Lớp 9': ['ARTISAN', 'SUBURB', 'CHECKUP', 'CLAY', 'VILLAGE', 'HANDICRAFT', 'PRESERVE', 'POTTERY', 'COMMUNITY', 'GUIDANCE', 'FACILITY', 'HERITAGE'],
   };
   const defaultWords = gradePresets[currentGrade] || gradePresets['Lớp 7'];
   defaultWords.forEach((dw) => {
-    if (wordCandidates.length < 10 && !wordCandidates.includes(dw)) {
+    if (wordCandidates.length < 15 && !wordCandidates.includes(dw)) {
       wordCandidates.push(dw);
     }
   });
-  const words = [...new Set(wordCandidates)].slice(0, 9);
+  const words = [...new Set(wordCandidates)].slice(0, 10);
   const size = 10;
   const grid = Array.from({ length: size }, () => Array(size).fill(''));
   const placedWords = [];
-  // CHUẨN PHÂN BỔ THEO THẦY HẢI: Ít nhất 4 Ngang, 3 Dọc, 2 Chéo!
-  const targetDirections = ['horiz', 'horiz', 'horiz', 'horiz', 'vert', 'vert', 'vert', 'diag', 'diag'];
+  // CHUẨN PHÂN BỔ THEO THẦY HẢI: Ít nhất 4 Ngang, 3 Dọc, 3 Chéo cho 10 từ vựng!
+  const targetDirections = ['horiz', 'horiz', 'horiz', 'horiz', 'vert', 'vert', 'vert', 'diag', 'diag', 'diag'];
   words.forEach((w, wIdx) => {
     let placed = false;
     let attempts = 0;
     const preferredDir = targetDirections[wIdx] || 'horiz';
-    while (!placed && attempts < 100) {
+    while (!placed && attempts < 150) {
       attempts++;
       const dirChoice = attempts < 50
         ? preferredDir
@@ -6017,15 +6031,12 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
         ctx.lineWidth = 3.5;
         ctx.stroke();
 
-        ctx.font = 'bold 20px sans-serif';
+        ctx.font = 'bold 22px sans-serif';
         ctx.fillStyle = '#0f172a';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('🎆 VÒNG XOAY', cx, cy - 22);
-        ctx.fillText('PHÁO HOA', cx, cy + 2);
-        ctx.font = 'bold 16px sans-serif';
-        ctx.fillStyle = '#475569';
-        ctx.fillText(`⭐ ${wordSearchData.placedWords.length} TỪ KHÓA`, cx, cy + 26);
+        ctx.fillText('🎆 VÒNG XOAY', cx, cy - 14);
+        ctx.fillText('PHÁO HOA', cx, cy + 14);
 
       } else {
         // MA TRẬN VUÔNG TRONG SUỐT CHO HS TÔ MÀU
@@ -9923,8 +9934,10 @@ Ann: How's your new neighbourhood?`}
                 <span>⏱️ {formatTimerMinSec(wordSearchTimeLeft)}</span>
               </span>
               {!isVersusMode ? (
-                <span className="bg-teal-900 px-3 py-1.5 rounded-xl border border-teal-700 text-teal-200">
-                  ⭐ Điểm: {wordSearchScore}
+                <span className="bg-teal-900 px-3.5 py-1.5 rounded-xl border border-teal-700 text-teal-200 font-extrabold flex items-center space-x-1.5 shadow-sm">
+                  <span>⭐ Điểm:</span>
+                  <span className="text-amber-300 font-black text-sm">{foundWordList.length}/10</span>
+                  <span className="text-teal-300 text-xs font-semibold">({foundWordList.length} Điểm)</span>
                 </span>
               ) : (
                 <div className="flex items-center space-x-2">
@@ -10074,14 +10087,11 @@ Ann: How's your new neighbourhood?`}
                     {/* Tâm Tròn Vòng Xoay Pháo Hoa Lung Linh (Chuẩn Ảnh 1) */}
                     <circle cx="260" cy="260" r="53" fill="#ffffff" stroke="#0f172a" strokeWidth="3" />
                     <circle cx="260" cy="260" r="48" fill="none" stroke="#64748b" strokeWidth="1" strokeDasharray="3 3" />
-                    <text x="260" y="238" textAnchor="middle" dominantBaseline="central" fill="#0f172a" fontSize="11" fontWeight="900" letterSpacing="0.8">
+                    <text x="260" y="248" textAnchor="middle" dominantBaseline="central" fill="#0f172a" fontSize="12" fontWeight="900" letterSpacing="0.8">
                       🎆 VÒNG XOAY
                     </text>
-                    <text x="260" y="256" textAnchor="middle" dominantBaseline="central" fill="#0f172a" fontSize="12" fontWeight="900" letterSpacing="0.5">
+                    <text x="260" y="270" textAnchor="middle" dominantBaseline="central" fill="#0f172a" fontSize="13" fontWeight="900" letterSpacing="0.5">
                       PHÁO HOA
-                    </text>
-                    <text x="260" y="274" textAnchor="middle" dominantBaseline="central" fill="#d97706" fontSize="11" fontWeight="900">
-                      ⭐ {foundWordList.length}/{wordSearchData.placedWords.length} TỪ KHÓA
                     </text>
                   </svg>
                   <p className="text-[12px] font-bold text-slate-700 pt-3 text-center flex items-center justify-center gap-1.5">
@@ -10231,8 +10241,9 @@ Ann: How's your new neighbourhood?`}
                     <span className="font-black text-base text-white">{formatTimerMinSec(300 - wordSearchTimeLeft)}</span>
                   </div>
                   <div className="flex flex-col items-center space-y-1 p-2 bg-amber-950/80 rounded-xl border border-amber-700/80">
-                    <span className="text-emerald-400 text-xs">🎯 Kết quả:</span>
-                    <span className="font-black text-base text-emerald-300">{foundWordList.length}/{wordSearchData.placedWords.length} từ</span>
+                    <span className="text-emerald-400 text-xs">🎯 Điểm số đạt được:</span>
+                    <span className="font-black text-base text-emerald-300">{foundWordList.length}/10 Điểm</span>
+                    <span className="text-[10px] text-amber-200 font-bold">({foundWordList.length === 10 ? '⭐ 10/10 Xuất Sắc!' : `Đạt ${foundWordList.length * 10}%`})</span>
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 w-full pt-2">
