@@ -1977,14 +1977,75 @@ const getWordVariants = (baseWord) => {
 };
 
 // HÀM TỰ ĐỘNG SINH CÂU THOẠI CHUẨN TỪ TOÀN BỘ TỪ VỰNG TIẾT HỌC
-const generateDialogueLinesFromVocab = (wordsList, grade = 'Lớp 7', section = 'SKILLS 2') => {
+const generateDialogueLinesFromVocab = (wordsList, grade = 'Lớp 7', section = 'SKILLS 2', mode = 'dialogue') => {
+  const isPassage = mode === 'passage';
   if (!Array.isArray(wordsList) || wordsList.length === 0) {
+    if (isPassage) {
+      return [
+        { speaker: 'Passage', text: 'Welcome to our reading passage today.', vi: 'Chào mừng các em đến với bài đọc hôm nay.' },
+        { speaker: 'Passage', text: 'Let us explore interesting ideas and practice reading comprehension together.', vi: 'Chúng ta hãy cùng khám phá những ý tưởng thú vị và luyện tập kỹ năng đọc hiểu nhé.' }
+      ];
+    }
     return [
       { speaker: 'Ann', text: 'Hi! Welcome to our new dialogue lesson.', vi: 'Chào bạn! Chào mừng đến với bài học hội thoại mới.' },
       { speaker: 'Nick', text: 'Thank you! I am ready to practice speaking.', vi: 'Cảm ơn bạn! Mình đã sẵn sàng thực hành nói.' }
     ];
   }
 
+  // NẾU LÀ CHẾ ĐỘ ĐOẠN VĂN / BÀI ĐỌC (PASSAGE): SINH BÀI ĐỌC HỌC THUẬT LIỀN MẠCH, KHÔNG PHÂN VAI NHÂN VẬT
+  if (isPassage) {
+    const lines = [];
+    lines.push({
+      speaker: 'Passage',
+      text: `In this ${section} lesson, we explore meaningful and exciting ideas about our topic.`,
+      vi: `Trong bài học ${section} này, chúng ta cùng khám phá những kiến thức ý nghĩa và bổ ích về chủ đề.`
+    });
+
+    const chunkSize = 2;
+    for (let i = 0; i < wordsList.length; i += chunkSize) {
+      const chunk = wordsList.slice(i, i + chunkSize);
+      const w1 = chunk[0];
+      const w2 = chunk[1];
+
+      if (w2) {
+        if (i === 0) {
+          lines.push({
+            speaker: 'Passage',
+            text: `First, understanding ${w1.word} (${w1.meaning}) is a great way to ${w2.word} (${w2.meaning}) effectively.`,
+            vi: `Đầu tiên, hiểu về ${w1.word} (${w1.meaning}) là cách tuyệt vời để ${w2.word} (${w2.meaning}) một cách hiệu quả.`
+          });
+        } else if (i === 2) {
+          lines.push({
+            speaker: 'Passage',
+            text: `In addition, discovering ${w1.word} (${w1.meaning}) helps us appreciate ${w2.word} (${w2.meaning}) even more.`,
+            vi: `Bên cạnh đó, việc khám phá ${w1.word} (${w1.meaning}) giúp chúng ta trân trọng ${w2.word} (${w2.meaning}) nhiều hơn.`
+          });
+        } else {
+          lines.push({
+            speaker: 'Passage',
+            text: `Furthermore, developing ${w1.word} (${w1.meaning}) brings useful knowledge alongside ${w2.word} (${w2.meaning}).`,
+            vi: `Hơn nữa, việc phát triển ${w1.word} (${w1.meaning}) mang lại kiến thức hữu ích bên cạnh ${w2.word} (${w2.meaning}).`
+          });
+        }
+      } else {
+        lines.push({
+          speaker: 'Passage',
+          text: `Finally, remember that ${w1.word} (${w1.meaning}) is an essential part of our daily learning.`,
+          vi: `Cuối cùng, hãy nhớ rằng ${w1.word} (${w1.meaning}) là một phần không thể thiếu trong việc học tập mỗi ngày.`
+        });
+      }
+    }
+
+    lines.push({
+      speaker: 'Passage',
+      text: `Overall, reading and practicing these concepts will improve your language skills significantly.`,
+      vi: `Nhìn chung, việc đọc và luyện tập các khái niệm này sẽ nâng cao kỹ năng ngôn ngữ của các em rõ rệt.`
+    });
+
+    return lines;
+  }
+
+  // NẾU LÀ CHẾ ĐỘ ĐOẠN HỘI THOẠI (DIALOGUE): PHÂN VAI ĐỐI THOẠI 2 NHÂN VẬT
   const speakers = ['Ann', 'Trang'];
   const lines = [];
 
@@ -2659,10 +2720,39 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     }
   };
 
-  // FEATURE: AI AUTO ROLE-ASSIGNER & SMART RAW TEXT PARSER
-  const handleAiAutoParseRawText = (rawText) => {
+  // FEATURE: AI AUTO ROLE-ASSIGNER & SMART RAW TEXT PARSER (SUPPORTS BOTH DIALOGUE & PASSAGE)
+  const handleAiAutoParseRawText = (rawText, mode = 'dialogue') => {
     if (!rawText || !rawText.trim()) return [];
-    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+    const clean = rawText.replace(/\r\n/g, '\n').trim();
+
+    // 1. CHẾ ĐỘ ĐOẠN VĂN / BÀI ĐỌC (PASSAGE): TÁCH CÂU THEO DẤU CHẤM CÂU HOẶC XUỐNG DÒNG, KHÔNG PHÂN VAI
+    if (mode === 'passage') {
+      // Regex tách câu thông minh: ngắt sau dấu chấm, chấm than, chấm hỏi kèm khoảng trắng hoặc ngắt dòng
+      const rawSentences = clean
+        .split(/(?<=[.!?])\s+|\n+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      const parsed = [];
+      rawSentences.forEach((sentence) => {
+        // Tự động gỡ bỏ các tiền tố tên nhân vật nếu người dùng lỡ copy có tên ở đầu câu (như Ann: hoặc 1.)
+        let textOnly = sentence.replace(/^([A-Za-z0-9\s._-]+)[:\-—]\s*/, '').trim();
+        if (!textOnly) textOnly = sentence;
+
+        parsed.push({
+          speaker: 'Passage',
+          text: textOnly,
+          vi: getVietnameseTranslation(textOnly) || 'Dịch: "' + textOnly + '"'
+        });
+      });
+
+      return parsed.length > 0 ? parsed : [
+        { speaker: 'Passage', text: clean, vi: 'Dịch: "' + clean + '"' }
+      ];
+    }
+
+    // 2. CHẾ ĐỘ ĐOẠN HỘI THOẠI (DIALOGUE): PHÂN VAI NHÂN VẬT THÔNG MINH
+    const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
     const parsed = [];
     const defaultSpeakers = ['Ann', 'Mi', 'Nick', 'Phong'];
     let spkIdx = 0;
@@ -2691,7 +2781,7 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
     });
 
     return parsed.length > 0 ? parsed : [
-      { speaker: 'Ann', text: rawText, vi: 'Dịch: "' + rawText + '"' }
+      { speaker: 'Ann', text: clean, vi: 'Dịch: "' + clean + '"' }
     ];
   };
 
@@ -2781,7 +2871,13 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   };
 
   const handleOpenEditDialogueModal = (tabObj) => {
-    setEditingDialogueObj(JSON.parse(JSON.stringify(tabObj)));
+    const clone = JSON.parse(JSON.stringify(tabObj));
+    if (!clone.contentType) {
+      const isSecPassage = (clone.section || selectedSection || '').toUpperCase().includes('SKILLS');
+      const isLinesPassage = Array.isArray(clone.lines) && clone.lines.length > 0 && clone.lines.every(l => (l.speaker || '').toLowerCase() === 'passage' || (l.speaker || '').toLowerCase() === 'narrator');
+      clone.contentType = isLinesPassage || isSecPassage ? 'passage' : 'dialogue';
+    }
+    setEditingDialogueObj(clone);
     setIsEditingDialogueModalOpen(true);
   };
 
@@ -7261,7 +7357,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-md transition transform hover:scale-105 cursor-pointer flex items-center space-x-1.5 border border-emerald-400"
                   >
                     <Volume2 className="w-4 h-4 text-amber-300 animate-bounce" />
-                    <span>▶️ Phát Toàn Bộ Hội Thoại</span>
+                    <span>▶️ {currentTabObjForSpeaker?.contentType === 'passage' ? 'Phát Toàn Bộ Đoạn Văn' : 'Phát Toàn Bộ Hội Thoại'}</span>
                   </button>
                 ) : (
                   <button
@@ -7299,27 +7395,29 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 onClick={handleDownloadDialogueAudio}
                 disabled={isDownloadingAudio}
                 className="px-3.5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-md transition transform hover:scale-105 cursor-pointer flex items-center space-x-1.5 border border-blue-300 disabled:opacity-50"
-                title="Tải về file Audio MP3/WAV bài hội thoại đa vai phát âm chuẩn Oxford"
+                title="Tải về file Audio MP3/WAV bài học phát âm chuẩn Oxford"
               >
                 <Download className="w-4 h-4 text-amber-300" />
-                <span>{isDownloadingAudio ? '⏳ Đang Xuất File Audio...' : '📥 Tải Audio Bài Thoại'}</span>
+                <span>{isDownloadingAudio ? '⏳ Đang Xuất File Audio...' : (currentTabObjForSpeaker?.contentType === 'passage' ? '📥 Tải Audio Đoạn Văn' : '📥 Tải Audio Bài Thoại')}</span>
               </button>
 
-              {/* TOGGLE CHẾ ĐỘ ĐÓNG VAI ROLE-PLAY */}
-              <button
-                type="button"
-                onClick={() => {
-                  handleStopDialogueAudio();
-                  setIsRolePlayMode(!isRolePlayMode);
-                }}
-                className={`px-3.5 py-2.5 rounded-2xl font-extrabold text-xs transition cursor-pointer flex items-center space-x-1.5 border shadow-sm ${
-                  isRolePlayMode
-                    ? 'bg-purple-700 text-white border-purple-400 ring-2 ring-purple-300'
-                    : 'bg-white text-purple-900 border-purple-300 hover:bg-purple-100'
-                }`}
-              >
-                <span>{isRolePlayMode ? '🎭 Chế Độ: ĐÓNG VAI (BẬT)' : '🎭 Chế Độ: THƯỜNG (TẮT)'}</span>
-              </button>
+              {/* TOGGLE CHẾ ĐỘ ĐÓNG VAI ROLE-PLAY (CHỈ DÀNH CHO BÀI HỘI THOẠI DIALOGUE) */}
+              {currentTabObjForSpeaker?.contentType !== 'passage' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleStopDialogueAudio();
+                    setIsRolePlayMode(!isRolePlayMode);
+                  }}
+                  className={`px-3.5 py-2.5 rounded-2xl font-extrabold text-xs transition cursor-pointer flex items-center space-x-1.5 border shadow-sm ${
+                    isRolePlayMode
+                      ? 'bg-purple-700 text-white border-purple-400 ring-2 ring-purple-300'
+                      : 'bg-white text-purple-900 border-purple-300 hover:bg-purple-100'
+                  }`}
+                >
+                  <span>{isRolePlayMode ? '🎭 Chế Độ: ĐÓNG VAI (BẬT)' : '🎭 Chế Độ: THƯỜNG (TẮT)'}</span>
+                </button>
+              )}
 
               {/* TOGGLE CHẾ ĐỘ LUYỆN NGHE ĐIỀN TỪ (FILL-IN-THE-BLANKS LISTENING) */}
               <button
@@ -7560,7 +7658,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                         : 'bg-white text-emerald-950 hover:bg-emerald-100 border border-emerald-300'
                     }`}
                   >
-                    <span>🗣️ {tab.title}</span>
+                    <span>{tab.contentType === 'passage' ? '📖 ' : '🗣️ '}{tab.title}</span>
                   </button>
                 );
               })}
@@ -7579,18 +7677,68 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
             >
               ✕
             </button>
-            <div className="flex items-center space-x-3 border-b pb-3 border-amber-100">
-              <span className="text-3xl">✏️</span>
-              <div>
-                <h3 className="font-black text-lg text-slate-950 uppercase tracking-wide">CHỈNH SỬA ĐOẠN HỘI THOẠI SGK</h3>
-                <p className="text-xs text-slate-600 font-bold">Thay đổi tiêu đề, phân loại khối lớp và chỉnh sửa từng câu thoại</p>
+            <div className="flex items-center justify-between border-b pb-3 border-amber-100">
+              <div className="flex items-center space-x-3">
+                <span className="text-3xl">{editingDialogueObj.contentType === 'passage' ? '📖' : '✏️'}</span>
+                <div>
+                  <h3 className="font-black text-lg text-slate-950 uppercase tracking-wide">
+                    {editingDialogueObj.contentType === 'passage' ? 'CHỈNH SỬA ĐOẠN VĂN / BÀI ĐỌC (PASSAGE)' : 'CHỈNH SỬA ĐOẠN HỘI THOẠI SGK'}
+                  </h3>
+                  <p className="text-xs text-slate-600 font-bold">
+                    {editingDialogueObj.contentType === 'passage' 
+                      ? 'Soạn thảo bài đọc/đoạn văn tiếng Anh SGK, tự động tách câu theo dấu câu (không phân vai)' 
+                      : 'Thay đổi tiêu đề, phân loại khối lớp và chỉnh sửa từng câu thoại phân vai nhân vật'}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
+            {/* TAB CÀI ĐẶT THỂ LOẠI NỘI DUNG THEO YÊU CẦU CỦA THẦY HẢI: DIALOGUE VS PASSAGE */}
+            <div className="flex items-center p-1.5 bg-slate-100 rounded-2xl border-2 border-slate-200 gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  const lines = (editingDialogueObj.lines || []).map((l, idx) => ({
+                    ...l,
+                    speaker: l.speaker === 'Passage' || !l.speaker ? (idx % 2 === 0 ? 'Ann' : 'Mi') : l.speaker
+                  }));
+                  setEditingDialogueObj({ ...editingDialogueObj, contentType: 'dialogue', lines });
+                }}
+                className={`flex-1 py-2 px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+                  (editingDialogueObj.contentType || 'dialogue') === 'dialogue'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60'
+                }`}
+              >
+                <span>💬</span>
+                <span>Đoạn Hội Thoại (Dialogue)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const lines = (editingDialogueObj.lines || []).map(l => ({
+                    ...l,
+                    speaker: 'Passage'
+                  }));
+                  setEditingDialogueObj({ ...editingDialogueObj, contentType: 'passage', lines });
+                }}
+                className={`flex-1 py-2 px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+                  editingDialogueObj.contentType === 'passage'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-950 hover:bg-slate-200/60'
+                }`}
+              >
+                <span>📖</span>
+                <span>Đoạn Văn / Bài Đọc (Passage)</span>
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-black text-slate-700 mb-1">📌 Tiêu Đề Đoạn Hội Thoại:</label>
+                  <label className="block text-xs font-black text-slate-700 mb-1">
+                    {editingDialogueObj.contentType === 'passage' ? '📌 Tiêu Đề Bài Đọc / Đoạn Văn:' : '📌 Tiêu Đề Đoạn Hội Thoại:'}
+                  </label>
                   <input
                     type="text"
                     value={editingDialogueObj.title}
@@ -7658,16 +7806,17 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   </div>
                 </div>
 
-                {/* V318 KHU VỰC TỰ ĐỘNG ĐỒNG BỘ TỪ VỰNG CỦA TIẾT HỌC VÀO HỘI THOẠI */}
+                {/* KHU VỰC TỰ ĐỘNG ĐỒNG BỘ TỪ VỰNG CỦA TIẾT HỌC VÀO BÀI (HỖ TRỢ CẢ DIALOGUE VÀ PASSAGE) */}
                 {(() => {
                   const currentSec = (editingDialogueObj.section || selectedSection || 'GETTING STARTED').toUpperCase();
                   const secVocabList = (vocabList || []).filter(item => (item.section || '').toUpperCase() === currentSec);
+                  const isPassage = editingDialogueObj.contentType === 'passage';
                   return (
-                    <div className="sm:col-span-3 bg-gradient-to-r from-amber-50 to-orange-50 p-3.5 rounded-2xl border-2 border-amber-300 space-y-2">
+                    <div className={`sm:col-span-3 p-3.5 rounded-2xl border-2 space-y-2 ${isPassage ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-300' : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300'}`}>
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center space-x-1.5">
-                          <span className="text-base">📚</span>
-                          <span className="text-xs font-black text-amber-950 uppercase">
+                          <span className="text-base">{isPassage ? '📖' : '📚'}</span>
+                          <span className={`text-xs font-black uppercase ${isPassage ? 'text-emerald-950' : 'text-amber-950'}`}>
                             Từ Vựng Đã Soạn Trong Tiết [{currentSec}] ({secVocabList.length} từ)
                           </span>
                         </div>
@@ -7675,18 +7824,19 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                           <button
                             type="button"
                             onClick={() => {
-                              const generated = generateDialogueLinesFromVocab(secVocabList, editingDialogueObj.grade || activityGrade, currentSec);
+                              const mode = editingDialogueObj.contentType || 'dialogue';
+                              const generated = generateDialogueLinesFromVocab(secVocabList, editingDialogueObj.grade || activityGrade, currentSec, mode);
                               setEditingDialogueObj({
                                 ...editingDialogueObj,
                                 lines: generated
                               });
                               playSuccessSound();
-                              alert(`🎉 Đã tự động nạp & sinh ${generated.length} câu thoại lồng ghép toàn bộ ${secVocabList.length} từ vựng của tiết [${currentSec}]!`);
+                              alert(`🎉 Đã tự động nạp & sinh ${generated.length} câu ${mode === 'passage' ? 'cho đoạn văn bài đọc (Passage)' : 'hội thoại phân vai'} lồng ghép toàn bộ ${secVocabList.length} từ vựng của tiết [${currentSec}]!`);
                             }}
-                            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs rounded-xl shadow-xs transition flex items-center space-x-1 cursor-pointer"
-                            title="Tự động sinh các câu thoại chứa toàn bộ từ vựng đã soạn ở tiết này"
+                            className={`px-3 py-1 ${isPassage ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'} text-white font-black text-xs rounded-xl shadow-xs transition flex items-center space-x-1 cursor-pointer`}
+                            title={isPassage ? 'Tự động sinh các câu bài đọc đoạn văn chứa toàn bộ từ vựng đã soạn ở tiết này' : 'Tự động sinh các câu thoại chứa toàn bộ từ vựng đã soạn ở tiết này'}
                           >
-                            <span>⚡ Nạp & Sinh Câu Thoại Chứa Toàn Bộ Từ Này</span>
+                            <span>⚡ {isPassage ? 'Nạp & Sinh Đoạn Văn Bài Đọc Chứa Toàn Bộ Từ Này' : 'Nạp & Sinh Câu Thoại Chứa Toàn Bộ Từ Này'}</span>
                           </button>
                         )}
                       </div>
@@ -7699,8 +7849,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                               type="button"
                               onClick={() => {
                                 const lines = [...editingDialogueObj.lines];
+                                const spk = editingDialogueObj.contentType === 'passage' ? 'Passage' : 'Ann';
                                 if (lines.length === 0) {
-                                  lines.push({ speaker: 'Ann', text: `Let's practice with ${vItem.word}.`, vi: `Hãy cùng luyện tập với ${vItem.word} (${vItem.meaning || ''}).` });
+                                  lines.push({ speaker: spk, text: `Let's practice with ${vItem.word}.`, vi: `Hãy cùng luyện tập với ${vItem.word} (${vItem.meaning || ''}).` });
                                 } else {
                                   const lastIdx = lines.length - 1;
                                   const curText = lines[lastIdx].text || '';
@@ -7713,7 +7864,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                                 playSuccessSound();
                               }}
                               className="inline-flex items-center space-x-1 px-2 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold text-xs rounded-lg border border-amber-300 cursor-pointer shadow-2xs transition"
-                              title={`Bấm để chèn từ [${vItem.word}] vào câu thoại cuối: ${vItem.meaning || ''}`}
+                              title={`Bấm để chèn từ [${vItem.word}] vào câu cuối: ${vItem.meaning || ''}`}
                             >
                               <span>✨</span>
                               <span>{vItem.word}</span>
@@ -7723,7 +7874,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                         </div>
                       ) : (
                         <p className="text-xs font-bold text-amber-800 italic">
-                          Tiết [{currentSec}] hiện chưa có từ vựng trong từ điển. Thầy có thể nhập câu thoại trực tiếp hoặc vào mục "Soạn Từ Vựng Studio" để nạp từ vựng cho tiết này!
+                          Tiết [{currentSec}] hiện chưa có từ vựng trong từ điển. Thầy có thể nhập nội dung trực tiếp hoặc vào mục "Soạn Từ Vựng Studio" để nạp từ vựng cho tiết này!
                         </p>
                       )}
                     </div>
@@ -7771,50 +7922,101 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                   </div>
                 )}
 
-                {/* AI AUTO ROLE-ASSIGNER PASTE BOX */}
-                <div className="sm:col-span-3 bg-purple-50 p-3.5 rounded-2xl border-2 border-purple-200 space-y-2">
-                  <label className="block text-xs font-black text-purple-950">✨ AI Tự Động Phân Vai Từ Văn Bản Thô (Paste Word/SGK):</label>
-                  <textarea
-                    rows={2}
-                    value={rawTextPasteInput}
-                    onChange={(e) => setRawTextPasteInput(e.target.value)}
-                    placeholder="Dán văn bản thô vào đây (Ví dụ: Ann: Hi Mi. How are you? \n Mi: I am fine thanks...)"
-                    className="w-full p-2.5 rounded-xl border border-purple-300 font-bold text-xs bg-white text-slate-900 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!rawTextPasteInput.trim()) {
-                        alert("Vui lòng dán đoạn văn bản thô trước!");
-                        return;
-                      }
-                      const parsedLines = handleAiAutoParseRawText(rawTextPasteInput);
-                      if (parsedLines.length > 0) {
-                        setEditingDialogueObj({ ...editingDialogueObj, lines: parsedLines });
-                        setRawTextPasteInput('');
-                        playSuccessSound();
-                        alert("🎉 AI đã phân tích & tự động phân vai thành công cho " + parsedLines.length + " câu thoại!");
-                      }
-                    }}
-                    className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center space-x-1"
-                  >
-                    <span>⚡ AI Tự Động Tách Vai & Gán Giọng Ngay</span>
-                  </button>
-                </div>
+                {/* KHU VỰC DÁN VĂN BẢN THÔ: TỰ ĐỘNG THÍCH ỨNG THEO DIALOGUE HOẶC PASSAGE */}
+                {editingDialogueObj.contentType === 'passage' ? (
+                  /* AI AUTO PASSAGE PARSER (KHÔNG PHÂN VAI) */
+                  <div className="sm:col-span-3 bg-emerald-50 p-3.5 rounded-2xl border-2 border-emerald-300 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-black text-emerald-950">
+                        📖 AI Tự Động Tách Câu Cho Đoạn Văn / Bài Đọc (Passage - Không Phân Vai):
+                      </label>
+                      <span className="text-[11px] font-black px-2 py-0.5 bg-emerald-200 text-emerald-900 rounded-full">
+                        Chế độ Bài đọc (Passage)
+                      </span>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={rawTextPasteInput}
+                      onChange={(e) => setRawTextPasteInput(e.target.value)}
+                      placeholder="Dán toàn bộ đoạn văn/bài đọc SGK vào đây (Ví dụ: My favourite hobby is making dollhouses. I started this hobby three years ago... AI sẽ tự động tách câu theo ngữ điệu/dấu câu, KHÔNG phân vai nhân vật)"
+                      className="w-full p-2.5 rounded-xl border border-emerald-300 font-bold text-xs bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!rawTextPasteInput.trim()) {
+                          alert("Vui lòng dán đoạn văn bản bài đọc trước!");
+                          return;
+                        }
+                        const parsedLines = handleAiAutoParseRawText(rawTextPasteInput, 'passage');
+                        if (parsedLines.length > 0) {
+                          setEditingDialogueObj({ ...editingDialogueObj, lines: parsedLines, contentType: 'passage' });
+                          setRawTextPasteInput('');
+                          playSuccessSound();
+                          alert("🎉 AI đã tách thành công " + parsedLines.length + " câu cho bài đọc (Passage) không phân vai!");
+                        }
+                      }}
+                      className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center space-x-1"
+                    >
+                      <span>⚡ AI Tự Động Tách Câu Đoạn Văn (Không Phân Vai)</span>
+                    </button>
+                  </div>
+                ) : (
+                  /* AI AUTO ROLE-ASSIGNER (PHÂN VAI HỘI THOẠI) */
+                  <div className="sm:col-span-3 bg-purple-50 p-3.5 rounded-2xl border-2 border-purple-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-black text-purple-950">
+                        ✨ AI Tự Động Phân Vai Từ Văn Bản Thô (Paste Word/SGK):
+                      </label>
+                      <span className="text-[11px] font-black px-2 py-0.5 bg-purple-200 text-purple-900 rounded-full">
+                        Chế độ Hội thoại (Dialogue)
+                      </span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={rawTextPasteInput}
+                      onChange={(e) => setRawTextPasteInput(e.target.value)}
+                      placeholder="Dán văn bản thô vào đây (Ví dụ: Ann: Hi Mi. How are you? \n Mi: I am fine thanks...)"
+                      className="w-full p-2.5 rounded-xl border border-purple-300 font-bold text-xs bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!rawTextPasteInput.trim()) {
+                          alert("Vui lòng dán đoạn văn bản thô trước!");
+                          return;
+                        }
+                        const parsedLines = handleAiAutoParseRawText(rawTextPasteInput, 'dialogue');
+                        if (parsedLines.length > 0) {
+                          setEditingDialogueObj({ ...editingDialogueObj, lines: parsedLines, contentType: 'dialogue' });
+                          setRawTextPasteInput('');
+                          playSuccessSound();
+                          alert("🎉 AI đã phân tích & tự động phân vai thành công cho " + parsedLines.length + " câu thoại!");
+                        }
+                      }}
+                      className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center space-x-1"
+                    >
+                      <span>⚡ AI Tự Động Tách Vai & Gán Giọng Ngay</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-black text-slate-800">💬 Danh Sách Các Câu Thoại:</label>
+                  <label className="text-xs font-black text-slate-800">
+                    {editingDialogueObj.contentType === 'passage' ? '📖 Danh Sách Các Câu Trong Đoạn Văn (Passage):' : '💬 Danh Sách Các Câu Thoại:'}
+                  </label>
                   <button
                     type="button"
                     onClick={() => {
-                      const lines = [...editingDialogueObj.lines, { speaker: 'Ann', text: '', vi: '' }];
+                      const spk = editingDialogueObj.contentType === 'passage' ? 'Passage' : 'Ann';
+                      const lines = [...editingDialogueObj.lines, { speaker: spk, text: '', vi: '' }];
                       setEditingDialogueObj({ ...editingDialogueObj, lines });
                     }}
-                    className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-lg transition cursor-pointer"
+                    className={`px-2.5 py-1 ${editingDialogueObj.contentType === 'passage' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} text-white font-black text-xs rounded-lg transition cursor-pointer`}
                   >
-                    ➕ Thêm Câu Thoại
+                    ➕ {editingDialogueObj.contentType === 'passage' ? 'Thêm Câu Bài Đọc' : 'Thêm Câu Thoại'}
                   </button>
                 </div>
 
@@ -7824,17 +8026,24 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center space-x-2">
                           <span className="text-xs font-black text-slate-500"># {lIdx + 1}</span>
-                          <input
-                            type="text"
-                            value={line.speaker}
-                            onChange={(e) => {
-                              const lines = [...editingDialogueObj.lines];
-                              lines[lIdx].speaker = e.target.value;
-                              setEditingDialogueObj({ ...editingDialogueObj, lines });
-                            }}
-                            placeholder="Tên nhân vật (Ví dụ: Ann, Mi, Nick)"
-                            className="px-2.5 py-1 rounded-lg border border-slate-300 font-black text-xs w-36 bg-white"
-                          />
+                          {editingDialogueObj.contentType === 'passage' ? (
+                            <span className="px-2.5 py-1 bg-emerald-100 text-emerald-950 font-black text-xs rounded-lg border border-emerald-300 flex items-center space-x-1 shadow-2xs">
+                              <span>📖</span>
+                              <span>Câu #{lIdx + 1} (Passage)</span>
+                            </span>
+                          ) : (
+                            <input
+                              type="text"
+                              value={line.speaker}
+                              onChange={(e) => {
+                                const lines = [...editingDialogueObj.lines];
+                                lines[lIdx].speaker = e.target.value;
+                                setEditingDialogueObj({ ...editingDialogueObj, lines });
+                              }}
+                              placeholder="Tên nhân vật (Ví dụ: Ann, Mi, Nick)"
+                              className="px-2.5 py-1 rounded-lg border border-slate-300 font-black text-xs w-36 bg-white"
+                            />
+                          )}
                         </div>
 
                         {/* PRECISION TIMESTAMP TIMELINE INPUTS */}
@@ -7852,7 +8061,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             }}
                             placeholder="Bắt đầu (s)"
                             className="w-14 px-1.5 py-0.5 rounded border border-slate-300 text-xs font-black text-center bg-white"
-                            title="Giây bắt đầu câu thoại trong audio MP3"
+                            title="Giây bắt đầu câu trong audio MP3"
                           />
                           <span className="text-xs text-slate-400">➔</span>
                           <input
@@ -7867,7 +8076,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             }}
                             placeholder="Kết thúc (s)"
                             className="w-14 px-1.5 py-0.5 rounded border border-slate-300 text-xs font-black text-center bg-white"
-                            title="Giây kết thúc câu thoại trong audio MP3"
+                            title="Giây kết thúc câu trong audio MP3"
                           />
                           {editingDialogueObj.audioUrl && (
                             <button
@@ -7910,7 +8119,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                             lines[lIdx].text = e.target.value;
                             setEditingDialogueObj({ ...editingDialogueObj, lines });
                           }}
-                          placeholder="Câu thoại Tiếng Anh..."
+                          placeholder={editingDialogueObj.contentType === 'passage' ? "Câu Tiếng Anh trong đoạn văn..." : "Câu thoại Tiếng Anh..."}
                           className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-bold text-xs bg-white mb-1"
                         />
                         <input
@@ -7934,9 +8143,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                 <button
                   type="button"
                   onClick={handleSaveEditedDialogue}
-                  className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-2xl shadow-md transition cursor-pointer text-center"
+                  className={`flex-1 py-3 ${editingDialogueObj.contentType === 'passage' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-slate-950'} font-black text-sm rounded-2xl shadow-md transition cursor-pointer text-center`}
                 >
-                  💾 Lưu Thay Đổi Đoạn Hội Thoại
+                  💾 {editingDialogueObj.contentType === 'passage' ? 'Lưu Thay Đổi Đoạn Văn (Passage)' : 'Lưu Thay Đổi Đoạn Hội Thoại'}
                 </button>
                 <button
                   type="button"
@@ -8110,6 +8319,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
 
                     return activeTabObj.lines.map((line, idx) => {
                       const isHighlighted = playingDialogueLineIndex === idx;
+                      const isPassage = activeTabObj?.contentType === 'passage' || (line.speaker || '').toLowerCase() === 'passage' || (line.speaker || '').toLowerCase() === 'narrator';
                       const gender = getSpeakerGender(line.speaker);
                       const isFemale = gender === 'female';
                       const isUserTurnLine = isRolePlayMode && (line.speaker || '').toLowerCase() === userSelectedCharacter.toLowerCase();
@@ -8126,18 +8336,27 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                               ? 'bg-purple-50/70 text-slate-950 font-bold border-2 border-purple-400 shadow-md ring-2 ring-purple-300'
                               : isUserTurnLine && isWaitingForUserRead && rolePlayStepIndex === idx
                               ? 'bg-emerald-100 text-emerald-950 font-bold border-2 border-emerald-500 shadow-md ring-4 ring-emerald-300 animate-pulse'
+                              : isPassage
+                              ? 'bg-white text-slate-900 border-slate-200 hover:border-emerald-300 shadow-2xs'
                               : 'bg-white text-slate-900 border-slate-200 hover:border-purple-300 shadow-2xs'
                           }`}
                         >
                           <div className="space-y-1 grow">
                             <div className="flex flex-wrap items-center gap-2">
-                              {/* PRECISE GENDER SPEAKER BADGE */}
-                              <span className={`text-xs font-black uppercase px-2.5 py-1 rounded-lg text-white shadow-2xs print:text-black print:bg-slate-200 shrink-0 flex items-center space-x-1 ${
-                                isFemale ? 'bg-purple-600 border border-purple-400' : 'bg-indigo-600 border border-indigo-400'
-                              }`}>
-                                <span>{isFemale ? '👩' : '👨'}</span>
-                                <span>{line.speaker}:</span>
-                              </span>
+                              {/* PRECISE GENDER / PASSAGE BADGE */}
+                              {isPassage ? (
+                                <span className="text-xs font-black uppercase px-2.5 py-1 rounded-lg text-emerald-950 bg-emerald-100 border border-emerald-300 shrink-0 flex items-center space-x-1 shadow-2xs print:bg-slate-200 print:text-black">
+                                  <span>📖</span>
+                                  <span>Câu #{idx + 1}</span>
+                                </span>
+                              ) : (
+                                <span className={`text-xs font-black uppercase px-2.5 py-1 rounded-lg text-white shadow-2xs print:text-black print:bg-slate-200 shrink-0 flex items-center space-x-1 ${
+                                  isFemale ? 'bg-purple-600 border border-purple-400' : 'bg-indigo-600 border border-indigo-400'
+                                }`}>
+                                  <span>{isFemale ? '👩' : '👨'}</span>
+                                  <span>{line.speaker}:</span>
+                                </span>
+                              )}
 
                               {/* SENTENCE TEXT WITH REAL-TIME KARAOKE WORD HIGHLIGHTING & KEYWORD TOOLTIPS */}
                               <div className={`text-sm sm:text-base font-black leading-snug grow ${isHighlighted ? 'text-blue-700 font-black' : 'text-slate-900'}`}>
