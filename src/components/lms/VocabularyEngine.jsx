@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { uploadLMSFile } from '../../lib/supabase';
 import { getSiteSetting, saveSiteSetting, subscribeSiteSetting } from '../../services/siteSettingsService';
+import { fetchAccurateTranslation, translateLinesBatch, isBadOrMockTranslation, cleanVietnameseText } from '../../services/translationService';
 
 // DIALOGUE KEYWORDS DICTIONARY FOR INTERACTIVE TOOLTIPS (V298)
 const DIALOGUE_KEY_WORDS_DICT = {
@@ -289,126 +290,26 @@ const translationCache = new Map();
 
 const fetchRealTranslation = async (textEn) => {
   if (!textEn) return '';
-  if (translationCache.has(textEn)) return translationCache.get(textEn);
+  const trimmed = textEn.trim();
+  if (translationCache.has(trimmed)) return translationCache.get(trimmed);
 
-  try {
-    const url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=" + encodeURIComponent(textEn);
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      const translated = data?.[0]?.map((item) => item[0]).join('').trim();
-      if (translated && translated !== textEn) {
-        const result = "Dịch: \"" + translated + "\"";
-        translationCache.set(textEn, result);
-        return result;
-      }
-    }
-  } catch (err) {
-    console.error('Translation error:', err);
+  const res = await fetchAccurateTranslation(trimmed);
+  if (res) {
+    translationCache.set(trimmed, res);
+    return res;
   }
   return '';
 };
 
 const getVietnameseTranslation = (enText, targetWord = '') => {
   if (!enText) return '';
-  if (translationCache.has(enText)) return translationCache.get(enText);
+  const trimmed = enText.trim();
+  if (translationCache.has(trimmed)) return translationCache.get(trimmed);
 
-  const lower = enText.toLowerCase();
+  // Kích hoạt nạp dịch ngầm vào bộ đệm cache
+  fetchRealTranslation(trimmed);
 
-  // Pattern matching dictionary for Grade 7, 8, 9 vocabulary examples
-  if (lower.includes('she packed her books in cardboard boxes')) {
-    return 'Dịch: "Cô ấy đã đóng gói sách của mình vào các hộp bìa các tông."';
-  } else if (lower.includes('opened the cardboard box') && lower.includes('took out each item')) {
-    return 'Dịch: "Anh ấy đã mở hộp bìa các tông và lấy từng món đồ ra."';
-  } else if (lower.includes('creativity') && (lower.includes('daily') || lower.includes('conversation'))) {
-    return 'Dịch: "Sự sáng tạo rất hữu ích trong giao tiếp hàng ngày."';
-  } else if (lower.includes('cardboard') && lower.includes('dollhouse')) {
-    return 'Dịch: "Trang sử dụng bìa các tông để làm nhà mô hình cho búp bê."';
-  } else if (lower.includes('gardening') && (lower.includes('nature') || lower.includes('plant') || lower.includes('flowers'))) {
-    return 'Dịch: "Làm vườn là một sở thích tuyệt vời giúp kết nối với thiên nhiên."';
-  } else if (lower.includes('gardening')) {
-    return 'Dịch: "Làm vườn mang lại nhiều lợi ích cho sức khỏe và sự thư thái tâm hồn."';
-  } else if (lower.includes('patient') || lower.includes('patience')) {
-    return 'Dịch: "Rèn luyện tính kiên nhẫn giúp bạn vượt qua mọi khó khăn."';
-  } else if (lower.includes('responsibility')) {
-    return 'Dịch: "Trách nhiệm giúp mỗi người trưởng thành hơn trong cuộc sống."';
-  } else if (lower.includes('maturity')) {
-    return 'Dịch: "Sự trưởng thành thể hiện qua thái độ sống tích cực và ứng xử."';
-  } else if (lower.includes('insect') || lower.includes('insects')) {
-    return 'Dịch: "Các loài côn trùng nhỏ đóng vai trò quan trọng trong hệ sinh thái."';
-  } else if (lower.includes('glue')) {
-    return 'Dịch: "Dùng keo dán để gắn kết các chi tiết của sản phẩm thủ công."';
-  } else if (lower.includes('horse riding') || lower.includes('ride a horse')) {
-    return 'Dịch: "Cưỡi ngựa là một môn thể thao rất thú vị và rèn luyện thể lực tốt."';
-  } else if (lower.includes('making models') || lower.includes('build models')) {
-    return 'Dịch: "Làm nhà mô hình là sở thích được nhiều bạn học sinh yêu thích."';
-  } else if (lower.includes('bat trang')) {
-    return 'Dịch: "Bát Tràng là một trong những làng nghề gốm sứ truyền thống nổi tiếng nhất."';
-  } else if (lower.includes('suburb')) {
-    return 'Dịch: "Khu vực ngoại ô rất yên bình với nhiều cây xanh và không khí trong lành."';
-  } else if (lower.includes('clay') && lower.includes('vase')) {
-    return 'Dịch: "Các nghệ nhân nặn đất sét ướt trên bàn xoay để làm thành những chiếc bình gốm tuyệt đẹp."';
-  } else if (lower.includes('clay')) {
-    return 'Dịch: "Đất sét là nguyên liệu chính để tạo nên các sản phẩm gốm sứ độc đáo."';
-  } else if (lower.includes('function') && lower.includes('preserve traditional pottery skills')) {
-    return 'Dịch: "Chức năng chính của làng nghề này là bảo tồn các kỹ thuật làm gốm truyền thống."';
-  } else if (lower.includes('function') && lower.includes('artisan workshop')) {
-    return 'Dịch: "Mỗi dụng cụ trong xưởng của nghệ nhân đều có một chức năng cụ thể."';
-  } else if (lower.includes('fragrance') && lower.includes('lotus tea')) {
-    return 'Dịch: "Hương thơm ngọt ngào của trà sen thu hút rất nhiều du khách đến thăm làng."';
-  } else if (lower.includes('fragrance') && lower.includes('spring flowers')) {
-    return 'Dịch: "Những bông hoa mùa xuân mang đến hương thơm tự nhiên tươi mát cho cả khu phố."';
-  } else if (lower.includes('original beauty') && lower.includes('bat trang')) {
-    return 'Dịch: "Các sản phẩm Bát Tràng vẫn giữ được nét đẹp nguyên bản và thiết kế đặc trưng."';
-  } else if (lower.includes('preserve') && lower.includes('pottery-making methods')) {
-    return 'Dịch: "Các nghệ nhân địa phương nỗ lực hết mình để bảo tồn phương pháp làm gốm cổ truyền cho các thế hệ tương lai."';
-  } else if (lower.includes('preserve') && lower.includes('craft villages')) {
-    return 'Dịch: "Chúng ta nên bảo tồn các làng nghề thủ công truyền thống như một phần của văn hóa dân tộc."';
-  } else if (lower.includes('process') && lower.includes('ceramic teapot')) {
-    return 'Dịch: "Làm ra một chiếc ấm trà gốm hoàn chỉnh là một quy trình dài và tỉ mỉ."';
-  } else if (lower.includes('process') && lower.includes('kiln')) {
-    return 'Dịch: "Hãy làm theo quy trình từng bước để nung nồi đất sét đúng cách trong lò."';
-  } else if (lower.includes('shorten') && lower.includes('bake pottery')) {
-    return 'Dịch: "Máy móc hiện đại giúp các nghệ nhân rút ngắn thời gian cần thiết để nung gốm."';
-  } else if (lower.includes('shorten') && lower.includes('travel time')) {
-    return 'Dịch: "Cây cầu mới sẽ rút ngắn thời gian đi lại giữa làng nghề và trung tâm thành phố."';
-  } else if (lower.includes('symbolise') && lower.includes('lotus flower')) {
-    return 'Dịch: "Họa tiết hoa sen trên những chiếc bình tượng trưng cho sự thuần khiết và bình yên trong văn hóa Việt Nam."';
-  } else if (lower.includes('symbolise') && lower.includes('dragons')) {
-    return 'Dịch: "Hình tượng rồng trong các đồ thủ công truyền thống tượng trưng cho quyền lực cao quý và sự thịnh vượng."';
-  } else if (lower.includes('technique') && lower.includes('painting techniques')) {
-    return 'Dịch: "Các bậc thầy làm gốm truyền lại kỹ thuật vẽ bí truyền cho con cháu họ."';
-  } else if (lower.includes('technique') && lower.includes('regular practice')) {
-    return 'Dịch: "Học kỹ thuật làm gốm này đòi hỏi nhiều năm kiên trì luyện tập đều đặn."';
-  } else if (lower.includes('tourist attraction') && lower.includes('bat trang')) {
-    return 'Dịch: "Làng nghề Bát Tràng là một trong những điểm thu hút khách du lịch nổi tiếng nhất gần Hà Nội."';
-  } else if (lower.includes('tourist attraction') && lower.includes('ancient street')) {
-    return 'Dịch: "Khu phố cổ đã trở thành một điểm đến du lịch thu hút đông đảo du khách trong và ngoài nước."';
-  } else if (lower.includes('mind map') && lower.includes('organize information')) {
-    return 'Dịch: "Vẽ sơ đồ tư duy giúp bạn sắp xếp thông tin mạch lạc trước khi viết."';
-  } else if (lower.includes('dollhouse curtains') && lower.includes('pieces of colourful cloth')) {
-    return 'Dịch: "Bạn ấy sử dụng những mảnh vải nhiều màu sắc để làm rèm cho nhà búp bê."';
-  }
-
-  // Trigger background async translation fetch to populate cache for next renders
-  fetchRealTranslation(enText);
-
-  // Smart word-by-word fallback if offline
-  const dict = {
-    'she': 'Cô ấy', 'he': 'Anh ấy', 'packed': 'đóng gói', 'her': 'của cô ấy', 'his': 'của anh ấy',
-    'books': 'sách', 'in': 'trong', 'cardboard': 'bìa các tông', 'boxes': 'các hộp', 'box': 'hộp',
-    'opened': 'đã mở', 'the': '', 'and': 'và', 'took': 'lấy', 'out': 'ra', 'each': 'mỗi',
-    'item': 'món đồ', 'creativity': 'Sự sáng tạo', 'is': 'thì/là', 'very': 'rất', 'useful': 'hữu ích',
-    'daily': 'hàng ngày', 'conversation': 'giao tiếp'
-  };
-
-  const words = enText.split(' ');
-  const translated = words.map(w => {
-    const clean = w.toLowerCase().replace(/[^a-z]/g, '');
-    return dict[clean] || w;
-  }).join(' ');
-
-  return 'Dịch: "' + translated + '"';
+  return '';
 };
 
 // PALETTE 16 MÀU SẮC RỰC RỠ PHÁO HOA CHO CÁC TỪ KHÓA TÌM THẤY (KHÔNG DÙNG MÀU TỐI, TƯƠI SÁNG ĐỘC NHẤT)
@@ -2175,6 +2076,8 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   // CHẾ ĐỘ XEM ĐOẠN VĂN LIỀN MẠCH CHUẨN SÁCH GIÁO KHOA IN (CONTINUOUS READING VIEW)
   const [isContinuousView, setIsContinuousView] = useState(false);
   const [showContinuousTranslation, setShowContinuousTranslation] = useState(false);
+  const [isAiTranslatingLines, setIsAiTranslatingLines] = useState(false);
+  const [isRetranslatingTab, setIsRetranslatingTab] = useState(false);
 
   // INTERACTIVE SGK DIALOGUE LESSON STATE (SUPABASE PERSISTENCE & REALTIME AUTO-RESTORE)
   const [dialogueTabs, setDialogueTabs] = useState(() => {
@@ -2394,6 +2297,77 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       setUserSelectedCharacter(dialogueSpeakers[0]);
     }
   }, [dialogueSpeakers]);
+
+  // CHỨC NĂNG DỊCH LẠI TOÀN BỘ BÀI ĐỌC / BÀI THOẠI CHUẨN XÁC 100% THEO CHUẨN SGK
+  const handleRetranslateCurrentTab = async () => {
+    const targetTab = currentTabObjForSpeaker;
+    if (!targetTab || !Array.isArray(targetTab.lines) || targetTab.lines.length === 0) {
+      alert('Không có câu nào trong bài để dịch!');
+      return;
+    }
+
+    try {
+      setIsRetranslatingTab(true);
+      const updatedLines = await Promise.all(
+        targetTab.lines.map(async (line) => {
+          const accurateVi = await fetchAccurateTranslation(line.text);
+          return {
+            ...line,
+            vi: accurateVi || cleanVietnameseText(line.vi) || line.text
+          };
+        })
+      );
+
+      const updatedTabs = dialogueTabs.map(tab => {
+        if (tab.id === targetTab.id) {
+          return { ...tab, lines: updatedLines };
+        }
+        return tab;
+      });
+
+      persistDialogueTabs(updatedTabs);
+      playSuccessSound();
+      alert(`🎉 Đã dịch chuẩn thành công ${updatedLines.length} câu theo chuẩn SGK!`);
+    } catch (err) {
+      console.error('Lỗi khi dịch lại bài:', err);
+      alert('Đã xảy ra lỗi khi kết nối dịch thuật. Vui lòng thử lại!');
+    } finally {
+      setIsRetranslatingTab(false);
+    }
+  };
+
+  // AUTO-HEAL: TỰ ĐỘNG PHÁT HIỆN VÀ SỬA BẢN DỊCH GIẢ / DỊCH SAI TRONG BÀI ĐANG XEM
+  useEffect(() => {
+    const targetTab = currentTabObjForSpeaker;
+    if (!targetTab || !Array.isArray(targetTab.lines) || targetTab.lines.length === 0) return;
+
+    const hasBadTranslations = targetTab.lines.some(l => isBadOrMockTranslation(l.vi, l.text));
+    if (!hasBadTranslations) return;
+
+    let isCancelled = false;
+    (async () => {
+      try {
+        const fixedLines = await Promise.all(
+          targetTab.lines.map(async (l) => {
+            if (isBadOrMockTranslation(l.vi, l.text)) {
+              const accurate = await fetchAccurateTranslation(l.text);
+              return { ...l, vi: accurate || cleanVietnameseText(l.vi) || l.text };
+            }
+            return { ...l, vi: cleanVietnameseText(l.vi) };
+          })
+        );
+
+        if (!isCancelled) {
+          const nextTabs = dialogueTabs.map(t => t.id === targetTab.id ? { ...t, lines: fixedLines } : t);
+          persistDialogueTabs(nextTabs);
+        }
+      } catch (err) {
+        console.warn('Auto-heal translations error:', err);
+      }
+    })();
+
+    return () => { isCancelled = true; };
+  }, [currentTabObjForSpeaker?.id, currentTabObjForSpeaker?.lines?.length]);
   
   // WEB AUDIO API AMBIENT SOUND GENERATOR (V298)
   const playAmbientSoundEffect = (type = 'chime') => {
@@ -2725,68 +2699,71 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   };
 
   // FEATURE: AI AUTO ROLE-ASSIGNER & SMART RAW TEXT PARSER (SUPPORTS BOTH DIALOGUE & PASSAGE)
-  const handleAiAutoParseRawText = (rawText, mode = 'dialogue') => {
+  const handleAiAutoParseRawText = async (rawText, mode = 'dialogue') => {
     if (!rawText || !rawText.trim()) return [];
     const clean = rawText.replace(/\r\n/g, '\n').trim();
+    setIsAiTranslatingLines(true);
+    let rawLines = [];
 
-    // 1. CHẾ ĐỘ ĐOẠN VĂN / BÀI ĐỌC (PASSAGE): TÁCH CÂU THEO DẤU CHẤM CÂU HOẶC XUỐNG DÒNG, KHÔNG PHÂN VAI
-    if (mode === 'passage') {
-      // Regex tách câu thông minh: ngắt sau dấu chấm, chấm than, chấm hỏi kèm khoảng trắng hoặc ngắt dòng
-      const rawSentences = clean
-        .split(/(?<=[.!?])\s+|\n+/)
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
+    try {
+      // 1. CHẾ ĐỘ ĐOẠN VĂN / BÀI ĐỌC (PASSAGE): TÁCH CÂU THEO DẤU CHẤM CÂU HOẶC XUỐNG DÒNG, KHÔNG PHÂN VAI
+      if (mode === 'passage') {
+        const rawSentences = clean
+          .split(/(?<=[.!?])\s+|\n+/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
 
-      const parsed = [];
-      rawSentences.forEach((sentence) => {
-        // Tự động gỡ bỏ các tiền tố tên nhân vật nếu người dùng lỡ copy có tên ở đầu câu (như Ann: hoặc 1.)
-        let textOnly = sentence.replace(/^([A-Za-z0-9\s._-]+)[:\-—]\s*/, '').trim();
-        if (!textOnly) textOnly = sentence;
-
-        parsed.push({
-          speaker: 'Passage',
-          text: textOnly,
-          vi: getVietnameseTranslation(textOnly) || 'Dịch: "' + textOnly + '"'
+        rawSentences.forEach((sentence) => {
+          let textOnly = sentence.replace(/^([A-Za-z0-9\s._-]+)[:\-—]\s*/, '').trim();
+          if (!textOnly) textOnly = sentence;
+          rawLines.push({
+            speaker: 'Passage',
+            text: textOnly,
+            vi: ''
+          });
         });
-      });
-
-      return parsed.length > 0 ? parsed : [
-        { speaker: 'Passage', text: clean, vi: 'Dịch: "' + clean + '"' }
-      ];
-    }
-
-    // 2. CHẾ ĐỘ ĐOẠN HỘI THOẠI (DIALOGUE): PHÂN VAI NHÂN VẬT THÔNG MINH
-    const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
-    const parsed = [];
-    const defaultSpeakers = ['Ann', 'Mi', 'Nick', 'Phong'];
-    let spkIdx = 0;
-
-    lines.forEach((line) => {
-      let speaker = '';
-      let text = line;
-
-      // Match "Speaker: Text" or "Speaker - Text"
-      const match = line.match(/^([A-Za-z0-9\s._-]+)[:\-—](.+)$/);
-      if (match) {
-        speaker = match[1].trim();
-        text = match[2].trim();
       } else {
-        speaker = defaultSpeakers[spkIdx % defaultSpeakers.length];
-        spkIdx++;
-      }
+        // 2. CHẾ ĐỘ ĐOẠN HỘI THOẠI (DIALOGUE): PHÂN VAI NHÂN VẬT THÔNG MINH
+        const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
+        const defaultSpeakers = ['Ann', 'Mi', 'Nick', 'Phong'];
+        let spkIdx = 0;
 
-      if (text) {
-        parsed.push({
-          speaker: speaker || 'Ann',
-          text: text,
-          vi: getVietnameseTranslation(text) || 'Dịch: "' + text + '"'
+        lines.forEach((line) => {
+          let speaker = '';
+          let text = line;
+
+          const match = line.match(/^([A-Za-z0-9\s._-]+)[:\-—](.+)$/);
+          if (match) {
+            speaker = match[1].trim();
+            text = match[2].trim();
+          } else {
+            speaker = defaultSpeakers[spkIdx % defaultSpeakers.length];
+            spkIdx++;
+          }
+
+          if (text) {
+            rawLines.push({
+              speaker: speaker || 'Ann',
+              text: text,
+              vi: ''
+            });
+          }
         });
       }
-    });
 
-    return parsed.length > 0 ? parsed : [
-      { speaker: 'Ann', text: clean, vi: 'Dịch: "' + clean + '"' }
-    ];
+      if (rawLines.length === 0) {
+        rawLines = [{ speaker: mode === 'passage' ? 'Passage' : 'Ann', text: clean, vi: '' }];
+      }
+
+      // SỬ DỤNG TRANSLATION SERVICE ĐỂ DỊCH ĐỒNG LOẠT CHUẨN XÁC TOÀN BỘ CÂU
+      const translatedLines = await translateLinesBatch(rawLines);
+      return translatedLines;
+    } catch (err) {
+      console.error('Lỗi khi AI phân tích và dịch bài:', err);
+      return rawLines.map(l => ({ ...l, vi: l.text }));
+    } finally {
+      setIsAiTranslatingLines(false);
+    }
   };
 
   // EDIT & DELETE DIALOGUE HANDLERS
@@ -7962,22 +7939,23 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     />
                     <button
                       type="button"
-                      onClick={() => {
+                      disabled={isAiTranslatingLines}
+                      onClick={async () => {
                         if (!rawTextPasteInput.trim()) {
                           alert("Vui lòng dán đoạn văn bản bài đọc trước!");
                           return;
                         }
-                        const parsedLines = handleAiAutoParseRawText(rawTextPasteInput, 'passage');
+                        const parsedLines = await handleAiAutoParseRawText(rawTextPasteInput, 'passage');
                         if (parsedLines.length > 0) {
                           setEditingDialogueObj({ ...editingDialogueObj, lines: parsedLines, contentType: 'passage' });
                           setRawTextPasteInput('');
                           playSuccessSound();
-                          alert("🎉 AI đã tách thành công " + parsedLines.length + " câu cho bài đọc (Passage) không phân vai!");
+                          alert("🎉 AI đã tách và dịch chuẩn xác " + parsedLines.length + " câu cho bài đọc (Passage)!");
                         }
                       }}
-                      className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center space-x-1"
+                      className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center space-x-1 disabled:opacity-50"
                     >
-                      <span>⚡ AI Tự Động Tách Câu Đoạn Văn (Không Phân Vai)</span>
+                      <span>{isAiTranslatingLines ? '⏳ Đang Tách Câu & Dịch Chuẩn SGK...' : '⚡ AI Tự Động Tách Câu & Dịch Chuẩn Đoạn Văn (Không Phân Vai)'}</span>
                     </button>
                   </div>
                 ) : (
@@ -8000,43 +7978,69 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                     />
                     <button
                       type="button"
-                      onClick={() => {
+                      disabled={isAiTranslatingLines}
+                      onClick={async () => {
                         if (!rawTextPasteInput.trim()) {
                           alert("Vui lòng dán đoạn văn bản thô trước!");
                           return;
                         }
-                        const parsedLines = handleAiAutoParseRawText(rawTextPasteInput, 'dialogue');
+                        const parsedLines = await handleAiAutoParseRawText(rawTextPasteInput, 'dialogue');
                         if (parsedLines.length > 0) {
                           setEditingDialogueObj({ ...editingDialogueObj, lines: parsedLines, contentType: 'dialogue' });
                           setRawTextPasteInput('');
                           playSuccessSound();
-                          alert("🎉 AI đã phân tích & tự động phân vai thành công cho " + parsedLines.length + " câu thoại!");
+                          alert("🎉 AI đã phân tích & dịch chuẩn xác " + parsedLines.length + " câu thoại!");
                         }
                       }}
-                      className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center space-x-1"
+                      className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center space-x-1 disabled:opacity-50"
                     >
-                      <span>⚡ AI Tự Động Tách Vai & Gán Giọng Ngay</span>
+                      <span>{isAiTranslatingLines ? '⏳ Đang Phân Vai & Dịch Chuẩn SGK...' : '⚡ AI Tự Động Tách Vai & Dịch Chuẩn Ngay'}</span>
                     </button>
                   </div>
                 )}
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <label className="text-xs font-black text-slate-800">
                     {editingDialogueObj.contentType === 'passage' ? '📖 Danh Sách Các Câu Trong Đoạn Văn (Passage):' : '💬 Danh Sách Các Câu Thoại:'}
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const spk = editingDialogueObj.contentType === 'passage' ? 'Passage' : 'Ann';
-                      const lines = [...editingDialogueObj.lines, { speaker: spk, text: '', vi: '' }];
-                      setEditingDialogueObj({ ...editingDialogueObj, lines });
-                    }}
-                    className={`px-2.5 py-1 ${editingDialogueObj.contentType === 'passage' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} text-white font-black text-xs rounded-lg transition cursor-pointer`}
-                  >
-                    ➕ {editingDialogueObj.contentType === 'passage' ? 'Thêm Câu Bài Đọc' : 'Thêm Câu Thoại'}
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      disabled={isAiTranslatingLines}
+                      onClick={async () => {
+                        if (!editingDialogueObj?.lines || editingDialogueObj.lines.length === 0) return;
+                        setIsAiTranslatingLines(true);
+                        try {
+                          const retranslated = await translateLinesBatch(editingDialogueObj.lines.map(l => ({ ...l, vi: '' })));
+                          setEditingDialogueObj({ ...editingDialogueObj, lines: retranslated });
+                          playSuccessSound();
+                          alert(`🎉 Đã dịch chuẩn thành công ${retranslated.length} câu theo chuẩn SGK!`);
+                        } catch (err) {
+                          alert('Lỗi khi dịch thuật, vui lòng thử lại!');
+                        } finally {
+                          setIsAiTranslatingLines(false);
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-lg transition cursor-pointer flex items-center space-x-1 shadow-2xs"
+                      title="Dịch lại toàn bộ các câu trong bài thành tiếng Việt chuẩn xác theo ngữ cảnh SGK"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                      <span>{isAiTranslatingLines ? '⏳ Đang Dịch...' : '✨ Dịch Lại Chuẩn Toàn Bộ Câu'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const spk = editingDialogueObj.contentType === 'passage' ? 'Passage' : 'Ann';
+                        const lines = [...editingDialogueObj.lines, { speaker: spk, text: '', vi: '' }];
+                        setEditingDialogueObj({ ...editingDialogueObj, lines });
+                      }}
+                      className={`px-2.5 py-1 ${editingDialogueObj.contentType === 'passage' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} text-white font-black text-xs rounded-lg transition cursor-pointer`}
+                    >
+                      ➕ {editingDialogueObj.contentType === 'passage' ? 'Thêm Câu Bài Đọc' : 'Thêm Câu Thoại'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
@@ -8354,6 +8358,18 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
+                        {/* NÚT AI DỊCH CHUẨN LẠI TOÀN BỘ BÀI SGK */}
+                        <button
+                          type="button"
+                          disabled={isRetranslatingTab}
+                          onClick={handleRetranslateCurrentTab}
+                          className="px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1.5 border shadow-2xs bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400 disabled:opacity-50"
+                          title="Bấm để dịch lại chuẩn xác 100% tiếng Việt cho toàn bộ bài đọc theo đúng ngữ cảnh SGK"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                          <span>{isRetranslatingTab ? '⏳ Đang Dịch...' : '✨ Dịch Chuẩn Lại Bài'}</span>
+                        </button>
+
                         {/* TOGGLE BẬT/TẮT DỊCH SONG NGỮ TIẾNG VIỆT */}
                         <button
                           type="button"
@@ -8489,7 +8505,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                                   {/* BẢN DỊCH TIẾNG VIỆT KHI BẬT TOGGLE SONG NGỮ */}
                                   {showContinuousTranslation && line.vi && (
                                     <span className="block text-xs sm:text-sm font-medium text-emerald-900 bg-emerald-50/95 border-l-3 border-emerald-500 pl-3 py-1 my-1.5 rounded-r-lg italic select-text shadow-2xs">
-                                      👉 {line.vi}
+                                      👉 {cleanVietnameseText(line.vi)}
                                     </span>
                                   )}
                                   {' '}
@@ -8673,7 +8689,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array, không kèm Mark
                           {(showDialogueVietnamese || isRevealedVi) ? (
                             line.vi && (
                               <p className="text-xs font-medium text-slate-600 italic pl-1 print:text-slate-800">
-                                👉 {line.vi}
+                                👉 {cleanVietnameseText(line.vi)}
                               </p>
                             )
                           ) : (
