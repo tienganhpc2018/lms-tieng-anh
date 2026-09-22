@@ -32,6 +32,7 @@ import {
   updateFilmReel,
   deleteFilmReel,
   toggleLikeReel,
+  togglePinReel,
   extractAllReelImages,
   isSampleReel,
 } from './filmReelStorage';
@@ -211,6 +212,20 @@ export default function FilmReelView() {
       const found = updated.find((r) => r.id === reelId);
       if (found) setSelectedReelDetail(found);
     }
+  };
+
+  // Bật / Tắt ghim bài viết lên FRAME #01 Trang Chủ
+  const handleTogglePin = (reelId) => {
+    playWinner();
+    const updated = togglePinReel(selectedClassId, reelId);
+    setReels(updated);
+    const target = updated.find((r) => r.id === reelId);
+    setToastMessage(
+      target?.isPinned
+        ? `📌 Đã ghim "${target.title}" lên FRAME #01 Trang Chủ!`
+        : `Đã bỏ ghim "${target?.title || 'bài viết'}"!`
+    );
+    setTimeout(() => setToastMessage(''), 3500);
   };
 
   // Mở trình chiếu Slideshow toàn màn hình
@@ -491,6 +506,7 @@ export default function FilmReelView() {
                     }}
                     onDelete={(rId) => handleDeleteReel(rId)}
                     onLike={(rId) => handleLikeReel(rId)}
+                    onTogglePin={(rId) => handleTogglePin(rId)}
                   />
                 ))}
               </div>

@@ -11,6 +11,9 @@ import {
   Sparkles,
   Maximize2,
   Image as ImageIcon,
+  MessageCircle,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { CATEGORY_BADGES } from '../constants/filmReelPresets';
 import { playClick, playDeduct } from '../../../utils/soundEffects';
@@ -27,8 +30,36 @@ export default function FilmReelDetailModal({
   onOpenLightbox,
 }) {
   const [isLiking, setIsLiking] = useState(false);
+  const [copyToast, setCopyToast] = useState(false);
 
   if (!isOpen || !reel) return null;
+
+  const handleCopyLink = () => {
+    playClick();
+    const shareUrl = `${window.location.origin}${window.location.pathname}?memoryId=${reel.id}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        setCopyToast(true);
+        setTimeout(() => setCopyToast(false), 3000);
+      });
+    } else {
+      const el = document.createElement('textarea');
+      el.value = shareUrl;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopyToast(true);
+      setTimeout(() => setCopyToast(false), 3000);
+    }
+  };
+
+  const handleShareZalo = () => {
+    playClick();
+    const shareUrl = `${window.location.origin}${window.location.pathname}?memoryId=${reel.id}`;
+    const zaloUrl = `https://zalo.me/share?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(reel.title)}`;
+    window.open(zaloUrl, '_blank', 'width=650,height=550');
+  };
 
   const categoryConfig =
     CATEGORY_BADGES[reel.category] || CATEGORY_BADGES['Kỷ niệm'];
@@ -279,7 +310,7 @@ export default function FilmReelDetailModal({
 
             {/* 4. FOOTER BÀI VIẾT (THẢ TIM & LỜI KẾT) */}
             <div className="pt-6 border-t border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 {/* Nút thả tim */}
                 <button
                   type="button"
@@ -296,6 +327,32 @@ export default function FilmReelDetailModal({
                     } ${isLiking ? 'scale-125' : ''}`}
                   />
                   <span>{reel.likesCount || 0} Lượt yêu thích</span>
+                </button>
+
+                {/* Nút Sao chép liên kết */}
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className={`px-3.5 py-2 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer border ${
+                    copyToast
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-black'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                  }`}
+                  title="Sao chép liên kết bài viết"
+                >
+                  {copyToast ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-600" />}
+                  <span>{copyToast ? 'Đã chép link!' : 'Chép link'}</span>
+                </button>
+
+                {/* Nút Gửi Zalo */}
+                <button
+                  type="button"
+                  onClick={handleShareZalo}
+                  className="px-3.5 py-2 rounded-2xl bg-[#0068FF] hover:bg-[#0052cc] text-white text-xs font-black flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                  title="Gửi bài viết qua Zalo"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Gửi Zalo</span>
                 </button>
               </div>
 

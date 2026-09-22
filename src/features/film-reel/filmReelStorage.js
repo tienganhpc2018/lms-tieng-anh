@@ -18,7 +18,7 @@ export const loadFilmReels = (classId) => {
       const matched = all.filter((r) => r.classId === targetClassId);
       if (matched.length > 0) list = matched;
     }
-    return list;
+    return sortFilmReelsByPinAndDate(list);
   } catch (e) {
     console.error(`Lỗi tải cuộn phim lớp ${targetClassId}:`, e);
     return [];
@@ -174,6 +174,7 @@ export const saveOrUpdateFilmReel = (reelData, previousClassId = null) => {
     isSample: false, // Bắt buộc false: Bài viết thật của Thầy, không bao giờ bị xóa nhầm
     likesCount: reelData.likesCount || 0,
     isLiked: Boolean(reelData.isLiked),
+    isPinned: Boolean(reelData.isPinned),
     createdAt: reelData.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -387,10 +388,83 @@ export const loadAllFilmReelsAcrossClasses = () => {
   }
 
   const all = Array.from(map.values());
-  // Sắp xếp bài mới nhất lên đầu tiên
-  return all.sort(
-    (a, b) => new Date(b.eventDate || b.createdAt || 0) - new Date(a.eventDate || a.createdAt || 0)
-  );
+  // Sắp xếp ưu tiên bài ghim lên đầu tiên (FRAME #01), sau đó đến ngày mới nhất
+  return sortFilmReelsByPinAndDate(all);
+};
+
+// Sắp xếp bài viết: Ưu tiên bài viết được ghim (isPinned: true) lên đầu tiên
+export const sortFilmReelsByPinAndDate = (list = []) => {
+  if (!Array.isArray(list)) return [];
+  return [...list].sort((a, b) => {
+    const aPinned = Boolean(a?.isPinned);
+    const bPinned = Boolean(b?.isPinned);
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return new Date(b?.eventDate || b?.createdAt || 0) - new Date(a?.eventDate || a?.createdAt || 0);
+  });
+};
+
+// 13. Bật / Tắt Ghim bài viết quan trọng lên đầu cuộn phim (Pin to Top)
+export const togglePinReel = (classId, reelId) => {
+  let targetPinnedState = false;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith(STORAGE_KEY_PREFIX) || key === 'all_published_film_reels')) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+              let changed = false;
+              const newList = list.map((r) => {
+                if (r.id === reelId) {
+                  changed = true;
+                  const newPin = !r.isPinned;
+                  targetPinnedState = newPin;
+                  return { ...r, isPinned: newPin, updatedAt: new Date().toISOString() };
+                }
+                return r;
+              });
+              if (changed) {
+                localStorage.setItem(key, JSON.stringify(newList));
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+    notifyFilmReelsChanged();
+  } catch (err) {
+    console.error('Lỗi khi ghim bài viết:', err);
+  }
+  return classId && classId !== 'all_classes' ? loadFilmReels(classId) : loadAllFilmReelsAcrossClasses();
+};
+
+// 14. Bộ nhớ lưu trữ lượt thích (Like) của các bài mẫu mặc định
+export const getSampleReelLikes = () => {
+  try {
+    const raw = localStorage.getItem('sample_reel_likes_map');
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+export const toggleSampleReelLike = (sampleId, baseLikes = 0) => {
+  try {
+    const map = getSampleReelLikes();
+    const current = map[sampleId] || { isLiked: false, likesCount: baseLikes };
+    const newIsLiked = !current.isLiked;
+    const newCount = newIsLiked ? current.likesCount + 1 : Math.max(0, current.likesCount - 1);
+    map[sampleId] = { isLiked: newIsLiked, likesCount: newCount };
+    localStorage.setItem('sample_reel_likes_map', JSON.stringify(map));
+    notifyFilmReelsChanged();
+    return map[sampleId];
+  } catch (e) {
+    console.error('Lỗi like bài mẫu:', e);
+    return { isLiked: true, likesCount: baseLikes + 1 };
+  }
 };
 
 // Phát sự kiện cập nhật toàn hệ thống (Custom Event)

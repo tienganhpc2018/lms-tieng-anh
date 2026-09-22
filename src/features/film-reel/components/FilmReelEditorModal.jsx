@@ -18,6 +18,7 @@ import {
   Wand2,
   Users,
   Loader2,
+  Pin,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -92,6 +93,7 @@ export default function FilmReelEditorModal({
   const [blocks, setBlocks] = useState([]);
   const [targetClassId, setTargetClassId] = useState(classId || 'class_7a');
   const [availableClasses, setAvailableClasses] = useState([]);
+  const [isPinned, setIsPinned] = useState(false);
 
   // State Trợ lý AI & Trạng thái
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -119,6 +121,7 @@ export default function FilmReelEditorModal({
       setEventDate(initialData.eventDate || new Date().toISOString().split('T')[0]);
       setCoverImage(initialData.coverImage || '');
       setBlocks(initialData.blocks ? JSON.parse(JSON.stringify(initialData.blocks)) : []);
+      setIsPinned(Boolean(initialData.isPinned));
       if (initialData.classId) setTargetClassId(initialData.classId);
     } else {
       // Khởi tạo bài viết mới sạch sẽ
@@ -126,6 +129,7 @@ export default function FilmReelEditorModal({
       setCategory('Học tập');
       setEventDate(new Date().toISOString().split('T')[0]);
       setCoverImage('');
+      setIsPinned(false);
       setBlocks([
         {
           id: `blk_${Date.now()}_1`,
@@ -361,6 +365,7 @@ export default function FilmReelEditorModal({
         eventDate: eventDate || new Date().toISOString().split('T')[0],
         coverImage: finalCover,
         blocks: validBlocks,
+        isPinned: Boolean(isPinned),
       };
 
       onSave(payload);
@@ -527,6 +532,22 @@ export default function FilmReelEditorModal({
                     <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                     <span>✨ AI Viết Đoạn Văn</span>
                   </button>
+                </div>
+
+                {/* Tùy chọn ghim bài viết lên FRAME #01 Trang Chủ */}
+                <div className="md:col-span-4 pt-1">
+                  <label className="flex items-center space-x-2.5 p-2.5 rounded-xl border border-amber-300/80 bg-amber-50/80 hover:bg-amber-100/90 transition cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isPinned}
+                      onChange={(e) => setIsPinned(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 cursor-pointer accent-amber-600"
+                    />
+                    <div className="flex items-center space-x-1.5 text-xs font-black text-amber-950">
+                      <Pin className={`w-3.5 h-3.5 ${isPinned ? 'text-amber-600 fill-amber-600' : 'text-slate-500'}`} />
+                      <span>📌 Ghim bài viết này lên FRAME #01 (Tiêu điểm Trang Chủ)</span>
+                    </div>
+                  </label>
                 </div>
               </div>
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, Edit3, Eye, Calendar, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Heart, Edit3, Eye, Calendar, Image as ImageIcon, Trash2, Pin } from 'lucide-react';
 import { CATEGORY_BADGES } from '../constants/filmReelPresets';
 import { isSampleReel } from '../filmReelStorage';
 import { playClick, playDeduct } from '../../../utils/soundEffects';
@@ -24,6 +24,7 @@ export default function FilmReelCard({
   onEdit,
   onDelete,
   onLike,
+  onTogglePin,
 }) {
   const [isLiking, setIsLiking] = useState(false);
   const isSample = isSampleReel(reel);
@@ -82,13 +83,19 @@ export default function FilmReelCard({
         {/* Lớp phủ gradient mờ nhẹ */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#121620] via-transparent to-black/30 pointer-events-none" />
 
-        {/* Góc trên trái: Nhãn danh mục hoạt động & Huy hiệu Bài mẫu */}
+        {/* Góc trên trái: Nhãn danh mục hoạt động, Huy hiệu Ghim & Huy hiệu Bài mẫu */}
         <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 flex-wrap">
           <span
             className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow-md backdrop-blur-md ${categoryConfig.badgeBg}`}
           >
             {reel.category || 'Kỷ niệm'}
           </span>
+          {reel.isPinned && (
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 border border-amber-300 shadow-md flex items-center gap-1 animate-pulse">
+              <Pin className="w-3 h-3 fill-slate-950" />
+              <span>Đã ghim</span>
+            </span>
+          )}
           {isSample && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/90 text-slate-950 border border-amber-300 shadow-xs backdrop-blur-md">
               💡 Bài mẫu
@@ -150,8 +157,26 @@ export default function FilmReelCard({
             <span>{reel.likesCount || 0}</span>
           </button>
 
-          {/* Cụm nút: Xóa bài, Sửa/Lưu đè & Xem chi tiết */}
+          {/* Cụm nút: Ghim, Xóa bài, Sửa/Lưu đè & Xem chi tiết */}
           <div className="flex items-center gap-1.5">
+            {/* Nút Ghim nhanh lên FRAME #01 Trang Chủ */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                playClick();
+                if (onTogglePin) onTogglePin(reel.id);
+              }}
+              title={reel.isPinned ? 'Bỏ ghim bài viết này' : 'Ghim bài viết này lên FRAME #01 Trang Chủ'}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors border cursor-pointer ${
+                reel.isPinned
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/80 shadow-xs shadow-amber-500/20'
+                  : 'bg-slate-800 text-slate-400 hover:text-amber-300 border-slate-700 hover:border-amber-500/60'
+              }`}
+            >
+              <Pin className={`w-3.5 h-3.5 ${reel.isPinned ? 'fill-amber-300' : ''}`} />
+            </button>
+
             {/* Nút Xóa bài viết */}
             <button
               type="button"

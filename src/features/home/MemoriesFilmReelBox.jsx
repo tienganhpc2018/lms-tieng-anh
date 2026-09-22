@@ -1,8 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Film, Calendar, Heart, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
-import { loadAllFilmReelsAcrossClasses } from '../film-reel/filmReelStorage';
+import {
+  Film,
+  Calendar,
+  Heart,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Pin,
+  Share2,
+  Copy,
+  Check,
+  MessageCircle,
+} from 'lucide-react';
+import {
+  loadAllFilmReelsAcrossClasses,
+  toggleLikeReel,
+  toggleSampleReelLike,
+  getSampleReelLikes,
+} from '../film-reel/filmReelStorage';
 import { loadClasses } from '../behavior/behaviorStorage';
+import { playClick } from '../../utils/soundEffects';
 
 export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const navigate = useNavigate();
@@ -11,6 +30,9 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const [customReels, setCustomReels] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [sampleLikesMap, setSampleLikesMap] = useState({});
+  const [copyToast, setCopyToast] = useState(false);
+  const [popHeartId, setPopHeartId] = useState(null);
 
   // Nạp các bài viết thực tế từ hệ thống Cuộn phim kỷ niệm
   const refreshCustomReels = () => {
@@ -20,6 +42,9 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
       classesList.forEach((c) => {
         if (c.id) classMap[c.id] = c.name;
       });
+
+      const sampleLikes = getSampleReelLikes();
+      setSampleLikesMap(sampleLikes);
 
       const reelsFromStorage = loadAllFilmReelsAcrossClasses() || [];
       const formatted = reelsFromStorage.map((r) => {
@@ -60,6 +85,8 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
           description: firstParagraph || 'Khoảnh khắc đáng nhớ và tự hào cùng tập thể lớp.',
           tags: ['✨ ' + (r.category || 'Kỷ Niệm'), '📸 Cuộn Phim', '🌟 Mới Đăng'],
           likes: r.likesCount || 0,
+          isLiked: Boolean(r.isLiked),
+          isPinned: Boolean(r.isPinned),
           rawReel: r,
           isCustom: true,
         };
@@ -166,12 +193,32 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
     },
   ];
 
-  // BỘ LỌC KỶ NIỆM THEO KHỐI LỚP (Ưu tiên bài viết thật do Thầy biên soạn lên đầu)
-  const combinedMemories = [...customReels, ...FILM_MEMORIES];
+  // ĐỒNG BỘ LIKE VỚI CÁC BÀI MẪU
+  const enrichedSampleMemories = FILM_MEMORIES.map((m) => {
+    const saved = sampleLikesMap[m.id];
+    return {
+      ...m,
+      likes: saved ? saved.likesCount : m.likes,
+      isLiked: saved ? saved.isLiked : false,
+      isPinned: false,
+      isCustom: false,
+    };
+  });
+
+  // BỘ LỌC KỶ NIỆM THEO KHỐI LỚP (Ưu tiên bài viết được Ghim lên đầu tiên, sau đó đến bài viết thật của Thầy)
+  const combinedMemories = [...customReels, ...enrichedSampleMemories];
+
+  // Sắp xếp: Ưu tiên bài viết isPinned === true lên đầu tiên (FRAME #01)
+  const sortedMemories = [...combinedMemories].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return 0;
+  });
+
   const filteredMemories =
     selectedGrade === 'all'
-      ? combinedMemories
-      : combinedMemories.filter(
+      ? sortedMemories
+      : sortedMemories.filter(
           (m) =>
             m.grade === selectedGrade ||
             m.classTag?.includes(selectedGrade) ||
@@ -188,6 +235,76 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const displayedMemories = isExpanded
     ? filteredMemories
     : filteredMemories.slice(validPage * ITEMS_PER_PAGE, validPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE);
+
+  // Xử lý Thả tim trực tiếp trên khung ảnh
+  const handleHeartClick = (e, post) => {
+    if (e) e.stopPropagation();
+    playClick();
+    setPopHeartId(post.id);
+    setTimeout(() => setPopHeartId(null), 300);
+
+    if (post.isCustom) {
+      toggleLikeReel(post.rawReel?.classId, post.id);
+      refreshCustomReels();
+    } else {
+      toggleSampleReelLike(post.id, post.likes);
+      setSampleLikesMap(getSampleReelLikes());
+    }
+
+    if (activeModalPost && activeModalPost.id === post.id) {
+      setActiveModalPost((prev) => ({
+        ...prev,
+        isLiked: !prev.isLiked,
+        likes: prev.isLiked ? Math.max(0, prev.likes - 1) : prev.likes + 1,
+      }));
+    }
+  };
+
+  // Sao chép liên kết khoảnh khắc
+  const handleCopyLink = (post) => {
+    playClick();
+    const target = post || activeModalPost;
+    if (!target) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?memoryId=${target.id}`;
+
+    const executeToast = () => {
+      setCopyToast(true);
+      setTimeout(() => setCopyToast(false), 3000);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(executeToast)
+        .catch(() => fallbackCopy(shareUrl, executeToast));
+    } else {
+      fallbackCopy(shareUrl, executeToast);
+    }
+  };
+
+  const fallbackCopy = (text, callback) => {
+    try {
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      if (callback) callback();
+    } catch (e) {
+      alert(`Liên kết khoảnh khắc: ${text}`);
+    }
+  };
+
+  // Chia sẻ khoảnh khắc qua Zalo
+  const handleShareZalo = (post) => {
+    playClick();
+    const target = post || activeModalPost;
+    if (!target) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?memoryId=${target.id}`;
+    const zaloUrl = `https://zalo.me/share?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(target.title)}`;
+    window.open(zaloUrl, '_blank', 'width=650,height=550');
+  };
 
   const GRADE_FILTERS = [
     { id: 'all', label: '🌟 Tất cả khối' },
@@ -311,8 +428,14 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                       FRAME #{String(frameNum).padStart(2, '0')}
                     </div>
 
-                    <div className="absolute top-2 right-2 flex items-center gap-1">
-                      {post.isCustom && (
+                    <div className="absolute top-2 right-2 flex items-center gap-1 flex-wrap justify-end">
+                      {post.isPinned && (
+                        <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-md shadow-sm border border-amber-300 flex items-center gap-1 animate-pulse">
+                          <Pin className="w-2.5 h-2.5 fill-slate-950" />
+                          <span>TIÊU ĐIỂM</span>
+                        </span>
+                      )}
+                      {post.isCustom && !post.isPinned && (
                         <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-md shadow-xs animate-pulse">
                           ✨ MỚI
                         </span>
@@ -342,7 +465,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                       </p>
                     </div>
 
-                    {/* TAGS & LƯỢT THÍCH */}
+                    {/* TAGS & LƯỢT THÍCH (NÚT THẢ TIM TRỰC TIẾP) */}
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                       <div className="flex flex-wrap gap-1">
                         {post.tags.slice(0, 2).map((tg, tIdx) => (
@@ -352,10 +475,24 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                         ))}
                       </div>
 
-                      <div className="flex items-center space-x-1 text-rose-500 font-bold text-[11px]">
-                        <Heart className="w-3.5 h-3.5 fill-rose-500" />
+                      {/* Nút thả tim trực tiếp ngoài Trang Chủ */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleHeartClick(e, post)}
+                        className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-black transition-all transform active:scale-125 cursor-pointer select-none border ${
+                          post.isLiked
+                            ? 'bg-rose-50 text-rose-600 border-rose-200 shadow-2xs'
+                            : 'bg-slate-50 hover:bg-rose-50 text-slate-600 hover:text-rose-500 border-slate-200'
+                        }`}
+                        title={post.isLiked ? 'Bỏ thích' : 'Thả tim khoảnh khắc này'}
+                      >
+                        <Heart
+                          className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                            post.isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'
+                          } ${popHeartId === post.id ? 'scale-140' : ''}`}
+                        />
                         <span>{post.likes}</span>
-                      </div>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -468,13 +605,69 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                 ))}
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex justify-end">
+              {/* THANH CÔNG CỤ CHIA SẺ VÀ TƯƠNG TÁC */}
+              <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Nút Thả tim trong Modal */}
+                  <button
+                    type="button"
+                    onClick={(e) => handleHeartClick(e, activeModalPost)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer border ${
+                      activeModalPost.isLiked
+                        ? 'bg-rose-50 text-rose-600 border-rose-200 shadow-2xs'
+                        : 'bg-slate-50 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border-slate-200'
+                    }`}
+                  >
+                    <Heart
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        activeModalPost.isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'
+                      } ${popHeartId === activeModalPost.id ? 'scale-140' : ''}`}
+                    />
+                    <span>{activeModalPost.likes} Thích</span>
+                  </button>
+
+                  {/* Nút Sao chép liên kết */}
+                  <button
+                    type="button"
+                    onClick={() => handleCopyLink(activeModalPost)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer border shadow-2xs ${
+                      copyToast
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-black'
+                        : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
+                    }`}
+                    title="Sao chép link bài viết để gửi cho phụ huynh hoặc bạn bè"
+                  >
+                    {copyToast ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Đã chép link!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Chép liên kết</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Nút Chia sẻ Zalo */}
+                  <button
+                    type="button"
+                    onClick={() => handleShareZalo(activeModalPost)}
+                    className="px-3.5 py-2 rounded-xl bg-[#0068FF] hover:bg-[#0052cc] text-white text-xs font-black flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer shadow-sm"
+                    title="Mở Zalo chia sẻ nhanh bài viết"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>Gửi Zalo</span>
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setActiveModalPost(null)}
                   className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs sm:text-sm transition cursor-pointer shadow-md"
                 >
-                  Đóng (Close)
+                  Đóng
                 </button>
               </div>
             </div>
