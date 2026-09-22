@@ -23,12 +23,20 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
       const reelsFromStorage = loadAllFilmReelsAcrossClasses() || [];
       const formatted = reelsFromStorage.map((r) => {
         const firstParagraph = r.blocks?.find((b) => b.type === 'paragraph' && b.text)?.text || '';
-        const cName = classMap[r.classId] || r.classId || 'Lớp học';
+        const cName = classMap[r.classId] || r.classId || 'Lớp 7A';
 
+        // Nhận diện khối lớp thông minh dựa trên tên lớp, classId, tiêu đề và danh mục
+        const fullCheck = `${cName} ${r.classId || ''} ${r.title || ''} ${r.category || ''}`.toLowerCase();
         let gradeNum = 'all';
-        if (cName.includes('9')) gradeNum = '9';
-        else if (cName.includes('8')) gradeNum = '8';
-        else if (cName.includes('7')) gradeNum = '7';
+        if (fullCheck.includes('7') || fullCheck.includes('khối 7') || fullCheck.includes('lớp 7')) {
+          gradeNum = '7';
+        } else if (fullCheck.includes('8') || fullCheck.includes('khối 8') || fullCheck.includes('lớp 8')) {
+          gradeNum = '8';
+        } else if (fullCheck.includes('9') || fullCheck.includes('khối 9') || fullCheck.includes('lớp 9')) {
+          gradeNum = '9';
+        } else {
+          gradeNum = '7'; // Mặc định gán lớp 7 nếu Thầy tạo bài tập/học tập chưa phân loại
+        }
 
         let dateFormatted = r.eventDate || '';
         if (dateFormatted.includes('-')) {
@@ -36,12 +44,14 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
           if (parts.length === 3) dateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
+        const displayTag = cName.startsWith('Lớp') ? cName : `Lớp ${cName}`;
+
         return {
           id: r.id,
           grade: gradeNum,
           title: r.title,
           date: dateFormatted || 'Mới cập nhật',
-          classTag: cName.startsWith('Lớp') ? cName : `Lớp ${cName}`,
+          classTag: displayTag === 'Lớp all_classes' ? 'Lớp 7A' : displayTag,
           category: r.category || 'Kỷ Niệm',
           coverImage:
             r.coverImage ||
@@ -161,7 +171,12 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
     selectedGrade === 'all'
       ? combinedMemories
       : combinedMemories.filter(
-          (m) => m.grade === selectedGrade || m.classTag?.includes(selectedGrade)
+          (m) =>
+            m.grade === selectedGrade ||
+            m.classTag?.includes(selectedGrade) ||
+            m.title?.toLowerCase().includes(`lớp ${selectedGrade}`) ||
+            m.title?.toLowerCase().includes(`khối ${selectedGrade}`) ||
+            (m.isCustom && selectedGrade === '7')
         );
 
   // HÀM CUỘN NGANG THƯỚC PHIM BẰNG NÚT MŨI TÊN

@@ -3,69 +3,91 @@ import { SAMPLE_FILM_REELS } from './constants/filmReelPresets';
 
 const STORAGE_KEY_PREFIX = 'film_reels_';
 
-// 1. Tải danh sách cuộn phim của lớp học (Mặc định mảng rỗng - KHÔNG MOCK DATA)
+// 1. Tải danh sách cuộn phim của lớp học (Hỗ trợ nạp tất cả các lớp nếu classId là all_classes)
 export const loadFilmReels = (classId) => {
-  if (!classId) return [];
+  if (classId === 'all_classes') {
+    return loadAllFilmReelsAcrossClasses();
+  }
+  const targetClassId = classId || 'class_7a';
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_PREFIX + classId);
-    return raw ? JSON.parse(raw) : [];
+    const raw = localStorage.getItem(STORAGE_KEY_PREFIX + targetClassId);
+    let list = raw ? JSON.parse(raw) : [];
+    // Nếu lớp cụ thể chưa có bài, thử nạp từ all_published_film_reels lọc theo targetClassId
+    if (list.length === 0) {
+      const all = loadAllFilmReelsAcrossClasses();
+      const matched = all.filter((r) => r.classId === targetClassId);
+      if (matched.length > 0) list = matched;
+    }
+    return list;
   } catch (e) {
-    console.error(`Lỗi tải cuộn phim lớp ${classId}:`, e);
+    console.error(`Lỗi tải cuộn phim lớp ${targetClassId}:`, e);
     return [];
   }
 };
 
 // 2. Lưu danh sách cuộn phim của lớp học
 export const saveFilmReels = (classId, reels) => {
-  if (!classId) return;
+  const targetClassId = classId || 'class_7a';
   try {
-    localStorage.setItem(STORAGE_KEY_PREFIX + classId, JSON.stringify(reels));
+    localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(reels));
 
-    // Đồng bộ đồng thời vào danh sách toàn cục để Trang Chủ luôn nạp được tức thì
+    // Luôn đồng bộ vào danh sách toàn cục all_published_film_reels để Trang Chủ luôn nạp được tức thì
     try {
-      const allReels = loadAllFilmReelsAcrossClasses();
-      localStorage.setItem('all_published_film_reels', JSON.stringify(allReels));
+      const rawAll = localStorage.getItem('all_published_film_reels');
+      let currentAll = rawAll ? JSON.parse(rawAll) : [];
+      if (!Array.isArray(currentAll)) currentAll = [];
+
+      reels.forEach((r) => {
+        const idx = currentAll.findIndex((item) => item.id === r.id);
+        if (idx >= 0) {
+          currentAll[idx] = r;
+        } else {
+          currentAll.unshift(r);
+        }
+      });
+      localStorage.setItem('all_published_film_reels', JSON.stringify(currentAll));
     } catch (errSync) {
-      // bỏ qua
+      // bỏ qua lỗi đồng bộ
     }
 
     notifyFilmReelsChanged();
   } catch (e) {
-    console.error(`Lỗi lưu cuộn phim lớp ${classId}:`, e);
+    console.error(`Lỗi lưu cuộn phim lớp ${targetClassId}:`, e);
   }
 };
 
 // 3. Nạp 3 bài mẫu gợi ý khi giáo viên chủ động bấm nút
 export const seedSampleReels = (classId) => {
-  if (!classId) return [];
-  const current = loadFilmReels(classId);
+  const targetClassId = classId || 'class_7a';
+  const current = loadFilmReels(targetClassId);
   const prepared = SAMPLE_FILM_REELS.map((item, idx) => ({
     ...item,
     id: `reel_${Date.now()}_${idx}`,
-    classId,
+    classId: targetClassId,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }));
 
   const updated = [...prepared, ...current];
-  saveFilmReels(classId, updated);
+  saveFilmReels(targetClassId, updated);
   return updated;
 };
 
-// 4. Thêm một bài viết mới
+// 4. Thêm một bài viết mới (Đảm bảo an toàn không mất bài kể cả khi chưa có classId)
 export const addFilmReel = (classId, reelData) => {
-  const current = loadFilmReels(classId);
+  const targetClassId = reelData?.classId || classId || 'class_7a';
+  const current = loadFilmReels(targetClassId);
   const newReel = {
     ...reelData,
     id: reelData.id || `reel_${Date.now()}`,
-    classId,
+    classId: targetClassId,
     likesCount: reelData.likesCount || 0,
     isLiked: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
   const updated = [newReel, ...current];
-  saveFilmReels(classId, updated);
+  saveFilmReels(targetClassId, updated);
   return { updated, newReel };
 };
 

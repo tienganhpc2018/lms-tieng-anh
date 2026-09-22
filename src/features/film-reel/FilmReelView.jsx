@@ -68,15 +68,26 @@ export default function FilmReelView() {
 
   // Nạp danh sách lớp học
   useEffect(() => {
-    const loadedClasses = loadClasses();
+    let loadedClasses = loadClasses() || [];
+    if (loadedClasses.length === 0) {
+      loadedClasses = [
+        { id: 'class_7a', name: '7A', grade_level: '7' },
+        { id: 'class_7b', name: '7B', grade_level: '7' },
+        { id: 'class_8a', name: '8A', grade_level: '8' },
+        { id: 'class_9a', name: '9A', grade_level: '9' },
+      ];
+      try {
+        saveClasses(loadedClasses);
+      } catch (e) {}
+    }
     setClasses(loadedClasses);
 
     let currentClassId = loadSelectedClassId();
     if (!currentClassId && loadedClasses.length > 0) {
-      currentClassId = loadedClasses[0].id;
+      currentClassId = 'all_classes'; // Mặc định hiển thị tất cả các lớp để thấy toàn bộ bài viết
       saveSelectedClassId(currentClassId);
     }
-    setSelectedClassId(currentClassId);
+    setSelectedClassId(currentClassId || 'all_classes');
 
     // Cập nhật giờ lưu hiện tại
     const now = new Date();
@@ -91,15 +102,15 @@ export default function FilmReelView() {
   // Nạp cuộn phim khi chọn lớp
   useEffect(() => {
     if (selectedClassId) {
-      refreshReels();
+      refreshReels(selectedClassId);
     } else {
       setReels([]);
     }
   }, [selectedClassId]);
 
-  const refreshReels = () => {
-    if (!selectedClassId) return;
-    const data = loadFilmReels(selectedClassId);
+  const refreshReels = (targetId = selectedClassId) => {
+    const cId = targetId || selectedClassId || 'all_classes';
+    const data = loadFilmReels(cId);
     setReels(data);
     const now = new Date();
     setLastSavedTime(
@@ -114,13 +125,14 @@ export default function FilmReelView() {
     playClick();
     setSelectedClassId(cId);
     saveSelectedClassId(cId);
+    refreshReels(cId);
   };
 
   // Nạp 3 bài mẫu gợi ý
   const handleSeedSamples = () => {
-    if (!selectedClassId) return;
+    const cId = selectedClassId === 'all_classes' ? 'class_7a' : selectedClassId;
     playWinner();
-    const seeded = seedSampleReels(selectedClassId);
+    const seeded = seedSampleReels(cId);
     setReels(seeded);
     confetti({
       particleCount: 100,
@@ -129,17 +141,19 @@ export default function FilmReelView() {
     });
   };
 
-  // Lưu bài viết (Tạo mới hoặc Sửa)
+  // Lưu bài viết (Tạo mới hoặc Sửa) - Tự động đồng bộ sang đúng lớp được chọn
   const handleSaveReel = (reelData) => {
+    const targetClass = reelData.classId || (selectedClassId !== 'all_classes' ? selectedClassId : 'class_7a');
     if (editingReel) {
-      const updated = updateFilmReel(selectedClassId, reelData);
+      const updated = updateFilmReel(targetClass, reelData);
       setReels(updated);
       setEditingReel(null);
     } else {
-      const { updated } = addFilmReel(selectedClassId, reelData);
+      const { updated } = addFilmReel(targetClass, reelData);
       setReels(updated);
     }
-    refreshReels();
+    // Nếu đang xem tất cả các lớp hoặc lớp vừa tạo, nạp lại để thấy ngay
+    refreshReels(selectedClassId);
   };
 
   // Xóa bài viết
@@ -230,10 +244,13 @@ export default function FilmReelView() {
           {classes.length > 0 && (
             <div className="relative">
               <select
-                value={selectedClassId || ''}
+                value={selectedClassId || 'all_classes'}
                 onChange={(e) => handleSelectClass(e.target.value)}
                 className="bg-purple-50 hover:bg-purple-100 text-purple-900 font-black text-xs px-3.5 py-2 rounded-2xl border border-purple-200 outline-hidden transition cursor-pointer appearance-none pr-8"
               >
+                <option value="all_classes">
+                  🌟 Tất cả các lớp (Khối 7 - 8 - 9)
+                </option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
                     🏛️ Lớp {c.name} • Khối {c.grade_level}
@@ -258,43 +275,19 @@ export default function FilmReelView() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
-        {/* NGUYÊN TẮC BẮT BUỘC SỐ 1: NẾU CHƯA CÓ LỚP HỌC NÀO */}
-        {classes.length === 0 ? (
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl p-8 sm:p-16 text-center space-y-5 my-8 max-w-2xl mx-auto">
-            <div className="w-20 h-20 mx-auto rounded-3xl bg-purple-100 text-purple-700 flex items-center justify-center text-4xl shadow-inner">
-              🎞️
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                CHƯA CÓ LỚP HỌC NÀO ĐỂ LƯU KỶ NIỆM
-              </h2>
-              <p className="text-sm text-slate-500 font-semibold max-w-md mx-auto leading-relaxed">
-                Cuộn phim kỷ niệm gắn liền trực tiếp với từng lớp học. Thầy/Cô hãy khởi tạo lớp học đầu tiên trong Sổ Nề Nếp 4.0 để bắt đầu lưu giữ những thước phim thanh xuân nhé!
-              </p>
-            </div>
-            <a
-              href="/behavior"
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-sm shadow-lg shadow-purple-600/30 hover:brightness-110 active:scale-95 transition-all"
-            >
-              <span>🛡️</span>
-              <span>+ ĐẾN TRANG SỔ NỀ NẾP TẠO LỚP NGAY</span>
-            </a>
-          </div>
-        ) : (
-          <>
-            {/* 2. THANH BANNER CLAYMORPHIC & NÚT TÁC VỤ HÀNG ĐẦU */}
-            <div className="bg-gradient-to-r from-slate-950 via-purple-950 to-indigo-950 rounded-[2.5rem] p-6 sm:p-8 text-white shadow-2xl border-2 border-purple-800/40 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
-              {/* Ánh sáng trang trí nền */}
-              <div className="absolute top-0 right-0 w-80 h-80 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+        {/* 2. THANH BANNER CLAYMORPHIC & NÚT TÁC VỤ HÀNG ĐẦU */}
+        <div className="bg-gradient-to-r from-slate-950 via-purple-950 to-indigo-950 rounded-[2.5rem] p-6 sm:p-8 text-white shadow-2xl border-2 border-purple-800/40 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+          {/* Ánh sáng trang trí nền */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="relative z-10 space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/30 border border-purple-400/40 text-xs font-black uppercase tracking-wider text-purple-200">
-                  <Film className="w-3.5 h-3.5 text-amber-300" />
-                  <span>35MM FILM REEL & CLASS JOURNAL</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight">
-                  Cuộn Phim Kỷ Niệm Lớp {selectedClass?.name || ''} ✨
-                </h2>
+          <div className="relative z-10 space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/30 border border-purple-400/40 text-xs font-black uppercase tracking-wider text-purple-200">
+              <Film className="w-3.5 h-3.5 text-amber-300" />
+              <span>35MM FILM REEL & CLASS JOURNAL</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight">
+              Cuộn Phim Kỷ Niệm {selectedClassId === 'all_classes' ? 'Toàn Trường (Khối 7 - 8 - 9)' : `Lớp ${selectedClass?.name || ''}`} ✨
+            </h2>
                 <p className="text-xs sm:text-sm text-purple-200/80 font-medium max-w-xl leading-relaxed">
                   Lưu giữ trọn vẹn những khoảnh khắc, hoạt động và ký ức thanh xuân tươi đẹp của tập thể lớp qua từng thước phim học trò.
                 </p>
@@ -440,8 +433,6 @@ export default function FilmReelView() {
                 ))}
               </div>
             )}
-          </>
-        )}
       </div>
 
       {/* =================================================================== */}

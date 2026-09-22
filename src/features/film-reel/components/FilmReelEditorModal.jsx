@@ -16,6 +16,7 @@ import {
   Link as LinkIcon,
   HelpCircle,
   Wand2,
+  Users,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -28,6 +29,7 @@ import {
   generateSmartCaption,
 } from '../services/filmReelAiService';
 import { playClick, playCorrect } from '../../../utils/soundEffects';
+import { loadClasses } from '../../behavior/behaviorStorage';
 
 const PRESET_COVERS = [
   { label: 'Học tập & Thảo luận', url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&auto=format&fit=crop&q=80' },
@@ -51,6 +53,8 @@ export default function FilmReelEditorModal({
   );
   const [coverImage, setCoverImage] = useState('');
   const [blocks, setBlocks] = useState([]);
+  const [targetClassId, setTargetClassId] = useState(classId || 'class_7a');
+  const [availableClasses, setAvailableClasses] = useState([]);
 
   // State Trợ lý AI
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -58,14 +62,26 @@ export default function FilmReelEditorModal({
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Nạp dữ liệu chỉnh sửa nếu có
+  // Nạp dữ liệu danh sách lớp và chỉnh sửa nếu có
   useEffect(() => {
+    let cls = loadClasses() || [];
+    if (cls.length === 0) {
+      cls = [
+        { id: 'class_7a', name: '7A', grade_level: '7' },
+        { id: 'class_7b', name: '7B', grade_level: '7' },
+        { id: 'class_8a', name: '8A', grade_level: '8' },
+        { id: 'class_9a', name: '9A', grade_level: '9' },
+      ];
+    }
+    setAvailableClasses(cls);
+
     if (initialData) {
       setTitle(initialData.title || '');
       setCategory(initialData.category || 'Học tập');
       setEventDate(initialData.eventDate || new Date().toISOString().split('T')[0]);
       setCoverImage(initialData.coverImage || '');
       setBlocks(initialData.blocks ? JSON.parse(JSON.stringify(initialData.blocks)) : []);
+      if (initialData.classId) setTargetClassId(initialData.classId);
     } else {
       // Khởi tạo bài viết mới sạch sẽ
       setTitle('');
@@ -79,10 +95,15 @@ export default function FilmReelEditorModal({
           text: '',
         },
       ]);
+      if (classId && classId !== 'all_classes') {
+        setTargetClassId(classId);
+      } else if (cls.length > 0) {
+        setTargetClassId(cls[0].id);
+      }
     }
     setActiveTab('edit');
     setErrorMessage('');
-  }, [initialData, isOpen]);
+  }, [initialData, classId, isOpen]);
 
   if (!isOpen) return null;
 
@@ -252,10 +273,13 @@ export default function FilmReelEditorModal({
       setCoverImage(finalCover);
     }
 
+    // Tự động fallback tiêu đề nếu Thầy để trống nhưng chọn danh mục
+    const safeTitle = title.trim() || `Hoạt động ${category} đáng nhớ`;
+
     const payload = {
       ...(initialData || {}),
-      classId,
-      title: title.trim(),
+      classId: targetClassId || classId || 'class_7a',
+      title: safeTitle,
       category,
       eventDate,
       coverImage: finalCover,
@@ -342,21 +366,41 @@ export default function FilmReelEditorModal({
 
           {activeTab === 'edit' ? (
             <div className="space-y-6">
-              {/* THÔNG TIN CƠ BẢN (Tiêu đề, Danh mục, Ngày sự kiện) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              {/* THÔNG TIN CƠ BẢN (Tiêu đề, Lớp học, Danh mục, Ngày sự kiện) */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 {/* Tiêu đề sự kiện */}
-                <div className="md:col-span-3 space-y-1">
+                <div className="md:col-span-4 space-y-1">
                   <label className="text-xs font-black text-slate-700 uppercase flex items-center gap-1.5">
                     <Type className="w-3.5 h-3.5 text-purple-600" />
                     Tiêu Đề Khoảnh Khắc / Sự Kiện:
                   </label>
                   <input
                     type="text"
-                    placeholder="VD: Lễ Kỷ Niệm Tri Ân 20/11 hoặc Ngày Hội STEM..."
+                    placeholder="VD: Giờ học dự án Speaking sôi nổi, Hoạt động trải nghiệm..."
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-purple-400"
                   />
+                </div>
+
+                {/* Chọn Lớp Học / Khối Lớp */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-purple-600" />
+                    Lớp Học:
+                  </label>
+                  <select
+                    value={targetClassId}
+                    onChange={(e) => setTargetClassId(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border-2 border-purple-300 rounded-xl text-xs font-black text-purple-950 outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer shadow-2xs"
+                  >
+                    {availableClasses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        🏛️ Lớp {c.name} • Khối {c.grade_level}
+                      </option>
+                    ))}
+                    <option value="all_classes">🌐 Toàn trường (Chung)</option>
+                  </select>
                 </div>
 
                 {/* Danh mục */}
@@ -397,7 +441,7 @@ export default function FilmReelEditorModal({
                   <button
                     type="button"
                     onClick={() => setIsAiModalOpen(true)}
-                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-500/20 hover:brightness-110 active:scale-95 transition-all"
+                    className="w-full py-2 px-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-500/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                     <span>✨ AI Viết Đoạn Văn</span>
