@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Film, Calendar, Heart, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { loadAllFilmReelsAcrossClasses } from '../film-reel/filmReelStorage';
@@ -9,7 +9,8 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const [activeModalPost, setActiveModalPost] = useState(null);
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [customReels, setCustomReels] = useState([]);
-  const scrollContainerRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
 
   // Nạp các bài viết thực tế từ hệ thống Cuộn phim kỷ niệm
   const refreshCustomReels = () => {
@@ -179,15 +180,14 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
             m.title?.toLowerCase().includes(selectedGrade)
         );
 
-  // HÀM CUỘN NGANG THƯỚC PHIM BẰNG NÚT MŨI TÊN
-  const handleScrollReel = (direction) => {
-    if (!scrollContainerRef.current) return;
-    const scrollAmount = direction === 'left' ? -380 : 380;
-    scrollContainerRef.current.scrollBy({
-      left: scrollAmount,
-      behavior: 'smooth',
-    });
-  };
+  const ITEMS_PER_PAGE = 3;
+  const totalPages = Math.ceil(filteredMemories.length / ITEMS_PER_PAGE) || 1;
+  const validPage = Math.min(currentPage, Math.max(0, totalPages - 1));
+
+  // Mặc định hiển thị đúng 3 khung ảnh vừa khít, không bao giờ lòi 1/2 khung
+  const displayedMemories = isExpanded
+    ? filteredMemories
+    : filteredMemories.slice(validPage * ITEMS_PER_PAGE, validPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE);
 
   const GRADE_FILTERS = [
     { id: 'all', label: '🌟 Tất cả khối' },
@@ -198,7 +198,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
 
   return (
     <div className="space-y-4 select-text">
-      {/* THANH TIÊU ĐỀ + BỘ LỌC KHỐI LỚP + NÚT CUỘN THƯỚC PHIM */}
+      {/* THANH TIÊU ĐỀ + BỘ LỌC KHỐI LỚP + NÚT ĐIỀU HƯỚNG 3 KHUNG */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-3 border-b border-emerald-200/80 pb-3">
         <div className="flex items-center space-x-2.5">
           <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
@@ -214,14 +214,17 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
           </div>
         </div>
 
-        {/* CỤM NÚT BỘ LỌC KHỐI LỚP (TẤT CẢ / LỚP 9 / LỚP 8 / LỚP 7) + ĐIỀU HƯỚNG CUỘN */}
+        {/* CỤM NÚT BỘ LỌC KHỐI LỚP (TẤT CẢ / LỚP 9 / LỚP 8 / LỚP 7) + CHUYỂN TRANG 3 KHUNG */}
         <div className="flex flex-wrap items-center gap-2 select-none">
           <div className="flex items-center space-x-1 bg-emerald-50/80 p-1 rounded-2xl border border-emerald-200/80 shadow-2xs">
             {GRADE_FILTERS.map((f) => (
               <button
                 key={f.id}
                 type="button"
-                onClick={() => setSelectedGrade(f.id)}
+                onClick={() => {
+                  setSelectedGrade(f.id);
+                  setCurrentPage(0);
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
                   selectedGrade === f.id
                     ? 'bg-emerald-600 text-white shadow-xs'
@@ -233,25 +236,36 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
             ))}
           </div>
 
-          {/* CẶP NÚT CUỘN NGANG THƯỚC PHIM (❮ VÀ ❯) */}
-          <div className="hidden sm:flex items-center space-x-1">
-            <button
-              type="button"
-              onClick={() => handleScrollReel('left')}
-              className="p-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs transition cursor-pointer"
-              title="Cuộn sang trái"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScrollReel('right')}
-              className="p-1.5 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs transition cursor-pointer"
-              title="Cuộn sang phải"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          {/* CẶP NÚT CHUYỂN TRANG 3 KHUNG ẢNH (❮ VÀ ❯) - CHỈ HIỆN KHI KHÔNG BUNG TẤT CẢ */}
+          {!isExpanded && totalPages > 1 && (
+            <div className="flex items-center space-x-1 bg-white px-2 py-1 rounded-2xl border border-emerald-300 shadow-2xs text-xs font-bold text-emerald-900">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                disabled={validPage === 0}
+                className={`p-1 rounded-lg transition ${
+                  validPage === 0 ? 'text-slate-300 cursor-not-allowed' : 'text-emerald-800 hover:bg-emerald-100 cursor-pointer'
+                }`}
+                title="Xem 3 khung trước"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-[11px] font-mono font-bold px-1 text-emerald-800">
+                {validPage + 1}/{totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={validPage >= totalPages - 1}
+                className={`p-1 rounded-lg transition ${
+                  validPage >= totalPages - 1 ? 'text-slate-300 cursor-not-allowed' : 'text-emerald-800 hover:bg-emerald-100 cursor-pointer'
+                }`}
+                title="Xem 3 khung tiếp theo"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {userIsTeacher && (
             <Link
@@ -273,80 +287,103 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
           ))}
         </div>
 
-        {/* DẢI CUỘN NGANG CHỨA CÁC KHUNG HÌNH KỶ NIỆM (HORIZONTAL FILM SCROLL) */}
-        <div 
-          ref={scrollContainerRef}
-          className="flex space-x-5 overflow-x-auto scroll-smooth no-scrollbar py-2 px-1"
-        >
-          {filteredMemories.map((post, idx) => (
-            <div
-              key={post.id}
-              onClick={() => setActiveModalPost(post)}
-              className="w-[300px] sm:w-[340px] md:w-[360px] flex-shrink-0 bg-white rounded-2xl border-2 border-emerald-200 hover:border-emerald-500 p-4 transition duration-300 group cursor-pointer flex flex-col justify-between space-y-4 shadow-sm hover:shadow-xl hover:scale-[1.01]"
-            >
-              {/* KHUNG ẢNH KỶ NIỆM NGUYÊN BẢN SẮC NÉT KHÔNG MỜ */}
-              <div className="relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-100 border border-emerald-200/80">
-                <img
-                  src={post.coverImage}
-                  alt={post.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                />
+        {/* DANH SÁCH KHUNG HÌNH KỶ NIỆM DẠNG LƯỚI 3 CỘT CÂN ĐỐI - KHÔNG BAO GIỜ BỊ LÒI 1/2 KHUNG */}
+        {displayedMemories.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 py-2 px-1">
+            {displayedMemories.map((post, idx) => {
+              const frameNum = isExpanded ? idx + 1 : validPage * ITEMS_PER_PAGE + idx + 1;
+              return (
+                <div
+                  key={post.id}
+                  onClick={() => setActiveModalPost(post)}
+                  className="w-full bg-white rounded-2xl border-2 border-emerald-200 hover:border-emerald-500 p-4 transition duration-300 group cursor-pointer flex flex-col justify-between space-y-4 shadow-sm hover:shadow-xl hover:scale-[1.01]"
+                >
+                  {/* KHUNG ẢNH KỶ NIỆM NGUYÊN BẢN SẮC NÉT KHÔNG MỜ */}
+                  <div className="relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-100 border border-emerald-200/80">
+                    <img
+                      src={post.coverImage}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
 
-                {/* SỐ FRAME PHIM */}
-                <div className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-950/85 text-emerald-300 font-mono text-[10px] font-bold rounded border border-emerald-400/50">
-                  FRAME #{String(idx + 1).padStart(2, '0')}
-                </div>
+                    {/* SỐ FRAME PHIM */}
+                    <div className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-950/85 text-emerald-300 font-mono text-[10px] font-bold rounded border border-emerald-400/50">
+                      FRAME #{String(frameNum).padStart(2, '0')}
+                    </div>
 
-                <div className="absolute top-2 right-2 flex items-center gap-1">
-                  {post.isCustom && (
-                    <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-md shadow-xs animate-pulse">
-                      ✨ MỚI
-                    </span>
-                  )}
-                  <span className="px-2 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-md shadow-xs">
-                    {post.classTag}
-                  </span>
-                </div>
-
-                <div className="absolute bottom-2 left-2 flex items-center space-x-1.5 px-2 py-0.5 bg-black/60 rounded text-white text-[11px] font-bold">
-                  <Calendar className="w-3.5 h-3.5 text-amber-300" />
-                  <span>{post.date}</span>
-                </div>
-              </div>
-
-              {/* NỘI DUNG TÓM TẮT BÀI VIẾT */}
-              <div className="space-y-2 flex-1 flex flex-col justify-between">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block mb-1">
-                    {post.category}
-                  </span>
-                  <h4 className="text-slate-900 font-black text-sm sm:text-base leading-snug group-hover:text-emerald-700 transition line-clamp-2">
-                    {post.title}
-                  </h4>
-                  <p className="text-slate-600 text-xs leading-relaxed line-clamp-3 mt-1.5 font-normal">
-                    {post.description}
-                  </p>
-                </div>
-
-                {/* TAGS & LƯỢT THÍCH */}
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div className="flex flex-wrap gap-1">
-                    {post.tags.slice(0, 2).map((tg, tIdx) => (
-                      <span key={tIdx} className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded text-[10px] font-bold">
-                        {tg}
+                    <div className="absolute top-2 right-2 flex items-center gap-1">
+                      {post.isCustom && (
+                        <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-md shadow-xs animate-pulse">
+                          ✨ MỚI
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-md shadow-xs">
+                        {post.classTag}
                       </span>
-                    ))}
+                    </div>
+
+                    <div className="absolute bottom-2 left-2 flex items-center space-x-1.5 px-2 py-0.5 bg-black/60 rounded text-white text-[11px] font-bold">
+                      <Calendar className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{post.date}</span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center space-x-1 text-rose-500 font-bold text-[11px]">
-                    <Heart className="w-3.5 h-3.5 fill-rose-500" />
-                    <span>{post.likes}</span>
+                  {/* NỘI DUNG TÓM TẮT BÀI VIẾT */}
+                  <div className="space-y-2 flex-1 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block mb-1">
+                        {post.category}
+                      </span>
+                      <h4 className="text-slate-900 font-black text-sm sm:text-base leading-snug group-hover:text-emerald-700 transition line-clamp-2">
+                        {post.title}
+                      </h4>
+                      <p className="text-slate-600 text-xs leading-relaxed line-clamp-3 mt-1.5 font-normal">
+                        {post.description}
+                      </p>
+                    </div>
+
+                    {/* TAGS & LƯỢT THÍCH */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                      <div className="flex flex-wrap gap-1">
+                        {post.tags.slice(0, 2).map((tg, tIdx) => (
+                          <span key={tIdx} className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200/80 rounded text-[10px] font-bold">
+                            {tg}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center space-x-1 text-rose-500 font-bold text-[11px]">
+                        <Heart className="w-3.5 h-3.5 fill-rose-500" />
+                        <span>{post.likes}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="py-12 text-center text-slate-500 bg-white/60 rounded-2xl border border-dashed border-emerald-300">
+            <p className="text-sm font-semibold text-emerald-800">Chưa có bài viết hồi ức nào trong mục này</p>
+          </div>
+        )}
+
+        {/* NÚT XEM TẤT CẢ / THU GỌN VỀ 3 BÀI */}
+        {filteredMemories.length > 3 && (
+          <div className="pt-4 pb-1 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all transform active:scale-95 cursor-pointer border border-emerald-500/60"
+            >
+              {isExpanded ? (
+                <span>▲ Thu gọn về 3 khung ảnh chuẩn</span>
+              ) : (
+                <span>👁️ Xem tất cả ({filteredMemories.length} khoảnh khắc) ▼</span>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* DẢI LỖ RĂNG CƯA PHIM DƯỚI CÙNG TÔNG XANH LÁ NHẠT */}
         <div className="flex justify-between items-center space-x-2 overflow-hidden pt-3 opacity-90 select-none">
