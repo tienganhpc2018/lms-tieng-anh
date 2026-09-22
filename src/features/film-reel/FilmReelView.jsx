@@ -13,6 +13,7 @@ import {
   Share2,
   RefreshCw,
   Camera,
+  Trash2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -24,11 +25,15 @@ import {
   loadFilmReels,
   saveFilmReels,
   seedSampleReels,
+  clearSampleReels,
+  clearAllReels,
+  saveOrUpdateFilmReel,
   addFilmReel,
   updateFilmReel,
   deleteFilmReel,
   toggleLikeReel,
   extractAllReelImages,
+  isSampleReel,
 } from './filmReelStorage';
 import { FILM_REEL_CATEGORIES } from './constants/filmReelPresets';
 import { playClick, playCorrect, playWinner, playDeduct } from '../../utils/soundEffects';
@@ -45,6 +50,7 @@ export default function FilmReelView() {
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [lastSavedTime, setLastSavedTime] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
 
   // 2. Dữ liệu cuộn phim
   const [reels, setReels] = useState([]);
@@ -139,30 +145,53 @@ export default function FilmReelView() {
       spread: 70,
       origin: { y: 0.6 },
     });
+    setToastMessage('🎉 Đã nạp thành công 3 bài viết mẫu gợi ý!');
+    setTimeout(() => setToastMessage(''), 3000);
   };
 
-  // Lưu bài viết (Tạo mới hoặc Sửa) - Tự động đồng bộ sang đúng lớp được chọn
+  // Xóa sạch tất cả các bài mẫu gợi ý
+  const handleClearSamples = () => {
+    if (window.confirm('Thầy có chắc chắn muốn xóa toàn bộ các bài mẫu để bắt đầu tạo bài viết thật cho lớp?')) {
+      playDeduct();
+      clearSampleReels(selectedClassId);
+      refreshReels(selectedClassId);
+      setToastMessage('🗑️ Đã xóa sạch toàn bộ bài mẫu gợi ý!');
+      setTimeout(() => setToastMessage(''), 3000);
+    }
+  };
+
+  // Lưu bài viết (Tạo mới hoặc Sửa đè) - Tự động đồng bộ và chuyển sang đúng lớp được chọn
   const handleSaveReel = (reelData) => {
     const targetClass = reelData.classId || (selectedClassId !== 'all_classes' ? selectedClassId : 'class_7a');
-    if (editingReel) {
-      const updated = updateFilmReel(targetClass, reelData);
-      setReels(updated);
-      setEditingReel(null);
+    
+    // Lưu hoặc sửa đè
+    const { updated } = saveOrUpdateFilmReel(reelData, editingReel?.classId);
+    setEditingReel(null);
+
+    // Tự động chuyển giao diện ngoài sang đúng lớp của bài viết để Thầy nhìn thấy ngay lập tức
+    if (selectedClassId === 'all_classes') {
+      refreshReels('all_classes');
     } else {
-      const { updated } = addFilmReel(targetClass, reelData);
-      setReels(updated);
+      setSelectedClassId(targetClass);
+      saveSelectedClassId(targetClass);
+      refreshReels(targetClass);
     }
-    // Nếu đang xem tất cả các lớp hoặc lớp vừa tạo, nạp lại để thấy ngay
-    refreshReels(selectedClassId);
+
+    const targetClassName = classes.find((c) => c.id === targetClass)?.name || targetClass;
+    setToastMessage(`🎉 Đã lưu bài viết "${reelData.title}" vào Lớp ${targetClassName} thành công!`);
+    setTimeout(() => setToastMessage(''), 4000);
   };
 
   // Xóa bài viết
   const handleDeleteReel = (reelId) => {
-    const updated = deleteFilmReel(selectedClassId, reelId);
-    setReels(updated);
+    playDeduct();
+    deleteFilmReel(selectedClassId, reelId);
+    refreshReels(selectedClassId);
     if (selectedReelDetail?.id === reelId) {
       setSelectedReelDetail(null);
     }
+    setToastMessage('🗑️ Đã xóa bài viết thành công!');
+    setTimeout(() => setToastMessage(''), 3000);
   };
 
   // Thả tim
@@ -293,13 +322,26 @@ export default function FilmReelView() {
                 </p>
               </div>
 
-              {/* 2 Nút tác vụ nổi bật */}
-              <div className="relative z-10 flex flex-wrap items-center gap-3 shrink-0">
+              {/* 3 Nút tác vụ nổi bật */}
+              <div className="relative z-10 flex flex-wrap items-center gap-2.5 shrink-0">
+                {/* Nút Xóa toàn bộ bài mẫu nếu có bài mẫu */}
+                {reels.some(isSampleReel) && (
+                  <button
+                    type="button"
+                    onClick={handleClearSamples}
+                    className="px-4 py-3 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-200 hover:text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg backdrop-blur-md active:scale-95 transition-all cursor-pointer"
+                    title="Xóa sạch toàn bộ các bài mẫu gợi ý để sẵn sàng cho bài viết thật"
+                  >
+                    <Trash2 className="w-4 h-4 text-rose-400" />
+                    <span>Xóa Bài Mẫu ({reels.filter(isSampleReel).length})</span>
+                  </button>
+                )}
+
                 {/* Nút Trình Chiếu Slideshow */}
                 <button
                   type="button"
                   onClick={() => handleOpenSlideshow()}
-                  className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg backdrop-blur-md active:scale-95 transition-all cursor-pointer"
+                  className="px-4 sm:px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/25 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg backdrop-blur-md active:scale-95 transition-all cursor-pointer"
                 >
                   <Play className="w-4 h-4 text-amber-300 fill-amber-300" />
                   <span>Trình Chiếu Slideshow</span>
@@ -428,6 +470,7 @@ export default function FilmReelView() {
                       setEditingReel(r);
                       setIsEditorOpen(true);
                     }}
+                    onDelete={(rId) => handleDeleteReel(rId)}
                     onLike={(rId) => handleLikeReel(rId)}
                   />
                 ))}
@@ -492,6 +535,14 @@ export default function FilmReelView() {
             setLightboxData((prev) => ({ ...prev, currentIndex: newIdx }))
           }
         />
+      )}
+
+      {/* Toast thông báo nổi trạng thái */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[120] bg-slate-900/95 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-purple-500/40 backdrop-blur-md text-xs font-black animate-in fade-in slide-in-from-bottom-5 duration-200 flex items-center gap-2.5">
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
       )}
     </div>
   );

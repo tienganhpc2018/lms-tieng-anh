@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Heart, Edit3, Eye, Calendar, Image as ImageIcon } from 'lucide-react';
+import { Heart, Edit3, Eye, Calendar, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { CATEGORY_BADGES } from '../constants/filmReelPresets';
-import { playClick } from '../../../utils/soundEffects';
+import { isSampleReel } from '../filmReelStorage';
+import { playClick, playDeduct } from '../../../utils/soundEffects';
 
 // Dải đục lỗ răng cưa phim nhựa 35mm (35mm Sprocket Holes)
 function SprocketStrip() {
@@ -21,9 +22,11 @@ export default function FilmReelCard({
   reel,
   onView,
   onEdit,
+  onDelete,
   onLike,
 }) {
   const [isLiking, setIsLiking] = useState(false);
+  const isSample = isSampleReel(reel);
 
   // Đếm tổng số lượng ảnh (ảnh bìa + ảnh trong các khối)
   const imageCount =
@@ -51,6 +54,14 @@ export default function FilmReelCard({
     setTimeout(() => setIsLiking(false), 300);
   };
 
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    if (window.confirm(`Thầy có chắc chắn muốn xóa bài viết "${reel.title}"?`)) {
+      playDeduct();
+      if (onDelete) onDelete(reel.id);
+    }
+  };
+
   return (
     <div className="bg-[#121620] border-2 border-slate-800 rounded-3xl overflow-hidden shadow-2xl hover:border-purple-500/50 hover:shadow-purple-900/20 transition-all duration-300 flex flex-col group">
       {/* 1. RĂNG CƯA PHIM TRÊN CÙNG */}
@@ -71,13 +82,18 @@ export default function FilmReelCard({
         {/* Lớp phủ gradient mờ nhẹ */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#121620] via-transparent to-black/30 pointer-events-none" />
 
-        {/* Góc trên trái: Nhãn danh mục hoạt động */}
-        <div className="absolute top-3 left-3 z-10">
+        {/* Góc trên trái: Nhãn danh mục hoạt động & Huy hiệu Bài mẫu */}
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 flex-wrap">
           <span
             className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow-md backdrop-blur-md ${categoryConfig.badgeBg}`}
           >
             {reel.category || 'Kỷ niệm'}
           </span>
+          {isSample && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/90 text-slate-950 border border-amber-300 shadow-xs backdrop-blur-md">
+              💡 Bài mẫu
+            </span>
+          )}
         </div>
 
         {/* Góc trên phải: Huy hiệu số lượng ảnh */}
@@ -114,7 +130,7 @@ export default function FilmReelCard({
           </p>
         </div>
 
-        {/* 5. FOOTER THAO TÁC (Thả tim, Sửa, Xem chi tiết) */}
+        {/* 5. FOOTER THAO TÁC (Thả tim, Sửa/Lưu đè, Xóa, Xem chi tiết) */}
         <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
           {/* Nút thả tim nảy pop */}
           <button
@@ -134,8 +150,19 @@ export default function FilmReelCard({
             <span>{reel.likesCount || 0}</span>
           </button>
 
-          {/* Cụm nút Sửa & Xem */}
-          <div className="flex items-center gap-2">
+          {/* Cụm nút: Xóa bài, Sửa/Lưu đè & Xem chi tiết */}
+          <div className="flex items-center gap-1.5">
+            {/* Nút Xóa bài viết */}
+            <button
+              type="button"
+              onClick={handleDeleteClick}
+              title={isSample ? 'Xóa bài mẫu này' : 'Xóa bài viết'}
+              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors border border-slate-700 hover:border-rose-700/60 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Nút Sửa / Lưu đè */}
             <button
               type="button"
               onClick={(e) => {
@@ -143,19 +170,20 @@ export default function FilmReelCard({
                 playClick();
                 if (onEdit) onEdit(reel);
               }}
-              title="Chỉnh sửa bài viết"
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-700"
+              title={isSample ? 'Lưu đè / Chỉnh sửa bài mẫu này' : 'Chỉnh sửa bài viết'}
+              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-purple-900/60 text-slate-300 hover:text-purple-300 flex items-center justify-center transition-colors border border-slate-700 hover:border-purple-600/60 cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5" />
             </button>
 
+            {/* Nút Xem */}
             <button
               type="button"
               onClick={() => {
                 playClick();
                 if (onView) onView(reel);
               }}
-              className="px-3.5 py-1.5 rounded-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-purple-600/30 active:scale-95 transition-all"
+              className="px-3.5 py-1.5 rounded-full bg-purple-600 hover:bg-purple-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-purple-600/30 active:scale-95 transition-all cursor-pointer"
             >
               <Eye className="w-3.5 h-3.5" />
               <span>Xem</span>
