@@ -20,7 +20,8 @@ import {
   Star,
   CheckCircle,
   AlertTriangle,
-  UserPlus
+  UserPlus,
+  Settings
 } from 'lucide-react';
 import {
   loadClasses,
@@ -29,10 +30,11 @@ import {
   saveSelectedClassId,
   loadStudents,
   saveStudents,
+  resetAllStudentsPoints,
 } from './behaviorStorage';
 import { playClick, playCorrect, playWinner } from '../../utils/soundEffects';
 
-// IMPORT TẤT CẢ 11 MODALS CHUẨN KỸ THUẬT
+// IMPORT TẤT CẢ MODALS CHUẨN KỸ THUẬT
 import AddClassModal4 from './modals/AddClassModal4';
 import QuickAddStudentsModal from './modals/QuickAddStudentsModal';
 import AttendanceModal4 from './modals/AttendanceModal4';
@@ -44,6 +46,8 @@ import BeeRaceModal from './modals/BeeRaceModal';
 import DiscussionTimerModal from './modals/DiscussionTimerModal';
 import GroupTeamsModal from './modals/GroupTeamsModal';
 import SeatingChartModal from './modals/SeatingChartModal';
+import CriteriaSettingsModal from './modals/CriteriaSettingsModal';
+import ClassWidePointModal from './modals/ClassWidePointModal';
 
 export default function BehaviorPage() {
   // 1. Dữ liệu lớp học & học sinh (KHÔNG MOCK DATA - CLEAN SLATE)
@@ -63,6 +67,8 @@ export default function BehaviorPage() {
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isPointModalOpen, setIsPointModalOpen] = useState(false);
   const [selectedStudentForPoint, setSelectedStudentForPoint] = useState(null);
+  const [isCriteriaSettingsOpen, setIsCriteriaSettingsOpen] = useState(false);
+  const [isClassWidePointOpen, setIsClassWidePointOpen] = useState(false);
   const [isTetModalOpen, setIsTetModalOpen] = useState(false);
   const [isSuspenseModalOpen, setIsSuspenseModalOpen] = useState(false);
   const [suspenseMode, setSuspenseMode] = useState('single');
@@ -177,6 +183,18 @@ export default function BehaviorPage() {
     if (window.confirm('Thầy/Cô có chắc chắn muốn xóa nhãn ĐÃ GỌI của toàn bộ học sinh để bắt đầu vòng gọi mới không?')) {
       playCorrect();
       const updated = students.map((s) => ({ ...s, called_at: null }));
+      handleUpdateStudents(updated);
+    }
+  };
+
+  // Đặt lại (Reset) toàn bộ điểm cộng/trừ của cả lớp về 0
+  const handleResetClassPoints = () => {
+    playClick();
+    if (!selectedClassId) return;
+    const classNameText = activeClass?.name ? `Lớp ${activeClass.name}` : 'lớp này';
+    if (window.confirm(`Thầy/Cô có chắc chắn muốn ĐẶT LẠI TOÀN BỘ điểm cộng và điểm trừ của ${classNameText} về 0 không?\n(Thao tác này thường dùng khi bắt đầu tuần/tháng thi đua mới)`)) {
+      playWinner();
+      const updated = resetAllStudentsPoints(selectedClassId);
       handleUpdateStudents(updated);
     }
   };
@@ -410,6 +428,34 @@ export default function BehaviorPage() {
                 <span>Danh Sách & Cho Điểm</span>
               </button>
 
+              {/* 4b. Cài Đặt Tiêu Chí Nề Nếp (Chung mặc định theo khối) */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsCriteriaSettingsOpen(true);
+                }}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
+                title="Cài đặt các tiêu chí cộng trừ nề nếp mặc định cho khối hoặc toàn trường"
+              >
+                <Settings className="w-4 h-4" />
+                <span>⚙️ Tiêu Chí Nề Nếp</span>
+              </button>
+
+              {/* 4c. Chấm Điểm Cả Lớp */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsClassWidePointOpen(true);
+                }}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
+                title="Cộng hoặc trừ điểm thi đua đồng loạt cho toàn thể học sinh trong lớp"
+              >
+                <Users className="w-4 h-4" />
+                <span>👥 Chấm Cả Lớp</span>
+              </button>
+
               {/* 5. Tết (Hái hoa dân chủ) 🌸 */}
               <button
                 type="button"
@@ -543,6 +589,17 @@ export default function BehaviorPage() {
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Đặt Lại Lượt Gọi</span>
+              </button>
+
+              {/* 13b. Reset Điểm Cả Lớp */}
+              <button
+                type="button"
+                onClick={handleResetClassPoints}
+                className="px-3.5 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs border border-amber-300 transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0"
+                title="Đặt lại toàn bộ điểm cộng và điểm trừ của cả lớp về 0 (cho tuần hoặc tháng thi đua mới)"
+              >
+                <RotateCcw className="w-4 h-4 text-amber-600" />
+                <span>🔄 Reset Điểm Cả Lớp</span>
               </button>
             </div>
 
@@ -790,7 +847,7 @@ export default function BehaviorPage() {
         onUpdateStudents={handleUpdateStudents}
       />
 
-      {/* 4. Modal Cho Điểm & Đổi Avatar */}
+      {/* 4. Modal Cho Điểm & Đổi Avatar & Quy Đổi Điểm Thưởng */}
       <PointModal
         isOpen={isPointModalOpen}
         onClose={() => {
@@ -798,6 +855,8 @@ export default function BehaviorPage() {
           setSelectedStudentForPoint(null);
         }}
         student={selectedStudentForPoint}
+        classId={selectedClassId}
+        gradeLevel={activeClass?.grade_level || 'all'}
         onUpdateStudent={handleUpdateSingleStudent}
       />
 
@@ -851,6 +910,24 @@ export default function BehaviorPage() {
         isOpen={isSeatingChartOpen}
         onClose={() => setIsSeatingChartOpen(false)}
         classInfo={activeClass}
+        students={students}
+        onUpdateStudents={handleUpdateStudents}
+      />
+
+      {/* 12. Modal Cài Đặt Tiêu Chí Nề Nếp Mặc Định Theo Khối Lớp */}
+      <CriteriaSettingsModal
+        isOpen={isCriteriaSettingsOpen}
+        onClose={() => setIsCriteriaSettingsOpen(false)}
+        initialGrade={activeClass?.grade_level || 'all'}
+      />
+
+      {/* 13. Modal Chấm Điểm Cộng / Trừ Cho Cả Lớp */}
+      <ClassWidePointModal
+        isOpen={isClassWidePointOpen}
+        onClose={() => setIsClassWidePointOpen(false)}
+        classId={selectedClassId}
+        classNameTitle={activeClass?.name ? `Lớp ${activeClass.name}` : ''}
+        gradeLevel={activeClass?.grade_level || 'all'}
         students={students}
         onUpdateStudents={handleUpdateStudents}
       />
