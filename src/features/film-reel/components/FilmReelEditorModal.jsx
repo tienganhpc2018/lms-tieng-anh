@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Wand2,
   Users,
+  Loader2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -30,6 +31,42 @@ import {
 } from '../services/filmReelAiService';
 import { playClick, playCorrect } from '../../../utils/soundEffects';
 import { loadClasses } from '../../behavior/behaviorStorage';
+import { compressImage } from '../../../utils/imageCompressor';
+
+// Hàm nén chuỗi DataURL nếu dung lượng còn lớn để chống tràn bộ nhớ trình duyệt
+async function compressDataUrlIfNeeded(dataUrl, maxDim = 1100, quality = 0.75) {
+  if (!dataUrl || typeof dataUrl !== 'string') return dataUrl;
+  if (!dataUrl.startsWith('data:image')) return dataUrl;
+  // Nếu ảnh đã nhẹ (< 200KB) thì giữ nguyên
+  if (dataUrl.length < 200000) return dataUrl;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
 
 const PRESET_COVERS = [
   { label: 'Học tập & Thảo luận', url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&auto=format&fit=crop&q=80' },
@@ -56,11 +93,12 @@ export default function FilmReelEditorModal({
   const [targetClassId, setTargetClassId] = useState(classId || 'class_7a');
   const [availableClasses, setAvailableClasses] = useState([]);
 
-  // State Trợ lý AI
+  // State Trợ lý AI & Trạng thái
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiKeywords, setAiKeywords] = useState('');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Nạp dữ liệu danh sách lớp và chỉnh sửa nếu có
   useEffect(() => {
@@ -103,19 +141,23 @@ export default function FilmReelEditorModal({
     }
     setActiveTab('edit');
     setErrorMessage('');
+    setIsSubmitting(false);
   }, [initialData, classId, isOpen]);
 
   if (!isOpen) return null;
 
-  // Xử lý tải ảnh bìa qua file hoặc link
-  const handleCoverUpload = (e) => {
+  // Xử lý tải ảnh bìa qua file hoặc link (TỰ ĐỘNG NÉN DƯỚI 150KB CHỐNG TRÀN BỘ NHỚ)
+  const handleCoverUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setCoverImage(event.target.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 1200, 1200, 0.75);
+        setCoverImage(compressed);
+      } catch (err) {
+        const reader = new FileReader();
+        reader.onload = (event) => setCoverImage(event.target.result);
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -189,15 +231,20 @@ export default function FilmReelEditorModal({
   };
   const handleMoveBlockDown = moveBlockDown;
 
-  // Tải ảnh cho một khối ảnh (Hỗ trợ cả File object và Event onChange)
-  const handleBlockImageUpload = (id, fileOrEvent) => {
+  // Tải ảnh cho một khối ảnh (Tự động nén dung lượng cao chống tràn bộ nhớ)
+  const handleBlockImageUpload = async (id, fileOrEvent) => {
     const file = fileOrEvent?.target?.files?.[0] || fileOrEvent;
     if (file && file instanceof Blob) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        updateBlock(id, { url: event.target.result });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImage(file, 1100, 1100, 0.75);
+        updateBlock(id, { url: compressed });
+      } catch (err) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          updateBlock(id, { url: event.target.result });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -253,59 +300,83 @@ export default function FilmReelEditorModal({
     }
   };
 
-  // Lưu & Xuất bản bài viết
-  const handleSubmit = () => {
+  // Lưu & Xuất bản bài viết (BẢO VỆ CHỐNG TRÀN BỘ NHỚ VÀ XỬ LÝ LỖI TOÀN DIỆN)
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setErrorMessage('');
 
-    // Tự động tìm tên lớp được chọn để đặt tiêu đề thông minh nếu Thầy chưa nhập
-    const selectedClassObj = availableClasses.find((c) => c.id === targetClassId);
-    const classNameText = selectedClassObj?.name ? `Lớp ${selectedClassObj.name}` : 'Lớp Học';
-    const safeTitle = title.trim() || `Khoảnh khắc ${category} - ${classNameText}`;
+    try {
+      // Tự động tìm tên lớp được chọn để đặt tiêu đề thông minh nếu Thầy chưa nhập
+      const selectedClassObj = availableClasses.find((c) => c.id === targetClassId);
+      const classNameText = selectedClassObj?.name ? `Lớp ${selectedClassObj.name}` : 'Lớp Học';
+      const safeTitle = title.trim() || `Khoảnh khắc ${category} - ${classNameText}`;
 
-    // Tự động fallback ảnh bìa thông minh nếu Thầy chưa chọn ảnh
-    let finalCover = coverImage;
-    if (!finalCover) {
-      const firstImgBlock = blocks.find((b) => b.type === 'image' && b.url);
-      if (firstImgBlock) {
-        finalCover = firstImgBlock.url;
-      } else {
-        finalCover = PRESET_COVERS[0].url;
+      // Tự động fallback ảnh bìa thông minh nếu Thầy chưa chọn ảnh
+      let finalCover = coverImage;
+      if (!finalCover) {
+        const firstImgBlock = blocks.find((b) => b.type === 'image' && b.url);
+        if (firstImgBlock) {
+          finalCover = firstImgBlock.url;
+        } else {
+          finalCover = PRESET_COVERS[0].url;
+        }
       }
-      setCoverImage(finalCover);
+
+      // Nén phòng thủ ảnh bìa nếu dung lượng còn lớn để chắc chắn 100% lưu được
+      if (finalCover && finalCover.startsWith('data:image')) {
+        finalCover = await compressDataUrlIfNeeded(finalCover, 1200, 0.75);
+      }
+
+      // Đảm bảo luôn có ít nhất 1 khối nội dung
+      let validBlocks = blocks.filter(
+        (b) => (b.type === 'paragraph' && b.text?.trim()) || (b.type === 'image' && b.url)
+      );
+      if (validBlocks.length === 0) {
+        validBlocks = [
+          {
+            id: `blk_${Date.now()}`,
+            type: 'paragraph',
+            text: `Ghi lại khoảnh khắc hoạt động ${category.toLowerCase()} đáng nhớ cùng tập thể ${classNameText}.`,
+          },
+        ];
+      } else {
+        // Nén các ảnh trong block nếu còn dung lượng nặng
+        validBlocks = await Promise.all(
+          validBlocks.map(async (blk) => {
+            if (blk.type === 'image' && blk.url?.startsWith('data:image')) {
+              const compressedUrl = await compressDataUrlIfNeeded(blk.url, 1100, 0.75);
+              return { ...blk, url: compressedUrl };
+            }
+            return blk;
+          })
+        );
+      }
+
+      const payload = {
+        ...(initialData || {}),
+        classId: targetClassId || classId || 'class_7a',
+        title: safeTitle,
+        category,
+        eventDate: eventDate || new Date().toISOString().split('T')[0],
+        coverImage: finalCover,
+        blocks: validBlocks,
+      };
+
+      onSave(payload);
+      playCorrect();
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 },
+      });
+      onClose();
+    } catch (err) {
+      console.error('Lỗi khi xuất bản khoảnh khắc:', err);
+      setErrorMessage('Không thể lưu do dung lượng ảnh quá lớn hoặc trình duyệt chặn lưu. Đang nén ảnh...');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Đảm bảo luôn có ít nhất 1 khối nội dung
-    let validBlocks = blocks.filter(
-      (b) => (b.type === 'paragraph' && b.text?.trim()) || (b.type === 'image' && b.url)
-    );
-    if (validBlocks.length === 0) {
-      validBlocks = [
-        {
-          id: `blk_${Date.now()}`,
-          type: 'paragraph',
-          text: `Ghi lại khoảnh khắc hoạt động ${category.toLowerCase()} đáng nhớ cùng tập thể ${classNameText}.`,
-        },
-      ];
-    }
-
-    const payload = {
-      ...(initialData || {}),
-      classId: targetClassId || classId || 'class_7a',
-      title: safeTitle,
-      category,
-      eventDate: eventDate || new Date().toISOString().split('T')[0],
-      coverImage: finalCover,
-      blocks: validBlocks,
-    };
-
-    onSave(payload);
-    playCorrect();
-    confetti({
-      particleCount: 120,
-      spread: 80,
-      origin: { y: 0.6 },
-    });
-    onClose();
   };
 
   return (
@@ -773,11 +844,21 @@ export default function FilmReelEditorModal({
 
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={handleSubmit}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Check className="w-4 h-4" />
-              <span>LƯU & XUẤT BẢN KHOẢNH KHẮC</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>ĐANG XUẤT BẢN...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>LƯU & XUẤT BẢN KHOẢNH KHẮC</span>
+                </>
+              )}
             </button>
           </div>
         </div>

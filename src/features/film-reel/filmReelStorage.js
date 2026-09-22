@@ -25,35 +25,48 @@ export const loadFilmReels = (classId) => {
   }
 };
 
-// 2. Lưu danh sách cuộn phim của lớp học
+// 2. Lưu danh sách cuộn phim của lớp học (với cơ chế tự phục hồi chống tràn bộ nhớ Quota)
 export const saveFilmReels = (classId, reels) => {
   const targetClassId = classId || 'class_7a';
   try {
     localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(reels));
-
-    // Luôn đồng bộ vào danh sách toàn cục all_published_film_reels để Trang Chủ luôn nạp được tức thì
+  } catch (quotaErr) {
+    console.warn(`LocalStorage đầy, đang tối ưu dọn dẹp để lưu lớp ${targetClassId}:`, quotaErr);
     try {
-      const rawAll = localStorage.getItem('all_published_film_reels');
-      let currentAll = rawAll ? JSON.parse(rawAll) : [];
-      if (!Array.isArray(currentAll)) currentAll = [];
-
-      reels.forEach((r) => {
-        const idx = currentAll.findIndex((item) => item.id === r.id);
-        if (idx >= 0) {
-          currentAll[idx] = r;
-        } else {
-          currentAll.unshift(r);
+      // Dọn bớt các cache tạm nếu có
+      const keysToClean = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('cache_') || k.startsWith('temp_'))) {
+          keysToClean.push(k);
         }
-      });
-      localStorage.setItem('all_published_film_reels', JSON.stringify(currentAll));
-    } catch (errSync) {
-      // bỏ qua lỗi đồng bộ
+      }
+      keysToClean.forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(reels));
+    } catch (retryErr) {
+      console.error('Không thể lưu do bộ nhớ trình duyệt đã đầy:', retryErr);
     }
-
-    notifyFilmReelsChanged();
-  } catch (e) {
-    console.error(`Lỗi lưu cuộn phim lớp ${targetClassId}:`, e);
   }
+
+  // Đồng bộ vào all_published_film_reels (Giữ tối đa 50 bài mới nhất)
+  try {
+    const rawAll = localStorage.getItem('all_published_film_reels');
+    let currentAll = rawAll ? JSON.parse(rawAll) : [];
+    if (!Array.isArray(currentAll)) currentAll = [];
+
+    reels.forEach((r) => {
+      const idx = currentAll.findIndex((item) => item.id === r.id);
+      if (idx >= 0) {
+        currentAll[idx] = r;
+      } else {
+        currentAll.unshift(r);
+      }
+    });
+    if (currentAll.length > 50) currentAll = currentAll.slice(0, 50);
+    localStorage.setItem('all_published_film_reels', JSON.stringify(currentAll));
+  } catch (errSync) {}
+
+  notifyFilmReelsChanged();
 };
 
 // Kiểm tra xem bài viết có phải là bài mẫu hay không
