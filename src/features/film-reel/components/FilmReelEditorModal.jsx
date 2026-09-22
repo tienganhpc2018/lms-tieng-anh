@@ -256,10 +256,11 @@ export default function FilmReelEditorModal({
   // Lưu & Xuất bản bài viết
   const handleSubmit = () => {
     setErrorMessage('');
-    if (!title.trim()) {
-      setErrorMessage('Vui lòng nhập tiêu đề cho sự kiện kỷ niệm!');
-      return;
-    }
+
+    // Tự động tìm tên lớp được chọn để đặt tiêu đề thông minh nếu Thầy chưa nhập
+    const selectedClassObj = availableClasses.find((c) => c.id === targetClassId);
+    const classNameText = selectedClassObj?.name ? `Lớp ${selectedClassObj.name}` : 'Lớp Học';
+    const safeTitle = title.trim() || `Khoảnh khắc ${category} - ${classNameText}`;
 
     // Tự động fallback ảnh bìa thông minh nếu Thầy chưa chọn ảnh
     let finalCover = coverImage;
@@ -273,19 +274,28 @@ export default function FilmReelEditorModal({
       setCoverImage(finalCover);
     }
 
-    // Tự động fallback tiêu đề nếu Thầy để trống nhưng chọn danh mục
-    const safeTitle = title.trim() || `Hoạt động ${category} đáng nhớ`;
+    // Đảm bảo luôn có ít nhất 1 khối nội dung
+    let validBlocks = blocks.filter(
+      (b) => (b.type === 'paragraph' && b.text?.trim()) || (b.type === 'image' && b.url)
+    );
+    if (validBlocks.length === 0) {
+      validBlocks = [
+        {
+          id: `blk_${Date.now()}`,
+          type: 'paragraph',
+          text: `Ghi lại khoảnh khắc hoạt động ${category.toLowerCase()} đáng nhớ cùng tập thể ${classNameText}.`,
+        },
+      ];
+    }
 
     const payload = {
       ...(initialData || {}),
       classId: targetClassId || classId || 'class_7a',
       title: safeTitle,
       category,
-      eventDate,
+      eventDate: eventDate || new Date().toISOString().split('T')[0],
       coverImage: finalCover,
-      blocks: blocks.filter(
-        (b) => (b.type === 'paragraph' && b.text.trim()) || (b.type === 'image' && b.url)
-      ),
+      blocks: validBlocks,
     };
 
     onSave(payload);

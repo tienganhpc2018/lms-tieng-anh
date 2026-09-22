@@ -116,7 +116,19 @@ export default function FilmReelView() {
 
   const refreshReels = (targetId = selectedClassId) => {
     const cId = targetId || selectedClassId || 'all_classes';
-    const data = loadFilmReels(cId);
+    let data = loadFilmReels(cId);
+
+    // Cơ chế thông minh: Nếu lớp cụ thể chưa có bài nhưng các lớp khác có bài viết do Thầy tạo
+    // -> Tự động chuyển sang xem "Tất cả các lớp" để Thầy luôn thấy ngay thành quả của mình!
+    if (data.length === 0 && cId !== 'all_classes') {
+      const allData = loadFilmReels('all_classes');
+      if (allData.length > 0) {
+        data = allData;
+        setSelectedClassId('all_classes');
+        saveSelectedClassId('all_classes');
+      }
+    }
+
     setReels(data);
     const now = new Date();
     setLastSavedTime(
@@ -160,25 +172,22 @@ export default function FilmReelView() {
     }
   };
 
-  // Lưu bài viết (Tạo mới hoặc Sửa đè) - Tự động đồng bộ và chuyển sang đúng lớp được chọn
+  // Lưu bài viết (Tạo mới hoặc Sửa đè) - Tự động đồng bộ và hiển thị ngay tức thì
   const handleSaveReel = (reelData) => {
-    const targetClass = reelData.classId || (selectedClassId !== 'all_classes' ? selectedClassId : 'class_7a');
+    const targetClass = reelData.classId || 'class_7a';
     
     // Lưu hoặc sửa đè
-    const { updated } = saveOrUpdateFilmReel(reelData, editingReel?.classId);
+    const { savedReel } = saveOrUpdateFilmReel(reelData, editingReel?.classId);
     setEditingReel(null);
 
-    // Tự động chuyển giao diện ngoài sang đúng lớp của bài viết để Thầy nhìn thấy ngay lập tức
-    if (selectedClassId === 'all_classes') {
-      refreshReels('all_classes');
-    } else {
-      setSelectedClassId(targetClass);
-      saveSelectedClassId(targetClass);
-      refreshReels(targetClass);
-    }
+    // Chuyển sang xem "all_classes" (Tất cả các lớp) để bài mới chắc chắn xuất hiện ngay lập tức
+    const nextViewClass = 'all_classes';
+    setSelectedClassId(nextViewClass);
+    saveSelectedClassId(nextViewClass);
+    refreshReels(nextViewClass);
 
     const targetClassName = classes.find((c) => c.id === targetClass)?.name || targetClass;
-    setToastMessage(`🎉 Đã lưu bài viết "${reelData.title}" vào Lớp ${targetClassName} thành công!`);
+    setToastMessage(`🎉 Đã xuất bản khoảnh khắc "${savedReel.title}" thành công!`);
     setTimeout(() => setToastMessage(''), 4000);
   };
 
@@ -436,7 +445,7 @@ export default function FilmReelView() {
                     className="px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs uppercase tracking-wider shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>+ TẠO KHOẢNH KHẮC MỚI ĐẦU TIÊN</span>
+                    <span>Tạo Khoảnh Khắc Mới Đầu Tiên</span>
                   </button>
 
                   <button
@@ -445,8 +454,18 @@ export default function FilmReelView() {
                     className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>+ Nạp 3 Bài Mẫu Gợi Ý</span>
+                    <span>Nạp Lại 3 Bài Mẫu Gợi Ý</span>
                   </button>
+
+                  {selectedClassId !== 'all_classes' && (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectClass('all_classes')}
+                      className="px-5 py-3 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs border border-purple-200 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>🌐 Xem Toàn Bộ Bài Viết (Tất Cả Các Lớp)</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ) : filteredReels.length === 0 ? (

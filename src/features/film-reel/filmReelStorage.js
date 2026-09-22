@@ -59,8 +59,10 @@ export const saveFilmReels = (classId, reels) => {
 // Kiểm tra xem bài viết có phải là bài mẫu hay không
 export const isSampleReel = (reel) => {
   if (!reel) return false;
-  if (reel.isSample) return true;
-  if (typeof reel.id === 'string' && (reel.id.startsWith('sample_reel_') || reel.id.includes('sample'))) return true;
+  // Nếu bài viết do Thầy lưu hoặc sửa (isSample === false) thì TUYỆT ĐỐI KHÔNG PHẢI bài mẫu
+  if (reel.isSample === false) return false;
+  if (reel.isSample === true) return true;
+
   const sampleTitles = [
     'lễ kỷ niệm tri ân ngày nhà giáo việt nam 20/11',
     'ngày hội khoa học & trải nghiệm sáng tạo stem',
@@ -126,7 +128,6 @@ export const clearAllReels = (classId = null) => {
       keysToRemove.forEach((k) => localStorage.removeItem(k));
     } else {
       localStorage.removeItem(STORAGE_KEY_PREFIX + classId);
-      // Xóa trong all_published_film_reels
       const rawAll = localStorage.getItem('all_published_film_reels');
       if (rawAll) {
         const allList = JSON.parse(rawAll);
@@ -146,53 +147,64 @@ export const clearAllReels = (classId = null) => {
 // 6. Lưu hoặc cập nhật bài viết (Hỗ trợ lưu đè trực tiếp lên bài mẫu hoặc đổi lớp)
 export const saveOrUpdateFilmReel = (reelData, previousClassId = null) => {
   const targetClassId = reelData?.classId || 'class_7a';
-  const isEditing = Boolean(reelData?.id);
-  const finalId = reelData?.id || `reel_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+
+  // Nếu là bài mẫu được lưu đè, hoặc bài chưa có id -> Luôn cấp id mới chính thức của bài thật
+  let finalId = reelData?.id;
+  if (!finalId || (typeof finalId === 'string' && finalId.startsWith('sample_reel_'))) {
+    finalId = `reel_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+  }
 
   const finalReel = {
     ...reelData,
     id: finalId,
     classId: targetClassId,
-    isSample: false, // Khi Thầy lưu hoặc sửa đè, bài trở thành bài thật chính thức
+    isSample: false, // Bắt buộc false: Bài viết thật của Thầy, không bao giờ bị xóa nhầm
     likesCount: reelData.likesCount || 0,
     isLiked: Boolean(reelData.isLiked),
     createdAt: reelData.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
-  // Nếu chuyển từ lớp cũ sang lớp mới -> Xóa khỏi lớp cũ
+  // 1. Lưu vào danh sách của lớp mục tiêu
+  let classList = [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PREFIX + targetClassId);
+    if (raw) classList = JSON.parse(raw);
+  } catch (e) {}
+  if (!Array.isArray(classList)) classList = [];
+
+  // Lọc bỏ bài cũ nếu trùng id hoặc trùng id ban đầu
+  classList = classList.filter((r) => r.id !== finalId && r.id !== reelData?.id);
+  classList.unshift(finalReel);
+  localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(classList));
+
+  // 2. Nếu chuyển từ lớp cũ sang lớp mới -> Xóa khỏi lớp cũ
   if (previousClassId && previousClassId !== targetClassId && previousClassId !== 'all_classes') {
     try {
       const oldRaw = localStorage.getItem(STORAGE_KEY_PREFIX + previousClassId);
       if (oldRaw) {
-        const oldList = JSON.parse(oldRaw);
+        let oldList = JSON.parse(oldRaw);
         if (Array.isArray(oldList)) {
-          const filteredOld = oldList.filter((r) => r.id !== finalId);
-          localStorage.setItem(STORAGE_KEY_PREFIX + previousClassId, JSON.stringify(filteredOld));
+          oldList = oldList.filter((r) => r.id !== finalId && r.id !== reelData?.id);
+          localStorage.setItem(STORAGE_KEY_PREFIX + previousClassId, JSON.stringify(oldList));
         }
       }
     } catch (e) {}
   }
 
-  // Nạp danh sách lớp mục tiêu
-  let currentList = [];
+  // 3. Luôn đồng bộ vào danh sách toàn cục all_published_film_reels để Trang Chủ luôn hiển thị tức thì
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_PREFIX + targetClassId);
-    if (raw) currentList = JSON.parse(raw);
-  } catch (e) {}
-  if (!Array.isArray(currentList)) currentList = [];
+    const rawAll = localStorage.getItem('all_published_film_reels');
+    let currentAll = rawAll ? JSON.parse(rawAll) : [];
+    if (!Array.isArray(currentAll)) currentAll = [];
 
-  const existingIndex = currentList.findIndex((r) => r.id === finalId);
-  if (existingIndex >= 0) {
-    // Lưu đè lên bài có sẵn (hoặc lưu đè lên bài mẫu)
-    currentList[existingIndex] = finalReel;
-  } else {
-    // Thêm mới lên đầu danh sách
-    currentList.unshift(finalReel);
-  }
+    currentAll = currentAll.filter((r) => r.id !== finalId && r.id !== reelData?.id);
+    currentAll.unshift(finalReel);
+    localStorage.setItem('all_published_film_reels', JSON.stringify(currentAll));
+  } catch (errSync) {}
 
-  saveFilmReels(targetClassId, currentList);
-  return { updated: currentList, savedReel: finalReel };
+  notifyFilmReelsChanged();
+  return { updated: classList, savedReel: finalReel };
 };
 
 // 7. Thêm một bài viết mới (Wrapper tương thích ngược)
@@ -280,7 +292,7 @@ export const toggleLikeReel = (classId, reelId) => {
   return targetClassId ? loadFilmReels(targetClassId) : loadAllFilmReelsAcrossClasses();
 };
 
-// 8. Trích xuất toàn bộ ảnh của tất cả các cuộn phim phục vụ Slideshow
+// 11. Trích xuất toàn bộ ảnh của tất cả các cuộn phim phục vụ Slideshow
 export const extractAllReelImages = (reels = []) => {
   const allImages = [];
 
@@ -317,14 +329,29 @@ export const extractAllReelImages = (reels = []) => {
   return allImages;
 };
 
-// 9. Tải tất cả bài viết cuộn phim từ tất cả các lớp (Phục vụ Cuộn Phim Hồi Ức trên Trang Chủ)
+// 12. Tải tất cả bài viết cuộn phim từ tất cả các lớp (Phục vụ Cuộn Phim Hồi Ức trên Trang Chủ)
 export const loadAllFilmReelsAcrossClasses = () => {
   const map = new Map();
   try {
-    // Quét toàn bộ localStorage để tìm các key lưu trữ cuộn phim
+    // 1. Quét all_published_film_reels trước
+    const rawAll = localStorage.getItem('all_published_film_reels');
+    if (rawAll) {
+      try {
+        const list = JSON.parse(rawAll);
+        if (Array.isArray(list)) {
+          list.forEach((item) => {
+            if (item && item.id) {
+              map.set(item.id, item);
+            }
+          });
+        }
+      } catch (e) {}
+    }
+
+    // 2. Quét toàn bộ localStorage để tìm các key lưu trữ cuộn phim của từng lớp
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith(STORAGE_KEY_PREFIX) || key === 'all_published_film_reels')) {
+      if (key && key.startsWith(STORAGE_KEY_PREFIX)) {
         const raw = localStorage.getItem(key);
         if (raw) {
           try {

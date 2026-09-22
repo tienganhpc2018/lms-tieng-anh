@@ -176,7 +176,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
             m.classTag?.includes(selectedGrade) ||
             m.title?.toLowerCase().includes(`lớp ${selectedGrade}`) ||
             m.title?.toLowerCase().includes(`khối ${selectedGrade}`) ||
-            (m.isCustom && selectedGrade === '7')
+            m.title?.toLowerCase().includes(selectedGrade)
         );
 
   // HÀM CUỘN NGANG THƯỚC PHIM BẰNG NÚT MŨI TÊN
