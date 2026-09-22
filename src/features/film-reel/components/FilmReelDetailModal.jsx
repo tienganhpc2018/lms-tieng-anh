@@ -86,7 +86,7 @@ export default function FilmReelDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto pt-16 sm:pt-8 pb-10 print:p-0 print:bg-white">
       <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto border border-slate-200 animate-in fade-in zoom-in-95 duration-200 print:shadow-none print:border-none print:rounded-none">
         {/* CSS DÀN TRANG IN CHUẨN KHỔ GIẤY A4 */}
         <style dangerouslySetInnerHTML={{ __html: `

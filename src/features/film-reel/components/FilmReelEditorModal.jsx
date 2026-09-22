@@ -29,6 +29,13 @@ import {
 } from '../services/filmReelAiService';
 import { playClick, playCorrect } from '../../../utils/soundEffects';
 
+const PRESET_COVERS = [
+  { label: 'Học tập & Thảo luận', url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Hoạt động kịch nghệ', url: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Kỷ niệm & Tình bạn', url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1200&auto=format&fit=crop&q=80' },
+  { label: 'Lớp học sôi động', url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&auto=format&fit=crop&q=80' },
+];
+
 export default function FilmReelEditorModal({
   isOpen,
   onClose,
@@ -107,83 +114,106 @@ export default function FilmReelEditorModal({
   // Thêm khối hình ảnh mới
   const handleAddImageBlock = () => {
     playClick();
-    const defaultCaption = generateSmartCaption(category, blocks.length + 1);
     setBlocks((prev) => [
       ...prev,
       {
         id: `blk_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
         type: 'image',
         url: '',
-        caption: defaultCaption,
+        caption: '',
       },
     ]);
   };
 
-  // Xử lý tải ảnh cho từng khối
-  const handleBlockImageUpload = (blockId, e) => {
-    const file = e.target.files?.[0];
+  // Cập nhật nội dung một khối
+  const handleUpdateBlock = (id, field, value) => {
+    setBlocks((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, [field]: value } : b))
+    );
+  };
+
+  // Xóa một khối
+  const handleDeleteBlock = (id) => {
+    playClick();
+    setBlocks((prev) => prev.filter((b) => b.id !== id));
+  };
+
+  // Di chuyển khối lên trên
+  const handleMoveBlockUp = (index) => {
+    if (index === 0) return;
+    playClick();
+    setBlocks((prev) => {
+      const newArr = [...prev];
+      const temp = newArr[index - 1];
+      newArr[index - 1] = newArr[index];
+      newArr[index] = temp;
+      return newArr;
+    });
+  };
+
+  // Di chuyển khối xuống dưới
+  const handleMoveBlockDown = (index) => {
+    if (index === blocks.length - 1) return;
+    playClick();
+    setBlocks((prev) => {
+      const newArr = [...prev];
+      const temp = newArr[index + 1];
+      newArr[index + 1] = newArr[index];
+      newArr[index] = temp;
+      return newArr;
+    });
+  };
+
+  // Tải ảnh cho một khối ảnh (File upload)
+  const handleBlockImageUpload = (id, file) => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        updateBlock(blockId, { url: event.target.result });
+        handleUpdateBlock(id, 'url', event.target.result);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Cập nhật thuộc tính khối
-  const updateBlock = (blockId, updates) => {
-    setBlocks((prev) =>
-      prev.map((b) => (b.id === blockId ? { ...b, ...updates } : b))
-    );
+  // Trợ lý AI tạo thông minh chú thích ảnh
+  const handleAiSmartCaption = async (blockId) => {
+    const targetBlock = blocks.find((b) => b.id === blockId);
+    if (!targetBlock) return;
+
+    try {
+      const generated = await generateSmartCaption(
+        targetBlock.caption || title || 'Hình ảnh kỷ niệm lớp học',
+        category
+      );
+      handleUpdateBlock(blockId, 'caption', generated);
+      playCorrect();
+    } catch (e) {
+      console.error('Lỗi sinh caption AI:', e);
+    }
   };
 
-  // Xóa khối
-  const deleteBlock = (blockId) => {
-    playClick();
-    setBlocks((prev) => prev.filter((b) => b.id !== blockId));
-  };
-
-  // Di chuyển khối Lên
-  const moveBlockUp = (index) => {
-    if (index <= 0) return;
-    playClick();
-    const newBlocks = [...blocks];
-    const temp = newBlocks[index - 1];
-    newBlocks[index - 1] = newBlocks[index];
-    newBlocks[index] = temp;
-    setBlocks(newBlocks);
-  };
-
-  // Di chuyển khối Xuống
-  const moveBlockDown = (index) => {
-    if (index >= blocks.length - 1) return;
-    playClick();
-    const newBlocks = [...blocks];
-    const temp = newBlocks[index + 1];
-    newBlocks[index + 1] = newBlocks[index];
-    newBlocks[index] = temp;
-    setBlocks(newBlocks);
-  };
-
-  // Gọi Trợ lý AI sinh đoạn văn
+  // Trợ lý AI tạo đoạn văn nhật ký
   const handleAiGenerateParagraph = async () => {
+    if (!aiKeywords.trim() && !title.trim()) {
+      alert('Vui lòng nhập vài từ khóa hoặc tiêu đề bài viết để AI có dữ liệu sáng tác!');
+      return;
+    }
+
     setIsGeneratingAi(true);
     try {
-      const result = await generateJournalParagraph({
-        title,
-        category,
-        keywords: aiKeywords,
-      });
+      const resultText = await generateJournalParagraph(
+        title || 'Khoảnh khắc kỷ niệm lớp học',
+        aiKeywords,
+        category
+      );
 
-      if (result.success && result.text) {
+      if (resultText) {
         setBlocks((prev) => [
           ...prev,
           {
             id: `blk_ai_${Date.now()}`,
             type: 'paragraph',
-            text: result.text,
-            aiGenerated: true,
+            text: resultText,
           },
         ]);
         playCorrect();
@@ -204,9 +234,17 @@ export default function FilmReelEditorModal({
       setErrorMessage('Vui lòng nhập tiêu đề cho sự kiện kỷ niệm!');
       return;
     }
-    if (!coverImage) {
-      setErrorMessage('Vui lòng chọn ảnh bìa cho bài viết cuộn phim!');
-      return;
+
+    // Tự động fallback ảnh bìa thông minh nếu Thầy chưa chọn ảnh
+    let finalCover = coverImage;
+    if (!finalCover) {
+      const firstImgBlock = blocks.find((b) => b.type === 'image' && b.url);
+      if (firstImgBlock) {
+        finalCover = firstImgBlock.url;
+      } else {
+        finalCover = PRESET_COVERS[0].url;
+      }
+      setCoverImage(finalCover);
     }
 
     const payload = {
@@ -215,7 +253,7 @@ export default function FilmReelEditorModal({
       title: title.trim(),
       category,
       eventDate,
-      coverImage,
+      coverImage: finalCover,
       blocks: blocks.filter(
         (b) => (b.type === 'paragraph' && b.text.trim()) || (b.type === 'image' && b.url)
       ),
@@ -232,7 +270,7 @@ export default function FilmReelEditorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto pt-16 sm:pt-8 pb-10">
       <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden my-auto border-2 border-slate-200 animate-in fade-in zoom-in-95 duration-200">
         {/* 1. HEADER MODAL */}
         <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-indigo-950 p-5 text-white flex items-center justify-between border-b border-purple-800/40">
@@ -402,16 +440,42 @@ export default function FilmReelEditorModal({
                       className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-purple-400"
                     />
 
-                    <label className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer shadow-sm active:scale-95 transition-all">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Hoặc tải ảnh từ máy tính</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleCoverUpload}
-                        className="hidden"
-                      />
-                    </label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer shadow-sm active:scale-95 transition-all">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Hoặc tải ảnh từ máy tính</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleCoverUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Gợi ý chọn nhanh ảnh bìa mẫu học đường đẹp */}
+                    <div className="pt-1 border-t border-purple-200/60">
+                      <span className="text-[11px] font-extrabold text-purple-900 block mb-1.5 flex items-center gap-1">
+                        <span>⚡</span> Chọn nhanh ảnh bìa mẫu có sẵn (1-Click):
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {PRESET_COVERS.map((cov, cIdx) => (
+                          <button
+                            key={cIdx}
+                            type="button"
+                            onClick={() => setCoverImage(cov.url)}
+                            className={`text-[10px] font-bold px-2.5 py-1.5 rounded-lg border truncate text-left transition cursor-pointer shadow-2xs ${
+                              coverImage === cov.url
+                                ? 'bg-purple-600 text-white border-purple-700 ring-2 ring-purple-300'
+                                : 'bg-white hover:bg-purple-100 text-purple-900 border-purple-200'
+                            }`}
+                            title={cov.label}
+                          >
+                            🖼️ {cov.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -632,28 +696,36 @@ export default function FilmReelEditorModal({
         </div>
 
         {/* 3. FOOTER HÀNH ĐỘNG */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition-all"
-          >
-            Hủy Bỏ
-          </button>
+        <div className="p-4 bg-slate-50 border-t border-slate-200">
+          {errorMessage && (
+            <div className="mb-3 p-3 bg-rose-50 border-2 border-rose-300 text-rose-700 text-xs font-bold rounded-xl flex items-center gap-2 animate-bounce">
+              <span>⚠️</span>
+              <span>{errorMessage}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition-all cursor-pointer"
+            >
+              Hủy Bỏ
+            </button>
 
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
-          >
-            <Check className="w-4 h-4" />
-            <span>LƯU & XUẤT BẢN KHOẢNH KHẮC</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-600/30 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Check className="w-4 h-4" />
+              <span>LƯU & XUẤT BẢN KHOẢNH KHẮC</span>
+            </button>
+          </div>
         </div>
 
         {/* MODAL TRỢ LÝ AI VIẾT ĐOẠN VĂN */}
         {isAiModalOpen && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
             <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border-2 border-purple-400 space-y-4 animate-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-purple-700 font-black text-base">

@@ -20,6 +20,16 @@ export const saveFilmReels = (classId, reels) => {
   if (!classId) return;
   try {
     localStorage.setItem(STORAGE_KEY_PREFIX + classId, JSON.stringify(reels));
+
+    // Đồng bộ đồng thời vào danh sách toàn cục để Trang Chủ luôn nạp được tức thì
+    try {
+      const allReels = loadAllFilmReelsAcrossClasses();
+      localStorage.setItem('all_published_film_reels', JSON.stringify(allReels));
+    } catch (errSync) {
+      // bỏ qua
+    }
+
+    notifyFilmReelsChanged();
   } catch (e) {
     console.error(`Lỗi lưu cuộn phim lớp ${classId}:`, e);
   }
@@ -133,4 +143,52 @@ export const extractAllReelImages = (reels = []) => {
   });
 
   return allImages;
+};
+
+// 9. Tải tất cả bài viết cuộn phim từ tất cả các lớp (Phục vụ Cuộn Phim Hồi Ức trên Trang Chủ)
+export const loadAllFilmReelsAcrossClasses = () => {
+  const map = new Map();
+  try {
+    // Quét toàn bộ localStorage để tìm các key lưu trữ cuộn phim
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith(STORAGE_KEY_PREFIX) || key === 'all_published_film_reels')) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+              list.forEach((item) => {
+                if (item && item.id && !map.has(item.id)) {
+                  map.set(item.id, item);
+                }
+              });
+            }
+          } catch (err) {
+            // bỏ qua parse error
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Lỗi khi tải toàn bộ bài viết cuộn phim:', e);
+  }
+
+  const all = Array.from(map.values());
+  // Sắp xếp bài mới nhất lên đầu tiên
+  return all.sort(
+    (a, b) => new Date(b.eventDate || b.createdAt || 0) - new Date(a.eventDate || a.createdAt || 0)
+  );
+};
+
+// Phát sự kiện cập nhật toàn hệ thống (Custom Event)
+export const notifyFilmReelsChanged = () => {
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('filmReelsUpdated'));
+      window.dispatchEvent(new Event('storage'));
+    }
+  } catch (e) {
+    // bỏ qua nếu SSR
+  }
 };

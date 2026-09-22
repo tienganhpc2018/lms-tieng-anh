@@ -1,12 +1,77 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Film, Calendar, Heart, ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { loadAllFilmReelsAcrossClasses } from '../film-reel/filmReelStorage';
+import { loadClasses } from '../behavior/behaviorStorage';
 
 export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const navigate = useNavigate();
   const [activeModalPost, setActiveModalPost] = useState(null);
   const [selectedGrade, setSelectedGrade] = useState('all');
+  const [customReels, setCustomReels] = useState([]);
   const scrollContainerRef = useRef(null);
+
+  // Nạp các bài viết thực tế từ hệ thống Cuộn phim kỷ niệm
+  const refreshCustomReels = () => {
+    try {
+      const classesList = loadClasses() || [];
+      const classMap = {};
+      classesList.forEach((c) => {
+        if (c.id) classMap[c.id] = c.name;
+      });
+
+      const reelsFromStorage = loadAllFilmReelsAcrossClasses() || [];
+      const formatted = reelsFromStorage.map((r) => {
+        const firstParagraph = r.blocks?.find((b) => b.type === 'paragraph' && b.text)?.text || '';
+        const cName = classMap[r.classId] || r.classId || 'Lớp học';
+
+        let gradeNum = 'all';
+        if (cName.includes('9')) gradeNum = '9';
+        else if (cName.includes('8')) gradeNum = '8';
+        else if (cName.includes('7')) gradeNum = '7';
+
+        let dateFormatted = r.eventDate || '';
+        if (dateFormatted.includes('-')) {
+          const parts = dateFormatted.split('-');
+          if (parts.length === 3) dateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        return {
+          id: r.id,
+          grade: gradeNum,
+          title: r.title,
+          date: dateFormatted || 'Mới cập nhật',
+          classTag: cName.startsWith('Lớp') ? cName : `Lớp ${cName}`,
+          category: r.category || 'Kỷ Niệm',
+          coverImage:
+            r.coverImage ||
+            'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80',
+          description: firstParagraph || 'Khoảnh khắc đáng nhớ và tự hào cùng tập thể lớp.',
+          tags: ['✨ ' + (r.category || 'Kỷ Niệm'), '📸 Cuộn Phim', '🌟 Mới Đăng'],
+          likes: r.likesCount || 0,
+          rawReel: r,
+          isCustom: true,
+        };
+      });
+
+      setCustomReels(formatted);
+    } catch (e) {
+      console.error('Lỗi nạp cuộn phim hồi ức:', e);
+    }
+  };
+
+  useEffect(() => {
+    refreshCustomReels();
+
+    const handleUpdate = () => refreshCustomReels();
+    window.addEventListener('filmReelsUpdated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      window.removeEventListener('filmReelsUpdated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
 
   // DANH SÁCH 7 BÀI MẪU CUỘN PHIM HỒI ỨC CHO CẢ 3 KHỐI LỚP 9, 8, 7
   const FILM_MEMORIES = [
@@ -90,10 +155,14 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
     },
   ];
 
-  // BỘ LỌC KỶ NIỆM THEO KHỐI LỚP
-  const filteredMemories = selectedGrade === 'all' 
-    ? FILM_MEMORIES 
-    : FILM_MEMORIES.filter((m) => m.grade === selectedGrade || m.classTag.includes(selectedGrade));
+  // BỘ LỌC KỶ NIỆM THEO KHỐI LỚP (Ưu tiên bài viết thật do Thầy biên soạn lên đầu)
+  const combinedMemories = [...customReels, ...FILM_MEMORIES];
+  const filteredMemories =
+    selectedGrade === 'all'
+      ? combinedMemories
+      : combinedMemories.filter(
+          (m) => m.grade === selectedGrade || m.classTag?.includes(selectedGrade)
+        );
 
   // HÀM CUỘN NGANG THƯỚC PHIM BẰNG NÚT MŨI TÊN
   const handleScrollReel = (direction) => {
@@ -213,8 +282,15 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                   FRAME #{String(idx + 1).padStart(2, '0')}
                 </div>
 
-                <div className="absolute top-2 right-2 px-2 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-md shadow-xs">
-                  {post.classTag}
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  {post.isCustom && (
+                    <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-md shadow-xs animate-pulse">
+                      ✨ MỚI
+                    </span>
+                  )}
+                  <span className="px-2 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-md shadow-xs">
+                    {post.classTag}
+                  </span>
                 </div>
 
                 <div className="absolute bottom-2 left-2 flex items-center space-x-1.5 px-2 py-0.5 bg-black/60 rounded text-white text-[11px] font-bold">
@@ -267,8 +343,8 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
 
       {/* MODAL XEM CHI TIẾT KHOẢNH KHẮC PHIM */}
       {activeModalPost && (
-        <div className="fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 space-y-0 text-slate-900">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto pt-16 sm:pt-10 pb-8 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-200 space-y-0 text-slate-900 my-auto">
             <div className="relative aspect-video w-full bg-slate-950">
               <img
                 src={activeModalPost.coverImage}
@@ -278,23 +354,61 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
               <button
                 type="button"
                 onClick={() => setActiveModalPost(null)}
-                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-950/80 hover:bg-slate-900 text-white font-bold flex items-center justify-center cursor-pointer shadow-lg"
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-slate-950/80 hover:bg-slate-900 text-white font-black flex items-center justify-center cursor-pointer shadow-lg transition-transform active:scale-90"
               >
                 ✕
               </button>
-              <div className="absolute bottom-3 left-3 bg-slate-950/80 text-white text-xs px-3 py-1 rounded-xl font-bold">
+              <div className="absolute bottom-3 left-3 bg-slate-950/80 text-white text-xs px-3 py-1.5 rounded-xl font-bold backdrop-blur-md border border-white/20">
                 📅 {activeModalPost.date} • {activeModalPost.classTag}
               </div>
             </div>
 
-            <div className="p-6 space-y-4 select-text">
-              <h4 className="text-xl font-black text-slate-900 leading-snug">
+            <div className="p-6 space-y-4 select-text max-h-[60vh] overflow-y-auto">
+              <div className="inline-block px-3 py-1 bg-emerald-50 text-emerald-800 text-xs font-black uppercase rounded-full border border-emerald-200">
+                {activeModalPost.category}
+              </div>
+
+              <h4 className="text-xl sm:text-2xl font-black text-slate-900 leading-snug">
                 {activeModalPost.title}
               </h4>
-              <p className="text-slate-600 text-sm leading-relaxed">
-                {activeModalPost.description}
-              </p>
-              <div className="flex flex-wrap gap-1.5 pt-2">
+
+              {/* NỘI DUNG CHI TIẾT (Nếu là bài viết tự tạo có blocks thì render từng block) */}
+              {activeModalPost.rawReel?.blocks && activeModalPost.rawReel.blocks.length > 0 ? (
+                <div className="space-y-4 pt-2">
+                  {activeModalPost.rawReel.blocks.map((blk, bIdx) => {
+                    if (blk.type === 'paragraph' && blk.text) {
+                      return (
+                        <p key={bIdx} className="text-slate-700 text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                          {blk.text}
+                        </p>
+                      );
+                    }
+                    if (blk.type === 'image' && blk.url) {
+                      return (
+                        <div key={bIdx} className="space-y-1.5 my-3">
+                          <img
+                            src={blk.url}
+                            alt="Ảnh khoảnh khắc"
+                            className="w-full rounded-2xl shadow-md border border-slate-200 max-h-96 object-cover"
+                          />
+                          {blk.caption && (
+                            <p className="text-xs text-slate-500 italic text-center font-medium">
+                              📷 {blk.caption}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              ) : (
+                <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                  {activeModalPost.description}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-1.5 pt-3 border-t border-slate-100">
                 {activeModalPost.tags.map((tg, idx) => (
                   <span key={idx} className="px-3 py-1 bg-emerald-50 text-emerald-900 font-bold rounded-full text-xs border border-emerald-200">
                     {tg}
@@ -306,7 +420,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                 <button
                   type="button"
                   onClick={() => setActiveModalPost(null)}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition cursor-pointer"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs sm:text-sm transition cursor-pointer shadow-md"
                 >
                   Đóng (Close)
                 </button>
