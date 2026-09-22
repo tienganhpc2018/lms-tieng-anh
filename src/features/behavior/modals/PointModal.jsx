@@ -18,8 +18,9 @@ import {
   History,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { loadCriteria, convertStudentPoints } from '../behaviorStorage';
+import { loadCriteria, convertStudentPoints, loadBehaviorSettings } from '../behaviorStorage';
 import { playClick, playCorrect, playWinner, playDeduct } from '../../../utils/soundEffects';
+import { speakPraise } from '../utils/speechPraise';
 import CriteriaSettingsModal from './CriteriaSettingsModal';
 
 export default function PointModal({
@@ -141,18 +142,30 @@ export default function PointModal({
       return;
     }
 
-    playWinner();
-    confetti({
-      particleCount: 120,
-      spread: 80,
-      origin: { y: 0.55 },
-    });
+    const res = convertStudentPoints(classId, student.id, type, convertBatch);
+    if (res?.error) {
+      playDeduct();
+      alert(res.message || 'Không thể quy đổi điểm lúc này!');
+      return;
+    }
 
-    const updated = convertStudentPoints(classId, student.id, type, convertBatch);
-    if (updated) {
-      onUpdateStudent(updated);
+    if (res) {
+      playWinner();
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.55 },
+      });
+
+      onUpdateStudent(res);
+
+      const valueGained = type === 'kttx' ? Math.floor(convertBatch / 10) : convertBatch;
+
+      // LỜI BÌNH AI TUYÊN DƯƠNG BẰNG GIỌNG NÓI TRỰC TIẾP
+      speakPraise(student.full_name, type, valueGained);
+
       const label = type === 'kttx'
-        ? `🎉 Đã đổi ${convertBatch} điểm nề nếp thành +${Math.floor(convertBatch / 10)} Điểm KTTX!`
+        ? `🎉 Đã đổi ${convertBatch} điểm nề nếp thành +${valueGained} Điểm KTTX!`
         : `🎉 Đã đổi ${convertBatch} điểm nề nếp thành +${convertBatch} ⭐ Sao Đổi Quà!`;
       setToastMsg(label);
       setTimeout(() => setToastMsg(''), 3500);
@@ -456,10 +469,10 @@ export default function PointModal({
 
                 <div className="text-right space-y-1">
                   <div className="text-xs font-bold text-white bg-white/20 px-3 py-1 rounded-xl backdrop-blur-md">
-                    🎓 Đã tích lũy: <strong>+{kttxBonus} KTTX</strong>
+                    🎓 Đã tích lũy: <strong>+{kttxBonus} / {loadBehaviorSettings().maxKttxBonus || 2} KTTX</strong>
                   </div>
                   <div className="text-[10px] text-blue-200 font-semibold">
-                    10 Điểm nề nếp = 1 Điểm KTTX
+                    (Mức trần tối đa: +{loadBehaviorSettings().maxKttxBonus || 2} điểm)
                   </div>
                 </div>
               </div>
@@ -482,6 +495,19 @@ export default function PointModal({
                     : `Cần thêm ${10 - (currentPlus % 10)} điểm nề nếp nữa để đủ mốc 10 điểm.`}
                 </p>
               </div>
+
+              {/* CẢNH BÁO NẾU ĐÃ ĐẠT MỨC TRẦN KTTX */}
+              {kttxBonus >= (loadBehaviorSettings().maxKttxBonus || 2) && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl flex items-start space-x-2 text-xs font-bold text-amber-900">
+                  <span className="text-base">⚠️</span>
+                  <div>
+                    <span className="font-black">Đã đạt mức trần điểm thưởng KTTX (+{loadBehaviorSettings().maxKttxBonus || 2} điểm):</span>
+                    <p className="font-medium text-amber-800 mt-0.5">
+                      Học sinh đã nhận đủ điểm cộng tối đa vào cột kiểm tra. Số điểm nề nếp còn lại xin mời đổi sang <strong>Sao Cửa Hàng Quà 4.0 ⭐</strong>!
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* CHỌN SỐ ĐIỂM MUỐN ĐỔI (10, 20, 30...) */}
               <div className="flex items-center space-x-2">
@@ -510,8 +536,11 @@ export default function PointModal({
                     <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg shadow-sm">
                       🎓
                     </div>
-                    <h4 className="text-sm font-black text-blue-950">
-                      Đổi sang Điểm KTTX
+                    <h4 className="text-sm font-black text-blue-950 flex items-center justify-between">
+                      <span>Đổi sang Điểm KTTX</span>
+                      {kttxBonus >= (loadBehaviorSettings().maxKttxBonus || 2) && (
+                        <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded-full font-bold">Kịch trần</span>
+                      )}
                     </h4>
                     <p className="text-xs text-slate-600 leading-relaxed font-medium">
                       Cứ <strong>{convertBatch} điểm nề nếp</strong> quy đổi thành <strong>+{Math.floor(convertBatch / 10)} điểm</strong> cộng vào cột Kiểm tra Thường xuyên.
@@ -521,15 +550,19 @@ export default function PointModal({
                   <button
                     type="button"
                     onClick={() => handleConvert('kttx')}
-                    disabled={currentPlus < convertBatch}
+                    disabled={currentPlus < convertBatch || kttxBonus >= (loadBehaviorSettings().maxKttxBonus || 2)}
                     className={`w-full py-2.5 px-3 rounded-xl font-black text-xs transition flex items-center justify-center space-x-1.5 shadow-sm ${
-                      currentPlus >= convertBatch
+                      currentPlus >= convertBatch && kttxBonus < (loadBehaviorSettings().maxKttxBonus || 2)
                         ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer active:scale-95'
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                     }`}
                   >
                     <GraduationCap className="w-4 h-4" />
-                    <span>Đổi +{Math.floor(convertBatch / 10)} Điểm KTTX</span>
+                    <span>
+                      {kttxBonus >= (loadBehaviorSettings().maxKttxBonus || 2)
+                        ? 'Đã đạt mức trần (+2đ)'
+                        : `Đổi +${Math.floor(convertBatch / 10)} Điểm KTTX`}
+                    </span>
                   </button>
                 </div>
 

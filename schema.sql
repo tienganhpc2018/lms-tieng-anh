@@ -274,3 +274,23 @@ CREATE POLICY "Authenticated users can upload LMS files" ON storage.objects FOR 
 
 DROP POLICY IF EXISTS "Public read access for LMS files" ON storage.objects;
 CREATE POLICY "Public read access for LMS files" ON storage.objects FOR SELECT TO public USING (bucket_id = 'lms-files');
+
+-- ========================================================
+-- 10. BẢNG BEHAVIOR_RECORDS (SỔ NỀ NẾP, ĐIỂM THƯỞNG KTTX & SNAPSHOTS THI ĐUA)
+-- ========================================================
+CREATE TABLE IF NOT EXISTS public.behavior_records (
+    id TEXT PRIMARY KEY,
+    teacher_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    classes_data JSONB,
+    students_data JSONB,
+    criteria_data JSONB,
+    snapshots_data JSONB,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.behavior_records ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all access to behavior_records" ON public.behavior_records;
+CREATE POLICY "Allow all access to behavior_records" ON public.behavior_records 
+FOR ALL USING (true) WITH CHECK (true);
+

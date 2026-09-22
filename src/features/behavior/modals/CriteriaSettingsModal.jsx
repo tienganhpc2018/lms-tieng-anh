@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Edit3, RotateCcw, Check, Sparkles, Star, AlertTriangle } from 'lucide-react';
-import { loadCriteria, saveCriteria, resetCriteriaToDefault } from '../behaviorStorage';
+import { X, Plus, Trash2, Edit3, RotateCcw, Check, Sparkles, Star, AlertTriangle, Settings, ShieldCheck } from 'lucide-react';
+import { loadCriteria, saveCriteria, resetCriteriaToDefault, loadBehaviorSettings, saveBehaviorSettings } from '../behaviorStorage';
 import { playClick, playCorrect, playDeduct } from '../../../utils/soundEffects';
 
 const EMOJI_SUGGESTIONS = [
@@ -14,6 +14,7 @@ export default function CriteriaSettingsModal({ isOpen, onClose, initialGrade = 
   const [plusCriteria, setPlusCriteria] = useState([]);
   const [minusCriteria, setMinusCriteria] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
+  const [maxKttxBonus, setMaxKttxBonus] = useState(2);
 
   // Form thêm tiêu chí mới
   const [newLabel, setNewLabel] = useState('');
@@ -27,6 +28,8 @@ export default function CriteriaSettingsModal({ isOpen, onClose, initialGrade = 
   useEffect(() => {
     if (isOpen) {
       loadData(selectedGrade);
+      const settings = loadBehaviorSettings();
+      setMaxKttxBonus(settings.maxKttxBonus || 2);
     }
   }, [isOpen, selectedGrade]);
 
@@ -34,6 +37,15 @@ export default function CriteriaSettingsModal({ isOpen, onClose, initialGrade = 
     const data = loadCriteria(grade);
     setPlusCriteria(data.plusCriteria || []);
     setMinusCriteria(data.minusCriteria || []);
+  };
+
+  const handleUpdateMaxKttx = (val) => {
+    playCorrect();
+    setMaxKttxBonus(val);
+    const settings = loadBehaviorSettings();
+    saveBehaviorSettings({ ...settings, maxKttxBonus: val });
+    setToastMessage(`✅ Đã lưu mức trần KTTX tối đa: +${val} điểm!`);
+    setTimeout(() => setToastMessage(''), 2500);
   };
 
   if (!isOpen) return null;
@@ -187,6 +199,36 @@ export default function CriteriaSettingsModal({ isOpen, onClose, initialGrade = 
               {g.label}
             </button>
           ))}
+        </div>
+
+        {/* CẤU HÌNH MỨC TRẦN ĐIỂM THƯỞNG KTTX (CAP LIMIT) */}
+        <div className="bg-amber-50/80 border border-amber-200 p-3 sm:p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-sm font-black shadow-xs">
+              🎓
+            </div>
+            <div>
+              <span className="text-xs font-black text-amber-950 block leading-tight">
+                Mức trần điểm thưởng KTTX tối đa (Cap Limit)
+              </span>
+              <span className="text-[11px] text-amber-800 font-medium block mt-0.5">
+                Điểm tối đa 1 học sinh được quy đổi vào cột Kiểm tra Thường xuyên (thừa sẽ chuyển đổi sang Sao quà)
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 self-end sm:self-auto">
+            <select
+              value={maxKttxBonus}
+              onChange={(e) => handleUpdateMaxKttx(Number(e.target.value))}
+              className="px-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-black text-amber-950 outline-hidden cursor-pointer shadow-xs"
+            >
+              <option value={1}>Tối đa +1 điểm</option>
+              <option value={2}>Tối đa +2 điểm (Khuyên dùng)</option>
+              <option value={3}>Tối đa +3 điểm</option>
+              <option value={4}>Tối đa +4 điểm</option>
+              <option value={5}>Tối đa +5 điểm</option>
+            </select>
+          </div>
         </div>
 
         {/* FORM THÊM TIÊU CHÍ MỚI */}

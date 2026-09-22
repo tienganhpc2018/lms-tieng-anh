@@ -21,7 +21,12 @@ import {
   CheckCircle,
   AlertTriangle,
   UserPlus,
-  Settings
+  Settings,
+  Printer,
+  Archive,
+  Cloud,
+  UploadCloud,
+  DownloadCloud
 } from 'lucide-react';
 import {
   loadClasses,
@@ -33,6 +38,7 @@ import {
   resetAllStudentsPoints,
 } from './behaviorStorage';
 import { playClick, playCorrect, playWinner } from '../../utils/soundEffects';
+import { syncBehaviorToCloud, restoreBehaviorFromCloud, getCloudLastSyncTime } from './behaviorCloudSync';
 
 // IMPORT TẤT CẢ MODALS CHUẨN KỸ THUẬT
 import AddClassModal4 from './modals/AddClassModal4';
@@ -48,6 +54,8 @@ import GroupTeamsModal from './modals/GroupTeamsModal';
 import SeatingChartModal from './modals/SeatingChartModal';
 import CriteriaSettingsModal from './modals/CriteriaSettingsModal';
 import ClassWidePointModal from './modals/ClassWidePointModal';
+import BehaviorReportModal from './modals/BehaviorReportModal';
+import ArchiveSnapshotsModal from './modals/ArchiveSnapshotsModal';
 
 export default function BehaviorPage() {
   // 1. Dữ liệu lớp học & học sinh (KHÔNG MOCK DATA - CLEAN SLATE)
@@ -55,6 +63,11 @@ export default function BehaviorPage() {
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [students, setStudents] = useState([]);
   const [lastSavedTime, setLastSavedTime] = useState('');
+
+  // 1b. Trạng thái Cloud Sync (Đồng bộ thời gian thực Supabase)
+  const [cloudSyncState, setCloudSyncState] = useState('idle'); // 'idle' | 'syncing' | 'synced' | 'error'
+  const [lastCloudSync, setLastCloudSync] = useState(getCloudLastSyncTime());
+  const [cloudNotice, setCloudNotice] = useState('');
 
   // 2. Giao diện & Bộ lọc
   const [cardSize, setCardSize] = useState('large'); // 'large' (96px) | 'small' (80px)
@@ -69,6 +82,8 @@ export default function BehaviorPage() {
   const [selectedStudentForPoint, setSelectedStudentForPoint] = useState(null);
   const [isCriteriaSettingsOpen, setIsCriteriaSettingsOpen] = useState(false);
   const [isClassWidePointOpen, setIsClassWidePointOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isTetModalOpen, setIsTetModalOpen] = useState(false);
   const [isSuspenseModalOpen, setIsSuspenseModalOpen] = useState(false);
   const [suspenseMode, setSuspenseMode] = useState('single');
@@ -187,15 +202,68 @@ export default function BehaviorPage() {
     }
   };
 
-  // Đặt lại (Reset) toàn bộ điểm cộng/trừ của cả lớp về 0
+  // Đặt lại (Reset) toàn bộ điểm cộng/trừ của cả lớp về 0 (Có gợi ý chốt sổ trước khi reset)
   const handleResetClassPoints = () => {
     playClick();
     if (!selectedClassId) return;
     const classNameText = activeClass?.name ? `Lớp ${activeClass.name}` : 'lớp này';
-    if (window.confirm(`Thầy/Cô có chắc chắn muốn ĐẶT LẠI TOÀN BỘ điểm cộng và điểm trừ của ${classNameText} về 0 không?\n(Thao tác này thường dùng khi bắt đầu tuần/tháng thi đua mới)`)) {
+
+    const shouldArchive = window.confirm(
+      `Thầy/Cô có muốn CHỐT SỔ & LƯU TRỮ kết quả kỳ thi đua này của ${classNameText} vào Sổ Lưu Trữ trước khi đặt lại về 0 không?\n\n• Bấm [OK] để Chốt Sổ & Lưu Trữ bảng vàng kỳ này trước.\n• Bấm [Cancel] nếu muốn đi thẳng đến hộp thoại Đặt Lại điểm về 0.`
+    );
+
+    if (shouldArchive) {
+      setIsArchiveOpen(true);
+      return;
+    }
+
+    if (window.confirm(`XÁC NHẬN: Đặt lại toàn bộ điểm cộng và điểm trừ của ${classNameText} về 0?`)) {
       playWinner();
       const updated = resetAllStudentsPoints(selectedClassId);
       handleUpdateStudents(updated);
+    }
+  };
+
+  // Đồng bộ lên Supabase Cloud thủ công
+  const handleTriggerCloudSync = async () => {
+    playClick();
+    setCloudSyncState('syncing');
+    const res = await syncBehaviorToCloud(selectedClassId, students, classes);
+    if (res.success) {
+      playCorrect();
+      setCloudSyncState('synced');
+      setLastCloudSync(res.lastSyncTime);
+      setCloudNotice(`☁️ Đã sao lưu dữ liệu lên Supabase Cloud lúc ${res.lastSyncTime}!`);
+      setTimeout(() => setCloudNotice(''), 4000);
+    } else {
+      setCloudSyncState('error');
+      if (res.tableMissing) {
+        setCloudNotice('⚠️ Bảng "behavior_records" chưa được tạo trên Supabase. Thầy chỉ cần copy câu lệnh SQL chạy 1 lần là đồng bộ vĩnh viễn!');
+      } else {
+        setCloudNotice(`⚠️ Đồng bộ: ${res.error || 'Vui lòng kiểm tra mạng'}`);
+      }
+      setTimeout(() => setCloudNotice(''), 7000);
+    }
+  };
+
+  // Khôi phục dữ liệu từ Supabase Cloud về máy này
+  const handleCloudRestore = async () => {
+    playClick();
+    if (!selectedClassId) return;
+    if (window.confirm(`Thầy/Cô có chắc chắn muốn TẢI DỮ LIỆU TỪ CLOUD về máy này để ghi đè dữ liệu hiện tại không?`)) {
+      setCloudSyncState('syncing');
+      const res = await restoreBehaviorFromCloud(selectedClassId);
+      if (res.success) {
+        playWinner();
+        setCloudSyncState('synced');
+        if (res.classes && res.classes.length > 0) setClasses(res.classes);
+        if (res.students && res.students.length > 0) setStudents(res.students);
+        setCloudNotice('🎉 Đã khôi phục dữ liệu nề nếp từ Supabase Cloud thành công!');
+        setTimeout(() => setCloudNotice(''), 4000);
+      } else {
+        setCloudSyncState('error');
+        alert(res.message || res.error || 'Không tìm thấy dữ liệu trên Cloud!');
+      }
     }
   };
 
@@ -249,6 +317,28 @@ export default function BehaviorPage() {
             </span>
           )}
 
+          {/* NÚT CLOUD SYNC SUPABASE */}
+          <button
+            type="button"
+            onClick={handleTriggerCloudSync}
+            disabled={cloudSyncState === 'syncing'}
+            className={`px-3 py-1.5 rounded-2xl border text-xs font-black transition cursor-pointer flex items-center space-x-1.5 shadow-2xs ${
+              cloudSyncState === 'synced' || lastCloudSync
+                ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                : 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200'
+            }`}
+            title="Nhấn để sao lưu toàn bộ sổ nề nếp lên Supabase Cloud (Đồng bộ thời gian thực)"
+          >
+            <Cloud className={`w-3.5 h-3.5 ${cloudSyncState === 'syncing' ? 'animate-bounce text-blue-600' : 'text-emerald-600'}`} />
+            <span>
+              {cloudSyncState === 'syncing'
+                ? 'Đang sao lưu...'
+                : lastCloudSync
+                ? `Cloud: ${lastCloudSync}`
+                : 'Sao lưu Cloud ☁️'}
+            </span>
+          </button>
+
           {/* DROPDOWN CHỌN LỚP */}
           {classes.length > 0 && (
             <div className="relative">
@@ -279,6 +369,24 @@ export default function BehaviorPage() {
           </div>
         </div>
       </div>
+
+      {/* THÔNG BÁO CLOUD SYNC & KẾT QUẢ */}
+      {cloudNotice && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-xs font-bold text-amber-900 shadow-2xs">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <span className="flex items-center space-x-2">
+              <span>{cloudNotice}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setCloudNotice('')}
+              className="text-amber-700 hover:text-amber-950 text-sm font-black px-2 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-5">
         {/* =================================================================== */}
@@ -454,6 +562,34 @@ export default function BehaviorPage() {
               >
                 <Users className="w-4 h-4" />
                 <span>👥 Chấm Cả Lớp</span>
+              </button>
+
+              {/* 4d. Xuất Phiếu Báo Điểm & Zalo */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsReportOpen(true);
+                }}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-700 to-cyan-700 text-white font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
+                title="Xuất phiếu báo nề nếp, điểm thưởng KTTX, in PDF hoặc copy tin nhắn gửi Zalo phụ huynh"
+              >
+                <Printer className="w-4 h-4" />
+                <span>🖨️ Xuất Phiếu & Zalo</span>
+              </button>
+
+              {/* 4e. Sổ Lưu Trữ & Bảng Vàng */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsArchiveOpen(true);
+                }}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-600 to-yellow-600 text-slate-950 font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
+                title="Xem lại lịch sử các kỳ thi đua đã chốt sổ (Tuần / Tháng) và bảng vàng vinh danh"
+              >
+                <Archive className="w-4 h-4" />
+                <span>🗂️ Sổ Lưu Trữ & Chốt Sổ</span>
               </button>
 
               {/* 5. Tết (Hái hoa dân chủ) 🌸 */}
@@ -930,6 +1066,24 @@ export default function BehaviorPage() {
         gradeLevel={activeClass?.grade_level || 'all'}
         students={students}
         onUpdateStudents={handleUpdateStudents}
+      />
+
+      {/* 14. Modal Xuất Phiếu Báo Nề Nếp & Điểm Thưởng KTTX (In PDF / Zalo) */}
+      <BehaviorReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        classInfo={activeClass}
+        students={students}
+      />
+
+      {/* 15. Modal Sổ Lưu Trữ & Bảng Vàng Chốt Sổ Thi Đua */}
+      <ArchiveSnapshotsModal
+        isOpen={isArchiveOpen}
+        onClose={() => setIsArchiveOpen(false)}
+        classId={selectedClassId}
+        classNameTitle={activeClass?.name ? `Lớp ${activeClass.name}` : ''}
+        activeClass={activeClass}
+        students={students}
       />
     </div>
   );

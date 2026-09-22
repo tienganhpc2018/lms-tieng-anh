@@ -4,6 +4,8 @@ export const STORAGE_KEYS = {
   CLASSES: 'user_created_classes',
   SELECTED_CLASS_ID: 'selected_class_id',
   STUDENTS_PREFIX: 'behavior_students_',
+  SETTINGS: 'behavior_app_settings',
+  SNAPSHOTS_PREFIX: 'behavior_snapshots_',
 };
 
 // 1. Tải danh sách lớp học (Mặc định mảng rỗng - KHÔNG MOCK DATA)
@@ -248,17 +250,78 @@ export const awardClassPoints = (classId, points, isDeduct = false, onlyPresent 
   return updated;
 };
 
-// 15. Quy đổi điểm cộng nề nếp sang Điểm KTTX hoặc Sao Cửa Hàng
+// 15. Cài đặt hệ thống nề nếp (Mức trần điểm KTTX, cấu hình âm thanh,...)
+export const loadBehaviorSettings = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    const defaults = {
+      maxKttxBonus: 2, // Mức trần điểm thưởng KTTX tối đa (Cap limit)
+      pointsPerKttx: 10, // 10 điểm cộng nề nếp = 1 điểm KTTX
+      pointsPerStar: 1, // 10 điểm cộng nề nếp = 10 Sao (tỉ lệ 1:1)
+      voiceEnabled: true, // Bật giọng đọc AI tuyên dương
+      cloudAutoSync: true, // Tự động đồng bộ Supabase Cloud
+    };
+    return raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
+  } catch (e) {
+    console.error('Lỗi nạp cài đặt nề nếp:', e);
+    return { maxKttxBonus: 2, pointsPerKttx: 10, pointsPerStar: 1, voiceEnabled: true, cloudAutoSync: true };
+  }
+};
+
+export const saveBehaviorSettings = (settings) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('behaviorSettingsUpdated', { detail: settings }));
+    }
+  } catch (e) {
+    console.error('Lỗi lưu cài đặt nề nếp:', e);
+  }
+};
+
+// 16. Quy đổi điểm cộng nề nếp sang Điểm KTTX (có chặn Cap Limit) hoặc Sao Cửa Hàng
 export const convertStudentPoints = (classId, studentId, type = 'kttx', pointsToConvert = 10) => {
   if (!classId || !studentId) return null;
   const students = loadStudents(classId);
+  const settings = loadBehaviorSettings();
   let updatedStudent = null;
+
+  const targetStudent = students.find((s) => s.id === studentId);
+  if (!targetStudent) return null;
+
+  const currentPlus = targetStudent.plus_points || 0;
+  if (currentPlus < pointsToConvert) {
+    return { error: 'INSUFFICIENT_POINTS', message: 'Không đủ điểm cộng để quy đổi' };
+  }
+
+  // KIỂM TRA MỨC TRẦN CAP LIMIT CHO ĐIỂM KTTX
+  if (type === 'kttx') {
+    const bonusGained = Math.floor(pointsToConvert / (settings.pointsPerKttx || 10));
+    const currentKttx = targetStudent.kttx_bonus || 0;
+    const maxAllowed = settings.maxKttxBonus || 2;
+
+    if (currentKttx >= maxAllowed) {
+      return {
+        error: 'CAP_REACHED',
+        maxKttxBonus: maxAllowed,
+        currentBonus: currentKttx,
+        message: `Học sinh đã đạt mức trần điểm thưởng KTTX tối đa (+${maxAllowed} điểm). Hãy chuyển sang đổi Sao Cửa Hàng Quà 4.0!`,
+      };
+    }
+
+    if (currentKttx + bonusGained > maxAllowed) {
+      return {
+        error: 'CAP_EXCEEDED',
+        maxKttxBonus: maxAllowed,
+        currentBonus: currentKttx,
+        availableSlots: maxAllowed - currentKttx,
+        message: `Chỉ còn có thể nhận thêm tối đa +${maxAllowed - currentKttx} điểm KTTX (Mức trần là +${maxAllowed} điểm).`,
+      };
+    }
+  }
 
   const updatedStudents = students.map((s) => {
     if (s.id === studentId) {
-      const currentPlus = s.plus_points || 0;
-      if (currentPlus < pointsToConvert) return s; // Không đủ điểm đổi
-
       const remainingPlus = currentPlus - pointsToConvert;
       const historyItem = {
         id: `conv_${Date.now()}`,
@@ -268,8 +331,7 @@ export const convertStudentPoints = (classId, studentId, type = 'kttx', pointsTo
       };
 
       if (type === 'kttx') {
-        // Cứ 10 điểm cộng nề nếp = 1 điểm KTTX
-        const bonusGained = Math.floor(pointsToConvert / 10);
+        const bonusGained = Math.floor(pointsToConvert / (settings.pointsPerKttx || 10));
         historyItem.valueGained = bonusGained;
         historyItem.label = `+${bonusGained} điểm Kiểm tra Thường xuyên`;
 
@@ -280,7 +342,6 @@ export const convertStudentPoints = (classId, studentId, type = 'kttx', pointsTo
           conversion_history: [historyItem, ...(s.conversion_history || [])],
         };
       } else {
-        // Cứ 10 điểm cộng nề nếp = 10 Sao Đổi Quà (Cửa Hàng Quà 4.0 / Túi Mù)
         const starsGained = pointsToConvert; // 10 điểm = 10 sao
         historyItem.valueGained = starsGained;
         historyItem.label = `+${starsGained} ⭐ Sao Đổi Quà`;
@@ -300,4 +361,78 @@ export const convertStudentPoints = (classId, studentId, type = 'kttx', pointsTo
 
   saveStudents(classId, updatedStudents);
   return updatedStudent;
+};
+
+// 17. QUẢN LÝ LƯU TRỮ & CHỐT SỔ THI ĐUA (ARCHIVE SNAPSHOTS)
+export const loadSnapshots = (classId) => {
+  if (!classId) return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SNAPSHOTS_PREFIX + classId);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error(`Lỗi nạp snapshots lớp ${classId}:`, e);
+    return [];
+  }
+};
+
+export const saveSnapshot = (classId, snapshotTitle, students = [], activeClass = null) => {
+  if (!classId) return null;
+  try {
+    const existing = loadSnapshots(classId);
+    const sorted = [...students].sort((a, b) => {
+      const scoreA = (a.plus_points || 0) - (a.minus_points || 0);
+      const scoreB = (b.plus_points || 0) - (b.minus_points || 0);
+      return scoreB - scoreA;
+    });
+
+    const totalPlus = students.reduce((sum, s) => sum + (s.plus_points || 0), 0);
+    const totalMinus = students.reduce((sum, s) => sum + (s.minus_points || 0), 0);
+    const totalKttxAwarded = students.reduce((sum, s) => sum + (s.kttx_bonus || 0), 0);
+
+    const newSnapshot = {
+      id: `snap_${Date.now()}`,
+      title: snapshotTitle || `Chốt sổ ngày ${new Date().toLocaleDateString('vi-VN')}`,
+      createdAt: new Date().toISOString(),
+      classId,
+      className: activeClass?.name || '',
+      gradeLevel: activeClass?.grade_level || 'all',
+      totalStudents: students.length,
+      stats: {
+        totalPlus,
+        totalMinus,
+        totalKttxAwarded,
+      },
+      topStudents: sorted.slice(0, 5).map((s) => ({
+        id: s.id,
+        name: s.full_name,
+        code: s.code,
+        avatar: s.avatar,
+        netScore: (s.plus_points || 0) - (s.minus_points || 0),
+        plus: s.plus_points || 0,
+        minus: s.minus_points || 0,
+        kttxBonus: s.kttx_bonus || 0,
+      })),
+      allStudents: sorted,
+    };
+
+    const updated = [newSnapshot, ...existing];
+    localStorage.setItem(STORAGE_KEYS.SNAPSHOTS_PREFIX + classId, JSON.stringify(updated));
+    return newSnapshot;
+  } catch (e) {
+    console.error(`Lỗi lưu snapshot lớp ${classId}:`, e);
+    return null;
+  }
+};
+
+export const deleteSnapshot = (classId, snapshotId) => {
+  if (!classId || !snapshotId) return [];
+  try {
+    const existing = loadSnapshots(classId);
+    const updated = existing.filter((s) => s.id !== snapshotId);
+    localStorage.setItem(STORAGE_KEYS.SNAPSHOTS_PREFIX + classId, JSON.stringify(updated));
+    return updated;
+  } catch (e) {
+    console.error(`Lỗi xóa snapshot:`, e);
+    return [];
+  }
 };
