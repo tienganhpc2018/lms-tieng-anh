@@ -125,21 +125,23 @@ export default function FilmReelEditorModal({
     ]);
   };
 
-  // Cập nhật nội dung một khối
-  const handleUpdateBlock = (id, field, value) => {
+  // Cập nhật nội dung một khối (Hỗ trợ cả updateBlock và handleUpdateBlock)
+  const updateBlock = (blockId, updates) => {
     setBlocks((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, [field]: value } : b))
+      prev.map((b) => (b.id === blockId ? { ...b, ...updates } : b))
     );
   };
+  const handleUpdateBlock = (id, field, value) => updateBlock(id, { [field]: value });
 
   // Xóa một khối
-  const handleDeleteBlock = (id) => {
+  const deleteBlock = (id) => {
     playClick();
     setBlocks((prev) => prev.filter((b) => b.id !== id));
   };
+  const handleDeleteBlock = deleteBlock;
 
   // Di chuyển khối lên trên
-  const handleMoveBlockUp = (index) => {
+  const moveBlockUp = (index) => {
     if (index === 0) return;
     playClick();
     setBlocks((prev) => {
@@ -150,9 +152,10 @@ export default function FilmReelEditorModal({
       return newArr;
     });
   };
+  const handleMoveBlockUp = moveBlockUp;
 
   // Di chuyển khối xuống dưới
-  const handleMoveBlockDown = (index) => {
+  const moveBlockDown = (index) => {
     if (index === blocks.length - 1) return;
     playClick();
     setBlocks((prev) => {
@@ -163,13 +166,15 @@ export default function FilmReelEditorModal({
       return newArr;
     });
   };
+  const handleMoveBlockDown = moveBlockDown;
 
-  // Tải ảnh cho một khối ảnh (File upload)
-  const handleBlockImageUpload = (id, file) => {
-    if (file) {
+  // Tải ảnh cho một khối ảnh (Hỗ trợ cả File object và Event onChange)
+  const handleBlockImageUpload = (id, fileOrEvent) => {
+    const file = fileOrEvent?.target?.files?.[0] || fileOrEvent;
+    if (file && file instanceof Blob) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        handleUpdateBlock(id, 'url', event.target.result);
+        updateBlock(id, { url: event.target.result });
       };
       reader.readAsDataURL(file);
     }
