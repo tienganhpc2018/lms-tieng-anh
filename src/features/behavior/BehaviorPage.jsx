@@ -700,17 +700,17 @@ export default function BehaviorPage() {
                 <span>Chia Nhóm & Theo Tổ 🐝</span>
               </button>
 
-              {/* 10. Bee Race (Đua Vịt Slider) 🐥 */}
+              {/* 10. Đua Vịt Vàng Sông Nước 🦆 */}
               <button
                 type="button"
                 onClick={() => {
                   playClick();
                   setIsBeeRaceOpen(true);
                 }}
-                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 text-slate-950 font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
               >
-                <Flame className="w-4 h-4 fill-slate-950" />
-                <span>Bee Race (Đua Vịt Slider) 🐥</span>
+                <span className="text-base">🦆</span>
+                <span>Đua Vịt Vàng Sông Nước</span>
               </button>
 
               {/* 11. Bấm Giờ ⏱️ */}

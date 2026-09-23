@@ -1,17 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, RotateCcw, Award } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { playClick, playWinner } from '../../../utils/soundEffects';
+import { playClick, playWinner, playSuspenseSpin, playTick } from '../../../utils/soundEffects';
 
-export default function TetHaiHoaModal({ isOpen, onClose, students, onAwardStudent }) {
+export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAwardStudent }) {
   const [openedLocs, setOpenedLocs] = useState({}); // { locNum: studentId }
   const [activeWinner, setActiveWinner] = useState(null);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [spinCountdown, setSpinCountdown] = useState(6); // 6 giây hồi hộp
+  const [spinningLocNum, setSpinningLocNum] = useState(null);
+  const [spinningCandidate, setSpinningCandidate] = useState(null);
+
+  const spinTimerRef = useRef(null);
+  const countTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (spinTimerRef.current) clearInterval(spinTimerRef.current);
+      if (countTimerRef.current) clearInterval(countTimerRef.current);
+    };
+  }, []);
 
   if (!isOpen) return null;
 
   const totalLoc = students.length || 35;
 
   const handlePickLoc = (locNum) => {
+    if (isSpinning) return;
+
     if (openedLocs[locNum]) {
       // Đã mở rồi thì mở lại modal xem ai trúng
       const stId = openedLocs[locNum];
@@ -20,37 +36,75 @@ export default function TetHaiHoaModal({ isOpen, onClose, students, onAwardStude
       return;
     }
 
-    playWinner();
-    confetti({
-      particleCount: 120,
-      spread: 90,
-      origin: { y: 0.5 },
-    });
+    playClick();
 
-    // Chọn học sinh tương ứng hoặc ngẫu nhiên từ danh sách chưa gọi
-    const availableStudents = students.filter(
-      (s) => !Object.values(openedLocs).includes(s.id) && s.status === 'Present'
+    // Chuẩn bị danh sách học sinh hợp lệ
+    const presentStudents = students.filter(
+      (s) => s.status !== 'Absent_Perm' && s.status !== 'Absent_NoPerm'
     );
-    const chosen =
-      availableStudents.length > 0
-        ? availableStudents[Math.floor(Math.random() * availableStudents.length)]
-        : students[(locNum - 1) % students.length];
+    const candidatePool = presentStudents.length > 0 ? presentStudents : students;
+    const availableStudents = candidatePool.filter(
+      (s) => !Object.values(openedLocs).includes(s.id)
+    );
+    const finalPool = availableStudents.length > 0 ? availableStudents : candidatePool;
 
-    setOpenedLocs({
-      ...openedLocs,
-      [locNum]: chosen.id,
-    });
+    // BẮT ĐẦU 6S HỒI HỘP ĐẾM NGƯỢC
+    setIsSpinning(true);
+    setSpinningLocNum(locNum);
+    setSpinCountdown(6);
+    setSpinningCandidate(finalPool[Math.floor(Math.random() * finalPool.length)]);
 
-    setActiveWinner({ student: chosen, locNum });
+    let secondsLeft = 6;
+    let tickCount = 0;
 
-    // Tự động cộng 1 sao lì xì
-    if (onAwardStudent && chosen) {
-      onAwardStudent(chosen.id, 1);
-    }
+    // Vòng lặp xoay tên chớp nhoáng (80ms)
+    spinTimerRef.current = setInterval(() => {
+      tickCount++;
+      const rand = finalPool[Math.floor(Math.random() * finalPool.length)];
+      setSpinningCandidate(rand);
+      playSuspenseSpin(tickCount / 75);
+    }, 80);
+
+    // Đếm ngược từng giây (1000ms)
+    countTimerRef.current = setInterval(() => {
+      secondsLeft -= 1;
+      setSpinCountdown(secondsLeft);
+
+      if (secondsLeft <= 0) {
+        clearInterval(countTimerRef.current);
+        clearInterval(spinTimerRef.current);
+        setIsSpinning(false);
+
+        // Chốt học sinh trúng lộc
+        const chosen = finalPool[Math.floor(Math.random() * finalPool.length)];
+
+        setOpenedLocs((prev) => ({
+          ...prev,
+          [locNum]: chosen.id,
+        }));
+
+        playWinner();
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.5 },
+        });
+
+        setActiveWinner({ student: chosen, locNum });
+
+        // Tự động cộng 1 sao lì xì
+        if (onAwardStudent && chosen) {
+          onAwardStudent(chosen.id, 1);
+        }
+      }
+    }, 1000);
   };
 
   const handleResetAll = () => {
     playClick();
+    if (spinTimerRef.current) clearInterval(spinTimerRef.current);
+    if (countTimerRef.current) clearInterval(countTimerRef.current);
+    setIsSpinning(false);
     setOpenedLocs({});
     setActiveWinner(null);
   };
@@ -76,77 +130,71 @@ export default function TetHaiHoaModal({ isOpen, onClose, students, onAwardStude
             <button
               type="button"
               onClick={handleResetAll}
-              className="px-3 py-1.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 border border-amber-700/60 text-amber-200 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-700/60 text-xs font-bold transition cursor-pointer flex items-center space-x-1.5"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Mở Lại Tất Cả ({Object.keys(openedLocs).length}/{totalLoc} đã mở)</span>
             </button>
-
             <button
-              onClick={() => {
-                playClick();
-                onClose();
-              }}
-              className="p-1.5 text-amber-400 hover:text-white rounded-xl hover:bg-amber-900/60 transition cursor-pointer"
+              type="button"
+              onClick={onClose}
+              className="p-1.5 text-amber-400/70 hover:text-white rounded-xl hover:bg-white/10 transition cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
-        {/* LỜI NHẮC */}
-        <div className="text-xs font-bold text-amber-200/90 flex items-center space-x-1.5 pl-1">
-          <span>👉 Bấm chọn một lồng đèn may mắn trên cành mai ({totalLoc} lộc):</span>
+        {/* HƯỚNG DẪN */}
+        <div className="text-xs font-black text-amber-300/90 flex items-center space-x-2 bg-amber-950/40 p-2.5 rounded-xl border border-amber-800/40">
+          <span>👉 Bấm chọn một lồng đèn may mắn trên cành mai để bốc thăm lì xì bất ngờ cho học sinh (Quay chọn 6s hồi hộp)!</span>
         </div>
 
-        {/* CÂY MAI TẾT VỚI CÁC LỒNG ĐÈN TREO */}
-        <div className="flex-1 bg-radial from-[#3d0f0f] to-[#1f0505] rounded-3xl border border-amber-800/50 p-4 sm:p-6 overflow-y-auto relative min-h-[420px] flex items-center justify-center">
-          {/* HỌA TIẾT CÂY MAI GỖ NÂU */}
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-35">
-            <svg viewBox="0 0 800 500" className="w-full h-full max-w-3xl">
-              <path
-                d="M 400 480 L 400 280 C 400 230 350 180 260 160 M 400 280 C 400 230 450 180 540 160 M 400 220 L 400 120 C 400 90 320 60 280 40 M 400 160 C 400 110 480 80 520 60"
-                stroke="#854d0e"
-                strokeWidth="18"
-                strokeLinecap="round"
-                fill="none"
-              />
-            </svg>
-          </div>
-
-          {/* LƯỚI LỒNG ĐÈN LỘC TREO TRÊN CÀNH */}
+        {/* LƯỚI LỒNG ĐÈN / HOA MAI CÀNH TẾT */}
+        <div className="flex-1 overflow-y-auto p-2 scrollbar-thin">
           <div className="relative z-10 grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 gap-3 sm:gap-4 max-w-4xl mx-auto w-full">
             {Array.from({ length: totalLoc }, (_, i) => i + 1).map((num) => {
               const isOpened = Boolean(openedLocs[num]);
-              const stId = openedLocs[num];
-              const st = students.find((s) => s.id === stId);
+              const assignedStudentId = openedLocs[num];
+              const st = students.find((s) => s.id === assignedStudentId);
 
               return (
                 <button
                   key={num}
                   type="button"
                   onClick={() => handlePickLoc(num)}
-                  className={`group relative flex flex-col items-center transition-all duration-300 transform hover:scale-110 active:scale-95 cursor-pointer`}
+                  disabled={isSpinning}
+                  className={`aspect-square rounded-2xl flex flex-col items-center justify-center p-2 text-center transition cursor-pointer transform hover:scale-105 active:scale-95 shadow-md relative group border ${
+                    isOpened
+                      ? 'bg-amber-950/40 border-amber-900/60 opacity-60'
+                      : 'bg-gradient-to-b from-[#8b1414] to-[#4a0808] border-amber-500/80 hover:border-amber-300 hover:shadow-amber-500/40'
+                  }`}
                 >
-                  {/* DÂY TREO */}
-                  <div className="w-0.5 h-3 bg-amber-400/80 mb-0.5" />
+                  {/* DÂY TREO LỘC TRANG TRÍ */}
+                  <div className="w-0.5 h-3 bg-amber-500/60 absolute -top-3 left-1/2 -translate-x-1/2" />
 
-                  {/* LỒNG ĐÈN ĐỎ VIỀN VÀNG */}
-                  <div
-                    className={`w-11 sm:w-13 h-13 sm:h-15 rounded-[1.4rem] border-2 flex flex-col items-center justify-center shadow-lg transition-all ${
-                      isOpened
-                        ? 'bg-amber-950/80 border-amber-600/50 text-amber-400/60'
-                        : 'bg-gradient-to-b from-rose-600 via-red-600 to-rose-700 border-amber-300 text-amber-200 shadow-rose-900/60 ring-2 ring-amber-400/30 animate-pulse'
-                    }`}
-                  >
-                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-tighter">LỘC</span>
-                    <span className="text-xs sm:text-sm font-black text-white">{num}</span>
-                  </div>
+                  {isOpened ? (
+                    <div className="space-y-0.5">
+                      <span className="text-base block">🧧</span>
+                      <span className="text-[10px] font-black text-amber-300 block truncate max-w-[50px]">
+                        {st?.full_name?.split(' ').pop() || `#${num}`}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <span className="text-lg block group-hover:animate-bounce">🏮</span>
+                      <span className="text-[10px] font-black text-amber-200 uppercase tracking-tight block">
+                        LỘC
+                      </span>
+                      <span className="text-xs font-black text-amber-400 block leading-none">
+                        {num}
+                      </span>
+                    </div>
+                  )}
 
-                  {/* TÊN NẾU ĐÃ MỞ */}
-                  {isOpened && st && (
-                    <span className="text-[9px] font-bold text-amber-300 truncate max-w-[55px] mt-1 bg-black/60 px-1 rounded">
-                      {st.full_name.split(' ').pop()}
+                  {isOpened && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-600 rounded-full text-white text-[9px] font-black flex items-center justify-center shadow-xs">
+                      ✓
                     </span>
                   )}
                 </button>
@@ -155,8 +203,66 @@ export default function TetHaiHoaModal({ isOpen, onClose, students, onAwardStude
           </div>
         </div>
 
-        {/* MODAL KẾT QUẢ TRÚNG LỘC */}
-        {activeWinner && (
+        {/* =================================================================== */}
+        {/* MODAL 6 GIÂY HỒI HỘP KHI ĐANG QUAY LỘC */}
+        {/* =================================================================== */}
+        {isSpinning && (
+          <div className="fixed inset-0 z-[115] flex items-center justify-center bg-black/85 p-4 animate-fade-in">
+            <div className="bg-gradient-to-b from-amber-500 via-rose-600 to-amber-700 p-1.5 rounded-[2.5rem] shadow-2xl max-w-sm w-full border-4 border-amber-300">
+              <div className="bg-gradient-to-b from-[#2b0808] to-[#150202] rounded-[2.2rem] p-6 text-center space-y-5 text-amber-100 relative overflow-hidden">
+                
+                {/* VỆT SÁNG QUAY TRÒN */}
+                <div className="absolute -top-12 -right-12 w-40 h-40 bg-amber-400/20 rounded-full blur-2xl animate-spin pointer-events-none" />
+
+                <div className="space-y-1">
+                  <span className="text-xs font-black text-amber-400 uppercase tracking-widest block animate-pulse">
+                    🌸 ĐANG HÁI LỘC XUÂN #{spinningLocNum} 🌸
+                  </span>
+                  <p className="text-xs text-amber-200/80 font-medium">
+                    Ai sẽ là chủ nhân của phong bao lì xì may mắn này?
+                  </p>
+                </div>
+
+                {/* ĐỒNG HỒ ĐẾM NGƯỢC 6S TO RÕ */}
+                <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-600 to-yellow-400 p-1 shadow-xl animate-bounce">
+                  <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center border-2 border-amber-300">
+                    <span className="font-mono font-black text-3xl text-amber-300">
+                      0{spinCountdown}s
+                    </span>
+                  </div>
+                </div>
+
+                {/* HỌC SINH ĐANG XOAY CHỚP NHOÁNG */}
+                {spinningCandidate && (
+                  <div className="bg-amber-950/60 p-3 rounded-2xl border border-amber-500/50 space-y-2">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/30 p-1 border-2 border-amber-400 shadow-md">
+                      <img
+                        src={spinningCandidate.avatar}
+                        alt={spinningCandidate.full_name}
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                    </div>
+                    <span className="text-base font-black text-white block truncate tracking-tight">
+                      {spinningCandidate.full_name}
+                    </span>
+                    <span className="text-[11px] text-amber-300 font-mono font-bold block">
+                      {spinningCandidate.code} • Tổ {spinningCandidate.team_group}
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-[11px] text-amber-200/70 italic animate-pulse">
+                  ⏳ Đang chọn lọc ngẫu nhiên trong 6 giây...
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =================================================================== */}
+        {/* MODAL KẾT QUẢ TRÚNG LỘC (SAU KHI ĐẾM NGƯỢC XONG) */}
+        {/* =================================================================== */}
+        {activeWinner && !isSpinning && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 animate-scale-up">
             <div className="bg-gradient-to-b from-amber-500 to-amber-700 p-1 rounded-[2.5rem] shadow-2xl max-w-sm w-full">
               <div className="bg-gradient-to-b from-[#3a0808] to-[#1f0303] rounded-[2.3rem] p-6 text-center space-y-4 text-amber-100">

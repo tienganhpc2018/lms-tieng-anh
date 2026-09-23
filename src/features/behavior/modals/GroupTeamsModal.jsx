@@ -41,39 +41,55 @@ const TEAMS_CONFIG = [
 export default function GroupTeamsModal({ isOpen, onClose, students, onAwardStudent }) {
   const [selectedScope, setSelectedScope] = useState('all'); // 'all' | 1 | 2 | 3 | 4
   const [isSpinning, setIsSpinning] = useState(false);
+  const [spinCountdown, setSpinCountdown] = useState(6);
+  const [spinningCandidate, setSpinningCandidate] = useState(null);
   const [activeWinner, setActiveWinner] = useState(null);
 
   if (!isOpen) return null;
 
   const getTeamStudents = (teamNum) => {
-    return students.filter((s) => s.team_group === teamNum && s.status === 'Present');
+    const present = students.filter((s) => s.team_group === teamNum && s.status !== 'Absent_Perm' && s.status !== 'Absent_NoPerm');
+    return present.length > 0 ? present : students.filter((s) => s.team_group === teamNum);
   };
 
   const handleStartSpin = (scope = selectedScope) => {
     let pool = [];
     if (scope === 'all') {
-      pool = students.filter((s) => s.status === 'Present');
+      const present = students.filter((s) => s.status !== 'Absent_Perm' && s.status !== 'Absent_NoPerm');
+      pool = present.length > 0 ? present : students;
     } else {
       pool = getTeamStudents(Number(scope));
     }
 
     if (pool.length === 0) {
-      alert('Không có học sinh nào đang có mặt trong phạm vi đã chọn!');
+      alert('Không có học sinh nào trong phạm vi đã chọn!');
       return;
     }
 
     setIsSpinning(true);
     setActiveWinner(null);
+    setSpinCountdown(6);
+    setSpinningCandidate(pool[Math.floor(Math.random() * pool.length)]);
 
-    let count = 0;
-    const maxTicks = 25;
+    let secondsLeft = 6;
+    let tickCount = 0;
 
-    const interval = setInterval(() => {
-      count++;
-      playSuspenseSpin(count / maxTicks);
+    // Vòng lặp xoay tên chớp nhoáng (80ms)
+    const spinInterval = setInterval(() => {
+      tickCount++;
+      const rand = pool[Math.floor(Math.random() * pool.length)];
+      setSpinningCandidate(rand);
+      playSuspenseSpin(tickCount / 75);
+    }, 80);
 
-      if (count >= maxTicks) {
-        clearInterval(interval);
+    // Đếm ngược từng giây (1000ms)
+    const countInterval = setInterval(() => {
+      secondsLeft -= 1;
+      setSpinCountdown(secondsLeft);
+
+      if (secondsLeft <= 0) {
+        clearInterval(countInterval);
+        clearInterval(spinInterval);
         setIsSpinning(false);
 
         const chosen = pool[Math.floor(Math.random() * pool.length)];
@@ -81,7 +97,7 @@ export default function GroupTeamsModal({ isOpen, onClose, students, onAwardStud
 
         playWinner();
         confetti({
-          particleCount: 140,
+          particleCount: 150,
           spread: 90,
           origin: { y: 0.5 },
         });
@@ -90,7 +106,7 @@ export default function GroupTeamsModal({ isOpen, onClose, students, onAwardStud
           onAwardStudent(chosen.id, 1);
         }
       }
-    }, 120);
+    }, 1000);
   };
 
   return (
@@ -245,8 +261,58 @@ export default function GroupTeamsModal({ isOpen, onClose, students, onAwardStud
           </div>
         </div>
 
+        {/* MODAL 6S HỒI HỘP KHI ĐANG BỐC THĂM ĐẠI DIỆN */}
+        {isSpinning && (
+          <div className="fixed inset-0 z-[115] flex items-center justify-center bg-black/85 p-4 animate-fade-in">
+            <div className="bg-gradient-to-b from-amber-400 via-amber-500 to-indigo-700 p-1.5 rounded-[2.5rem] shadow-2xl max-w-sm w-full border-4 border-amber-300">
+              <div className="bg-slate-950 rounded-[2.2rem] p-6 text-center space-y-5 text-white relative overflow-hidden">
+                <div className="space-y-1">
+                  <span className="text-xs font-black text-amber-400 uppercase tracking-widest block animate-pulse">
+                    🎯 ĐANG BỐC THĂM ĐẠI DIỆN BÁO CÁO 🎯
+                  </span>
+                  <p className="text-xs text-slate-400 font-medium">
+                    {selectedScope === 'all' ? 'Phạm vi: Cả Lớp' : `Phạm vi: Tổ ${selectedScope}`}
+                  </p>
+                </div>
+
+                {/* ĐỒNG HỒ ĐẾM NGƯỢC 6S */}
+                <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-500 to-indigo-500 p-1 shadow-xl animate-bounce">
+                  <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center border-2 border-amber-300">
+                    <span className="font-mono font-black text-3xl text-amber-300">
+                      0{spinCountdown}s
+                    </span>
+                  </div>
+                </div>
+
+                {/* HỌC SINH ĐANG XOAY CHỚP NHOÁNG */}
+                {spinningCandidate && (
+                  <div className="bg-slate-900 p-3.5 rounded-2xl border border-amber-400/50 space-y-2">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-400/20 p-1 border-2 border-amber-400 shadow-md">
+                      <img
+                        src={spinningCandidate.avatar}
+                        alt=""
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                    </div>
+                    <span className="text-base font-black text-white block truncate">
+                      {spinningCandidate.full_name}
+                    </span>
+                    <span className="text-[11px] text-amber-400 font-mono font-bold block">
+                      {spinningCandidate.code} • Tổ {spinningCandidate.team_group}
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-[11px] text-amber-300/70 italic animate-pulse">
+                  ⏳ Đang chọn lọc ngẫu nhiên trong 6 giây...
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* MODAL KẾT QUẢ ĐẠI DIỆN */}
-        {activeWinner && (
+        {activeWinner && !isSpinning && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 animate-scale-up">
             <div className="bg-gradient-to-b from-amber-400 to-amber-600 p-1 rounded-[2.5rem] shadow-2xl max-w-sm w-full">
               <div className="bg-slate-950 rounded-[2.3rem] p-6 text-center space-y-4 text-white">

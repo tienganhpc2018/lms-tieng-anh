@@ -18,7 +18,8 @@ export default function SuspenseCallModal({
   const [countdown, setCountdown] = useState(6);
   const timerRef = useRef(null);
 
-  const eligibleStudents = students.filter((s) => s.status === 'Present');
+  const presentStudents = students.filter((s) => s.status !== 'Absent_Perm' && s.status !== 'Absent_NoPerm');
+  const eligibleStudents = presentStudents.length > 0 ? presentStudents : students;
 
   const startSpin = () => {
     if (eligibleStudents.length === 0) {

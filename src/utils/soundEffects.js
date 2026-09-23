@@ -310,3 +310,47 @@ export const playMysteryBoxOpen = () => {
   } catch (e) {}
 };
 
+// 12. Tiếng vịt kêu Quạc Quạc vui nhộn
+export const playQuack = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(340, ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(200, ctx.currentTime + 0.12);
+
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (e) {}
+};
+
+// 13. Còi xuất phát đua vịt
+export const playRaceHorn = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    osc.frequency.setValueAtTime(900, ctx.currentTime + 0.15);
+
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+  } catch (e) {}
+};
+
