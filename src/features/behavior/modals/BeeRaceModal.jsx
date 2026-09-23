@@ -57,30 +57,47 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       orderedStudents.sort(() => Math.random() - 0.5);
     }
 
-    // Bốc thăm thứ hạng đích để cuộc đua kết thúc với khoảng cách rõ ràng, không đè lên nhau
+    // Bốc thăm thứ hạng đích để cuộc đua kết thúc phân định rõ ràng
     const targetRanks = orderedStudents.map((_, i) => i + 1).sort(() => Math.random() - 0.5);
 
+    const finishLineX = 82; // Vạch đích thẳng đứng chuẩn xác ở toạ độ 82%
     const newPositions = {};
     const configs = {};
 
     orderedStudents.forEach((st, idx) => {
       // Phân bổ toạ độ Y dọc theo chiều cao mặt sông (12% đến 86%)
-      const yStep = count > 1 ? (76 / (count - 1)) : 0;
+      const yStep = count > 1 ? (74 / (count - 1)) : 0;
       const baseY = 12 + idx * yStep;
 
-      // Xếp hàng chéo theo vạch xuất phát nghiêng 22 độ
-      const slopeOffsetX = (idx / Math.max(1, count)) * 6.0; 
-      const startX = 3.5 + slopeOffsetX; // Bắt đầu ở khoảng 3.5% - 9.5%
+      // Vạch xuất phát ở khoảng 4% - 8%
+      const startX = 4 + (idx % 3) * 1.8; 
 
       const targetRank = targetRanks[idx];
       const hatIndex = (idx * 3 + 5) % DUCK_HATS.length;
 
+      // TÍNH TOÁN VỊ TRÍ ĐÍCH CUỐI CÙNG (finalTargetX) ĐẢM BẢO TỰ NHIÊN:
+      // 1. Chỉ DUY NHẤT Top 1 vượt qua vạch đích (86.5%)
+      // 2. Top 2 và Top 3 áp sát vạch đích (77.5% và 74.0%)
+      // 3. Từ Top 4 trở đi: RẢI ĐỀU TỰ NHIÊN TỪ 70% XUỐNG 20% (XÓA BỎ LỖI HÀNG DỌC!)
+      let finalTargetX = finishLineX + 4.5; // Top 1: 86.5% (DUY NHẤT VƯỢT QUA VẠCH ĐÍCH)
+      if (targetRank === 2) {
+        finalTargetX = finishLineX - 4.5; // Top 2: 77.5% (ngay sát vạch đích)
+      } else if (targetRank === 3) {
+        finalTargetX = finishLineX - 8.0; // Top 3: 74.0%
+      } else if (targetRank >= 4) {
+        // Phân bổ rải đều tự nhiên theo dải từ 70% lùi về 20%
+        const normalizedRank = (targetRank - 4) / Math.max(1, count - 4);
+        const stagger = ((idx * 7) % 5) - 2; // Độ lệch so le nhẹ ±2% giữa các con
+        finalTargetX = Math.max(18, 70 - normalizedRank * 48 + stagger);
+      }
+
       configs[st.id] = {
         targetRank,
-        burstTime: 0.35 + Math.random() * 0.4, // thời điểm bứt tốc giữa chặng
+        finalTargetX,
+        burstTime: 0.35 + Math.random() * 0.35, // thời điểm bứt tốc giữa chặng
         hatIndex,
-        wobbleFreq: 1.8 + Math.random() * 2.0,
-        wobbleAmp: 1.2 + Math.random() * 1.5,
+        wobbleFreq: 1.6 + Math.random() * 1.8,
+        wobbleAmp: 1.0 + Math.random() * 1.2,
         startY: baseY,
         startX,
       };
@@ -167,7 +184,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
   // Vòng lặp chuyển động mượt mà của đàn vịt (Animation Loop)
   const runAnimationLoop = () => {
     const durationMs = duration * 1000;
-    const finishLineX = 80; // Vạch đích carô nằm ở vị trí 80% chiều ngang
+    const finishLineX = 82; // Vạch đích thẳng đứng ở toạ độ 82%
     let lastSecond = Math.ceil((durationMs - pausedElapsedRef.current) / 1000);
 
     const step = (now) => {
@@ -193,61 +210,68 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
           startX: 5,
           startY: 20,
           targetRank: idx + 1,
+          finalTargetX: 50,
           burstTime: 0.5,
           hatIndex: 0,
-          wobbleFreq: 2.5,
-          wobbleAmp: 1.5,
+          wobbleFreq: 2.0,
+          wobbleAmp: 1.2,
         };
 
+        const isWinner = cfg.targetRank === 1;
         let currentX = cfg.startX;
 
-        // VỊ TRÍ ĐÍCH CUỐI CÙNG KHI KẾT THÚC (progress = 1.0)
-        let finalTargetX = finishLineX - 4.5 - Math.min(22, (cfg.targetRank - 4) * 1.8);
-        if (cfg.targetRank === 1) finalTargetX = finishLineX + 3.8; // Quán quân: vọt qua vạch đích
-        else if (cfg.targetRank === 2) finalTargetX = finishLineX - 0.6; // Á quân: sát mép vạch đích
-        else if (cfg.targetRank === 3) finalTargetX = finishLineX - 2.6; // Quý quân: bám sát nút
+        // GIAI ĐOẠN 1: BƠI TRANH CHẤP SO KÈ (0% -> 93% thời gian cuộc đua)
+        if (progress < 0.93) {
+          const stageP = progress / 0.93;
+          // Khoảng cách bơi cơ bản của chú vịt
+          const swimDistance = (cfg.finalTargetX - cfg.startX) * stageP;
 
-        // GIAI ĐOẠN 1: BƠI SO KÈ GIẰNG CO (0% -> 92% thời gian)
-        // Đảm bảo TUYỆT ĐỐI KHÔNG CHÚ VỊT NÀO ĐƯỢC CHẠM VẠCH ĐÍCH TRƯỚC HẾT GIỜ
-        if (progress < 0.92) {
-          const stageP = progress / 0.92;
-          const maxDistanceBeforeFinish = (finishLineX - 4.5) - cfg.startX;
-          
-          // Dao động sóng sin rượt đuổi, thay đổi thứ hạng liên tục tạo kịch tính
-          const raceWobble = Math.sin((now / 380) * cfg.wobbleFreq + idx * 1.9) * 3.8;
+          // Hiệu ứng sóng nhấp nhô rượt đuổi thay đổi vị trí liên tục
+          const dynamicWobble = Math.sin((now / 360) * cfg.wobbleFreq + idx * 1.8) * 3.5;
           let burstBonus = 0;
-          if (progress > cfg.burstTime && progress < cfg.burstTime + 0.28) {
-            burstBonus = 3.2; // Cú bứt tốc ngoạn mục
+          if (progress > cfg.burstTime && progress < cfg.burstTime + 0.25) {
+            burstBonus = 3.0; // Bứt tốc
           }
 
-          const rawX = cfg.startX + (maxDistanceBeforeFinish * stageP) + raceWobble + burstBonus;
-          
-          // CLAMP CỨNG: Không con nào được vượt quá (finishLineX - 4.2%)
-          currentX = Math.max(cfg.startX, Math.min(finishLineX - 4.2, rawX));
-        } 
-        // GIAI ĐOẠN 2: NƯỚC RÚT VỀ ĐÍCH (92% -> 100% thời gian - giây cuối cùng)
-        else {
-          const sprintP = (progress - 0.92) / 0.08; // chạy từ 0 đến 1
-          const preSprintX = finishLineX - 4.5 - Math.min(18, (cfg.targetRank - 1) * 1.2);
-          
-          const interpolatedX = (1 - sprintP) * preSprintX + sprintP * finalTargetX;
+          const rawX = cfg.startX + swimDistance + dynamicWobble + burstBonus;
 
-          // Chỉ cho phép chú vịt số 1 vượt qua vạch đích khi thời gian chạm mốc 00:00:00 (progress >= 0.985)
-          if (progress < 0.985) {
-            currentX = Math.min(finishLineX - 0.5, interpolatedX);
+          // GIỚI HẠN THÉP TRƯỚC VẠCH ĐÍCH:
+          // Không một chú vịt nào được phép chạm tới vạch đích 82% khi còn đang đếm ngược!
+          if (isWinner) {
+            currentX = Math.max(cfg.startX, Math.min(finishLineX - 3.5, rawX));
           } else {
-            currentX = interpolatedX;
+            currentX = Math.max(cfg.startX, Math.min(finishLineX - 4.5, rawX));
+          }
+        } 
+        // GIAI ĐOẠN 2: NƯỚC RÚT VỀ ĐÍCH (93% -> 100% thời gian - giây cuối cùng)
+        else {
+          const sprintP = (progress - 0.93) / 0.07; // chạy từ 0 đến 1
+          const preSprintX = isWinner ? (finishLineX - 3.5) : Math.min(finishLineX - 4.5, cfg.finalTargetX);
+          const interpolatedX = (1 - sprintP) * preSprintX + sprintP * cfg.finalTargetX;
+
+          if (isWinner) {
+            // CHÚ VỊT VÔ ĐỊCH: Chỉ vượt qua vạch đích khi đồng hồ điểm đúng 00:00:00 (progress >= 0.985)
+            if (progress < 0.985) {
+              currentX = Math.min(finishLineX - 0.5, interpolatedX);
+            } else {
+              currentX = interpolatedX; // Vượt qua vạch đích tới 86.5%!
+            }
+          } else {
+            // TẤT CẢ CÁC CHÚ VỊT CÒN LẠI: TUYỆT ĐỐI BỊ CHẶN LẠI PHÍA TRƯỚC VẠCH ĐÍCH
+            currentX = Math.min(finishLineX - 4.5, interpolatedX);
           }
         }
 
         // Tọa độ Y: dao động nhấp nhô theo sóng nước sông
         const waveY = cfg.startY + Math.sin(now / 180 * cfg.wobbleFreq + idx) * cfg.wobbleAmp;
+        const hasCrossedFinish = isWinner && currentX >= finishLineX;
 
         updated[st.id] = {
           x: currentX,
           y: waveY,
           hatIndex: cfg.hatIndex,
-          isFinished: currentX >= finishLineX,
+          isFinished: hasCrossedFinish,
+          targetRank: cfg.targetRank,
         };
 
         standings.push({ student: st, x: currentX, targetRank: cfg.targetRank });
@@ -263,11 +287,11 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         setIsPaused(false);
         if (soundEnabled) {
           playWinner();
-          setTimeout(playQuack, 600);
+          setTimeout(playQuack, 500);
         }
         confetti({
-          particleCount: 160,
-          spread: 100,
+          particleCount: 180,
+          spread: 120,
           origin: { y: 0.55 },
         });
 
@@ -275,7 +299,11 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         standings.sort((a, b) => a.targetRank - b.targetRank);
         const top3 = standings.slice(0, 3).map((item) => item.student);
         setRankings(top3);
-        setShowRankModal(true);
+
+        // Trì hoãn 2.2 giây để Thầy và cả lớp chứng kiến rõ ràng chú vịt vô địch độc nhất vượt qua vạch đích ăn mừng!
+        setTimeout(() => {
+          setShowRankModal(true);
+        }, 2200);
 
         // Thưởng sao cho học sinh vô địch
         if (onAwardStudent && top3[0]) onAwardStudent(top3[0].id, 3);
@@ -457,24 +485,32 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
             }}
           />
 
-          {/* VẠCH XUẤT PHÁT CARÔ CHÉO BÊN TRÁI (CHUẨN ẢNH 3) */}
+          {/* VẠCH XUẤT PHÁT THẲNG ĐỨNG BÊN TRÁI */}
           <div
-            className="absolute left-4 top-0 bottom-0 w-8 z-10 opacity-70 transform -skew-x-[22deg] origin-top border-r-2 border-black/40 pointer-events-none"
+            className="absolute left-3 top-0 bottom-0 w-7 z-10 opacity-50 border-r-2 border-dashed border-black/40 pointer-events-none"
             style={{
               backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 8px, #fff 8px, #fff 16px)',
             }}
           />
 
-          {/* VẠCH ĐÍCH CARÔ CHÉO BÊN PHẢI (FINISH LINE - CHUẨN ẢNH 3 & 4) */}
+          {/* VẠCH ĐÍCH THỂ THAO CARÔ THẲNG ĐỨNG CHUẨN XÁC Ở 82% (FINISH LINE) */}
           <div
-            className="absolute top-0 bottom-0 w-12 z-10 shadow-2xl transform -skew-x-[24deg] origin-top border-x-4 border-slate-950 pointer-events-none"
+            className="absolute top-0 bottom-0 w-12 z-20 shadow-2xl border-x-4 border-slate-950 pointer-events-none"
             style={{
-              left: '80%',
-              backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 10px, #fff 10px, #fff 20px)',
+              left: '82%',
+              backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 12px, #fff 12px, #fff 24px)',
             }}
           >
-            <div className="absolute -top-1 -right-3 bg-red-600 text-white font-black text-[9px] px-1.5 py-0.5 rounded shadow-md uppercase tracking-widest transform skew-x-[24deg]">
-              ĐÍCH
+            {/* BIỂN HIỆU VẠCH ĐÍCH PHÍA TRÊN */}
+            <div className="absolute top-2 -left-3 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
+              <span>🏁</span>
+              <span>ĐÍCH</span>
+            </div>
+
+            {/* BIỂN HIỆU VẠCH ĐÍCH PHÍA DƯỚI */}
+            <div className="absolute bottom-4 -left-4 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
+              <span>🏁</span>
+              <span>FINISH</span>
             </div>
           </div>
 
@@ -486,23 +522,33 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
               const pos = duckPositions[st.id] || { x: 5, y: 15 + idx * 2, hatIndex: 0 };
               const hat = DUCK_HATS[pos.hatIndex % DUCK_HATS.length];
               const studentNumber = idx + 1;
+              const isWinnerDuck = pos.isFinished;
 
               return (
                 <div
                   key={st.id}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 cursor-pointer group"
+                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 cursor-pointer group ${isWinnerDuck ? 'z-40 scale-125' : ''}`}
                   style={{
                     left: `${pos.x}%`,
                     top: `${pos.y}%`,
-                    zIndex: Math.floor(pos.y * 10), // Vịt ở dưới sông nổi đè lên vịt ở trên bờ tự nhiên
+                    zIndex: isWinnerDuck ? 50 : Math.floor(pos.y * 10),
                   }}
                   title={`#${studentNumber} - ${st.full_name}`}
                 >
                   {/* BỌT NƯỚC RIPPLE DƯỚI BỤNG VỊT KHI ĐANG BƠI */}
-                  <div className={`absolute -bottom-1 -left-2 w-12 h-3.5 bg-cyan-200/40 rounded-full blur-2xs ${isRunning ? 'animate-pulse' : ''}`} />
+                  <div className={`absolute -bottom-1 -left-2 w-12 h-3.5 bg-cyan-200/40 rounded-full blur-2xs ${isRunning ? 'animate-pulse' : ''} ${isWinnerDuck ? 'bg-amber-300/80 w-16 h-5' : ''}`} />
 
                   {/* THÂN CHÚ VỊT VÀNG CAO SU (SVG CHUẨN ẢNH 3 & 4) */}
-                  <div className="relative w-12 h-11 sm:w-14 sm:h-13 flex-shrink-0 filter drop-shadow-md transform hover:scale-115 transition">
+                  <div className={`relative w-12 h-11 sm:w-14 sm:h-13 flex-shrink-0 filter drop-shadow-md transform hover:scale-115 transition ${isWinnerDuck ? 'animate-bounce' : ''}`}>
+                    
+                    {/* HUY HIỆU VÔ ĐỊCH NỔI TRÊN ĐẦU CHÚ VỊT DUY NHẤT VƯỢT QUA VẠCH ĐÍCH */}
+                    {isWinnerDuck && (
+                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full shadow-xl border-2 border-white animate-pulse flex items-center space-x-1 z-50">
+                        <span>👑</span>
+                        <span>QUÁN QUÂN</span>
+                      </div>
+                    )}
+
                     <svg viewBox="0 0 100 90" className="w-full h-full">
                       {/* Thân vịt vàng phao tròn */}
                       <path
