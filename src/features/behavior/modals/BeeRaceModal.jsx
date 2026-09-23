@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Play, Pause, RotateCcw, Trophy, Volume2, VolumeX, Settings, Shuffle, Award, Check, UserMinus, RefreshCw } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, Trophy, Volume2, VolumeX, Settings, Shuffle, Award, Check, UserMinus, RefreshCw, Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
   playClick, 
@@ -30,11 +30,11 @@ const DUCK_HATS = [
 
 // Danh sách các loài linh vật đua nước
 const RACER_ANIMALS = [
-  { id: 'duck', name: 'Vịt Vàng', icon: '🦆' },
-  { id: 'turtle', name: 'Rùa Biển', icon: '🐢' },
-  { id: 'fish', name: 'Cá Đại Dương', icon: '🐟' },
-  { id: 'crab', name: 'Cua Biển', icon: '🦀' },
-  { id: 'shrimp', name: 'Tôm Hùm', icon: '🦐' },
+  { id: 'duck', name: 'Vịt Vàng', icon: '🦆', label: 'Vịt' },
+  { id: 'turtle', name: 'Rùa Biển', icon: '🐢', label: 'Rùa' },
+  { id: 'fish', name: 'Cá Đại Dương', icon: '🐟', label: 'Cá' },
+  { id: 'crab', name: 'Cua Biển', icon: '🦀', label: 'Cua' },
+  { id: 'shrimp', name: 'Tôm Hùm', icon: '🦐', label: 'Tôm' },
 ];
 
 export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardStudent }) {
@@ -49,8 +49,9 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
   const [showSettings, setShowSettings] = useState(false);
   const [raceFinished, setRaceFinished] = useState(false); // Trạng thái về đích (chuẩn ảnh 2)
   const [selectedAnimal, setSelectedAnimal] = useState('duck'); // Loài vật đua (vịt, rùa, cá, cua, tôm)
-  const [removeWinnerNextRace, setRemoveWinnerNextRace] = useState(true); // Loại bỏ người thắng ở lượt kế tiếp (chuẩn ảnh 2)
+  const [removeWinnerNextRace, setRemoveWinnerNextRace] = useState(true); // Loại bỏ người thắng ở lượt kế tiếp
   const [excludedIds, setExcludedIds] = useState([]); // Danh sách học sinh bị loại tạm thời
+  const [turboActive, setTurboActive] = useState(true); // Bật tính năng làn tăng tốc Turbo Lane
 
   // Lọc học sinh có mặt và chưa bị loại trừ
   const presentStudents = students.filter((s) => s.status !== 'Absent_Perm' && s.status !== 'Absent_NoPerm');
@@ -83,7 +84,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       orderedStudents.sort(() => Math.random() - 0.5);
     }
 
-    // Bốc thăm thứ hạng đích
+    // Bốc thăm thứ hạng đích tiềm năng
     const targetRanks = orderedStudents.map((_, i) => i + 1).sort(() => Math.random() - 0.5);
 
     const finishLineX = 84;
@@ -91,12 +92,13 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
     const configs = {};
 
     orderedStudents.forEach((st, idx) => {
-      // Phân bổ trục Y dọc theo dòng sông
+      // Phân bổ trục Y dọc theo dòng sông (12% đến 86%)
       const yStep = count > 1 ? (74 / (count - 1)) : 0;
       const baseY = 12 + idx * yStep;
 
-      // Xếp hàng xuất phát bên trái
-      const startX = 4 + (idx % 3) * 1.8; 
+      // Xếp hàng xuất phát so le nhẹ 2 cột để không bị đè chữ
+      const colOffset = (idx % 2) * 3.5;
+      const startX = 4 + colOffset; 
       const targetRank = targetRanks[idx];
       const hatIndex = (idx * 3 + 5) % DUCK_HATS.length;
 
@@ -121,6 +123,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         wobbleAmp: 1.0 + Math.random() * 1.2,
         startY: baseY,
         startX,
+        isTurboBoosted: false,
       };
 
       newPositions[st.id] = {
@@ -128,6 +131,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         y: baseY,
         hatIndex,
         isFinished: false,
+        isTurbo: false,
       };
     });
 
@@ -135,6 +139,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
     setDuckPositions(newPositions);
   };
 
+  // CHỈ RE-INIT KHI MỞ MODAL HOẶC ĐỔI THỜI GIAN (KHÔNG BỎ EXCLUDEDIDS VÀO ĐÂY ĐỂ TRÁNH RESET MẤT VỊT VỀ ĐÍCH)
   useEffect(() => {
     if (isOpen) {
       initDuckPositions(false);
@@ -147,7 +152,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
     return () => {
       stopRiverWaterSound();
     };
-  }, [isOpen, duration, students.length, excludedIds.length]);
+  }, [isOpen, duration, students.length]);
 
   // Bắt đầu / Tiếp tục cuộc đua
   const handleStartOrContinue = () => {
@@ -216,9 +221,12 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
   const handleResetExclusions = () => {
     if (soundEnabled) playClick();
     setExcludedIds([]);
+    setTimeout(() => {
+      initDuckPositions(false);
+    }, 50);
   };
 
-  // Vòng lặp chuyển động: Chậm rãi lúc đầu -> Nhanh dần -> Bứt phá trong 5 giây cuối
+  // Vòng lặp chuyển động: Chậm rãi lúc đầu -> Nhanh dần -> Bứt phá trong 5 giây cuối + Làn Turbo
   const runAnimationLoop = () => {
     const durationMs = duration * 1000;
     const finishLineX = 84;
@@ -240,7 +248,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       if (secondsRemaining !== lastSecond && secondsRemaining > 0) {
         lastSecond = secondsRemaining;
         if (soundEnabled) playTick();
-        if (secondsRemaining <= 5 && soundEnabled) playQuack(); // Quạc nhắc nhở trong 5 giây cuối
+        if (secondsRemaining <= 5 && soundEnabled) playQuack();
       }
 
       const updated = {};
@@ -260,20 +268,26 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
 
         const isWinner = cfg.targetRank === 1;
         let currentX = cfg.startX;
+        let isTurboActiveHere = false;
+
+        // VÙNG LÀN TĂNG TỐC TURBO LANE ⚡ (nằm ở khoảng Y: 30% - 60% và thời gian từ 30% đến 80%)
+        if (turboActive && cfg.startY >= 28 && cfg.startY <= 62 && progress >= 0.3 && progress <= 0.75) {
+          isTurboActiveHere = true;
+        }
 
         // ===================================================================
         // 1. GIAI ĐOẠN ĐẦU: BƠI CHẬM RÃI, GIẰNG CO KHÓ ĐOÁN (Trước 5 giây cuối)
         // ===================================================================
         if (elapsed < sprintStartTime) {
           const slowRatio = elapsed / sprintStartTime; // từ 0.0 đến 1.0
-          // Ở giai đoạn này cả đàn chỉ bơi đến khoảng 38% - 42% mặt sông
           const midFieldX = cfg.startX + (38 - cfg.startX) * Math.pow(slowRatio, 1.2);
 
           // Dao động sóng sin liên tục hoán đổi vị trí thứ hạng gây tò mò
           const slowWobble = Math.sin((now / 420) * cfg.wobbleFreq + idx * 2.2) * 4.2;
-          const slowX = midFieldX + slowWobble;
+          const turboBoost = isTurboActiveHere ? 4.0 : 0;
+          const slowX = midFieldX + slowWobble + turboBoost;
 
-          currentX = Math.max(cfg.startX, Math.min(42, slowX));
+          currentX = Math.max(cfg.startX, Math.min(44, slowX));
         } 
         // ===================================================================
         // 2. GIAI ĐOẠN 5 GIÂY CUỐI: TĂNG TỐC NHANH DẦN & BỨT PHÁ VỀ ĐÍCH!
@@ -281,15 +295,14 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         else {
           const sprintElapsed = elapsed - sprintStartTime;
           const sprintRatio = Math.min(1, sprintElapsed / sprintDurationMs); // từ 0.0 đến 1.0
-          // Gia tốc nhanh dần đều theo hàm bậc 2 (Ease-In)
           const accelCurve = Math.pow(sprintRatio, 1.45);
 
           const startSprintX = 38;
           const rawSprintX = startSprintX + (cfg.finalTargetX - startSprintX) * accelCurve;
           
-          // Dao động nước rút kịch tính
           const sprintWobble = Math.sin((now / 260) * cfg.wobbleFreq + idx * 2.5) * (3.5 * (1 - sprintRatio));
-          const combinedX = rawSprintX + sprintWobble;
+          const turboBoost = isTurboActiveHere ? 2.5 : 0;
+          const combinedX = rawSprintX + sprintWobble + turboBoost;
 
           if (isWinner) {
             // Quán quân: chỉ vượt qua vạch đích khi đồng hồ chạm 00:00:00 (sprintRatio >= 0.985)
@@ -314,6 +327,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
           hatIndex: cfg.hatIndex,
           isFinished: hasCrossedFinish,
           targetRank: cfg.targetRank,
+          isTurbo: isTurboActiveHere,
         };
 
         standings.push({ student: st, x: currentX, targetRank: cfg.targetRank });
@@ -358,7 +372,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
 
         // Nếu bật tùy chọn loại bỏ người thắng ở lượt sau
         if (removeWinnerNextRace && fullRankings[0]) {
-          setExcludedIds((prev) => [...prev, fullRankings[0].id]);
+          setExcludedIds((prev) => (prev.includes(fullRankings[0].id) ? prev : [...prev, fullRankings[0].id]));
         }
       }
     };
@@ -375,6 +389,9 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
     ? DUCK_HATS[(duckConfigRef.current[winnerStudent.id]?.hatIndex || 0) % DUCK_HATS.length]
     : DUCK_HATS[0];
 
+  // Danh sách hiển thị Bảng Xếp Hạng: luôn đảm bảo có đủ 100% học sinh dù chưa đua hay đã đua
+  const displayRankings = rankings.length > 0 ? rankings : racerStudents;
+
   // ===================================================================
   // HÀM VẼ LINH VẬT ĐUA (Vịt, Rùa, Cá, Cua, Tôm) ĐẦY ĐỦ BIỂN SỐ
   // ===================================================================
@@ -383,19 +400,15 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       // 🐢 RÙA BIỂN
       return (
         <svg viewBox="0 0 100 90" className="w-full h-full">
-          {/* 4 Chân rùa bơi */}
           <ellipse cx="25" cy="35" rx="10" ry="6" fill="#15803d" />
           <ellipse cx="25" cy="65" rx="10" ry="6" fill="#15803d" />
           <ellipse cx="75" cy="32" rx="14" ry="7" fill="#16a34a" transform="rotate(-15 75 32)" />
           <ellipse cx="75" cy="68" rx="14" ry="7" fill="#16a34a" transform="rotate(15 75 68)" />
-          {/* Đầu rùa */}
           <ellipse cx="88" cy="50" rx="12" ry="9" fill="#22c55e" stroke="#15803d" strokeWidth="2" />
           <circle cx="93" cy="46" r="2.5" fill="#111" />
           <circle cx="94" cy="45" r="0.8" fill="#fff" />
-          {/* Mai rùa mai vòm */}
           <ellipse cx="50" cy="50" rx="34" ry="28" fill="#166534" stroke="#14532d" strokeWidth="3" />
           <ellipse cx="50" cy="50" rx="27" ry="22" fill="#15803d" />
-          {/* Khung biển số trên mai rùa */}
           <rect x="36" y="38" width="28" height="24" rx="6" fill="#ffffff" stroke="#111111" strokeWidth="2.5" />
         </svg>
       );
@@ -405,17 +418,12 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       // 🐟 CÁ ĐẠI DƯƠNG
       return (
         <svg viewBox="0 0 100 90" className="w-full h-full">
-          {/* Đuôi cá quẫy sóng */}
           <polygon points="12,25 35,50 12,75 22,50" fill="#0284c7" stroke="#0369a1" strokeWidth="2" />
-          {/* Thân cá */}
           <ellipse cx="58" cy="50" rx="36" ry="26" fill="#38bdf8" stroke="#0284c7" strokeWidth="3" />
           <path d="M48,24 Q65,12 75,28 Z" fill="#0284c7" />
-          {/* Mắt cá to tròn */}
           <circle cx="82" cy="42" r="5" fill="#111" />
           <circle cx="83.5" cy="40.5" r="1.5" fill="#fff" />
-          {/* Miệng cá chúm chím */}
           <ellipse cx="94" cy="50" rx="3" ry="4" fill="#f43f5e" />
-          {/* Khung biển số trên thân cá */}
           <rect x="42" y="38" width="28" height="24" rx="6" fill="#ffffff" stroke="#111111" strokeWidth="2.5" />
         </svg>
       );
@@ -425,24 +433,19 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       // 🦀 CUA BIỂN
       return (
         <svg viewBox="0 0 100 90" className="w-full h-full">
-          {/* Chân bò ngang */}
           <line x1="20" y1="50" x2="8" y2="40" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
           <line x1="20" y1="58" x2="6" y2="58" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
           <line x1="20" y1="66" x2="10" y2="76" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
           <line x1="80" y1="50" x2="92" y2="40" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
           <line x1="80" y1="58" x2="94" y2="58" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
           <line x1="80" y1="66" x2="90" y2="76" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
-          {/* Hai càng cua to */}
           <circle cx="28" cy="22" r="10" fill="#dc2626" stroke="#991b1b" strokeWidth="2" />
           <circle cx="72" cy="22" r="10" fill="#dc2626" stroke="#991b1b" strokeWidth="2" />
-          {/* Mắt cua lồi */}
           <circle cx="42" cy="26" r="4.5" fill="#ffffff" stroke="#111" strokeWidth="1.5" />
           <circle cx="42" cy="25" r="2" fill="#111" />
           <circle cx="58" cy="26" r="4.5" fill="#ffffff" stroke="#111" strokeWidth="1.5" />
           <circle cx="58" cy="25" r="2" fill="#111" />
-          {/* Mai cua đỏ */}
           <ellipse cx="50" cy="54" rx="32" ry="24" fill="#ef4444" stroke="#b91c1c" strokeWidth="3" />
-          {/* Khung biển số trên mai cua */}
           <rect x="36" y="42" width="28" height="24" rx="6" fill="#ffffff" stroke="#111111" strokeWidth="2.5" />
         </svg>
       );
@@ -452,15 +455,11 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       // 🦐 TÔM HÙM
       return (
         <svg viewBox="0 0 100 90" className="w-full h-full">
-          {/* Râu tôm dài */}
           <path d="M85,35 Q96,15 100,5" stroke="#ea580c" strokeWidth="2" fill="none" />
           <path d="M85,40 Q98,30 100,20" stroke="#ea580c" strokeWidth="2" fill="none" />
-          {/* Thân tôm cong búng nước */}
           <path d="M20,68 Q10,78 5,82 Q25,82 32,70 Q45,74 60,65 Q78,60 88,45 Q75,30 55,36 Q38,40 28,52 Z" fill="#fb923c" stroke="#c2410c" strokeWidth="2.5" />
-          {/* Mắt tôm */}
           <circle cx="82" cy="38" r="3" fill="#111" />
           <circle cx="83" cy="37" r="1" fill="#fff" />
-          {/* Khung biển số trên lưng tôm */}
           <rect x="42" y="42" width="26" height="22" rx="5" fill="#ffffff" stroke="#111111" strokeWidth="2" />
         </svg>
       );
@@ -693,6 +692,19 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
               </div>
             </div>
 
+            {/* BẬT/TẮT LÀN TĂNG TỐC TURBO */}
+            <div className="pt-1.5 border-t border-slate-800">
+              <label className="flex items-center space-x-2 text-xs font-bold text-amber-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={turboActive}
+                  onChange={(e) => setTurboActive(e.target.checked)}
+                  className="rounded text-amber-500 focus:ring-0 w-4 h-4 cursor-pointer"
+                />
+                <span>Bật Làn Tăng Tốc Turbo Lane ⚡</span>
+              </label>
+            </div>
+
             {/* TÙY CHỌN LOẠI BỎ NGƯỜI THẮNG Ở LƯỢT KẾ TIẾP */}
             <div className="pt-2 border-t border-slate-800 space-y-2">
               <label className="flex items-center space-x-2 text-xs font-medium cursor-pointer">
@@ -720,52 +732,58 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         )}
 
         {/* =================================================================== */}
-        {/* 2. DÒNG SÔNG NƯỚC THẬT SỐNG ĐỘNG (RIVER WATER - CHUẨN ẢNH 2, 3, 4) */}
+        {/* 2. DÒNG SÔNG NƯỚC THẬT SỐNG ĐỘNG (CHUẨN 100% ẢNH 1 ONLINE-STOPWATCH) */}
         {/* =================================================================== */}
-        <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-[#1b4e67] via-[#226385] to-[#143e53] select-none">
+        <div className="flex-1 relative overflow-hidden bg-[#35738e] select-none">
           
-          {/* CSS CHO SÓNG NƯỚC SÔNG CHẢY CUỘN CHÂN THẬT */}
+          {/* CSS CHO SÓNG NƯỚC CHUẨN XÁC Y HỆT ẢNH 1 ONLINE-STOPWATCH */}
           <style>{`
-            @keyframes riverWavesFlow {
+            @keyframes realWaterWaves {
               0% { transform: translateX(0); }
               100% { transform: translateX(-50%); }
             }
-            @keyframes animalSwimWobble {
-              0%, 100% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
-              50% { transform: translate(-50%, -50%) translateY(-4px) rotate(1.5deg); }
+            @keyframes turboPulse {
+              0%, 100% { opacity: 0.55; transform: scaleY(1); }
+              50% { opacity: 0.85; transform: scaleY(1.08); }
             }
           `}</style>
 
-          {/* CÁC ĐƯỜNG SÓNG NƯỚC UỐN LƯỢN CHUYỂN ĐỘNG THẬT */}
+          {/* CÁC ĐƯỜNG SÓNG NƯỚC THỰC SỰ CHUẨN ẢNH 1 (ONLINE-STOPWATCH.COM/DUCK) */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Lớp ánh sáng phản chiếu mặt sông */}
+            {/* Lớp sóng nước ngang chuẩn ảnh 1: dạng con thoi phình to thắt nhỏ uốn lượn liên tục */}
             <div 
-              className="absolute inset-0 opacity-20"
+              className="absolute inset-y-0 w-[200%] flex opacity-85"
               style={{
-                backgroundImage: 'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.4) 0%, transparent 70%)',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 360' preserveAspectRatio='none'%3E%3Cpath d='M0,30 Q250,5 500,30 T1000,30 L1000,48 Q750,22 500,48 T0,48 Z' fill='%234888a4' opacity='0.75'/%3E%3Cpath d='M0,95 Q250,70 500,95 T1000,95 L1000,125 Q750,90 500,125 T0,125 Z' fill='%2343839f' opacity='0.65'/%3E%3Cpath d='M0,170 Q200,140 450,170 Q700,200 1000,170 L1000,210 Q700,240 450,210 Q200,180 0,210 Z' fill='%235193af' opacity='0.9'/%3E%3Cpath d='M0,260 Q250,240 500,260 T1000,260 L1000,285 Q750,265 500,285 T0,285 Z' fill='%234586a2' opacity='0.7'/%3E%3Cpath d='M0,325 Q200,305 450,325 Q700,345 1000,325 L1000,350 Q700,370 450,350 Q200,330 0,350 Z' fill='%234c8ea9' opacity='0.8'/%3E%3C/svg%3E")`,
+                backgroundSize: '950px 100%',
+                animation: 'realWaterWaves 3.8s linear infinite',
               }}
             />
 
-            {/* Lớp sóng nước 1 - dải sóng uốn lượn màu xanh sáng chạy liên tục */}
+            {/* Lớp sóng phụ ngược pha tạo sự dập dềnh đa chiều của mặt nước */}
             <div 
-              className="absolute inset-y-0 w-[200%] flex opacity-55"
+              className="absolute inset-y-0 w-[200%] flex opacity-50"
               style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300' preserveAspectRatio='none'%3E%3Cpath d='M0,50 Q250,15 500,50 T1000,50 L1000,70 Q750,35 500,70 T0,70 Z' fill='%236bb8db' opacity='0.55'/%3E%3Cpath d='M0,140 Q250,105 500,140 T1000,140 L1000,165 Q750,130 500,165 T0,165 Z' fill='%236bb8db' opacity='0.45'/%3E%3Cpath d='M0,230 Q250,195 500,230 T1000,230 L1000,255 Q750,220 500,255 T0,255 Z' fill='%236bb8db' opacity='0.5'/%3E%3C/svg%3E")`,
-                backgroundSize: '900px 100%',
-                animation: 'riverWavesFlow 4s linear infinite',
-              }}
-            />
-
-            {/* Lớp sóng nước 2 - tạo độ sâu và gợn dập dềnh */}
-            <div 
-              className="absolute inset-y-0 w-[200%] flex opacity-40"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300' preserveAspectRatio='none'%3E%3Cpath d='M0,90 Q250,125 500,90 T1000,90 L1000,108 Q750,143 500,108 T0,108 Z' fill='%238cd6f7' opacity='0.45'/%3E%3Cpath d='M0,190 Q250,225 500,190 T1000,190 L1000,208 Q750,243 500,208 T0,208 Z' fill='%238cd6f7' opacity='0.4'/%3E%3C/svg%3E")`,
-                backgroundSize: '750px 100%',
-                animation: 'riverWavesFlow 6.5s linear infinite',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 360' preserveAspectRatio='none'%3E%3Cpath d='M0,60 Q250,85 500,60 T1000,60 L1000,75 Q750,100 500,75 T0,75 Z' fill='%235ea1bd' opacity='0.5'/%3E%3Cpath d='M0,140 Q250,165 500,140 T1000,140 L1000,158 Q750,183 500,158 T0,158 Z' fill='%235ea1bd' opacity='0.55'/%3E%3Cpath d='M0,230 Q250,255 500,230 T1000,230 L1000,248 Q750,273 500,248 T0,248 Z' fill='%235ea1bd' opacity='0.45'/%3E%3C/svg%3E")`,
+                backgroundSize: '780px 100%',
+                animation: 'realWaterWaves 6.2s linear infinite',
               }}
             />
           </div>
+
+          {/* LÀN TĂNG TỐC TURBO LANE ⚡ (HIỆU ỨNG TRÒ CHƠI) */}
+          {turboActive && !raceFinished && (
+            <div 
+              className="absolute left-[28%] right-[22%] top-[34%] h-24 pointer-events-none rounded-3xl border-y-2 border-amber-300/40 bg-gradient-to-r from-amber-400/10 via-cyan-400/25 to-amber-400/10 z-0 flex items-center justify-around overflow-hidden shadow-lg"
+              style={{ animation: 'turboPulse 2s ease-in-out infinite' }}
+            >
+              <div className="flex items-center space-x-6 text-amber-200/60 font-black text-xs uppercase tracking-widest animate-pulse whitespace-nowrap">
+                <span>⚡ TURBO LANE</span>
+                <span>⚡ SPEED BOOST</span>
+                <span>⚡ TURBO LANE</span>
+              </div>
+            </div>
+          )}
 
           {/* =================================================================== */}
           {/* TRƯỜNG HỢP 1: KHI ĐÃ CÁN ĐÍCH (00:00:00) -> CHUẨN XÁC Y HỆT ẢNH 2! */}
@@ -787,7 +805,6 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
                 style={{
                   left: '45%',
                   top: '58%',
-                  animation: 'animalSwimWobble 2.5s ease-in-out infinite',
                 }}
                 title={`Quán quân: #${winnerStudentNumber} - ${winnerStudent?.full_name}`}
               >
@@ -795,9 +812,9 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
                 <div className="absolute -bottom-2 -left-6 w-32 h-8 bg-cyan-200/50 rounded-full blur-xs animate-pulse" />
                 
                 {/* Hình linh vật vàng to đẹp chuẩn ảnh 2 */}
-                <div className="relative w-20 h-18 sm:w-24 sm:h-22 filter drop-shadow-xl transform hover:scale-110 transition">
+                <div className="relative w-20 h-18 sm:w-24 sm:h-22 filter drop-shadow-xl transform hover:scale-110 transition animate-bounce">
                   {/* Vương miện vàng kiêu hãnh trên đầu quán quân */}
-                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-2xl filter drop-shadow-md animate-bounce">
+                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-2xl filter drop-shadow-md">
                     👑
                   </div>
 
@@ -912,6 +929,13 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
                       {/* BỌT NƯỚC RIPPLE DƯỚI BỤNG KHI ĐANG BƠI */}
                       <div className={`absolute -bottom-1 -left-2 w-12 h-3.5 bg-cyan-200/40 rounded-full blur-2xs ${isRunning ? 'animate-pulse' : ''}`} />
 
+                      {/* HIỆU ỨNG TIA SÉT TURBO KHI BƠI QUA LÀN TĂNG TỐC ⚡ */}
+                      {pos.isTurbo && (
+                        <div className="absolute -top-4 -right-1 text-xs text-amber-300 animate-bounce filter drop-shadow-xs">
+                          ⚡
+                        </div>
+                      )}
+
                       {/* THÂN LINH VẬT SVG (Duck, Turtle, Fish, Crab, Shrimp) */}
                       <div className="relative w-12 h-11 sm:w-14 sm:h-13 flex-shrink-0 filter drop-shadow-md transform hover:scale-115 transition">
                         {renderAnimalSVG(selectedAnimal, studentNumber, false)}
@@ -927,8 +951,10 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
                         </div>
                       </div>
 
-                      {/* NHÃN TÊN ĐẦY ĐỦ CỦA HỌC SINH (KHÔNG BỊ TRUNCATE MẤT CHỮ LÓT/HỌ) */}
-                      <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/85 text-amber-200 font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-md border border-white/20 z-30 pointer-events-none">
+                      {/* NHÃN TÊN ĐẦY ĐỦ CỦA HỌC SINH (KHI ĐUA: HIỆN ĐẦY ĐỦ; KHI CHƯA ĐUA: CHỈ HIỆN KHI RỜ CHUỘT ĐỂ TRÁNH ĐÈ NHAU) */}
+                      <div className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/85 text-amber-200 font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-md border border-white/20 z-30 pointer-events-none transition-opacity ${
+                        isRunning ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}>
                         {studentNumber}. {st.full_name}
                       </div>
                     </div>
@@ -939,8 +965,9 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
               {/* DÒNG HƯỚNG DẪN DƯỚI ĐÁY SÔNG */}
               <div className="absolute bottom-2 left-6 z-20 text-[11px] font-bold text-cyan-200/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-xs flex items-center space-x-2">
                 <span>💡 {RACER_ANIMALS.find(a => a.id === selectedAnimal)?.name}: Bơi chậm rãi ban đầu và bứt phá trong 5 giây cuối!</span>
+                {turboActive && <span className="text-amber-300">⚡ Có Làn Turbo tăng tốc</span>}
                 {excludedIds.length > 0 && (
-                  <span className="text-amber-300">({excludedIds.length} bạn đã thắng đang tạm nghỉ)</span>
+                  <span className="text-rose-300">({excludedIds.length} bạn đã thắng đang tạm nghỉ)</span>
                 )}
               </div>
             </div>
@@ -962,14 +989,14 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
                     BẢNG XẾP HẠNG TOÀN ĐOÀN
                   </h3>
                   <p className="text-xs text-slate-300 font-medium">
-                    Thống kê đầy đủ kết quả chặng đua của tất cả {rankings.length || racerStudents.length} học sinh!
+                    Thống kê đầy đủ kết quả chặng đua của tất cả {displayRankings.length} học sinh!
                   </p>
                 </div>
 
                 {/* DANH SÁCH CUỘN MƯỢT MÀ CHỨA TOÀN BỘ HỌC SINH */}
                 <div className="flex-1 overflow-y-auto pr-1.5 space-y-2 custom-scrollbar">
                   {/* TOP 3 VINH DỰ ĐẦU BẢNG */}
-                  {rankings.slice(0, 3).map((st, idx) => {
+                  {displayRankings.slice(0, 3).map((st, idx) => {
                     const medals = ['🥇', '🥈', '🥉'];
                     const titles = ['QUÁN QUÂN (+3 ⭐)', 'Á QUÂN (+2 ⭐)', 'QUÝ QUÂN (+1 ⭐)'];
                     const borders = ['border-amber-400 bg-amber-500/15', 'border-slate-300 bg-slate-400/15', 'border-amber-700 bg-amber-800/15'];
@@ -1010,13 +1037,13 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
                   })}
 
                   {/* CÁC THỨ HẠNG CÒN LẠI TỪ HẠNG 4 ĐẾN HẾT */}
-                  {rankings.length > 3 && (
+                  {displayRankings.length > 3 && (
                     <div className="pt-2">
                       <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider text-left mb-1.5 px-2">
                         Các Vị Trí Về Đích Tiếp Theo:
                       </div>
                       <div className="space-y-1.5">
-                        {rankings.slice(3).map((st, i) => {
+                        {displayRankings.slice(3).map((st, i) => {
                           const rankNum = i + 4;
                           const stIdx = racerStudents.findIndex((s) => s.id === st.id) + 1;
 
