@@ -29,6 +29,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
   const [rankings, setRankings] = useState([]);
   const [showRankModal, setShowRankModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [raceFinished, setRaceFinished] = useState(false); // Trạng thái đã về đích (chỉ hiện 1 vịt vô địch chuẩn ảnh 2)
 
   // Đảm bảo lấy danh sách học sinh (ưu tiên học sinh có mặt, nếu chưa điểm danh lấy toàn bộ)
   const presentStudents = students.filter((s) => s.status !== 'Absent_Perm' && s.status !== 'Absent_NoPerm');
@@ -44,6 +45,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     setIsRunning(false);
     setIsPaused(false);
+    setRaceFinished(false);
     setTimeLeft(duration);
     pausedElapsedRef.current = 0;
     setRankings([]);
@@ -285,12 +287,15 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         // ĐÃ CÁN ĐÍCH HOÀN TẤT CUỘC ĐUA ĐÚNG KHOẢNH KHẮC 00:00:00!
         setIsRunning(false);
         setIsPaused(false);
+        setRaceFinished(true); // CHUYỂN SANG MÀN HÌNH VỀ ĐÍCH ĐỘC TÔN (CHUẨN ẢNH 2)
+        setShowRankModal(false); // KHÔNG TỰ ĐỘNG BẬT BẢNG VÀNG ĐÈ LÊN MÀN HÌNH!
+
         if (soundEnabled) {
           playWinner();
-          setTimeout(playQuack, 500);
+          setTimeout(playQuack, 450);
         }
         confetti({
-          particleCount: 180,
+          particleCount: 220,
           spread: 120,
           origin: { y: 0.55 },
         });
@@ -300,12 +305,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         const top3 = standings.slice(0, 3).map((item) => item.student);
         setRankings(top3);
 
-        // Trì hoãn 2.2 giây để Thầy và cả lớp chứng kiến rõ ràng chú vịt vô địch độc nhất vượt qua vạch đích ăn mừng!
-        setTimeout(() => {
-          setShowRankModal(true);
-        }, 2200);
-
-        // Thưởng sao cho học sinh vô địch
+        // Tự động thưởng sao cho học sinh vô địch
         if (onAwardStudent && top3[0]) onAwardStudent(top3[0].id, 3);
         if (onAwardStudent && top3[1]) onAwardStudent(top3[1].id, 2);
         if (onAwardStudent && top3[2]) onAwardStudent(top3[2].id, 1);
@@ -314,6 +314,15 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
 
     animFrameRef.current = requestAnimationFrame(step);
   };
+
+  // Xác định học sinh và phụ kiện của chú vịt Quán Quân khi về đích
+  const winnerStudent = rankings[0] || racerStudents[0];
+  const winnerStudentNumber = winnerStudent
+    ? racerStudents.findIndex((s) => s.id === winnerStudent.id) + 1
+    : 1;
+  const winnerHat = winnerStudent
+    ? DUCK_HATS[(duckConfigRef.current[winnerStudent.id]?.hatIndex || 0) % DUCK_HATS.length]
+    : DUCK_HATS[0];
 
   if (!isOpen) return null;
 
@@ -464,160 +473,276 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         )}
 
         {/* =================================================================== */}
-        {/* 2. DÒNG SÔNG NƯỚC THẬT SỐNG ĐỘNG (RIVER WATER - CHUẨN ẢNH 3 & 4) */}
+        {/* 2. DÒNG SÔNG NƯỚC THẬT SỐNG ĐỘNG (RIVER WATER - CHUẨN ẢNH 2, 3, 4) */}
         {/* =================================================================== */}
-        <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-[#2b6d8e] via-[#246282] to-[#1c506d] select-none">
+        <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-[#2e7192] via-[#246382] to-[#1c536f] select-none">
           
-          {/* CÁC LỚP SÓNG NƯỚC UỐN LƯỢN CHUYỂN ĐỘNG THẬT */}
-          <div 
-            className="absolute inset-0 opacity-40 pointer-events-none"
-            style={{
-              backgroundImage: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.18) 0%, transparent 60%)',
-              backgroundSize: '80px 40px',
-            }}
-          />
-          
-          {/* DẢI SÓNG NƯỚC CHẢY NGANG CHÂN THỰC */}
-          <div 
-            className="absolute inset-0 opacity-25 pointer-events-none"
-            style={{
-              backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(255,255,255,0.2) 19px, transparent 20px)`,
-            }}
-          />
+          {/* CSS CHO SÓNG NƯỚC SÔNG CHẢY CUỘN NHƯ THẬT */}
+          <style>{`
+            @keyframes riverWavesFlow {
+              0% { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+            @keyframes duckSwimWobble {
+              0%, 100% { transform: translate(-50%, -50%) translateY(0px) rotate(0deg); }
+              50% { transform: translate(-50%, -50%) translateY(-4px) rotate(1.5deg); }
+            }
+          `}</style>
 
-          {/* VẠCH XUẤT PHÁT THẲNG ĐỨNG BÊN TRÁI */}
-          <div
-            className="absolute left-3 top-0 bottom-0 w-7 z-10 opacity-50 border-r-2 border-dashed border-black/40 pointer-events-none"
-            style={{
-              backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 8px, #fff 8px, #fff 16px)',
-            }}
-          />
-
-          {/* VẠCH ĐÍCH THỂ THAO CARÔ THẲNG ĐỨNG CHUẨN XÁC Ở 82% (FINISH LINE) */}
-          <div
-            className="absolute top-0 bottom-0 w-12 z-20 shadow-2xl border-x-4 border-slate-950 pointer-events-none"
-            style={{
-              left: '82%',
-              backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 12px, #fff 12px, #fff 24px)',
-            }}
-          >
-            {/* BIỂN HIỆU VẠCH ĐÍCH PHÍA TRÊN */}
-            <div className="absolute top-2 -left-3 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
-              <span>🏁</span>
-              <span>ĐÍCH</span>
-            </div>
-
-            {/* BIỂN HIỆU VẠCH ĐÍCH PHÍA DƯỚI */}
-            <div className="absolute bottom-4 -left-4 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
-              <span>🏁</span>
-              <span>FINISH</span>
-            </div>
+          {/* CÁC ĐƯỜNG SÓNG NƯỚC UỐN LƯỢN CHUYỂN ĐỘNG THẬT (CHUẨN ẢNH 2, 3, 4) */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* Lớp sóng nước 1 - dải sóng uốn lượn màu xanh sáng chạy liên tục */}
+            <div 
+              className="absolute inset-y-0 w-[200%] flex opacity-60"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300' preserveAspectRatio='none'%3E%3Cpath d='M0,50 Q250,15 500,50 T1000,50 L1000,70 Q750,35 500,70 T0,70 Z' fill='%2368b6da' opacity='0.55'/%3E%3Cpath d='M0,140 Q250,105 500,140 T1000,140 L1000,165 Q750,130 500,165 T0,165 Z' fill='%2368b6da' opacity='0.45'/%3E%3Cpath d='M0,230 Q250,195 500,230 T1000,230 L1000,255 Q750,220 500,255 T0,255 Z' fill='%2368b6da' opacity='0.5'/%3E%3C/svg%3E")`,
+                backgroundSize: '900px 100%',
+                animation: 'riverWavesFlow 3.8s linear infinite',
+              }}
+            />
+            {/* Lớp sóng nước 2 - tạo độ sâu và gợn dập dềnh */}
+            <div 
+              className="absolute inset-y-0 w-[200%] flex opacity-45"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 300' preserveAspectRatio='none'%3E%3Cpath d='M0,90 Q250,125 500,90 T1000,90 L1000,108 Q750,143 500,108 T0,108 Z' fill='%238cd6f7' opacity='0.45'/%3E%3Cpath d='M0,190 Q250,225 500,190 T1000,190 L1000,208 Q750,243 500,208 T0,208 Z' fill='%238cd6f7' opacity='0.4'/%3E%3C/svg%3E")`,
+                backgroundSize: '750px 100%',
+                animation: 'riverWavesFlow 6.2s linear infinite',
+              }}
+            />
           </div>
 
           {/* =================================================================== */}
-          {/* 3. TẤT CẢ ĐÀN VỊT VÀNG TRONG 1 KHUNG HÌNH (NO SCROLL - CHUẨN ẢNH 3 & 4) */}
+          {/* TRƯỜNG HỢP 1: KHI ĐÃ CÁN ĐÍCH (00:00:00) -> CHUẨN XÁC Y HỆT ẢNH 2! */}
+          {/* CHỈ CÓ DUY NHẤT 1 CHÚ VỊT VÔ ĐỊCH BƠI QUA VẠCH ĐÍCH Ở GIỮA DÒNG SÔNG! */}
           {/* =================================================================== */}
-          <div className="absolute inset-0">
-            {racerStudents.map((st, idx) => {
-              const pos = duckPositions[st.id] || { x: 5, y: 15 + idx * 2, hatIndex: 0 };
-              const hat = DUCK_HATS[pos.hatIndex % DUCK_HATS.length];
-              const studentNumber = idx + 1;
-              const isWinnerDuck = pos.isFinished;
+          {raceFinished ? (
+            <div className="absolute inset-0">
+              {/* VẠCH ĐÍCH CARÔ BÊN TRÁI CHUẨN ẢNH 2 */}
+              <div
+                className="absolute left-6 top-0 bottom-0 w-12 shadow-2xl transform -skew-x-[22deg] origin-top border-x-4 border-slate-950 pointer-events-none z-10"
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 12px, #fff 12px, #fff 24px)',
+                }}
+              />
 
-              return (
-                <div
-                  key={st.id}
-                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 cursor-pointer group ${isWinnerDuck ? 'z-40 scale-125' : ''}`}
-                  style={{
-                    left: `${pos.x}%`,
-                    top: `${pos.y}%`,
-                    zIndex: isWinnerDuck ? 50 : Math.floor(pos.y * 10),
-                  }}
-                  title={`#${studentNumber} - ${st.full_name}`}
-                >
-                  {/* BỌT NƯỚC RIPPLE DƯỚI BỤNG VỊT KHI ĐANG BƠI */}
-                  <div className={`absolute -bottom-1 -left-2 w-12 h-3.5 bg-cyan-200/40 rounded-full blur-2xs ${isRunning ? 'animate-pulse' : ''} ${isWinnerDuck ? 'bg-amber-300/80 w-16 h-5' : ''}`} />
+              {/* CHÚ VỊT CHIẾN THẮNG DUY NHẤT BƠI TRÊN SÔNG (CHUẨN ẢNH 2) */}
+              <div
+                className="absolute transition-all duration-300 z-20 cursor-pointer group"
+                style={{
+                  left: '45%',
+                  top: '58%',
+                  animation: 'duckSwimWobble 2.5s ease-in-out infinite',
+                }}
+                title={`Quán quân: #${winnerStudentNumber} - ${winnerStudent?.full_name}`}
+              >
+                {/* Vệt nước rẽ sóng bọt trắng dập dềnh dưới bụng vịt */}
+                <div className="absolute -bottom-2 -left-6 w-32 h-8 bg-cyan-200/50 rounded-full blur-xs animate-pulse" />
+                
+                {/* Chú vịt vàng to đẹp chuẩn ảnh 2 */}
+                <div className="relative w-20 h-18 sm:w-24 sm:h-22 filter drop-shadow-xl transform hover:scale-110 transition">
+                  {/* Vương miện vàng kiêu hãnh trên đầu vịt quán quân */}
+                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-2xl filter drop-shadow-md animate-bounce">
+                    👑
+                  </div>
 
-                  {/* THÂN CHÚ VỊT VÀNG CAO SU (SVG CHUẨN ẢNH 3 & 4) */}
-                  <div className={`relative w-12 h-11 sm:w-14 sm:h-13 flex-shrink-0 filter drop-shadow-md transform hover:scale-115 transition ${isWinnerDuck ? 'animate-bounce' : ''}`}>
-                    
-                    {/* HUY HIỆU VÔ ĐỊCH NỔI TRÊN ĐẦU CHÚ VỊT DUY NHẤT VƯỢT QUA VẠCH ĐÍCH */}
-                    {isWinnerDuck && (
-                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full shadow-xl border-2 border-white animate-pulse flex items-center space-x-1 z-50">
-                        <span>👑</span>
-                        <span>QUÁN QUÂN</span>
-                      </div>
-                    )}
+                  <svg viewBox="0 0 100 90" className="w-full h-full">
+                    <path
+                      d="M20,60 C20,40 35,35 55,42 C68,46 80,48 88,58 C96,68 85,82 60,82 C35,82 20,78 20,60 Z"
+                      fill="#ffcc00"
+                      stroke="#b8860b"
+                      strokeWidth="3.2"
+                    />
+                    <path
+                      d="M58,45 C58,35 62,20 75,20 C88,20 92,34 88,44 C82,54 68,54 58,45 Z"
+                      fill="#ffd700"
+                      stroke="#b8860b"
+                      strokeWidth="3.2"
+                    />
+                    <path
+                      d="M84,32 C94,30 100,34 98,39 C92,44 85,41 84,32 Z"
+                      fill="#ff6600"
+                      stroke="#cc3300"
+                      strokeWidth="2.2"
+                    />
+                    <circle cx="78" cy="27" r="4.5" fill="#111" />
+                    <circle cx="79.5" cy="25.5" r="1.5" fill="#fff" />
+                    <path
+                      d="M35,62 C40,54 55,54 62,62 C60,70 45,74 35,62 Z"
+                      fill="#ffb700"
+                      stroke="#b8860b"
+                      strokeWidth="2.2"
+                    />
+                    <rect
+                      x="23"
+                      y="52"
+                      width="26"
+                      height="20"
+                      rx="6"
+                      fill="#ffffff"
+                      stroke="#111111"
+                      strokeWidth="2.2"
+                    />
+                  </svg>
 
-                    <svg viewBox="0 0 100 90" className="w-full h-full">
-                      {/* Thân vịt vàng phao tròn */}
-                      <path
-                        d="M20,60 C20,40 35,35 55,42 C68,46 80,48 88,58 C96,68 85,82 60,82 C35,82 20,78 20,60 Z"
-                        fill="#ffcc00"
-                        stroke="#b8860b"
-                        strokeWidth="3"
-                      />
-                      {/* Đầu vịt & cổ */}
-                      <path
-                        d="M58,45 C58,35 62,20 75,20 C88,20 92,34 88,44 C82,54 68,54 58,45 Z"
-                        fill="#ffd700"
-                        stroke="#b8860b"
-                        strokeWidth="3"
-                      />
-                      {/* Mỏ cam dài chúm chím */}
-                      <path
-                        d="M84,32 C94,30 100,34 98,39 C92,44 85,41 84,32 Z"
-                        fill="#ff6600"
-                        stroke="#cc3300"
-                        strokeWidth="2"
-                      />
-                      {/* Mắt đen to tròn lay láy */}
-                      <circle cx="78" cy="27" r="4.5" fill="#111" />
-                      <circle cx="79.5" cy="25.5" r="1.5" fill="#fff" />
-                      {/* Cánh vịt vàng */}
-                      <path
-                        d="M35,62 C40,54 55,54 62,62 C60,70 45,74 35,62 Z"
-                        fill="#ffb700"
-                        stroke="#b8860b"
-                        strokeWidth="2"
-                      />
-                      {/* KHUNG BIỂN SỐ TRÊN MÔNG VỊT CHUẨN ẢNH 3 & 4 */}
-                      <rect
-                        x="24"
-                        y="52"
-                        width="24"
-                        height="18"
-                        rx="5"
-                        fill="#ffffff"
-                        stroke="#111111"
-                        strokeWidth="2"
-                      />
-                    </svg>
+                  {/* Số thứ tự học sinh in to rõ trên mông vịt (chuẩn số 10 trong ảnh 2) */}
+                  <div className="absolute top-[48%] left-[22%] w-7 h-6 flex items-center justify-center font-black text-sm text-black font-sans pointer-events-none">
+                    {winnerStudentNumber}
+                  </div>
 
-                    {/* SỐ THỨ TỰ HỌC SINH IN TO RÕ TRÊN MÔNG VỊT (1, 2, 3...) */}
-                    <div className="absolute top-[48%] left-[23%] w-6 h-5 flex items-center justify-center font-black text-[11px] sm:text-xs text-black font-sans pointer-events-none">
-                      {studentNumber}
-                    </div>
-
-                    {/* MŨ / PHỤ KIỆN HÀI HƯỚC TRÊN ĐẦU VỊT CHUẨN ẢNH 4 */}
-                    <div className="absolute -top-3 right-0 text-base sm:text-lg transform rotate-6 pointer-events-none filter drop-shadow-xs">
-                      {hat.icon}
-                    </div>
-
-                    {/* NHÃN TÊN HỌC SINH MINI NỔI PHÍA TRÊN */}
-                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition whitespace-nowrap bg-black/85 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-md shadow-md border border-amber-300 z-30 pointer-events-none">
-                      #{studentNumber} {st.full_name}
-                    </div>
+                  {/* Mũ phụ kiện ngộ nghĩnh */}
+                  <div className="absolute -top-2 right-1 text-xl transform rotate-6 pointer-events-none">
+                    {winnerHat.icon}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
 
-          {/* DÒNG HƯỚNG DẪN DƯỚI ĐÁY SÔNG */}
-          <div className="absolute bottom-2 left-6 z-20 text-[11px] font-bold text-cyan-200/70 bg-black/30 px-3 py-1 rounded-full backdrop-blur-xs">
-            💡 Mỗi chú vịt mang số thứ tự tương ứng học sinh trong lớp • Bấm START để bắt đầu bơi thi kịch tính!
-          </div>
+              {/* HỘP ĐIỀU KHIỂN GÓC TRÊN BÊN TRÁI CHUẨN ẢNH 2 */}
+              <div className="absolute top-4 left-4 z-30 bg-white/95 border-[3.5px] border-slate-900 rounded-2xl p-3 shadow-2xl flex flex-col space-y-2 animate-fade-in max-w-xs">
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="px-5 py-2.5 bg-[#52c41a] hover:bg-[#43aa13] text-white font-black text-base rounded-xl border-2 border-slate-900 shadow-md transition cursor-pointer flex items-center justify-center space-x-2 active:scale-95"
+                >
+                  <RotateCcw className="w-5 h-5 stroke-[2.5]" />
+                  <span>Race Again?</span>
+                </button>
+                <div className="text-xs font-black text-slate-900 border-t border-slate-200 pt-2 flex items-center justify-between gap-2">
+                  <span className="truncate">
+                    🏆 Quán quân: <strong className="text-emerald-700">#{winnerStudentNumber}. {winnerStudent?.full_name}</strong>
+                  </span>
+                  <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">+3⭐</span>
+                </div>
+              </div>
+
+              {/* NÚT TRÒN CÚP VÀNG 🏆 Ở GÓC DƯỚI BÊN PHẢI CHUẨN ẢNH 2 */}
+              <button
+                type="button"
+                onClick={() => setShowRankModal(true)}
+                className="absolute bottom-5 right-5 z-30 w-16 h-16 bg-white hover:bg-amber-50 border-4 border-slate-900 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition transform hover:scale-110 active:scale-95 group"
+                title="Bấm vào để xem Bảng Vàng vinh danh Top 3"
+              >
+                <Trophy className="w-8 h-8 text-slate-950 fill-amber-400 group-hover:rotate-12 transition-transform" />
+              </button>
+            </div>
+          ) : (
+            /* =================================================================== */
+            /* TRƯỜNG HỢP 2: TRONG KHI ĐANG ĐUA / CHUẨN BỊ (CHUẨN ẢNH 3 & 4)      */
+            /* =================================================================== */
+            <div className="absolute inset-0">
+              {/* VẠCH XUẤT PHÁT THẲNG ĐỨNG BÊN TRÁI */}
+              <div
+                className="absolute left-3 top-0 bottom-0 w-7 z-10 opacity-50 border-r-2 border-dashed border-black/40 pointer-events-none"
+                style={{
+                  backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 8px, #fff 8px, #fff 16px)',
+                }}
+              />
+
+              {/* VẠCH ĐÍCH THỂ THAO CARÔ THẲNG ĐỨNG CHUẨN XÁC Ở 84% (FINISH LINE) */}
+              <div
+                className="absolute top-0 bottom-0 w-12 z-20 shadow-2xl border-x-4 border-slate-950 pointer-events-none"
+                style={{
+                  left: '84%',
+                  backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 12px, #fff 12px, #fff 24px)',
+                }}
+              >
+                <div className="absolute top-2 -left-3 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
+                  <span>🏁</span>
+                  <span>ĐÍCH</span>
+                </div>
+                <div className="absolute bottom-4 -left-4 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
+                  <span>🏁</span>
+                  <span>FINISH</span>
+                </div>
+              </div>
+
+              {/* TẤT CẢ ĐÀN VỊT VÀNG TRONG 1 KHUNG HÌNH (NO SCROLL) */}
+              <div className="absolute inset-0">
+                {racerStudents.map((st, idx) => {
+                  const pos = duckPositions[st.id] || { x: 5, y: 15 + idx * 2, hatIndex: 0 };
+                  const hat = DUCK_HATS[pos.hatIndex % DUCK_HATS.length];
+                  const studentNumber = idx + 1;
+
+                  return (
+                    <div
+                      key={st.id}
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 cursor-pointer group"
+                      style={{
+                        left: `${pos.x}%`,
+                        top: `${pos.y}%`,
+                        zIndex: Math.floor(pos.y * 10),
+                      }}
+                      title={`#${studentNumber} - ${st.full_name}`}
+                    >
+                      {/* BỌT NƯỚC RIPPLE DƯỚI BỤNG VỊT KHI ĐANG BƠI */}
+                      <div className={`absolute -bottom-1 -left-2 w-12 h-3.5 bg-cyan-200/40 rounded-full blur-2xs ${isRunning ? 'animate-pulse' : ''}`} />
+
+                      {/* THÂN CHÚ VỊT VÀNG CAO SU (SVG CHUẨN ẢNH 3 & 4) */}
+                      <div className="relative w-12 h-11 sm:w-14 sm:h-13 flex-shrink-0 filter drop-shadow-md transform hover:scale-115 transition">
+                        <svg viewBox="0 0 100 90" className="w-full h-full">
+                          <path
+                            d="M20,60 C20,40 35,35 55,42 C68,46 80,48 88,58 C96,68 85,82 60,82 C35,82 20,78 20,60 Z"
+                            fill="#ffcc00"
+                            stroke="#b8860b"
+                            strokeWidth="3"
+                          />
+                          <path
+                            d="M58,45 C58,35 62,20 75,20 C88,20 92,34 88,44 C82,54 68,54 58,45 Z"
+                            fill="#ffd700"
+                            stroke="#b8860b"
+                            strokeWidth="3"
+                          />
+                          <path
+                            d="M84,32 C94,30 100,34 98,39 C92,44 85,41 84,32 Z"
+                            fill="#ff6600"
+                            stroke="#cc3300"
+                            strokeWidth="2"
+                          />
+                          <circle cx="78" cy="27" r="4.5" fill="#111" />
+                          <circle cx="79.5" cy="25.5" r="1.5" fill="#fff" />
+                          <path
+                            d="M35,62 C40,54 55,54 62,62 C60,70 45,74 35,62 Z"
+                            fill="#ffb700"
+                            stroke="#b8860b"
+                            strokeWidth="2"
+                          />
+                          <rect
+                            x="24"
+                            y="52"
+                            width="24"
+                            height="18"
+                            rx="5"
+                            fill="#ffffff"
+                            stroke="#111111"
+                            strokeWidth="2"
+                          />
+                        </svg>
+
+                        {/* SỐ THỨ TỰ HỌC SINH IN TO RÕ TRÊN MÔNG VỊT (1, 2, 3...) */}
+                        <div className="absolute top-[48%] left-[23%] w-6 h-5 flex items-center justify-center font-black text-[11px] sm:text-xs text-black font-sans pointer-events-none">
+                          {studentNumber}
+                        </div>
+
+                        {/* MŨ / PHỤ KIỆN HÀI HƯỚC TRÊN ĐẦU VỊT CHUẨN ẢNH 4 */}
+                        <div className="absolute -top-3 right-0 text-base sm:text-lg transform rotate-6 pointer-events-none filter drop-shadow-xs">
+                          {hat.icon}
+                        </div>
+
+                        {/* NHÃN TÊN HỌC SINH MINI NỔI PHÍA TRÊN */}
+                        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition whitespace-nowrap bg-black/85 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-md shadow-md border border-amber-300 z-30 pointer-events-none">
+                          #{studentNumber} {st.full_name}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* DÒNG HƯỚNG DẪN DƯỚI ĐÁY SÔNG */}
+              <div className="absolute bottom-2 left-6 z-20 text-[11px] font-bold text-cyan-200/70 bg-black/30 px-3 py-1 rounded-full backdrop-blur-xs">
+                💡 Mỗi chú vịt mang số thứ tự tương ứng học sinh trong lớp • Bấm START để bắt đầu bơi thi kịch tính!
+              </div>
+            </div>
+          )}
         </div>
 
         {/* =================================================================== */}
