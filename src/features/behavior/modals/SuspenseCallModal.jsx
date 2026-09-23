@@ -85,8 +85,8 @@ export default function SuspenseCallModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="bg-gradient-to-b from-slate-900 to-slate-950 border border-indigo-500/40 rounded-[2.5rem] w-full max-w-lg shadow-2xl p-6 sm:p-8 space-y-6 my-auto text-white text-center relative flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-gradient-to-b from-slate-900 to-slate-950 border border-indigo-500/40 rounded-[2.5rem] w-full max-w-lg shadow-2xl p-6 sm:p-8 space-y-6 my-auto text-white text-center relative flex flex-col max-h-[92vh]">
         {/* NÚT CLOSE */}
         <button
           onClick={() => {

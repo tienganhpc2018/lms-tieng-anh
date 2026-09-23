@@ -61,7 +61,7 @@ export default function Navbar() {
   const avatarImage = profile?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
   return (
-    <nav className="bg-emerald-50/95 backdrop-blur-md text-slate-800 sticky top-0 z-[60] shadow-xs border-b border-emerald-200/90 font-sans select-none">
+    <nav className="bg-emerald-50/95 backdrop-blur-md text-slate-800 sticky top-0 z-40 shadow-xs border-b border-emerald-200/90 font-sans select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo & Branding */}

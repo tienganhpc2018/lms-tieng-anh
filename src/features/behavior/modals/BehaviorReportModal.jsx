@@ -102,8 +102,8 @@ Thầy/Cô tuyên dương các em đã nỗ lực rèn luyện nề nếp và h�
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:fixed-none">
-      <div className="bg-white rounded-[2rem] w-full max-w-4xl border border-slate-200 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[94vh] flex flex-col print:shadow-none print:border-none print:max-h-none print:p-2">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:fixed-none">
+      <div className="bg-white rounded-[2rem] w-full max-w-4xl border border-slate-200 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[92vh] flex flex-col print:shadow-none print:border-none print:max-h-none print:p-2">
         {/* HEADER CỦA MODAL (ẨN KHI IN) */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
           <div className="flex items-center space-x-3">

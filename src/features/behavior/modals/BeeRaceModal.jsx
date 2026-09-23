@@ -129,8 +129,8 @@ export default function BeeRaceModal({ isOpen, onClose, students, onAwardStudent
   const curRacerMeta = RACER_TYPES.find((r) => r.id === selectedRacer) || RACER_TYPES[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-[#0b1b36] border-2 border-indigo-500/50 rounded-[2.5rem] w-full max-w-6xl shadow-2xl p-5 sm:p-7 space-y-4 my-auto text-white flex flex-col max-h-[95vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-5 overflow-y-auto">
+      <div className="bg-[#0b1b36] border-2 border-indigo-500/50 rounded-[2.5rem] w-full max-w-6xl shadow-2xl p-5 sm:p-7 space-y-4 my-auto text-white flex flex-col max-h-[92vh]">
         {/* HEADER ĐUA VỊT SLIDER (CHUẨN ẢNH 3) */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-indigo-900/80 pb-3">
           <div className="flex items-center space-x-2">
@@ -282,7 +282,7 @@ export default function BeeRaceModal({ isOpen, onClose, students, onAwardStudent
 
         {/* BẢNG XẾP HẠNG TOP 3 THẮNG CUỘC */}
         {showRankModal && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/75 p-4 animate-scale-up">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 animate-scale-up">
             <div className="bg-gradient-to-b from-amber-500 to-amber-700 p-1 rounded-[2.5rem] shadow-2xl max-w-md w-full">
               <div className="bg-gradient-to-b from-[#0f1d38] to-[#081020] rounded-[2.3rem] p-6 text-center space-y-4 text-white">
                 <span className="text-4xl animate-bounce inline-block">🏆 🌟 🏆</span>

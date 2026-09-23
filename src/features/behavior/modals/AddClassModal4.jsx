@@ -47,7 +47,7 @@ export default function AddClassModal4({ isOpen, onClose, onSaveClass }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto">
       <div className="bg-white rounded-[2rem] w-full max-w-2xl border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 my-auto max-h-[92vh] flex flex-col">
         {/* HEADER */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">

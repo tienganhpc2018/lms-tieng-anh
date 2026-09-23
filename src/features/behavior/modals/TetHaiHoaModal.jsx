@@ -56,8 +56,8 @@ export default function TetHaiHoaModal({ isOpen, onClose, students, onAwardStude
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-gradient-to-b from-[#2b0808] to-[#1a0404] border-2 border-amber-500/60 rounded-[2.5rem] w-full max-w-5xl shadow-2xl p-5 sm:p-7 space-y-4 my-auto relative text-amber-100 flex flex-col max-h-[95vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-6 overflow-y-auto">
+      <div className="bg-gradient-to-b from-[#2b0808] to-[#1a0404] border-2 border-amber-500/60 rounded-[2.5rem] w-full max-w-5xl shadow-2xl p-5 sm:p-7 space-y-4 my-auto relative text-amber-100 flex flex-col max-h-[92vh]">
         {/* HEADER TẾT */}
         <div className="flex items-center justify-between border-b border-amber-800/80 pb-3">
           <div className="flex items-center space-x-3">
@@ -157,7 +157,7 @@ export default function TetHaiHoaModal({ isOpen, onClose, students, onAwardStude
 
         {/* MODAL KẾT QUẢ TRÚNG LỘC */}
         {activeWinner && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/75 p-4 animate-scale-up">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 animate-scale-up">
             <div className="bg-gradient-to-b from-amber-500 to-amber-700 p-1 rounded-[2.5rem] shadow-2xl max-w-sm w-full">
               <div className="bg-gradient-to-b from-[#3a0808] to-[#1f0303] rounded-[2.3rem] p-6 text-center space-y-4 text-amber-100">
                 <span className="text-4xl">🎊 🌸 🎊</span>

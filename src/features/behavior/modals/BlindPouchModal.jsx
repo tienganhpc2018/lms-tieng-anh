@@ -61,7 +61,7 @@ export default function BlindPouchModal({ isOpen, onClose, students, onAwardStud
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
       <div className="bg-gradient-to-b from-[#2e0921] to-[#170311] border border-pink-500/50 rounded-[2.5rem] w-full max-w-4xl shadow-2xl p-6 sm:p-8 space-y-5 my-auto text-pink-100 flex flex-col max-h-[92vh]">
         {/* HEADER */}
         <div className="flex items-center justify-between border-b border-pink-900/60 pb-3">
@@ -139,7 +139,7 @@ export default function BlindPouchModal({ isOpen, onClose, students, onAwardStud
 
         {/* MODAL KẾT QUẢ MỞ TÚI MÙ */}
         {activeWinner && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/75 p-4 animate-scale-up">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 animate-scale-up">
             <div className="bg-gradient-to-b from-pink-500 to-rose-600 p-1 rounded-[2.5rem] shadow-2xl max-w-sm w-full">
               <div className="bg-gradient-to-b from-[#350723] to-[#1c0313] rounded-[2.3rem] p-6 text-center space-y-4 text-pink-100">
                 <span className="text-4xl animate-bounce inline-block">🎁 ✨ 🎁</span>

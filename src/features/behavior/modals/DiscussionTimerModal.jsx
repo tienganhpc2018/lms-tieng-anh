@@ -65,9 +65,9 @@ export default function DiscussionTimerModal({ isOpen, onClose }) {
   const progressRatio = totalSeconds > 0 ? (totalSeconds - timeLeft) / totalSeconds : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
       <div
-        className={`bg-slate-900 border rounded-[2.5rem] w-full max-w-md shadow-2xl p-6 sm:p-8 space-y-6 my-auto text-white text-center transition-colors ${
+        className={`bg-slate-900 border rounded-[2.5rem] w-full max-w-md shadow-2xl p-6 sm:p-8 space-y-6 my-auto text-white text-center transition-colors max-h-[92vh] ${
           isFinished ? 'border-rose-500 shadow-rose-900/50 animate-pulse' : 'border-indigo-500/40'
         }`}
       >

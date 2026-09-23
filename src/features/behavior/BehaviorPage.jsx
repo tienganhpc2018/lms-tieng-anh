@@ -308,7 +308,7 @@ export default function BehaviorPage() {
   return (
     <div className="min-h-screen bg-[#f3f4f8] text-slate-900 font-sans select-none pb-24">
       {/* 1. TOP HEADER APP (CHUẨN ẢNH 1) */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-30 shadow-2xs">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-16 z-30 shadow-2xs">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center space-x-2">
             <span>Sổ Nề Nếp & Quản Lý 4.0</span>

@@ -54,16 +54,16 @@ export default function ClassWidePointModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-[2rem] w-full max-w-xl border border-slate-200 shadow-2xl p-5 sm:p-7 space-y-5 my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-2 sm:p-4 overflow-hidden">
+      <div className="bg-white rounded-2xl sm:rounded-[2rem] w-full max-w-xl border border-slate-200 shadow-2xl flex flex-col h-[90vh] max-h-[750px] overflow-hidden">
         {/* HEADER MODAL */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-100 p-4 sm:p-5 flex-shrink-0 bg-white">
           <div className="flex items-center space-x-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center shadow-md text-2xl flex-shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center shadow-md text-2xl flex-shrink-0">
               👥
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
                 Chấm Điểm Cho Cả Lớp {classNameTitle}
               </h2>
               <p className="text-xs text-slate-500 font-semibold">
@@ -80,6 +80,9 @@ export default function ClassWidePointModal({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* THÂN MODAL CUỘN (SCROLLABLE BODY) */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4" style={{ scrollbarWidth: 'thin' }}>
 
         {/* PHẠM VI ÁP DỤNG: CÓ BỎ QUA HỌC SINH VẮNG KHÔNG */}
         <div className="bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -227,16 +230,17 @@ export default function ClassWidePointModal({
             </div>
           </div>
         </div>
+        </div>
 
         {/* FOOTER */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[11px] text-slate-400 font-medium">
-            Điểm số sẽ được cập nhật đồng loạt ngay lập tức cho từng học sinh.
+        <div className="p-4 border-t border-slate-100 bg-slate-50/90 flex items-center justify-between flex-shrink-0">
+          <span className="text-[11px] text-slate-500 font-medium">
+            💡 Điểm số sẽ được cập nhật đồng loạt ngay lập tức cho từng học sinh.
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition cursor-pointer"
+            className="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl text-xs transition cursor-pointer shadow-xs active:scale-95"
           >
             Đóng
           </button>

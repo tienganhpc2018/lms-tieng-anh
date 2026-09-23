@@ -141,7 +141,7 @@ export default function CriteriaSettingsModal({ isOpen, onClose, initialGrade = 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-2 sm:p-4 overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-2 sm:p-4 overflow-hidden">
       <div className="bg-white rounded-2xl sm:rounded-[2rem] w-full max-w-4xl border border-slate-200 shadow-2xl flex flex-col h-[92vh] max-h-[860px] overflow-hidden">
         {/* HEADER MODAL (CỐ ĐỊNH Ở ĐẦU) */}
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4 sm:p-5 flex-shrink-0 bg-white">

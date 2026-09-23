@@ -94,8 +94,8 @@ export default function GroupTeamsModal({ isOpen, onClose, students, onAwardStud
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-[#0f172a] border border-slate-700 rounded-[2.5rem] w-full max-w-6xl shadow-2xl p-5 sm:p-7 space-y-4 my-auto text-white flex flex-col max-h-[95vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-2 sm:p-5 overflow-y-auto">
+      <div className="bg-[#0f172a] border border-slate-700 rounded-[2.5rem] w-full max-w-6xl shadow-2xl p-5 sm:p-7 space-y-4 my-auto text-white flex flex-col max-h-[92vh]">
         {/* HEADER (CHUẨN ẢNH 5) */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center space-x-3">
@@ -247,7 +247,7 @@ export default function GroupTeamsModal({ isOpen, onClose, students, onAwardStud
 
         {/* MODAL KẾT QUẢ ĐẠI DIỆN */}
         {activeWinner && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/75 p-4 animate-scale-up">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 animate-scale-up">
             <div className="bg-gradient-to-b from-amber-400 to-amber-600 p-1 rounded-[2.5rem] shadow-2xl max-w-sm w-full">
               <div className="bg-slate-950 rounded-[2.3rem] p-6 text-center space-y-4 text-white">
                 <span className="text-4xl animate-bounce inline-block">🎤 🌟 🐝</span>

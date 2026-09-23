@@ -183,8 +183,8 @@ export default function SeatingChartModal({ isOpen, onClose, classInfo, students
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-[#fffdf7] border-2 border-amber-300 rounded-[2.5rem] w-full max-w-6xl shadow-2xl p-5 sm:p-7 space-y-4 my-auto text-slate-900 flex flex-col max-h-[95vh]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-2 sm:p-5 overflow-y-auto">
+      <div className="bg-[#fffdf7] border-2 border-amber-300 rounded-[2.5rem] w-full max-w-6xl shadow-2xl p-5 sm:p-7 space-y-4 my-auto text-slate-900 flex flex-col max-h-[92vh]">
         {/* HEADER (CHUẨN ẢNH 4) */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-amber-200 pb-3">
           <div className="flex items-center space-x-3">
