@@ -15,6 +15,7 @@ export default function CriteriaSettingsModal({ isOpen, onClose, initialGrade = 
   const [minusCriteria, setMinusCriteria] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [maxKttxBonus, setMaxKttxBonus] = useState(2);
+  const [warningMinusThreshold, setWarningMinusThreshold] = useState(3);
 
   // Form thêm tiêu chí mới
   const [newLabel, setNewLabel] = useState('');
@@ -30,6 +31,7 @@ export default function CriteriaSettingsModal({ isOpen, onClose, initialGrade = 
       loadData(selectedGrade);
       const settings = loadBehaviorSettings();
       setMaxKttxBonus(settings.maxKttxBonus || 2);
+      setWarningMinusThreshold(settings.warningMinusThreshold || 3);
     }
   }, [isOpen, selectedGrade]);
 
@@ -45,6 +47,15 @@ export default function CriteriaSettingsModal({ isOpen, onClose, initialGrade = 
     const settings = loadBehaviorSettings();
     saveBehaviorSettings({ ...settings, maxKttxBonus: val });
     setToastMessage(`✅ Đã lưu mức trần KTTX tối đa: +${val} điểm!`);
+    setTimeout(() => setToastMessage(''), 2500);
+  };
+
+  const handleUpdateWarningThreshold = (val) => {
+    playCorrect();
+    setWarningMinusThreshold(val);
+    const settings = loadBehaviorSettings();
+    saveBehaviorSettings({ ...settings, warningMinusThreshold: val });
+    setToastMessage(`🔔 Đã lưu ngưỡng cảnh báo sớm: Bị trừ từ ${val} điểm trở lên!`);
     setTimeout(() => setToastMessage(''), 2500);
   };
 
@@ -227,6 +238,35 @@ export default function CriteriaSettingsModal({ isOpen, onClose, initialGrade = 
               <option value={3}>Tối đa +3 điểm</option>
               <option value={4}>Tối đa +4 điểm</option>
               <option value={5}>Tối đa +5 điểm</option>
+            </select>
+          </div>
+        </div>
+
+        {/* CẤU HÌNH CẢNH BÁO SỚM HỌC SINH BỊ TRỪ ĐIỂM (EARLY WARNING SYSTEM) */}
+        <div className="bg-rose-50/70 border border-rose-200 p-3 sm:p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center text-sm font-black shadow-xs">
+              🔔
+            </div>
+            <div>
+              <span className="text-xs font-black text-rose-950 block leading-tight">
+                Hệ Thống Cảnh Báo Sớm 🔔 (Early Warning System)
+              </span>
+              <span className="text-[11px] text-rose-800 font-medium block mt-0.5">
+                Tự động hiện chuông vàng & viền nhắc nhở trên thẻ học sinh và sơ đồ chỗ ngồi khi bị trừ nhiều điểm
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 self-end sm:self-auto">
+            <select
+              value={warningMinusThreshold}
+              onChange={(e) => handleUpdateWarningThreshold(Number(e.target.value))}
+              className="px-3 py-1.5 bg-white border border-rose-300 rounded-xl text-xs font-black text-rose-950 outline-hidden cursor-pointer shadow-xs"
+            >
+              <option value={2}>Bị trừ từ 2 điểm trở lên</option>
+              <option value={3}>Bị trừ từ 3 điểm trở lên (Khuyên dùng)</option>
+              <option value={4}>Bị trừ từ 4 điểm trở lên</option>
+              <option value={5}>Bị trừ từ 5 điểm trở lên</option>
             </select>
           </div>
         </div>

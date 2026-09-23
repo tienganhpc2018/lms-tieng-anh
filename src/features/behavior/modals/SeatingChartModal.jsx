@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Grid, Shuffle, Printer, Check, ArrowRightLeft } from 'lucide-react';
+import { X, Grid, Shuffle, Printer, Check, ArrowRightLeft, Bell } from 'lucide-react';
 import { playClick, playCorrect } from '../../../utils/soundEffects';
+import { loadBehaviorSettings } from '../behaviorStorage';
 
 export default function SeatingChartModal({ isOpen, onClose, classInfo, students, onUpdateStudents }) {
   const [selectedSeat, setSelectedSeat] = useState(null); // { row, col, studentId }
@@ -98,6 +99,10 @@ export default function SeatingChartModal({ isOpen, onClose, classInfo, students
     const isSelLeft = selectedSeat?.row === row && selectedSeat?.col === colLeft;
     const isSelRight = selectedSeat?.row === row && selectedSeat?.col === colRight;
 
+    const warningThreshold = loadBehaviorSettings().warningMinusThreshold || 3;
+    const isWarningLeft = (stLeft?.minus_points || 0) >= warningThreshold;
+    const isWarningRight = (stRight?.minus_points || 0) >= warningThreshold;
+
     return (
       <div key={`${row}-${colLeft}`} className="flex items-center space-x-1.5 p-1 bg-amber-50/50 rounded-2xl border border-amber-200/80">
         <span className="text-[10px] font-black text-amber-700 w-4 pl-1 font-mono">B{row}</span>
@@ -105,21 +110,33 @@ export default function SeatingChartModal({ isOpen, onClose, classInfo, students
         {/* BÀN BÊN TRÁI */}
         <div
           onClick={() => handleSeatClick(row, colLeft)}
-          className={`flex-1 p-1.5 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center min-h-[52px] ${
+          className={`relative flex-1 p-1.5 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center min-h-[52px] ${
             isSelLeft
               ? 'bg-amber-300 border-amber-500 shadow-md ring-2 ring-amber-400'
+              : isWarningLeft
+              ? 'bg-rose-50/80 hover:bg-rose-100 border-rose-300 ring-2 ring-rose-300/60 shadow-2xs'
               : stLeft
               ? 'bg-white hover:bg-amber-50 border-slate-200'
               : 'border-2 border-dashed border-slate-200 text-slate-400 hover:bg-slate-50'
           }`}
+          title={isWarningLeft ? `⚠️ Cảnh báo sớm: Em ${stLeft?.full_name} đã bị trừ ${stLeft?.minus_points} điểm!` : undefined}
         >
+          {/* HUY HIỆU CHUÔNG VÀNG CẢNH BÁO SỚM */}
+          {isWarningLeft && (
+            <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] shadow-sm animate-bounce" title={`Cảnh báo: -${stLeft?.minus_points} điểm`}>
+              🔔
+            </span>
+          )}
+
           {stLeft ? (
             <>
               <img src={stLeft.avatar} alt={stLeft.full_name} className="w-5 h-5 rounded-full mb-0.5" />
               <span className="text-[11px] font-black text-slate-900 truncate max-w-[70px] leading-tight block">
                 {stLeft.full_name.split(' ').slice(-2).join(' ')}
               </span>
-              <span className="text-[9px] font-extrabold text-amber-700">Tổ {stLeft.team_group}</span>
+              <span className={`text-[9px] font-extrabold ${isWarningLeft ? 'text-rose-600' : 'text-amber-700'}`}>
+                {isWarningLeft ? `-${stLeft.minus_points}đ` : `Tổ ${stLeft.team_group}`}
+              </span>
             </>
           ) : (
             <span className="text-[10px] font-bold text-slate-400">Trống</span>
@@ -129,21 +146,33 @@ export default function SeatingChartModal({ isOpen, onClose, classInfo, students
         {/* BÀN BÊN PHẢI */}
         <div
           onClick={() => handleSeatClick(row, colRight)}
-          className={`flex-1 p-1.5 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center min-h-[52px] ${
+          className={`relative flex-1 p-1.5 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center min-h-[52px] ${
             isSelRight
               ? 'bg-amber-300 border-amber-500 shadow-md ring-2 ring-amber-400'
+              : isWarningRight
+              ? 'bg-rose-50/80 hover:bg-rose-100 border-rose-300 ring-2 ring-rose-300/60 shadow-2xs'
               : stRight
               ? 'bg-white hover:bg-amber-50 border-slate-200'
               : 'border-2 border-dashed border-slate-200 text-slate-400 hover:bg-slate-50'
           }`}
+          title={isWarningRight ? `⚠️ Cảnh báo sớm: Em ${stRight?.full_name} đã bị trừ ${stRight?.minus_points} điểm!` : undefined}
         >
+          {/* HUY HIỆU CHUÔNG VÀNG CẢNH BÁO SỚM */}
+          {isWarningRight && (
+            <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] shadow-sm animate-bounce" title={`Cảnh báo: -${stRight?.minus_points} điểm`}>
+              🔔
+            </span>
+          )}
+
           {stRight ? (
             <>
               <img src={stRight.avatar} alt={stRight.full_name} className="w-5 h-5 rounded-full mb-0.5" />
               <span className="text-[11px] font-black text-slate-900 truncate max-w-[70px] leading-tight block">
                 {stRight.full_name.split(' ').slice(-2).join(' ')}
               </span>
-              <span className="text-[9px] font-extrabold text-amber-700">Tổ {stRight.team_group}</span>
+              <span className={`text-[9px] font-extrabold ${isWarningRight ? 'text-rose-600' : 'text-amber-700'}`}>
+                {isWarningRight ? `-${stRight.minus_points}đ` : `Tổ ${stRight.team_group}`}
+              </span>
             </>
           ) : (
             <span className="text-[10px] font-bold text-slate-400">Trống</span>

@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   STUDENTS_PREFIX: 'behavior_students_',
   SETTINGS: 'behavior_app_settings',
   SNAPSHOTS_PREFIX: 'behavior_snapshots_',
+  GRADES_PREFIX: 'behavior_kttx_grades_',
 };
 
 // 1. Tải danh sách lớp học (Mặc định mảng rỗng - KHÔNG MOCK DATA)
@@ -260,11 +261,19 @@ export const loadBehaviorSettings = () => {
       pointsPerStar: 1, // 10 điểm cộng nề nếp = 10 Sao (tỉ lệ 1:1)
       voiceEnabled: true, // Bật giọng đọc AI tuyên dương
       cloudAutoSync: true, // Tự động đồng bộ Supabase Cloud
+      warningMinusThreshold: 3, // Ngưỡng trừ điểm kích hoạt cảnh báo sớm (Early Warning)
     };
     return raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
   } catch (e) {
     console.error('Lỗi nạp cài đặt nề nếp:', e);
-    return { maxKttxBonus: 2, pointsPerKttx: 10, pointsPerStar: 1, voiceEnabled: true, cloudAutoSync: true };
+    return {
+      maxKttxBonus: 2,
+      pointsPerKttx: 10,
+      pointsPerStar: 1,
+      voiceEnabled: true,
+      cloudAutoSync: true,
+      warningMinusThreshold: 3,
+    };
   }
 };
 
@@ -435,4 +444,97 @@ export const deleteSnapshot = (classId, snapshotId) => {
     console.error(`Lỗi xóa snapshot:`, e);
     return [];
   }
+};
+
+// 18. QUẢN LÝ SỔ ĐIỂM KTTX VÀ ÁP DỤNG ĐIỂM THƯỞNG VÀO BÀI KIỂM TRA
+export const loadClassGrades = (classId) => {
+  if (!classId) return {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.GRADES_PREFIX + classId);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    console.error(`Lỗi nạp sổ điểm lớp ${classId}:`, e);
+    return {};
+  }
+};
+
+export const saveClassGrades = (classId, grades) => {
+  if (!classId) return;
+  try {
+    localStorage.setItem(STORAGE_KEYS.GRADES_PREFIX + classId, JSON.stringify(grades));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('classGradesUpdated', { detail: { classId, grades } }));
+    }
+  } catch (e) {
+    console.error(`Lỗi lưu sổ điểm lớp ${classId}:`, e);
+  }
+};
+
+// Áp dụng điểm thưởng KTTX vào điểm bài kiểm tra
+export const applyStudentKttxBonus = (classId, studentId, amountToApply = 1, activityTitle = 'Kiểm tra Thường Xuyên 15P') => {
+  if (!classId || !studentId) return null;
+  const students = loadStudents(classId);
+  const grades = loadClassGrades(classId);
+  let updatedStudent = null;
+
+  const targetStudent = students.find((s) => s.id === studentId);
+  if (!targetStudent) return null;
+
+  const currentBonus = targetStudent.kttx_bonus || 0;
+  if (currentBonus <= 0) {
+    return { error: 'NO_BONUS', message: 'Học sinh chưa có điểm thưởng KTTX khả dụng để cộng!' };
+  }
+
+  const bonusDeducted = Math.min(currentBonus, amountToApply);
+  const currentGradeObj = grades[studentId] || {
+    baseScore: 8.0, // Mặc định nếu chưa có điểm gốc
+    bonusAdded: 0,
+    finalScore: 8.0,
+    appliedHistory: [],
+  };
+
+  const oldFinal = currentGradeObj.finalScore || currentGradeObj.baseScore || 0;
+  const newFinal = Math.min(10.0, Number((oldFinal + bonusDeducted).toFixed(1)));
+
+  const historyItem = {
+    id: `apply_${Date.now()}`,
+    date: new Date().toISOString(),
+    activityTitle,
+    bonusAmount: bonusDeducted,
+    oldScore: oldFinal,
+    newScore: newFinal,
+  };
+
+  // Cập nhật sổ điểm
+  grades[studentId] = {
+    ...currentGradeObj,
+    bonusAdded: (currentGradeObj.bonusAdded || 0) + bonusDeducted,
+    finalScore: newFinal,
+    appliedHistory: [historyItem, ...(currentGradeObj.appliedHistory || [])],
+    lastUpdated: new Date().toISOString(),
+  };
+  saveClassGrades(classId, grades);
+
+  // Trừ điểm thưởng KTTX khả dụng của học sinh sau khi đã dùng
+  const updatedStudents = students.map((s) => {
+    if (s.id === studentId) {
+      updatedStudent = {
+        ...s,
+        kttx_bonus: Math.max(0, (s.kttx_bonus || 0) - bonusDeducted),
+        kttx_applied_total: (s.kttx_applied_total || 0) + bonusDeducted,
+      };
+      return updatedStudent;
+    }
+    return s;
+  });
+
+  saveStudents(classId, updatedStudents);
+
+  return {
+    success: true,
+    updatedStudent,
+    gradeRecord: grades[studentId],
+    bonusApplied: bonusDeducted,
+    newScore: newFinal,
+  };
 };

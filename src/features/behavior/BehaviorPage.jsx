@@ -26,7 +26,9 @@ import {
   Archive,
   Cloud,
   UploadCloud,
-  DownloadCloud
+  DownloadCloud,
+  Bell,
+  GraduationCap
 } from 'lucide-react';
 import {
   loadClasses,
@@ -36,6 +38,7 @@ import {
   loadStudents,
   saveStudents,
   resetAllStudentsPoints,
+  loadBehaviorSettings,
 } from './behaviorStorage';
 import { playClick, playCorrect, playWinner } from '../../utils/soundEffects';
 import { syncBehaviorToCloud, restoreBehaviorFromCloud, getCloudLastSyncTime } from './behaviorCloudSync';
@@ -56,6 +59,7 @@ import CriteriaSettingsModal from './modals/CriteriaSettingsModal';
 import ClassWidePointModal from './modals/ClassWidePointModal';
 import BehaviorReportModal from './modals/BehaviorReportModal';
 import ArchiveSnapshotsModal from './modals/ArchiveSnapshotsModal';
+import GradebookBonusModal from './modals/GradebookBonusModal';
 
 export default function BehaviorPage() {
   // 1. Dữ liệu lớp học & học sinh (KHÔNG MOCK DATA - CLEAN SLATE)
@@ -72,7 +76,7 @@ export default function BehaviorPage() {
   // 2. Giao diện & Bộ lọc
   const [cardSize, setCardSize] = useState('large'); // 'large' (96px) | 'small' (80px)
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all'); // 'all' | 'team1' | 'team2' | 'team3' | 'team4' | 'called' | 'absent'
+  const [filterType, setFilterType] = useState('all'); // 'all' | 'team1' | 'team2' | 'team3' | 'team4' | 'called' | 'absent' | 'warning'
 
   // 3. Quản lý trạng thái các Modals
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
@@ -84,6 +88,7 @@ export default function BehaviorPage() {
   const [isClassWidePointOpen, setIsClassWidePointOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
+  const [isGradebookOpen, setIsGradebookOpen] = useState(false);
   const [isTetModalOpen, setIsTetModalOpen] = useState(false);
   const [isSuspenseModalOpen, setIsSuspenseModalOpen] = useState(false);
   const [suspenseMode, setSuspenseMode] = useState('single');
@@ -274,6 +279,9 @@ export default function BehaviorPage() {
   const absentStudents = students.filter((s) => s.status === 'Absent_Perm' || s.status === 'Absent_NoPerm').length;
   const calledStudents = students.filter((s) => Boolean(s.called_at)).length;
 
+  const warningThreshold = loadBehaviorSettings().warningMinusThreshold || 3;
+  const warningStudentsCount = students.filter((s) => (s.minus_points || 0) >= warningThreshold).length;
+
   const totalPlusPoints = students.reduce((sum, s) => sum + (s.plus_points || 0), 0);
   const totalMinusPoints = students.reduce((sum, s) => sum + (s.minus_points || 0), 0);
 
@@ -292,6 +300,7 @@ export default function BehaviorPage() {
     if (filterType === 'team4') return st.team_group === 4;
     if (filterType === 'called') return Boolean(st.called_at);
     if (filterType === 'absent') return st.status !== 'Present';
+    if (filterType === 'warning') return (st.minus_points || 0) >= warningThreshold;
 
     return true;
   });
@@ -592,6 +601,20 @@ export default function BehaviorPage() {
                 <span>🗂️ Sổ Lưu Trữ & Chốt Sổ</span>
               </button>
 
+              {/* 4f. Sổ Điểm LMS & Cộng Thưởng KTTX */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsGradebookOpen(true);
+                }}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-700 via-purple-700 to-blue-700 text-white font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
+                title="Sổ điểm kiểm tra thường xuyên: Áp dụng trực tiếp điểm thưởng nề nếp vào bài thi 15 phút của học sinh"
+              >
+                <GraduationCap className="w-4 h-4 text-amber-300" />
+                <span>📊 Sổ Điểm LMS (+KTTX)</span>
+              </button>
+
               {/* 5. Tết (Hái hoa dân chủ) 🌸 */}
               <button
                 type="button"
@@ -820,6 +843,26 @@ export default function BehaviorPage() {
                   Vắng ({absentStudents})
                 </button>
 
+                {/* NÚT LỌC CẢNH BÁO SỚM */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    setFilterType('warning');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center space-x-1 ${
+                    filterType === 'warning'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : warningStudentsCount > 0
+                      ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                  title="Lọc các học sinh bị trừ điểm nhiều cần quan tâm, nhắc nhở kịp thời"
+                >
+                  <Bell className="w-3 h-3" />
+                  <span>Cần Quan Tâm ({warningStudentsCount})</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -872,6 +915,7 @@ export default function BehaviorPage() {
                 {filteredStudents.map((st) => {
                   const isAbsent = st.status !== 'Present';
                   const isCalled = Boolean(st.called_at);
+                  const isWarning = (st.minus_points || 0) >= warningThreshold;
 
                   return (
                     <div
@@ -885,11 +929,24 @@ export default function BehaviorPage() {
                       className={`relative bg-white rounded-3xl border-2 p-3 sm:p-4 text-center transition-all duration-300 shadow-sm hover:shadow-lg transform hover:-translate-y-1 flex flex-col items-center justify-between group ${
                         isAbsent
                           ? 'bg-rose-50/80 border-rose-300 opacity-60 cursor-not-allowed'
+                          : isWarning
+                          ? 'border-rose-400 bg-rose-50/30 ring-2 ring-rose-300/80 shadow-md cursor-pointer'
                           : isCalled
                           ? 'border-amber-400 bg-amber-50/30 cursor-pointer'
                           : 'border-slate-200 hover:border-purple-400 cursor-pointer'
                       }`}
                     >
+                      {/* HUY HIỆU CẢNH BÁO SỚM (CHUÔNG VÀNG) */}
+                      {isWarning && (
+                        <span
+                          className="absolute -top-2.5 right-5 z-10 bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md flex items-center space-x-0.5 animate-bounce"
+                          title={`⚠️ Cảnh báo sớm: Em ${st.full_name} đã bị trừ ${st.minus_points} điểm! Cần nhắc nhở, động viên kịp thời.`}
+                        >
+                          <span>🔔</span>
+                          <span>Nhắc nhở</span>
+                        </span>
+                      )}
+
                       {/* HUY HIỆU ĐIỂM CỘNG (+) HÌNH TRÒN ĐỎ Ở GÓC TRÊN BÊN TRÁI (CHUẨN ẢNH 1) */}
                       <span className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-rose-500 text-white font-black text-[10px] flex items-center justify-center shadow-md border-2 border-white">
                         +{st.plus_points || 0}
@@ -1084,6 +1141,16 @@ export default function BehaviorPage() {
         classNameTitle={activeClass?.name ? `Lớp ${activeClass.name}` : ''}
         activeClass={activeClass}
         students={students}
+      />
+
+      {/* 16. Modal Sổ Điểm Điện Tử LMS & Áp Dụng Điểm Thưởng KTTX */}
+      <GradebookBonusModal
+        isOpen={isGradebookOpen}
+        onClose={() => setIsGradebookOpen(false)}
+        classId={selectedClassId}
+        classNameTitle={activeClass?.name ? `Lớp ${activeClass.name}` : ''}
+        students={students}
+        onUpdateStudents={handleUpdateStudents}
       />
     </div>
   );

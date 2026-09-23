@@ -264,6 +264,18 @@ export default function PointModal({
             </div>
           )}
 
+          {/* NHẮC NHỞ CẢNH BÁO SỚM KHI HỌC SINH BỊ TRỪ NHIỀU ĐIỂM */}
+          {currentMinus >= (loadBehaviorSettings().warningMinusThreshold || 3) && (
+            <div className="px-3.5 py-2 bg-rose-50 border border-rose-200 text-rose-900 text-xs font-bold rounded-2xl flex items-center justify-between shadow-2xs">
+              <div className="flex items-center space-x-2">
+                <span className="text-base animate-bounce">🔔</span>
+                <span>
+                  <strong>Cảnh báo sớm:</strong> Em đang có <strong>-{currentMinus} điểm trừ</strong>. Thầy/Cô hãy động viên em tích cực phát biểu để gỡ điểm nhé!
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* THANH 3 TABS: CHO ĐIỂM | QUY ĐỔI THƯỞNG | ĐỔI AVATAR */}
           <div className="flex items-center space-x-1.5 border-b border-slate-100 pb-2 select-none overflow-x-auto">
             <button
