@@ -354,3 +354,82 @@ export const playRaceHorn = () => {
   } catch (e) {}
 };
 
+// 14. Tiếng vịt kêu cạc cạc dồn dập 3 tiếng vui nhộn khi về đích
+export const playTripleQuack = () => {
+  playQuack();
+  setTimeout(playQuack, 150);
+  setTimeout(playQuack, 320);
+};
+
+// 15. Tiếng sóng nước chảy róc rách nhẹ nhàng trong lúc đua
+let waterNoiseNode = null;
+let waterGainNode = null;
+
+export const startRiverWaterSound = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (waterNoiseNode) return;
+
+    const bufferSize = ctx.sampleRate * 2;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const whiteNoise = ctx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+    whiteNoise.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(520, ctx.currentTime);
+    filter.Q.setValueAtTime(1.8, ctx.currentTime);
+
+    const lfo = ctx.createOscillator();
+    lfo.frequency.setValueAtTime(0.8, ctx.currentTime);
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.setValueAtTime(110, ctx.currentTime);
+    lfo.connect(lfoGain);
+    lfoGain.connect(filter.frequency);
+    lfo.start();
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.01, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 0.4);
+
+    whiteNoise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    whiteNoise.start();
+    waterNoiseNode = whiteNoise;
+    waterGainNode = gain;
+  } catch (e) {}
+};
+
+export const stopRiverWaterSound = () => {
+  try {
+    if (waterGainNode && audioCtx) {
+      waterGainNode.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      setTimeout(() => {
+        if (waterNoiseNode) {
+          try {
+            waterNoiseNode.stop();
+            waterNoiseNode.disconnect();
+          } catch (err) {}
+          waterNoiseNode = null;
+          waterGainNode = null;
+        }
+      }, 350);
+    } else if (waterNoiseNode) {
+      try {
+        waterNoiseNode.stop();
+      } catch (err) {}
+      waterNoiseNode = null;
+      waterGainNode = null;
+    }
+  } catch (e) {}
+};
+
