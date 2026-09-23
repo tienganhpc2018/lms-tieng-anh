@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Play, Pause, RotateCcw, Trophy, Volume2, VolumeX, Settings, Shuffle, UserMinus, RefreshCw } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, Trophy, Volume2, VolumeX, Settings, Shuffle, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
   playClick, 
@@ -37,8 +37,18 @@ const RACER_ANIMALS = [
   { id: 'shrimp', name: 'Tôm Hùm', icon: '🦐', label: 'Tôm' },
 ];
 
+// Thuật toán xáo trộn Fisher-Yates chuẩn xác 100% ngẫu nhiên toán học
+function fisherYatesShuffle(array) {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
-  const [duration, setDuration] = useState(15); // Mặc định 15s để đủ thời gian bơi chậm và 5s bứt phá
+  const [duration, setDuration] = useState(15); // Mặc định 15s (9s đầu bơi thong thả, 6s cuối thần tốc)
   const [timeLeft, setTimeLeft] = useState(15);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -47,11 +57,13 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
   const [showRankModal, setShowRankModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [raceFinished, setRaceFinished] = useState(false); // Trạng thái về đích
+  const [winnerStudent, setWinnerStudent] = useState(null); // Học sinh thắng cuộc được chọn trả bài
+  const [winnerNumber, setWinnerNumber] = useState(1);
   const [selectedAnimal, setSelectedAnimal] = useState('duck'); // Loài vật đua (mặc định Vịt Vàng)
-  const [removeWinnerNextRace, setRemoveWinnerNextRace] = useState(true); // Loại bỏ bạn vừa được gọi ở lượt kế tiếp
+  const [removeWinnerNextRace, setRemoveWinnerNextRace] = useState(true); // Không gọi lại bạn vừa trả bài
   const [excludedIds, setExcludedIds] = useState([]); // Danh sách học sinh đã được gọi
   const [turboActive, setTurboActive] = useState(true); // Bật tính năng làn tăng tốc Turbo Lane
-  const [showFinishLine, setShowFinishLine] = useState(false); // Vạch đích chỉ hiện khi vịt bơi gần về đích
+  const [showFinishLine, setShowFinishLine] = useState(false); // Vạch đích chỉ hiện trong 6 giây thần tốc
 
   // Lọc học sinh có mặt và chưa bị loại trừ
   const presentStudents = students.filter((s) => s.status !== 'Absent_Perm' && s.status !== 'Absent_NoPerm');
@@ -63,7 +75,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
   const startTimeRef = useRef(null);
   const pausedElapsedRef = useRef(0);
   const duckConfigRef = useRef({});
-  const duckDomRefs = useRef({}); // Direct DOM refs để tối ưu GPU 60fps mượt như nhung không giật
+  const duckDomRefs = useRef({}); // Direct DOM refs để tối ưu GPU 60fps mượt như nhung
 
   // Tính toán scale kích thước con vật để vừa vặn trong 1 màn hình
   const studentCount = racerStudents.length;
@@ -84,14 +96,15 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     numberFontSize = 'text-[11px]';
   }
 
-  // Khởi tạo vị trí đàn thú đua tại vạch xuất phát (CÙNG 1 VẠCH XUẤT PHÁT THẲNG HÀNG)
-  const initDuckPositions = (shuffleOrder = false) => {
+  // Khởi tạo vị trí đàn thú đua tại vạch xuất phát
+  const initDuckPositions = () => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     stopRiverWaterSound();
     setIsRunning(false);
     setIsPaused(false);
     setRaceFinished(false);
     setShowFinishLine(false); // Mặc định ẩn vạch đích
+    setWinnerStudent(null);
     setTimeLeft(duration);
     pausedElapsedRef.current = 0;
     setRankings([]);
@@ -100,49 +113,13 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     const count = racerStudents.length;
     if (count === 0) return;
 
-    let orderedStudents = [...racerStudents];
-    if (shuffleOrder) {
-      orderedStudents.sort(() => Math.random() - 0.5);
-    }
-
-    // Bốc thăm thứ hạng đích tiềm năng
-    const targetRanks = orderedStudents.map((_, i) => i + 1).sort(() => Math.random() - 0.5);
-
-    const finishLineX = 84;
-    const configs = {};
-
     // CÙNG 1 VẠCH XUẤT PHÁT: tất cả các con vật đều có cùng hoành độ startX = 4%
     const START_X = 4.0;
 
-    orderedStudents.forEach((st, idx) => {
+    racerStudents.forEach((st, idx) => {
       // Phân bổ trục Y dọc theo dòng sông đều đặn (8% đến 90%)
       const yStep = count > 1 ? (82 / (count - 1)) : 0;
       const baseY = 8 + idx * yStep;
-
-      const targetRank = targetRanks[idx];
-      const hatIndex = (idx * 3 + 5) % DUCK_HATS.length;
-
-      // Tính vị trí đích
-      let finalTargetX = finishLineX + 4.8; // Quán quân: bơi vượt qua vạch đích
-      if (targetRank === 2) {
-        finalTargetX = finishLineX - 3.5;
-      } else if (targetRank === 3) {
-        finalTargetX = finishLineX - 6.5;
-      } else if (targetRank >= 4) {
-        const normalizedRank = (targetRank - 4) / Math.max(1, count - 4);
-        const stagger = ((idx * 7) % 6) - 3;
-        finalTargetX = Math.max(16, 68 - normalizedRank * 48 + stagger);
-      }
-
-      configs[st.id] = {
-        targetRank,
-        finalTargetX,
-        hatIndex,
-        wobbleFreq: 1.8 + Math.random() * 1.4,
-        wobbleAmp: 0.8 + Math.random() * 0.8,
-        startY: baseY,
-        startX: START_X,
-      };
 
       // Đặt vị trí ban đầu trực tiếp lên DOM
       const domEl = duckDomRefs.current[st.id];
@@ -152,16 +129,13 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         domEl.style.transform = `translate(-50%, -50%) scale(${animalScale})`;
       }
     });
-
-    duckConfigRef.current = configs;
   };
 
   // Re-init khi mở modal hoặc thay đổi thời gian/số lượng học sinh
   useEffect(() => {
     if (isOpen) {
-      // Cho DOM mount xong rồi khởi tạo vị trí
       const timer = setTimeout(() => {
-        initDuckPositions(false);
+        initDuckPositions();
       }, 30);
       return () => clearTimeout(timer);
     } else {
@@ -177,7 +151,8 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
 
   // Bắt đầu / Tiếp tục cuộc đua
   const handleStartOrContinue = () => {
-    if (racerStudents.length === 0) {
+    const count = racerStudents.length;
+    if (count === 0) {
       alert('Chưa có học sinh nào trong danh sách tham gia!');
       return;
     }
@@ -194,6 +169,68 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
       return;
     }
 
+    // ===================================================================
+    // THIẾT LẬP KỊCH BẢN BẤT NGỜ CỰC ĐẠI VỚI 6 GIÂY THẦN TỐC:
+    // 1. Xáo trộn ngẫu nhiên toàn bộ học sinh bằng Fisher-Yates
+    // 2. Chọn ra Quán Quân thật sự (Real Winner)
+    // 3. Chọn ra một "Kẻ Dẫn Đầu Giả" (Fake Leader) để tạo bất ngờ
+    // ===================================================================
+    const shuffledStudents = fisherYatesShuffle(racerStudents);
+    const realWinner = shuffledStudents[0];
+    const runnerUp = shuffledStudents[1] || realWinner;
+    const thirdPlace = shuffledStudents[2] || runnerUp;
+
+    // Chọn một bạn ở nhóm giữa/cuối làm Kẻ Dẫn Đầu Giả ở giai đoạn đầu
+    const fakeLeaderIndex = Math.min(count - 1, Math.floor(Math.random() * Math.max(1, count - 3)) + 2);
+    const fakeLeader = shuffledStudents[fakeLeaderIndex] || runnerUp;
+
+    const finishLineX = 84;
+    const configs = {};
+
+    racerStudents.forEach((st, idx) => {
+      const yStep = count > 1 ? (82 / (count - 1)) : 0;
+      const baseY = 8 + idx * yStep;
+      const hatIndex = (idx * 3 + 5) % DUCK_HATS.length;
+
+      // Xác định thứ hạng đích của học sinh này trong bảng shuffled
+      const rankIndex = shuffledStudents.findIndex((s) => s.id === st.id);
+      const isWinner = rankIndex === 0;
+      const isRunnerUp = rankIndex === 1;
+      const isThird = rankIndex === 2;
+      const isFakeLeader = st.id === fakeLeader.id;
+
+      // Tính vị trí đích thực tế trên màn hình (X target)
+      let finalTargetX = 0;
+      if (isWinner) {
+        finalTargetX = finishLineX + 4.8; // Quán quân: bơi qua vạch đích tới 88.8%
+      } else if (isRunnerUp) {
+        finalTargetX = finishLineX - 2.5; // Á quân: cán ở 81.5% (ngay sát vạch)
+      } else if (isThird) {
+        finalTargetX = finishLineX - 5.5; // Quý quân: cán ở 78.5%
+      } else {
+        // Các bạn còn lại rải đều từ 22% tới 74% theo đúng thứ tự rank ngẫu nhiên
+        const normRank = (rankIndex - 3) / Math.max(1, count - 4);
+        const stagger = ((idx * 7) % 6) - 3;
+        finalTargetX = Math.max(20, Math.min(74, 72 - normRank * 50 + stagger));
+      }
+
+      configs[st.id] = {
+        isWinner,
+        isRunnerUp,
+        isThird,
+        isFakeLeader,
+        rankIndex,
+        finalTargetX,
+        hatIndex,
+        wobbleFreq: 1.8 + Math.random() * 1.4,
+        wobbleAmp: 0.8 + Math.random() * 0.8,
+        startY: baseY,
+        startX: 4.0,
+      };
+    });
+
+    duckConfigRef.current = configs;
+
     if (soundEnabled) {
       playRaceHorn();
       setTimeout(playQuack, 180);
@@ -205,6 +242,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     setRankings([]);
     setShowRankModal(false);
     setRaceFinished(false);
+    setWinnerStudent(null);
     setShowFinishLine(false);
     setTimeLeft(duration);
     pausedElapsedRef.current = 0;
@@ -226,7 +264,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
   const handleClear = () => {
     stopRiverWaterSound();
     if (soundEnabled) playClick();
-    initDuckPositions(false);
+    initDuckPositions();
   };
 
   // Xáo trộn vị trí vịt (Shuffle)
@@ -236,7 +274,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
       playClick();
       playQuack();
     }
-    initDuckPositions(true);
+    initDuckPositions();
   };
 
   // Khôi phục tất cả học sinh đã được gọi
@@ -244,17 +282,19 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     if (soundEnabled) playClick();
     setExcludedIds([]);
     setTimeout(() => {
-      initDuckPositions(false);
+      initDuckPositions();
     }, 50);
   };
 
   // ===================================================================
   // VÒNG LẶP CHUYỂN ĐỘNG SIÊU MƯỢT (60FPS DIRECT GPU ACCELERATION)
-  // Bơi tự nhiên: Chậm rãi lướt sóng ban đầu -> Tăng tốc mượt mà -> 5s cuối bứt phá
+  // BẢO ĐẢM KỊCH TÍNH: 6 GIÂY THẦN TỐC LỘI NGƯỢC DÒNG
   // ===================================================================
   const runAnimationLoop = () => {
     const durationMs = duration * 1000;
     const finishLineX = 84;
+    const sprintDurationMs = 6000; // ĐÚNG 6 GIÂY THẦN TỐC
+    const sprintStartTimeMs = Math.max(0, durationMs - sprintDurationMs);
     let lastSecond = Math.ceil((durationMs - pausedElapsedRef.current) / 1000);
 
     const step = (now) => {
@@ -268,11 +308,12 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         lastSecond = secondsRemaining;
         setTimeLeft(secondsRemaining);
         if (soundEnabled && secondsRemaining > 0) playTick();
-        if (secondsRemaining <= 5 && soundEnabled && secondsRemaining > 0) playQuack();
+        if (secondsRemaining <= 6 && soundEnabled && secondsRemaining > 0) playQuack();
       }
 
-      // VẠCH ĐÍCH CHỈ XUẤT HIỆN KHI VỊT CHẠY GẦN VỀ ĐÍCH (trong 5 giây cuối hoặc khi progress >= 0.65)
-      if (progress >= 0.65 || secondsRemaining <= 5) {
+      // VẠCH ĐÍCH CHỈ XUẤT HIỆN TRONG 6 GIÂY THẦN TỐC
+      const isSprintPhase = elapsed >= sprintStartTimeMs || secondsRemaining <= 6;
+      if (isSprintPhase) {
         setShowFinishLine(true);
       }
 
@@ -282,14 +323,15 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         const cfg = duckConfigRef.current[st.id] || {
           startX: 4,
           startY: 20,
-          targetRank: idx + 1,
+          isWinner: idx === 0,
+          isFakeLeader: idx === 1,
+          rankIndex: idx,
           finalTargetX: 50,
           hatIndex: 0,
           wobbleFreq: 2.0,
           wobbleAmp: 1.0,
         };
 
-        const isWinner = cfg.targetRank === 1;
         let currentX = cfg.startX;
         let isTurbo = false;
 
@@ -299,39 +341,78 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         }
 
         // ===================================================================
-        // TOÁN HỌC CHUYỂN ĐỘNG BƠI TỰ NHIÊN:
-        // - Hàm tăng tốc mượt liên tục (C2 continuous), không bị giật hay nhảy vị trí
-        // - Chậm rãi ở 60% thời gian đầu (bơi lướt sóng nhẹ nhàng)
-        // - Nhanh dần và bứt tốc ở 40% thời gian cuối (5 giây cuối)
+        // TOÁN HỌC CHUYỂN ĐỘNG 2 GIAI ĐOẠN ĐỘC ĐÁO:
         // ===================================================================
-        const smoothProgress = Math.pow(progress, 1.6); // gia tốc mượt mà tăng dần
+        if (!isSprintPhase) {
+          // ---------------------------------------------------------------
+          // GIAI ĐOẠN 1: BƠI CHẬM RÃI, THONG THẢ (Trước 6 giây cuối)
+          // - Kẻ Dẫn Đầu Giả (Fake Leader) bơi hăng hái dẫn đầu (x ~ 36%)
+          // - Con Thắng Thật Sự (Real Winner) thong thả bơi ở giữa (x ~ 22% - 26%)!
+          // ---------------------------------------------------------------
+          const phase1Ratio = sprintStartTimeMs > 0 ? Math.min(1, elapsed / sprintStartTimeMs) : 0;
+          const slowCurve = Math.pow(phase1Ratio, 1.1);
 
-        // Nhịp bơi lướt sóng tự nhiên (swimming stroke wave)
-        const swimStroke = Math.sin((elapsed / 320) * cfg.wobbleFreq + idx * 1.5) * (1.2 * (1 - progress * 0.4));
-        
-        // Dao động hoán đổi vị trí thứ hạng tự nhiên
-        const raceDrift = Math.sin((elapsed / 600) + idx * 1.8) * 3.5 * (1 - progress);
-        const turboBoost = isTurbo ? 3.5 * Math.sin((elapsed / 150)) + 3.0 : 0;
-
-        const distanceToTarget = cfg.finalTargetX - cfg.startX;
-        const rawX = cfg.startX + distanceToTarget * smoothProgress + swimStroke + raceDrift + turboBoost;
-
-        if (isWinner) {
-          // Quán quân: chỉ vượt qua vạch đích khi đồng hồ chạm 00:00:00 (progress >= 0.985)
-          if (progress < 0.985) {
-            currentX = Math.min(finishLineX - 0.5, Math.max(cfg.startX, rawX));
+          let baseTargetP1 = 22; // đoàn đua chung ở khoảng 22%
+          if (cfg.isFakeLeader) {
+            baseTargetP1 = 36; // Fake Leader dẫn đầu tạo ảo tưởng
+          } else if (cfg.isWinner) {
+            baseTargetP1 = 24; // Quán quân giấu mình ở nhóm giữa
           } else {
-            currentX = cfg.finalTargetX; // vọt qua vạch đích về số 1!
+            // Các con khác dao động từ 16% tới 30%
+            baseTargetP1 = 18 + ((idx * 5) % 13);
           }
+
+          const swimStroke = Math.sin((elapsed / 320) * cfg.wobbleFreq + idx * 1.5) * 1.5;
+          const drift = Math.sin((elapsed / 650) + idx * 1.8) * 2.5;
+          const turboBoost = isTurbo ? 3.0 : 0;
+
+          currentX = cfg.startX + (baseTargetP1 - cfg.startX) * slowCurve + swimStroke + drift + turboBoost;
         } else {
-          // Tất cả các con còn lại: TUYỆT ĐỐI không bao giờ vượt qua vạch đích
-          currentX = Math.min(finishLineX - 3.5, Math.max(cfg.startX, rawX));
+          // ---------------------------------------------------------------
+          // GIAI ĐOẠN 2: 6 GIÂY THẦN TỐC - LỘI NGƯỢC DÒNG NGOẠN MỤC!
+          // - Kẻ Dẫn Đầu Giả đuối sức, bơi chậm lại (chỉ tới x ~ 68%)
+          // - Con Thắng Thật Sự bứt tốc kinh hoàng vươn lên dẫn đầu và qua đích!
+          // ---------------------------------------------------------------
+          const sprintElapsed = elapsed - sprintStartTimeMs;
+          const sprintRatio = Math.min(1, sprintElapsed / sprintDurationMs); // 0.0 -> 1.0
+
+          // Tọa độ lúc bắt đầu vào 6s cuối
+          let startSprintX = 24;
+          if (cfg.isFakeLeader) startSprintX = 36;
+          else if (cfg.isWinner) startSprintX = 24;
+          else startSprintX = 18 + ((idx * 5) % 13);
+
+          if (cfg.isWinner) {
+            // Quán quân: gia tốc hàm số mũ cực mạnh trong 6 giây thần tốc
+            const burstCurve = Math.pow(sprintRatio, 1.6);
+            const surgeX = startSprintX + (cfg.finalTargetX - startSprintX) * burstCurve;
+            const wobble = Math.sin((elapsed / 180) * cfg.wobbleFreq) * (1.0 * (1 - sprintRatio));
+
+            // Chỉ vượt qua vạch đích khi đồng hồ chạm 00:00:00 (sprintRatio >= 0.985)
+            if (sprintRatio < 0.985) {
+              currentX = Math.min(finishLineX - 0.5, surgeX + wobble);
+            } else {
+              currentX = cfg.finalTargetX; // vọt qua vạch đích 88.8%!
+            }
+          } else if (cfg.isFakeLeader) {
+            // Kẻ dẫn đầu giả: đuối sức, gia tốc giảm dần (chỉ đạt tối đa 68%)
+            const tiredCurve = Math.sin(sprintRatio * Math.PI * 0.5);
+            const targetTiredX = Math.min(68, cfg.finalTargetX);
+            currentX = startSprintX + (targetTiredX - startSprintX) * tiredCurve;
+            currentX = Math.min(finishLineX - 4.0, currentX);
+          } else {
+            // Tất cả các con còn lại: bứt phá theo đúng thứ tự đích được phân bổ
+            const normalCurve = Math.pow(sprintRatio, 1.3);
+            const normalX = startSprintX + (cfg.finalTargetX - startSprintX) * normalCurve;
+            const wobble = Math.sin((elapsed / 240) * cfg.wobbleFreq + idx) * (1.2 * (1 - sprintRatio));
+            currentX = Math.min(finishLineX - 3.5, normalX + wobble);
+          }
         }
 
         // Tọa độ Y: dao động nhấp nhô êm dịu theo làn sóng nước
         const waveY = cfg.startY + Math.sin((elapsed / 220) * cfg.wobbleFreq + idx) * cfg.wobbleAmp;
 
-        // CẬP NHẬT TRỰC TIẾP LÊN DOM (KHÔNG THÔNG QUA REACT STATE ĐỂ ĐẢM BẢO 60FPS KHÔNG GIẬT)
+        // CẬP NHẬT TRỰC TIẾP LÊN DOM (GPU ACCELERATION 60FPS)
         const domEl = duckDomRefs.current[st.id];
         if (domEl) {
           domEl.style.left = `${currentX}%`;
@@ -339,61 +420,55 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
           domEl.style.transform = `translate(-50%, -50%) scale(${animalScale})`;
         }
 
-        standings.push({ student: st, x: currentX, targetRank: cfg.targetRank });
+        // Lưu trữ kết quả dựa trên TỌA ĐỘ X THỰC TẾ TRÊN MÀN HÌNH
+        standings.push({ student: st, x: currentX, isWinner: cfg.isWinner });
       });
 
       if (progress < 1) {
         animFrameRef.current = requestAnimationFrame(step);
       } else {
         // ===================================================================
-        // ĐÃ VỀ ĐÍCH: HẾT GIỜ 00:00:00 -> HIỂN THỊ HỌC SINH ĐƯỢC CHỌN TRẢ BÀI
-        // (TUYỆT ĐỐI KHÔNG TẶNG ĐIỂM / KHÔNG CỘNG SAO)
+        // ĐÃ VỀ ĐÍCH (00:00:00):
+        // 1. DỪNG ĐUA
+        // 2. KHÔNG HIỆN RA GIỮA MÀN HÌNH TÊN VỊT VỀ NHẤT (GIỮ NGUYÊN ĐÀN VỊT TRÊN SÔNG)
+        // 3. THỨ HẠNG TRÍCH XUẤT 100% TỪ TỌA ĐỘ X THỰC TẾ TRÊN MÀN HÌNH
         // ===================================================================
         stopRiverWaterSound();
         setIsRunning(false);
         setIsPaused(false);
-        setRaceFinished(true); // Bật màn hình kết quả
-        setShowRankModal(false);
+        setRaceFinished(true); // Đánh dấu hoàn thành
 
-        // Hiệu ứng tiếng vịt cạc cạc dồn dập 3 tiếng và kèn chúc mừng
+        // Sắp xếp Bảng Xếp Hạng THEO TỌA ĐỘ X THỰC TẾ (con nào bơi xa nhất đứng Hạng 1)
+        standings.sort((a, b) => b.x - a.x);
+        const fullRankings = standings.map((item) => item.student);
+        setRankings(fullRankings);
+
+        const realWinningStudent = fullRankings[0];
+        const studentIndex = racerStudents.findIndex((s) => s.id === realWinningStudent?.id) + 1;
+        setWinnerStudent(realWinningStudent);
+        setWinnerNumber(studentIndex);
+
+        // Âm thanh ăn mừng & pháo hoa giấy bay rợp trời
         if (soundEnabled) {
           playTripleQuack();
           setTimeout(playWinner, 300);
         }
 
-        // Pháo hoa giấy bay rợp trời
         confetti({
           particleCount: 220,
           spread: 120,
           origin: { y: 0.55 },
         });
 
-        // Sắp xếp danh sách thứ hạng đầy đủ
-        standings.sort((a, b) => a.targetRank - b.targetRank);
-        const fullRankings = standings.map((item) => item.student);
-        setRankings(fullRankings);
-
-        // Lưu vào danh sách đã gọi nếu bật tính năng loại trừ cho lượt sau
-        if (removeWinnerNextRace && fullRankings[0]) {
-          setExcludedIds((prev) => (prev.includes(fullRankings[0].id) ? prev : [...prev, fullRankings[0].id]));
+        // Tự động loại trừ bạn đã trả bài ở lần đua sau nếu bật tùy chọn
+        if (removeWinnerNextRace && realWinningStudent) {
+          setExcludedIds((prev) => (prev.includes(realWinningStudent.id) ? prev : [...prev, realWinningStudent.id]));
         }
       }
     };
 
     animFrameRef.current = requestAnimationFrame(step);
   };
-
-  // Xác định Quán Quân khi về đích
-  const winnerStudent = rankings[0] || racerStudents[0];
-  const winnerStudentNumber = winnerStudent
-    ? racerStudents.findIndex((s) => s.id === winnerStudent.id) + 1
-    : 1;
-  const winnerHat = winnerStudent
-    ? DUCK_HATS[(duckConfigRef.current[winnerStudent.id]?.hatIndex || 0) % DUCK_HATS.length]
-    : DUCK_HATS[0];
-
-  // Danh sách hiển thị Bảng Xếp Hạng: luôn đảm bảo có đủ 100% học sinh
-  const displayRankings = rankings.length > 0 ? rankings : racerStudents;
 
   // ===================================================================
   // HÀM VẼ LINH VẬT ĐUA (Vịt Vàng, Rùa, Cá, Cua, Tôm) ĐẦY ĐỦ BIỂN SỐ ÁO
@@ -594,7 +669,9 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
           {/* CHÍNH GIỮA: ĐỒNG HỒ ĐẾM NGƯỢC SIÊU TO KHỔNG LỒ */}
           <div className="relative z-10 flex items-center justify-center">
             <div className="bg-[#e2e8f8] border-[3.5px] border-slate-900 rounded-2xl px-6 sm:px-10 py-1 shadow-2xl flex items-center justify-center">
-              <span className="font-mono font-black text-3xl sm:text-4xl tracking-widest text-slate-950 drop-shadow-xs">
+              <span className={`font-mono font-black text-3xl sm:text-4xl tracking-widest drop-shadow-xs transition-colors ${
+                timeLeft <= 6 && isRunning ? 'text-rose-600 animate-pulse' : 'text-slate-950'
+              }`}>
                 00:00:{String(timeLeft).padStart(2, '0')}
               </span>
             </div>
@@ -652,10 +729,10 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
               <span className="text-[11px] text-slate-300 font-bold block">Thời gian đua:</span>
               <div className="grid grid-cols-2 gap-1.5">
                 {[
-                  { s: 10, label: '10 Giây (Nhanh)' },
-                  { s: 15, label: '15 Giây (Chuẩn)' },
-                  { s: 20, label: '20 Giây (Kịch tính)' },
-                  { s: 30, label: '30 Giây (Hồi hộp)' },
+                  { s: 10, label: '10s (4s chậm + 6s bứt tốc)' },
+                  { s: 15, label: '15s (Chuẩn kịch tính)' },
+                  { s: 20, label: '20s (Hồi hộp)' },
+                  { s: 30, label: '30s (Gay cấn)' },
                 ].map((item) => (
                   <button
                     key={item.s}
@@ -663,7 +740,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
                     onClick={() => {
                       setDuration(item.s);
                       setTimeLeft(item.s);
-                      initDuckPositions(false);
+                      initDuckPositions();
                     }}
                     className={`px-2 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
                       duration === item.s ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
@@ -736,6 +813,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
 
         {/* =================================================================== */}
         {/* 2. DÒNG SÔNG NƯỚC THẬT SỐNG ĐỘNG (CHUẨN 100% ONLINE-STOPWATCH) */}
+        {/* GIỮ NGUYÊN TOÀN BỘ ĐÀN VỊT TRÊN SÔNG - KHÔNG CHÈN MÀN HÌNH ĐÈ Ở GIỮA */}
         {/* =================================================================== */}
         <div className="flex-1 relative overflow-hidden bg-[#35738e] select-none">
           
@@ -750,14 +828,13 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
               50% { opacity: 0.85; transform: scaleY(1.06); }
             }
             @keyframes finishLineSlideIn {
-              0% { opacity: 0; transform: translateX(40px); }
+              0% { opacity: 0; transform: translateX(60px); }
               100% { opacity: 1; transform: translateX(0); }
             }
           `}</style>
 
           {/* CÁC ĐƯỜNG SÓNG NƯỚC UỐN LƯỢN THẬT CHUẨN ẢNH GỐC */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Lớp sóng nước ngang chuẩn ảnh 1: dạng con thoi phình to thắt nhỏ uốn lượn liên tục */}
             <div 
               className="absolute inset-y-0 w-[200%] flex opacity-85"
               style={{
@@ -767,7 +844,6 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
               }}
             />
 
-            {/* Lớp sóng phụ ngược pha tạo sự dập dềnh đa chiều của mặt nước */}
             <div 
               className="absolute inset-y-0 w-[200%] flex opacity-50"
               style={{
@@ -779,206 +855,153 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
           </div>
 
           {/* LÀN TĂNG TỐC TURBO LANE ⚡ (HIỆU ỨNG TRÒ CHƠI) */}
-          {turboActive && !raceFinished && (
+          {turboActive && (
             <div 
               className="absolute left-[28%] right-[22%] top-[34%] h-24 pointer-events-none rounded-3xl border-y-2 border-amber-300/40 bg-gradient-to-r from-amber-400/10 via-cyan-400/25 to-amber-400/10 z-0 flex items-center justify-around overflow-hidden shadow-lg"
               style={{ animation: 'turboPulse 2s ease-in-out infinite' }}
             >
               <div className="flex items-center space-x-6 text-amber-200/60 font-black text-xs uppercase tracking-widest animate-pulse whitespace-nowrap">
                 <span>⚡ TURBO LANE</span>
-                <span>⚡ SPEED BOOST</span>
+                <span>⚡ 6S THẦN TỐC</span>
                 <span>⚡ TURBO LANE</span>
               </div>
             </div>
           )}
 
-          {/* =================================================================== */}
-          {/* TRƯỜNG HỢP 1: KHI ĐÃ CÁN ĐÍCH (00:00:00) -> HỌC SINH ĐƯỢC CHỌN TRẢ BÀI */}
-          {/* =================================================================== */}
-          {raceFinished ? (
-            <div className="absolute inset-0">
-              {/* VẠCH ĐÍCH CARÔ BÊN TRÁI CHUẨN PHONG CÁCH FINISH */}
-              <div
-                className="absolute left-6 top-0 bottom-0 w-12 shadow-2xl transform -skew-x-[22deg] origin-top border-x-4 border-slate-950 pointer-events-none z-10"
-                style={{
-                  backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 12px, #fff 12px, #fff 24px)',
-                }}
-              />
-
-              {/* CHÚ LINH VẬT CHIẾN THẮNG DUY NHẤT BƠI TRÊN SÔNG */}
-              <div
-                className="absolute transition-all duration-300 z-20 cursor-pointer group"
-                style={{
-                  left: '46%',
-                  top: '56%',
-                }}
-                title={`Bạn được chọn trả bài: #${winnerStudentNumber} - ${winnerStudent?.full_name}`}
-              >
-                {/* Vệt nước rẽ sóng bọt trắng dập dềnh */}
-                <div className="absolute -bottom-2 -left-6 w-32 h-8 bg-cyan-200/50 rounded-full blur-xs animate-pulse" />
-                
-                {/* Hình linh vật vàng to đẹp chuẩn ảnh 2 */}
-                <div className="relative w-20 h-18 sm:w-24 sm:h-22 filter drop-shadow-xl transform hover:scale-110 transition animate-bounce">
-                  {/* Vương miện vàng kiêu hãnh trên đầu quán quân */}
-                  <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-2xl filter drop-shadow-md">
-                    👑
-                  </div>
-
-                  {renderAnimalSVG(selectedAnimal)}
-
-                  {/* Số thứ tự học sinh in to rõ trên thân linh vật */}
-                  <div className="absolute top-[48%] left-[22%] w-7 h-6 flex items-center justify-center font-black text-sm text-black font-sans pointer-events-none">
-                    {winnerStudentNumber}
-                  </div>
-
-                  {/* Mũ phụ kiện ngộ nghĩnh */}
-                  <div className="absolute -top-2 right-1 text-xl transform rotate-6 pointer-events-none">
-                    {winnerHat.icon}
-                  </div>
-                </div>
-
-                {/* TÊN ĐẦY ĐỦ CỦA BẠN ĐƯỢC CHỌN LÊN BẢNG TRẢ BÀI */}
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/95 text-amber-300 border-2 border-amber-400 font-black text-xs sm:text-sm px-4 py-1 rounded-full shadow-2xl z-30 pointer-events-none">
-                  🎯 #{winnerStudentNumber}. {winnerStudent?.full_name}
-                </div>
+          {/* VẠCH ĐÍCH THỂ THAO CARÔ: CHỈ HIỆN TRONG 6 GIÂY THẦN TỐC (HOẶC KHI ĐÃ VỀ ĐÍCH) */}
+          {(showFinishLine || raceFinished) && (
+            <div
+              className="absolute top-0 bottom-0 w-12 z-20 shadow-2xl border-x-4 border-slate-950 pointer-events-none"
+              style={{
+                left: '84%',
+                backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 12px, #fff 12px, #fff 24px)',
+                animation: showFinishLine && !raceFinished ? 'finishLineSlideIn 0.6s ease-out forwards' : 'none',
+              }}
+            >
+              <div className="absolute top-2 -left-3 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
+                <span>🏁</span>
+                <span>ĐÍCH</span>
               </div>
+              <div className="absolute bottom-4 -left-4 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
+                <span>🏁</span>
+                <span>FINISH</span>
+              </div>
+            </div>
+          )}
 
-              {/* HỘP ĐIỀU KHIỂN & THÔNG BÁO GỌI TRẢ BÀI Ở GÓC TRÊN TRÁI */}
-              <div className="absolute top-4 left-4 z-30 bg-white/95 border-[3.5px] border-slate-900 rounded-2xl p-3.5 shadow-2xl flex flex-col space-y-2.5 animate-fade-in max-w-xs">
-                {/* Tùy chọn không gọi lại bạn vừa trả bài */}
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 pb-1.5 border-b border-slate-200">
-                  <span>Không gọi lại bạn này ở lượt sau?</span>
-                  <input
-                    type="checkbox"
-                    checked={removeWinnerNextRace}
-                    onChange={(e) => setRemoveWinnerNextRace(e.target.checked)}
-                    className="rounded text-emerald-600 focus:ring-0 w-4 h-4 cursor-pointer"
-                  />
-                </div>
+          {/* TOÀN BỘ ĐÀN CON VẬT TRÊN DÒNG SÔNG (KHÔNG BỊ ẨN KHI VỀ ĐÍCH) */}
+          <div className="absolute inset-0">
+            {racerStudents.map((st, idx) => {
+              const studentNumber = idx + 1;
+              const hat = DUCK_HATS[(idx * 3 + 5) % DUCK_HATS.length];
+              const yStep = studentCount > 1 ? (82 / (studentCount - 1)) : 0;
+              const defaultY = 8 + idx * yStep;
+              const isCurrentWinner = raceFinished && winnerStudent?.id === st.id;
 
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="px-5 py-2.5 bg-[#52c41a] hover:bg-[#43aa13] text-white font-black text-base rounded-xl border-2 border-slate-900 shadow-md transition cursor-pointer flex items-center justify-center space-x-2 active:scale-95"
+              return (
+                <div
+                  key={st.id}
+                  ref={(el) => {
+                    duckDomRefs.current[st.id] = el;
+                  }}
+                  className="absolute cursor-pointer group"
+                  style={{
+                    left: '4%',
+                    top: `${defaultY}%`,
+                    transform: `translate(-50%, -50%) scale(${animalScale})`,
+                    zIndex: isCurrentWinner ? 50 : Math.floor(defaultY * 10),
+                    transition: isRunning ? 'none' : 'all 0.3s ease',
+                  }}
+                  title={`#${studentNumber} - ${st.full_name}`}
                 >
-                  <RotateCcw className="w-5 h-5 stroke-[2.5]" />
-                  <span>Đua Lượt Mới</span>
-                </button>
+                  {/* BỌT NƯỚC RIPPLE DƯỚI BỤNG */}
+                  <div className={`absolute -bottom-1 -left-2 w-12 h-3.5 bg-cyan-200/40 rounded-full blur-2xs ${isRunning || isCurrentWinner ? 'animate-pulse' : ''}`} />
 
-                <div className="text-xs font-black text-slate-900 pt-1 flex items-center justify-between gap-2">
-                  <span className="truncate">
-                    🎯 Mời bạn: <strong className="text-emerald-700">#{winnerStudentNumber}. {winnerStudent?.full_name}</strong>
-                  </span>
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0">Lên Bảng</span>
+                  {/* VƯƠNG MIỆN VÀNG TRÊN ĐẦU CON VỊT DUY NHẤT VỀ NHẤT (NẰM TẠI VẠCH ĐÍCH BÊN PHẢI) */}
+                  {isCurrentWinner && (
+                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-2xl animate-bounce filter drop-shadow-md z-30 pointer-events-none">
+                      👑
+                    </div>
+                  )}
+
+                  {/* THÂN LINH VẬT SVG */}
+                  <div className={`relative ${animalWidth} flex-shrink-0 filter drop-shadow-md transform hover:scale-120 transition ${
+                    isCurrentWinner ? 'scale-125' : ''
+                  }`}>
+                    {renderAnimalSVG(selectedAnimal)}
+
+                    {/* SỐ THỨ TỰ HỌC SINH IN TO RÕ TRÊN THÂN */}
+                    <div className={`absolute top-[48%] left-[23%] w-6 h-5 flex items-center justify-center font-black ${numberFontSize} text-black font-sans pointer-events-none`}>
+                      {studentNumber}
+                    </div>
+
+                    {/* MŨ / PHỤ KIỆN HÀI HƯỚC TRÊN ĐẦU */}
+                    <div className="absolute -top-3 right-0 text-base transform rotate-6 pointer-events-none filter drop-shadow-xs">
+                      {hat.icon}
+                    </div>
+                  </div>
+
+                  {/* NHÃN TÊN ĐẦY ĐỦ CỦA HỌC SINH */}
+                  {/* KHI ĐUA XONG: CON THẮNG CUỘC HIỆN TÊN TO RÕ RÀNG NGAY TẠI VẠCH ĐÍCH (KHÔNG CHE GIỮA MÀN HÌNH) */}
+                  {isCurrentWinner ? (
+                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-emerald-950/95 text-amber-300 border-2 border-amber-400 font-black text-xs px-3 py-1 rounded-full shadow-2xl z-40 pointer-events-none animate-pulse">
+                      🎯 #{winnerNumber}. {winnerStudent?.full_name}
+                    </div>
+                  ) : (
+                    <div className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/85 text-amber-200 font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-md border border-white/20 z-30 pointer-events-none transition-opacity ${
+                      isRunning ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    }`}>
+                      {studentNumber}. {st.full_name}
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+
+          {/* DÒNG HƯỚNG DẪN DƯỚI ĐÁY SÔNG HOẶC HỘP THÔNG BÁO VỀ ĐÍCH */}
+          {raceFinished && winnerStudent ? (
+            /* HỘP ĐIỀU KHIỂN GÓC TRÊN TRÁI KHI VỀ ĐÍCH (KHÔNG CHE GIỮA MÀN HÌNH) */
+            <div className="absolute top-4 left-4 z-40 bg-white/95 border-[3.5px] border-slate-900 rounded-2xl p-3.5 shadow-2xl flex flex-col space-y-2 animate-fade-in max-w-xs">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 pb-1 border-b border-slate-200">
+                <span>Không gọi lại bạn này ở lượt sau?</span>
+                <input
+                  type="checkbox"
+                  checked={removeWinnerNextRace}
+                  onChange={(e) => setRemoveWinnerNextRace(e.target.checked)}
+                  className="rounded text-emerald-600 focus:ring-0 w-4 h-4 cursor-pointer"
+                />
               </div>
 
-              {/* NÚT XEM THỨ HẠNG CẢ LỚP Ở GÓC DƯỚI PHẢI */}
               <button
                 type="button"
-                onClick={() => setShowRankModal(true)}
-                className="absolute bottom-5 right-5 z-30 w-16 h-16 bg-white hover:bg-amber-50 border-4 border-slate-900 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transition transform hover:scale-110 active:scale-95 group"
-                title="Bấm vào để xem danh sách thứ tự về đích"
+                onClick={handleClear}
+                className="px-5 py-2.5 bg-[#52c41a] hover:bg-[#43aa13] text-white font-black text-sm rounded-xl border-2 border-slate-900 shadow-md transition cursor-pointer flex items-center justify-center space-x-2 active:scale-95"
               >
-                <Trophy className="w-8 h-8 text-slate-950 fill-amber-400 group-hover:rotate-12 transition-transform" />
+                <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+                <span>Đua Lượt Mới</span>
               </button>
+
+              <div className="text-xs font-black text-slate-900 pt-0.5 flex items-center justify-between gap-1">
+                <span className="truncate">
+                  🎯 Mời bạn: <strong className="text-emerald-700">#{winnerNumber}. {winnerStudent?.full_name}</strong>
+                </span>
+                <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0">Lên Bảng</span>
+              </div>
             </div>
           ) : (
-            /* =================================================================== */
-            /* TRƯỜNG HỢP 2: TRONG KHI ĐANG ĐUA / CHUẨN BỊ XUẤT PHÁT              */
-            /* =================================================================== */
-            <div className="absolute inset-0">
-              
-              {/* VẠCH XUẤT PHÁT: MẶC ĐỊNH HOÀN TOÀN TỰ NHIÊN, KHÔNG VẼ VẠCH CHỒNG CHÉO BÊN TRÁI */}
-
-              {/* VẠCH ĐÍCH THỂ THAO CARÔ: CHỈ HIỆN KHI VỊT CHẠY GẦN VỀ ĐÍCH */}
-              {showFinishLine && (
-                <div
-                  className="absolute top-0 bottom-0 w-12 z-20 shadow-2xl border-x-4 border-slate-950 pointer-events-none"
-                  style={{
-                    left: '84%',
-                    backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 12px, #fff 12px, #fff 24px)',
-                    animation: 'finishLineSlideIn 0.6s ease-out forwards',
-                  }}
-                >
-                  <div className="absolute top-2 -left-3 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
-                    <span>🏁</span>
-                    <span>ĐÍCH</span>
-                  </div>
-                  <div className="absolute bottom-4 -left-4 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap">
-                    <span>🏁</span>
-                    <span>FINISH</span>
-                  </div>
-                </div>
+            <div className="absolute bottom-2 left-6 z-20 text-[11px] font-bold text-cyan-200/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-xs flex items-center space-x-2">
+              <span>💡 {RACER_ANIMALS.find(a => a.id === selectedAnimal)?.name}: Bơi chậm rãi ban đầu, 6 giây cuối bứt tốc thần tốc lội ngược dòng!</span>
+              {turboActive && <span className="text-amber-300">⚡ Có Làn Turbo</span>}
+              {excludedIds.length > 0 && (
+                <span className="text-rose-300">({excludedIds.length} bạn đã trả bài đang tạm nghỉ)</span>
               )}
-
-              {/* TẤT CẢ ĐÀN CON VẬT TRONG 1 KHUNG HÌNH (CÙNG 1 VẠCH XUẤT PHÁT X = 4%) */}
-              <div className="absolute inset-0">
-                {racerStudents.map((st, idx) => {
-                  const studentNumber = idx + 1;
-                  const hat = DUCK_HATS[(idx * 3 + 5) % DUCK_HATS.length];
-                  const yStep = studentCount > 1 ? (82 / (studentCount - 1)) : 0;
-                  const defaultY = 8 + idx * yStep;
-
-                  return (
-                    <div
-                      key={st.id}
-                      ref={(el) => {
-                        duckDomRefs.current[st.id] = el;
-                      }}
-                      className="absolute cursor-pointer group"
-                      style={{
-                        left: '4%',
-                        top: `${defaultY}%`,
-                        transform: `translate(-50%, -50%) scale(${animalScale})`,
-                        zIndex: Math.floor(defaultY * 10),
-                        transition: isRunning ? 'none' : 'all 0.3s ease',
-                      }}
-                      title={`#${studentNumber} - ${st.full_name}`}
-                    >
-                      {/* BỌT NƯỚC RIPPLE DƯỚI BỤNG KHI BƠI */}
-                      <div className={`absolute -bottom-1 -left-2 w-12 h-3.5 bg-cyan-200/40 rounded-full blur-2xs ${isRunning ? 'animate-pulse' : ''}`} />
-
-                      {/* THÂN LINH VẬT SVG (Duck, Turtle, Fish, Crab, Shrimp) */}
-                      <div className={`relative ${animalWidth} flex-shrink-0 filter drop-shadow-md transform hover:scale-120 transition`}>
-                        {renderAnimalSVG(selectedAnimal)}
-
-                        {/* SỐ THỨ TỰ HỌC SINH IN TO RÕ TRÊN THÂN */}
-                        <div className={`absolute top-[48%] left-[23%] w-6 h-5 flex items-center justify-center font-black ${numberFontSize} text-black font-sans pointer-events-none`}>
-                          {studentNumber}
-                        </div>
-
-                        {/* MŨ / PHỤ KIỆN HÀI HƯỚC TRÊN ĐẦU */}
-                        <div className="absolute -top-3 right-0 text-base transform rotate-6 pointer-events-none filter drop-shadow-xs">
-                          {hat.icon}
-                        </div>
-                      </div>
-
-                      {/* NHÃN TÊN ĐẦY ĐỦ CỦA HỌC SINH (KHI ĐUA: HIỆN RÕ RÀNG; KHI CHƯA ĐUA: CHỈ HIỆN KHI RỜ CHUỘT ĐỂ MẶT NƯỚC GỌN GÀNG) */}
-                      <div className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/85 text-amber-200 font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-md border border-white/20 z-30 pointer-events-none transition-opacity ${
-                        isRunning ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      }`}>
-                        {studentNumber}. {st.full_name}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* DÒNG HƯỚNG DẪN DƯỚI ĐÁY SÔNG */}
-              <div className="absolute bottom-2 left-6 z-20 text-[11px] font-bold text-cyan-200/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-xs flex items-center space-x-2">
-                <span>💡 {RACER_ANIMALS.find(a => a.id === selectedAnimal)?.name}: Bơi chậm rãi ban đầu, vạch đích xuất hiện trong 5 giây cuối!</span>
-                {turboActive && <span className="text-amber-300">⚡ Có Làn Turbo</span>}
-                {excludedIds.length > 0 && (
-                  <span className="text-rose-300">({excludedIds.length} bạn đã trả bài đang tạm nghỉ)</span>
-                )}
-              </div>
             </div>
           )}
         </div>
 
         {/* =================================================================== */}
-        {/* 3. MODAL BẢNG THỨ HẠNG VỀ ĐÍCH ĐỂ THẦY TIỆN GỌI TRẢ BÀI (KHÔNG TẶNG ĐIỂM) */}
+        {/* 3. MODAL BẢNG THỨ HẠNG VỀ ĐÍCH THỰC TẾ (100% THEO TỌA ĐỘ VỀ ĐÍCH) */}
         {/* =================================================================== */}
         {showRankModal && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 p-4 animate-scale-up backdrop-blur-xs">
@@ -992,80 +1015,104 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
                     THỨ TỰ GỌI TRẢ BÀI
                   </h3>
                   <p className="text-xs text-slate-300 font-medium">
-                    Danh sách thứ tự về đích của tất cả {displayRankings.length} học sinh để Thầy gọi bài!
+                    {rankings.length > 0 
+                      ? `Thống kê chuẩn xác thứ tự về đích thực tế trên dòng sông của cả ${rankings.length} học sinh!`
+                      : 'Cuộc đua chưa kết thúc - Hãy bấm Start để đua 6 giây thần tốc!'}
                   </p>
                 </div>
 
-                {/* DANH SÁCH CUỘN MƯỢT MÀ CHỨA TOÀN BỘ HỌC SINH */}
-                <div className="flex-1 overflow-y-auto pr-1.5 space-y-2 custom-scrollbar">
-                  {/* TOP 3 BẠN ĐẦU TIÊN */}
-                  {displayRankings.slice(0, 3).map((st, idx) => {
-                    const medals = ['🥇', '🥈', '🥉'];
-                    const titles = ['MỜI LÊN BẢNG TRẢ BÀI 🎯', 'DỰ BỊ 1 📝', 'DỰ BỊ 2 📝'];
-                    const borders = ['border-amber-400 bg-amber-500/15', 'border-slate-300 bg-slate-400/15', 'border-amber-700 bg-amber-800/15'];
-                    const stIdx = racerStudents.findIndex((s) => s.id === st.id) + 1;
+                {/* NẾU CHƯA ĐUA XONG MÀ BẤM THỨ HẠNG -> THÔNG BÁO RÕ RÀNG, KHÔNG HIỆN 1, 2, 3, 4, 5 */}
+                {rankings.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-3 bg-slate-900/60 rounded-2xl border border-slate-800">
+                    <span className="text-4xl">🏁</span>
+                    <h4 className="text-base font-black text-amber-300">Cuộc đua chưa bắt đầu!</h4>
+                    <p className="text-xs text-slate-300 max-w-xs text-center leading-relaxed">
+                      Thầy hãy bấm nút <strong>Start</strong> bên ngoài để bắt đầu chặng đua. Trong 6 giây thần tốc, các chú vịt sẽ lội ngược dòng bất ngờ và phân định thứ tự về đích thực tế nhé!
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRankModal(false);
+                        handleStartOrContinue();
+                      }}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5"
+                    >
+                      <Play className="w-4 h-4 fill-white" />
+                      <span>Bắt Đầu Đua Ngay</span>
+                    </button>
+                  </div>
+                ) : (
+                  /* NẾU ĐÃ ĐUA XONG -> HIỂN THỊ THỨ HẠNG THỰC TẾ 100% */
+                  <div className="flex-1 overflow-y-auto pr-1.5 space-y-2 custom-scrollbar">
+                    {/* TOP 3 BẠN ĐẦU TIÊN */}
+                    {rankings.slice(0, 3).map((st, idx) => {
+                      const medals = ['🥇', '🥈', '🥉'];
+                      const titles = ['MỜI LÊN BẢNG TRẢ BÀI 🎯', 'DỰ BỊ 1 📝', 'DỰ BỊ 2 📝'];
+                      const borders = ['border-amber-400 bg-amber-500/15', 'border-slate-300 bg-slate-400/15', 'border-amber-700 bg-amber-800/15'];
+                      const stIdx = racerStudents.findIndex((s) => s.id === st.id) + 1;
 
-                    return (
-                      <div
-                        key={st.id}
-                        className={`p-2.5 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md ${borders[idx]}`}
-                      >
-                        <div className="flex items-center space-x-3 min-w-0">
-                          <span className="text-3xl flex-shrink-0">{medals[idx]}</span>
-                          <div className="text-left min-w-0">
-                            <span className="text-sm font-black text-white block">
-                              #{stIdx}. {st.full_name}
-                            </span>
-                            <span className="text-[10px] font-bold text-amber-300 block uppercase">
-                              {titles[idx]}
+                      return (
+                        <div
+                          key={st.id}
+                          className={`p-2.5 rounded-2xl border-2 flex items-center justify-between gap-3 shadow-md ${borders[idx]}`}
+                        >
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <span className="text-3xl flex-shrink-0">{medals[idx]}</span>
+                            <div className="text-left min-w-0">
+                              <span className="text-sm font-black text-white block">
+                                #{stIdx}. {st.full_name}
+                              </span>
+                              <span className="text-[10px] font-bold text-amber-300 block uppercase">
+                                {titles[idx]}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex-shrink-0">
+                            <span className="px-3 py-1.5 bg-emerald-600/30 border border-emerald-400/50 text-emerald-300 font-black text-xs rounded-xl shadow-sm flex items-center space-x-1">
+                              <span>Hạng {idx + 1}</span>
                             </span>
                           </div>
                         </div>
+                      );
+                    })}
 
-                        <div className="flex-shrink-0">
-                          <span className="px-3 py-1.5 bg-emerald-600/30 border border-emerald-400/50 text-emerald-300 font-black text-xs rounded-xl shadow-sm flex items-center space-x-1">
-                            <span>Hạng {idx + 1}</span>
-                          </span>
+                    {/* CÁC THỨ HẠNG CÒN LẠI TỪ HẠNG 4 ĐẾN HẾT */}
+                    {rankings.length > 3 && (
+                      <div className="pt-2">
+                        <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider text-left mb-1.5 px-2">
+                          Các Vị Trí Về Đích Tiếp Theo (Thực Tế Trên Sông):
                         </div>
-                      </div>
-                    );
-                  })}
+                        <div className="space-y-1.5">
+                          {rankings.slice(3).map((st, i) => {
+                            const rankNum = i + 4;
+                            const stIdx = racerStudents.findIndex((s) => s.id === st.id) + 1;
 
-                  {/* CÁC THỨ HẠNG CÒN LẠI TỪ HẠNG 4 ĐẾN HẾT */}
-                  {displayRankings.length > 3 && (
-                    <div className="pt-2">
-                      <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider text-left mb-1.5 px-2">
-                        Các Vị Trí Về Đích Tiếp Theo:
-                      </div>
-                      <div className="space-y-1.5">
-                        {displayRankings.slice(3).map((st, i) => {
-                          const rankNum = i + 4;
-                          const stIdx = racerStudents.findIndex((s) => s.id === st.id) + 1;
+                            return (
+                              <div
+                                key={st.id}
+                                className="p-2 rounded-xl bg-slate-900/60 border border-slate-700/80 flex items-center justify-between gap-2 hover:bg-slate-800/80 transition"
+                              >
+                                <div className="flex items-center space-x-2.5 min-w-0">
+                                  <span className="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center font-mono font-bold text-xs text-slate-300 flex-shrink-0">
+                                    {rankNum}
+                                  </span>
+                                  <span className="text-xs font-bold text-slate-200 truncate">
+                                    #{stIdx}. {st.full_name}
+                                  </span>
+                                </div>
 
-                          return (
-                            <div
-                              key={st.id}
-                              className="p-2 rounded-xl bg-slate-900/60 border border-slate-700/80 flex items-center justify-between gap-2 hover:bg-slate-800/80 transition"
-                            >
-                              <div className="flex items-center space-x-2.5 min-w-0">
-                                <span className="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center font-mono font-bold text-xs text-slate-300 flex-shrink-0">
-                                  {rankNum}
-                                </span>
-                                <span className="text-xs font-bold text-slate-200 truncate">
-                                  #{stIdx}. {st.full_name}
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  Hạng {rankNum}
                                 </span>
                               </div>
-
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                Hạng {rankNum}
-                              </span>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 {/* FOOTER NÚT BẤM */}
                 <div className="pt-3 mt-3 border-t border-slate-800 flex items-center justify-between flex-shrink-0">
