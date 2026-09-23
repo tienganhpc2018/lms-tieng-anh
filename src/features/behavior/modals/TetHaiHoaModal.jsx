@@ -91,11 +91,6 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
         });
 
         setActiveWinner({ student: chosen, locNum });
-
-        // Tự động cộng 1 sao lì xì
-        if (onAwardStudent && chosen) {
-          onAwardStudent(chosen.id, 1);
-        }
       }
     }, 1000);
   };
@@ -286,7 +281,7 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
                 </div>
 
                 <div className="p-3 bg-amber-950/80 rounded-2xl border border-amber-600/40 text-xs font-bold text-amber-200">
-                  🎁 Nhận ngay lì xì: <span className="text-amber-400 font-black">+1 ⭐ Sao Thi Đua!</span>
+                  🎯 Xin mời bạn: <span className="text-amber-400 font-black">Lên Bảng Trả Bài / Phát Biểu!</span>
                 </div>
 
                 <button

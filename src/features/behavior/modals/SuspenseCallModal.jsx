@@ -159,16 +159,9 @@ export default function SuspenseCallModal({
                       {w.code} • Tổ {w.team_group}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playCorrect();
-                      onAwardStudent && onAwardStudent(w.id, 1);
-                    }}
-                    className="w-full py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black cursor-pointer shadow-xs"
-                  >
-                    +1 ⭐
-                  </button>
+                  <span className="w-full py-1 bg-amber-500/20 border border-amber-400/40 text-amber-300 rounded-lg text-[10px] font-black text-center block">
+                    Mời Trả Bài
+                  </span>
                 </div>
               ))}
             </div>
@@ -182,25 +175,12 @@ export default function SuspenseCallModal({
 
             <div className="space-y-1">
               <span className="text-xs font-black text-amber-400 uppercase tracking-widest">
-                XIN MỜI BẠN LÊN BẢNG!
+                🎯 XIN MỜI BẠN LÊN BẢNG TRẢ BÀI!
               </span>
               <h3 className="text-2xl font-black text-white">{winner.full_name}</h3>
               <p className="text-xs text-slate-400 font-bold font-mono">
                 {winner.code} • Tổ {winner.team_group}
               </p>
-            </div>
-
-            <div className="flex items-center justify-center space-x-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  playCorrect();
-                  onAwardStudent && onAwardStudent(winner.id, 1);
-                }}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition cursor-pointer shadow-md flex items-center space-x-1"
-              >
-                <span>Thưởng +1 ⭐ Sao</span>
-              </button>
             </div>
           </div>
         ) : null}

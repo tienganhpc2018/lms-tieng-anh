@@ -101,10 +101,6 @@ export default function BlindPouchModal({ isOpen, onClose, students = [], onAwar
         });
 
         setActiveWinner({ num, ...resultData });
-
-        if (randStudent && reward.points > 0 && onAwardStudent) {
-          onAwardStudent(randStudent.id, reward.points);
-        }
       }
     }, 1000);
   };

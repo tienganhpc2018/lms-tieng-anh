@@ -102,9 +102,7 @@ export default function GroupTeamsModal({ isOpen, onClose, students, onAwardStud
           origin: { y: 0.5 },
         });
 
-        if (onAwardStudent && chosen) {
-          onAwardStudent(chosen.id, 1);
-        }
+        setActiveWinner(chosen);
       }
     }, 1000);
   };
@@ -332,7 +330,7 @@ export default function GroupTeamsModal({ isOpen, onClose, students, onAwardStud
                 </div>
 
                 <div className="p-2.5 bg-slate-900 rounded-xl border border-slate-800 text-xs font-bold text-amber-300">
-                  🎁 Tự động thưởng: +1 ⭐ Sao Đại Diện
+                  🎯 Xin mời bạn: Lên Bảng Báo Cáo / Trả Bài!
                 </div>
 
                 <button
