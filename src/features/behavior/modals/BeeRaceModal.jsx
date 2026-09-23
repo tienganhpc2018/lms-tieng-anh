@@ -57,6 +57,9 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       orderedStudents.sort(() => Math.random() - 0.5);
     }
 
+    // Bốc thăm thứ hạng đích để cuộc đua kết thúc với khoảng cách rõ ràng, không đè lên nhau
+    const targetRanks = orderedStudents.map((_, i) => i + 1).sort(() => Math.random() - 0.5);
+
     const newPositions = {};
     const configs = {};
 
@@ -65,21 +68,18 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       const yStep = count > 1 ? (76 / (count - 1)) : 0;
       const baseY = 12 + idx * yStep;
 
-      // Xếp hàng chéo theo vạch xuất phát nghiêng 25 độ giống ảnh 3
-      // Càng ở trên thì x càng lùi về phải một chút (hoặc ngược lại)
-      const slopeOffsetX = (idx / Math.max(1, count)) * 6.5; 
-      const startX = 3 + slopeOffsetX; // Bắt đầu ở khoảng 3% - 9.5%
+      // Xếp hàng chéo theo vạch xuất phát nghiêng 22 độ
+      const slopeOffsetX = (idx / Math.max(1, count)) * 6.0; 
+      const startX = 3.5 + slopeOffsetX; // Bắt đầu ở khoảng 3.5% - 9.5%
 
-      // Tốc độ bơi ngẫu nhiên với nhịp bứt tốc riêng
-      const baseSpeed = 0.88 + Math.random() * 0.28;
-      const burstTime = 0.3 + Math.random() * 0.5; // thời điểm bứt tốc (30% - 80% chặng đua)
+      const targetRank = targetRanks[idx];
       const hatIndex = (idx * 3 + 5) % DUCK_HATS.length;
 
       configs[st.id] = {
-        baseSpeed,
-        burstTime,
+        targetRank,
+        burstTime: 0.35 + Math.random() * 0.4, // thời điểm bứt tốc giữa chặng
         hatIndex,
-        wobbleFreq: 2 + Math.random() * 2,
+        wobbleFreq: 1.8 + Math.random() * 2.0,
         wobbleAmp: 1.2 + Math.random() * 1.5,
         startY: baseY,
         startX,
@@ -167,7 +167,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
   // Vòng lặp chuyển động mượt mà của đàn vịt (Animation Loop)
   const runAnimationLoop = () => {
     const durationMs = duration * 1000;
-    const finishLineX = 66; // Vạch đích carô nằm ở vị trí 66% chiều ngang
+    const finishLineX = 80; // Vạch đích carô nằm ở vị trí 80% chiều ngang
     let lastSecond = Math.ceil((durationMs - pausedElapsedRef.current) / 1000);
 
     const step = (now) => {
@@ -192,25 +192,53 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
         const cfg = duckConfigRef.current[st.id] || {
           startX: 5,
           startY: 20,
-          baseSpeed: 1,
+          targetRank: idx + 1,
           burstTime: 0.5,
           hatIndex: 0,
           wobbleFreq: 2.5,
           wobbleAmp: 1.5,
         };
 
-        // Tính tốc độ bơi: có bứt tốc ở giữa và cuối chặng
-        let speedFactor = cfg.baseSpeed;
-        if (progress > cfg.burstTime && progress < cfg.burstTime + 0.35) {
-          speedFactor += 0.22; // Bứt tốc kịch tính!
-        }
-        if (progress > 0.85) {
-          speedFactor += (idx % 3 === 0 ? 0.15 : -0.05); // Nước rút về đích!
-        }
+        let currentX = cfg.startX;
 
-        // Tọa độ X: bơi từ startX đến qua vạch đích
-        const targetDistance = (finishLineX + 22) - cfg.startX;
-        const currentX = Math.min(94, cfg.startX + progress * targetDistance * speedFactor);
+        // VỊ TRÍ ĐÍCH CUỐI CÙNG KHI KẾT THÚC (progress = 1.0)
+        let finalTargetX = finishLineX - 4.5 - Math.min(22, (cfg.targetRank - 4) * 1.8);
+        if (cfg.targetRank === 1) finalTargetX = finishLineX + 3.8; // Quán quân: vọt qua vạch đích
+        else if (cfg.targetRank === 2) finalTargetX = finishLineX - 0.6; // Á quân: sát mép vạch đích
+        else if (cfg.targetRank === 3) finalTargetX = finishLineX - 2.6; // Quý quân: bám sát nút
+
+        // GIAI ĐOẠN 1: BƠI SO KÈ GIẰNG CO (0% -> 92% thời gian)
+        // Đảm bảo TUYỆT ĐỐI KHÔNG CHÚ VỊT NÀO ĐƯỢC CHẠM VẠCH ĐÍCH TRƯỚC HẾT GIỜ
+        if (progress < 0.92) {
+          const stageP = progress / 0.92;
+          const maxDistanceBeforeFinish = (finishLineX - 4.5) - cfg.startX;
+          
+          // Dao động sóng sin rượt đuổi, thay đổi thứ hạng liên tục tạo kịch tính
+          const raceWobble = Math.sin((now / 380) * cfg.wobbleFreq + idx * 1.9) * 3.8;
+          let burstBonus = 0;
+          if (progress > cfg.burstTime && progress < cfg.burstTime + 0.28) {
+            burstBonus = 3.2; // Cú bứt tốc ngoạn mục
+          }
+
+          const rawX = cfg.startX + (maxDistanceBeforeFinish * stageP) + raceWobble + burstBonus;
+          
+          // CLAMP CỨNG: Không con nào được vượt quá (finishLineX - 4.2%)
+          currentX = Math.max(cfg.startX, Math.min(finishLineX - 4.2, rawX));
+        } 
+        // GIAI ĐOẠN 2: NƯỚC RÚT VỀ ĐÍCH (92% -> 100% thời gian - giây cuối cùng)
+        else {
+          const sprintP = (progress - 0.92) / 0.08; // chạy từ 0 đến 1
+          const preSprintX = finishLineX - 4.5 - Math.min(18, (cfg.targetRank - 1) * 1.2);
+          
+          const interpolatedX = (1 - sprintP) * preSprintX + sprintP * finalTargetX;
+
+          // Chỉ cho phép chú vịt số 1 vượt qua vạch đích khi thời gian chạm mốc 00:00:00 (progress >= 0.985)
+          if (progress < 0.985) {
+            currentX = Math.min(finishLineX - 0.5, interpolatedX);
+          } else {
+            currentX = interpolatedX;
+          }
+        }
 
         // Tọa độ Y: dao động nhấp nhô theo sóng nước sông
         const waveY = cfg.startY + Math.sin(now / 180 * cfg.wobbleFreq + idx) * cfg.wobbleAmp;
@@ -222,7 +250,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
           isFinished: currentX >= finishLineX,
         };
 
-        standings.push({ student: st, x: currentX });
+        standings.push({ student: st, x: currentX, targetRank: cfg.targetRank });
       });
 
       setDuckPositions(updated);
@@ -230,7 +258,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
       if (progress < 1) {
         animFrameRef.current = requestAnimationFrame(step);
       } else {
-        // ĐÃ CÁN ĐÍCH HOÀN TẤT CUỘC ĐUA!
+        // ĐÃ CÁN ĐÍCH HOÀN TẤT CUỘC ĐUA ĐÚNG KHOẢNH KHẮC 00:00:00!
         setIsRunning(false);
         setIsPaused(false);
         if (soundEnabled) {
@@ -243,8 +271,8 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
           origin: { y: 0.55 },
         });
 
-        // Sắp xếp tìm Top 3
-        standings.sort((a, b) => b.x - a.x);
+        // Sắp xếp tìm Top 3 theo đúng kết quả cán đích
+        standings.sort((a, b) => a.targetRank - b.targetRank);
         const top3 = standings.slice(0, 3).map((item) => item.student);
         setRankings(top3);
         setShowRankModal(true);
@@ -439,9 +467,9 @@ export default function BeeRaceModal({ isOpen, onClose, students = [], onAwardSt
 
           {/* VẠCH ĐÍCH CARÔ CHÉO BÊN PHẢI (FINISH LINE - CHUẨN ẢNH 3 & 4) */}
           <div
-            className="absolute top-0 bottom-0 w-11 z-10 shadow-2xl transform -skew-x-[24deg] origin-top border-x-4 border-slate-950 pointer-events-none"
+            className="absolute top-0 bottom-0 w-12 z-10 shadow-2xl transform -skew-x-[24deg] origin-top border-x-4 border-slate-950 pointer-events-none"
             style={{
-              left: '66%',
+              left: '80%',
               backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 10px, #fff 10px, #fff 20px)',
             }}
           >
