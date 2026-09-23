@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Play, Pause, RotateCcw, Trophy, Volume2, VolumeX, Settings, Shuffle, RefreshCw, CheckSquare, Square, UserCheck, ListOrdered } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, Trophy, Volume2, VolumeX, Settings, Shuffle, RefreshCw, UserCheck, ListOrdered } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { 
   playClick, 
@@ -19,20 +19,6 @@ const RACER_ANIMALS = [
   { id: 'shrimp', name: 'Tôm Búng', icon: '🦐', label: 'Tôm Búng' },
   { id: 'squid', name: 'Mực Ống', icon: '🦑', label: 'Mực Ống' },
   { id: 'crab', name: 'Cua Biển', icon: '🦀', label: 'Cua Biển' },
-];
-
-// Danh sách mũ/phụ kiện ngộ nghĩnh
-const DUCK_HATS = [
-  { name: 'builder', icon: '👷', label: 'Thợ xây' },
-  { name: 'police', icon: '👮', label: 'Cảnh sát' },
-  { name: 'doctor', icon: '👨‍⚕️', label: 'Bác sĩ' },
-  { name: 'detective', icon: '🕵️', label: 'Thám tử' },
-  { name: 'chef', icon: '👨‍🍳', label: 'Đầu bếp' },
-  { name: 'party', icon: '🥳', label: 'Sinh nhật' },
-  { name: 'graduate', icon: '🎓', label: 'Cử nhân' },
-  { name: 'pirate', icon: '🏴‍☠️', label: 'Cướp biển' },
-  { name: 'straw', icon: '🤠', label: 'Cao bồi' },
-  { name: 'crown', icon: '👑', label: 'Vương miện' },
 ];
 
 // Thuật toán xáo trộn Fisher-Yates chuẩn xác 100% ngẫu nhiên toán học
@@ -60,6 +46,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
   const [selectedAnimal, setSelectedAnimal] = useState('duck'); // Mặc định Vịt Vàng
   const [removeWinnerNextRace, setRemoveWinnerNextRace] = useState(true); // Loại người thắng ở vòng sau
   const [excludedIds, setExcludedIds] = useState([]); // Danh sách học sinh đã được gọi
+  const [showFinishLine, setShowFinishLine] = useState(false); // VẠCH ĐÍCH CHỈ HIỆN KHI CÒN 4 GIÂY CUỐI!
 
   // Lọc học sinh có mặt và chưa bị loại trừ
   const presentStudents = students.filter((s) => s.status !== 'Absent_Perm' && s.status !== 'Absent_NoPerm');
@@ -72,6 +59,9 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
   const pausedElapsedRef = useRef(0);
   const duckConfigRef = useRef({});
   const duckDomRefs = useRef({});
+
+  // Vạch đích xuất hiện ở 80% phía trước đàn vịt khi còn 4 giây cuối
+  const FINISH_LINE_X = 80.0;
 
   // Lấy số áo chuẩn theo danh sách lớp để học sinh luôn nhận diện đúng số của mình
   const getStudentNumber = (student) => {
@@ -105,6 +95,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     setIsRunning(false);
     setIsPaused(false);
     setRaceFinished(false);
+    setShowFinishLine(false); // Ẩn vạch đích lúc đầu
     setWinnerStudent(null);
     setTimeLeft(duration);
     pausedElapsedRef.current = 0;
@@ -180,26 +171,26 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     racerStudents.forEach((st, idx) => {
       const yStep = count > 1 ? (76 / (count - 1)) : 0;
       const baseY = 14 + idx * yStep;
-      const hatIndex = (idx * 3 + 5) % DUCK_HATS.length;
 
       const rankIndex = shuffledStudents.findIndex((s) => s.id === st.id);
       const isWinner = rankIndex === 0;
 
-      // Trong lúc đua: Con quán quân bơi xa nhất (tới 76%), các con khác xếp sau (22% - 60%)
+      // Trong lúc đua:
+      // Quán quân: bứt tốc qua vạch đích 80% sang 88%
+      // Các con thua cuộc: dừng lại trước vạch đích (<= 76%)
       let finalTargetX = 0;
       if (isWinner) {
-        finalTargetX = 76.0;
+        finalTargetX = 88.0; // Vượt qua vạch đích 80%
       } else {
         const normRank = (rankIndex - 1) / Math.max(1, count - 2);
         const stagger = ((idx * 5) % 6) - 3;
-        finalTargetX = Math.max(20, Math.min(60, 58 - normRank * 35 + stagger));
+        finalTargetX = Math.max(30, Math.min(76, 74 - normRank * 38 + stagger));
       }
 
       configs[st.id] = {
         isWinner,
         rankIndex,
         finalTargetX,
-        hatIndex,
         wobbleFreq: 1.8 + Math.random() * 1.4,
         wobbleAmp: 0.8 + Math.random() * 0.8,
         startY: baseY,
@@ -219,6 +210,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     setIsPaused(false);
     setShowRankModal(false);
     setRaceFinished(false);
+    setShowFinishLine(false); // Lúc đầu vịt chạy tự do bình thường, chưa có vạch đích!
     setTimeLeft(duration);
     pausedElapsedRef.current = 0;
 
@@ -271,10 +263,11 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     onClose();
   };
 
-  // Vòng lặp chuyển động bơi tự nhiên 60FPS
+  // Vòng lặp chuyển động bơi tự nhiên 60FPS:
+  // CHỈ KHI CÒN 4 GIÂY CUỐI MỚI HIỆN VẠCH ĐÍCH Ở PHÍA TRƯỚC (80%)!
   const runAnimationLoop = () => {
     const durationMs = duration * 1000;
-    const sprintDurationMs = 6000;
+    const sprintDurationMs = 4000; // ĐÚNG 4 GIÂY CUỐI!
     const sprintStartTimeMs = Math.max(0, durationMs - sprintDurationMs);
     let lastSecond = Math.ceil((durationMs - pausedElapsedRef.current) / 1000);
 
@@ -288,10 +281,16 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         lastSecond = secondsRemaining;
         setTimeLeft(secondsRemaining);
         if (soundEnabled && secondsRemaining > 0) playTick();
-        if (secondsRemaining <= 6 && soundEnabled && secondsRemaining > 0) playQuack();
+        if (secondsRemaining <= 4 && soundEnabled && secondsRemaining > 0) playQuack();
       }
 
-      const isSprintPhase = elapsed >= sprintStartTimeMs || secondsRemaining <= 6;
+      // CHỈ KHI CÒN 4 GIÂY CUỐI THÌ VẠCH ĐÍCH MỚI XUẤT HIỆN Ở PHÍA TRƯỚC (80%)
+      const isSprintPhase = elapsed >= sprintStartTimeMs || secondsRemaining <= 4;
+      if (isSprintPhase) {
+        setShowFinishLine(true);
+      } else {
+        setShowFinishLine(false);
+      }
 
       racerStudents.forEach((st, idx) => {
         const cfg = duckConfigRef.current[st.id] || {
@@ -299,8 +298,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
           startY: 20,
           isWinner: idx === 0,
           rankIndex: idx,
-          finalTargetX: 45,
-          hatIndex: 0,
+          finalTargetX: 50,
           wobbleFreq: 2.0,
           wobbleAmp: 1.0,
         };
@@ -308,33 +306,36 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         let currentX = cfg.startX;
 
         if (!isSprintPhase) {
-          // Bơi chậm rãi thong thả
+          // GIAI ĐOẠN 1: VỊT CHẠY BÌNH THƯỜNG TRÊN SÔNG (Từ 4% đến 32% - 35%)
+          // Không có vạch đích chắn ngang, bơi thong thả tự nhiên!
           const phase1Ratio = sprintStartTimeMs > 0 ? Math.min(1, elapsed / sprintStartTimeMs) : 0;
           const slowCurve = Math.pow(phase1Ratio, 1.1);
-          let baseTargetP1 = 16 + ((cfg.rankIndex * 4) % 8);
-          if (cfg.isWinner) baseTargetP1 = 25;
+          let baseTargetP1 = 22 + ((cfg.rankIndex * 4) % 8);
+          if (cfg.isWinner) baseTargetP1 = 34;
 
           const swimStroke = Math.sin((elapsed / 320) * cfg.wobbleFreq + idx * 1.5) * 1.0;
           const drift = Math.sin((elapsed / 650) + idx * 1.8) * 1.5;
           currentX = cfg.startX + (baseTargetP1 - cfg.startX) * slowCurve + swimStroke + drift;
         } else {
-          // 6 giây thần tốc: Quán quân bứt tốc vươn lên dẫn đầu rõ rệt
+          // GIAI ĐOẠN 2: 4 GIÂY CUỐI - VẠCH ĐÍCH HIỆN RA Ở 80%, QUÁN QUÂN BỨT TỐC LAO QUA ĐÍCH!
           const sprintElapsed = elapsed - sprintStartTimeMs;
           const sprintRatio = Math.min(1, sprintElapsed / sprintDurationMs);
 
-          let startSprintX = 16 + ((cfg.rankIndex * 4) % 8);
-          if (cfg.isWinner) startSprintX = 25;
+          let startSprintX = 22 + ((cfg.rankIndex * 4) % 8);
+          if (cfg.isWinner) startSprintX = 34;
 
           if (cfg.isWinner) {
-            const burstCurve = Math.pow(sprintRatio, 1.3);
+            // Quán quân: bứt tốc dũng mãnh, vượt qua vạch đích 80% sang 88%
+            const burstCurve = Math.pow(sprintRatio, 1.25);
             const surgeX = startSprintX + (cfg.finalTargetX - startSprintX) * burstCurve;
             const wobble = Math.sin((elapsed / 180) * cfg.wobbleFreq) * (0.6 * (1 - sprintRatio));
             currentX = surgeX + wobble;
           } else {
+            // Các con khác: dừng lại trước vạch đích (<= 76%)
             const normalCurve = Math.pow(sprintRatio, 1.15);
             const normalX = startSprintX + (cfg.finalTargetX - startSprintX) * normalCurve;
             const wobble = Math.sin((elapsed / 240) * cfg.wobbleFreq + idx) * (0.8 * (1 - sprintRatio));
-            currentX = normalX + wobble;
+            currentX = Math.min(FINISH_LINE_X - 4.0, normalX + wobble);
           }
         }
 
@@ -355,6 +356,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         stopRiverWaterSound();
         setIsRunning(false);
         setIsPaused(false);
+        setShowFinishLine(false);
         setRaceFinished(true);
 
         if (soundEnabled) {
@@ -451,16 +453,11 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     // 🐥 Vịt Vàng tròn dễ thương chuẩn ảnh mẫu (thân tròn xanh dương nhạt hoặc vàng)
     return (
       <svg viewBox="0 0 100 90" className="w-full h-full">
-        {/* Đuôi nhọn vểnh lên */}
         <polygon points="12,52 35,46 28,62" fill="#38bdf8" stroke="#0f172a" strokeWidth="3" />
-        {/* Thân tròn dễ thương */}
         <circle cx="52" cy="50" r="32" fill="#38bdf8" stroke="#0f172a" strokeWidth="3.8" />
-        {/* Mỏ cam nhọn viền đen */}
         <polygon points="76,46 98,54 78,59" fill="#ea580c" stroke="#0f172a" strokeWidth="3" />
-        {/* Mắt to đen có ánh sáng trắng */}
         <circle cx="68" cy="38" r="6" fill="#0f172a" />
         <circle cx="70.5" cy="36" r="2.2" fill="#ffffff" />
-        {/* Biển số áo tròn bo góc trên thân */}
         <rect x="36" y="42" width="30" height="24" rx="7" fill="#ffffff" stroke="#0f172a" strokeWidth="3" />
       </svg>
     );
@@ -476,7 +473,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         {/* 1. THANH ĐIỀU KHIỂN HEADER TRÊN CÙNG (CHUẨN ẢNH MẪU)                 */}
         {/* =================================================================== */}
         <div className="relative z-30 flex items-center justify-between px-5 py-3 bg-[#0d162d] border-b border-slate-800">
-          {/* CÁC NÚT ĐIỀU KHIỂN BÊN TRÁI: Settings, Volume, Shuffle, CLEAR */}
+          {/* CÁC NÚT ĐIỀU KHIỂN BÊN TRÁI: Settings, Volume, Shuffle, CLEAR, START */}
           <div className="flex items-center space-x-2.5">
             <button
               type="button"
@@ -667,6 +664,35 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
             </svg>
           </div>
 
+          {/* CSS HOẠT HỌA VẠCH ĐÍCH TRƯỢT VÀO VÀ BƠI BỒNG BỀNH */}
+          <style>{`
+            @keyframes finishLineSlideIn {
+              0% { opacity: 0; transform: translateX(50px) skewX(-20deg); }
+              100% { opacity: 1; transform: translateX(0) skewX(-20deg); }
+            }
+          `}</style>
+
+          {/* VẠCH ĐÍCH THỂ THAO CARÔ: CHỈ XUẤT HIỆN KHI CÒN 4 GIÂY CUỐI Ở 80% */}
+          {showFinishLine && !raceFinished && (
+            <div
+              className="absolute top-7 bottom-0 w-14 shadow-2xl border-x-[3.5px] border-slate-950 pointer-events-none z-20 transform -skew-x-[20deg] origin-top"
+              style={{
+                left: `${FINISH_LINE_X}%`,
+                backgroundImage: 'repeating-linear-gradient(45deg, #000 0, #000 12px, #fff 12px, #fff 24px)',
+                animation: 'finishLineSlideIn 0.5s ease-out forwards',
+              }}
+            >
+              <div className="absolute top-2 -left-3 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap transform skew-x-[20deg]">
+                <span>🏁</span>
+                <span>ĐÍCH</span>
+              </div>
+              <div className="absolute bottom-4 -left-4 bg-red-600 border-2 border-white text-white font-black text-[10px] px-2 py-0.5 rounded-full shadow-lg uppercase tracking-wider flex items-center space-x-1 whitespace-nowrap transform skew-x-[20deg]">
+                <span>🏁</span>
+                <span>FINISH</span>
+              </div>
+            </div>
+          )}
+
           {/* =================================================================== */}
           {/* HỘP ĐIỀU KHIỂN GÓC TRÊN TRÁI DÒNG SÔNG CHUẨN ẢNH MẪU                */}
           {/* =================================================================== */}
@@ -733,6 +759,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
           ) : (
             /* =================================================================== */
             /* TRƯỜNG HỢP 2: TRONG KHI ĐANG ĐUA / CHUẨN BỊ XUẤT PHÁT              */
+            /* ĐÀN VỊT BƠI TỰ NHIÊN TRÊN SÔNG - 4S CUỐI VẠCH ĐÍCH MỚI HIỆN RA     */
             /* =================================================================== */
             <div className="flex-1 relative">
               {/* TẤT CẢ ĐÀN CON VẬT TRONG 1 KHUNG HÌNH (XUẤT PHÁT TỪ BÊN TRÁI 4%) */}
