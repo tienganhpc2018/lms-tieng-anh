@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, RotateCcw, Dices, UserCheck } from 'lucide-react';
+import { X, Sparkles, RotateCcw, Dices, Settings, Award, BookOpen, CheckCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playClick, playWinner, playSuspenseSpin, playTick } from '../../../utils/soundEffects';
+import TetQuestionConfigModal from '../components/TetQuestionConfigModal';
+import TetQuestionPlayer from '../components/TetQuestionPlayer';
+import { getFilteredTetQuestions } from '../data/tetQuestionsBank';
 
-// Bảng tọa độ chuẩn xác gắn thẻ thiệp tên học sinh lên các nhánh cây mai vàng Real
+// Bảng tọa độ chuẩn xác gắn các đèn lồng LỘC lên các nhánh cành cây mai vàng Real
 const MAI_BRANCH_COORDINATES = [
   // Tán trên cùng (ngọn mai)
   { x: 42, y: 14 }, { x: 50, y: 12 }, { x: 58, y: 14 }, { x: 46, y: 22 }, { x: 54, y: 21 },
@@ -22,15 +25,52 @@ const MAI_BRANCH_COORDINATES = [
 ];
 
 export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAwardStudent }) {
-  const [calledStudentIds, setCalledStudentIds] = useState([]); // Danh sách học sinh đã được hái lộc
-  const [activeWinner, setActiveWinner] = useState(null);
+  // Trạng thái lưu trữ Lộc đã mở: { [locNumber]: student }
+  const [openedLocs, setOpenedLocs] = useState({});
+  const [calledStudentIds, setCalledStudentIds] = useState([]);
+  
+  // Trạng thái quay bốc thăm 6s hồi hộp
   const [isSpinning, setIsSpinning] = useState(false);
-  const [spinCountdown, setSpinCountdown] = useState(6); // 6 giây hồi hộp
+  const [spinCountdown, setSpinCountdown] = useState(6);
   const [spinningStudent, setSpinningStudent] = useState(null);
-  const [highlightIndex, setHighlightIndex] = useState(null); // Đèn nháy chạy quanh các thiệp trên cây
+  const [targetLocNumber, setTargetLocNumber] = useState(null);
+  const [highlightLocIndex, setHighlightLocIndex] = useState(null);
+
+  // Màn hình kết quả người trúng lộc
+  const [winnerModalData, setWinnerModalData] = useState(null); // { student, locNumber }
+
+  // Màn hình trả lời câu hỏi Tiếng Anh
+  const [activeQuestionSession, setActiveQuestionSession] = useState(null); // { student, locNumber, questions }
+
+  // Modal cấu hình câu hỏi Tiếng Anh
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [questionConfig, setQuestionConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tet_haihoa_question_config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      // ignore
+    }
+    return {
+      grade: 3,
+      unit: 'all',
+      count: 2,
+      questionType: 'all' // 'all' | 'multiple_choice' | 'short_answer' | 'word_reorder'
+    };
+  });
 
   const spinTimerRef = useRef(null);
   const countTimerRef = useRef(null);
+
+  // Lưu cấu hình vào localStorage khi thay đổi
+  const handleUpdateConfig = (newCfg) => {
+    setQuestionConfig(newCfg);
+    try {
+      localStorage.setItem('tet_haihoa_question_config', JSON.stringify(newCfg));
+    } catch (e) {
+      // ignore
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -52,33 +92,40 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
     (s) => !calledStudentIds.includes(s.id)
   );
 
-  // Kích hoạt bốc thăm hái hoa (cho 1 học sinh cụ thể hoặc quay ngẫu nhiên)
-  const handlePickStudent = (targetStudent) => {
+  // Tổng số lộc treo trên cây mai (tương ứng với sĩ số lớp)
+  const totalLocCount = Math.max(displayStudents.length, 1);
+  const locList = Array.from({ length: totalLocCount }, (_, i) => i + 1);
+
+  // Danh sách các số lộc chưa được hái
+  const availableLocNumbers = locList.filter((num) => !openedLocs[num]);
+
+  // Bắt đầu bốc thăm hái lộc
+  const startPickProcess = (locNum) => {
     if (isSpinning) return;
 
-    if (calledStudentIds.includes(targetStudent.id)) {
-      // Đã gọi rồi thì mở lại modal chúc mừng
-      setActiveWinner(targetStudent);
+    // Nếu lộc này đã có người hái rồi thì mở xem lại
+    if (openedLocs[locNum]) {
+      const pastWinner = openedLocs[locNum];
+      setWinnerModalData({ student: pastWinner, locNumber: locNum, isPast: true });
       return;
     }
 
     playClick();
 
     const pool = availableStudents.length > 0 ? availableStudents : displayStudents;
-
-    // BẮT ĐẦU 6S HỒI HỘP ĐẾM NGƯỢC
+    setTargetLocNumber(locNum);
     setIsSpinning(true);
     setSpinCountdown(6);
-    setSpinningStudent(targetStudent);
+    setSpinningStudent(pool[0]);
 
     let secondsLeft = 6;
     let tickCount = 0;
 
-    // Vòng lặp xoay đèn nháy và tên chớp nhoáng (80ms)
+    // Vòng lặp xoay chớp nhoáng (80ms)
     spinTimerRef.current = setInterval(() => {
       tickCount++;
-      const randIdx = Math.floor(Math.random() * displayStudents.length);
-      setHighlightIndex(randIdx);
+      const randLocIdx = Math.floor(Math.random() * locList.length);
+      setHighlightLocIndex(randLocIdx);
       const randStudent = pool[Math.floor(Math.random() * pool.length)];
       setSpinningStudent(randStudent);
       playSuspenseSpin(tickCount / 75);
@@ -93,12 +140,17 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
         clearInterval(countTimerRef.current);
         clearInterval(spinTimerRef.current);
         setIsSpinning(false);
-        setHighlightIndex(null);
+        setHighlightLocIndex(null);
 
-        // Chốt học sinh: nếu bấm trực tiếp vào bạn nào thì chọn bạn đó, nếu quay ngẫu nhiên thì bốc từ pool
-        const chosen = targetStudent || pool[Math.floor(Math.random() * pool.length)];
+        // Chọn học sinh may mắn
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
 
+        // Ghi nhận học sinh đã được gọi và lộc đã được mở
         setCalledStudentIds((prev) => (prev.includes(chosen.id) ? prev : [...prev, chosen.id]));
+        setOpenedLocs((prev) => ({
+          ...prev,
+          [locNum]: chosen
+        }));
 
         playWinner();
         confetti({
@@ -107,18 +159,42 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
           origin: { y: 0.5 },
         });
 
-        setActiveWinner(chosen);
+        // Mở popup chúc mừng trước khi vào trả lời câu hỏi
+        setWinnerModalData({ student: chosen, locNumber: locNum, isPast: false });
       }
     }, 1000);
   };
 
-  // Nút quay ngẫu nhiên một bạn trên cây mai
+  // Nút quay ngẫu nhiên một lộc
   const handleRandomPick = () => {
     if (isSpinning) return;
-    const pool = availableStudents.length > 0 ? availableStudents : displayStudents;
-    if (pool.length === 0) return;
-    const randomTarget = pool[Math.floor(Math.random() * pool.length)];
-    handlePickStudent(randomTarget);
+    const locPool = availableLocNumbers.length > 0 ? availableLocNumbers : locList;
+    if (locPool.length === 0) return;
+    const randomLoc = locPool[Math.floor(Math.random() * locPool.length)];
+    startPickProcess(randomLoc);
+  };
+
+  // Khi bấm "Bắt Đầu Trả Lời Câu Hỏi" từ popup chúc mừng
+  const handleStartQuestionSession = () => {
+    if (!winnerModalData) return;
+    playClick();
+
+    const questions = getFilteredTetQuestions({
+      grade: questionConfig.grade,
+      unit: questionConfig.unit,
+      questionType: questionConfig.questionType,
+      count: questionConfig.count
+    });
+
+    const student = winnerModalData.student;
+    const locNum = winnerModalData.locNumber;
+    setWinnerModalData(null);
+
+    setActiveQuestionSession({
+      student,
+      locNumber: locNum,
+      questions
+    });
   };
 
   // Đặt lại toàn bộ cành mai
@@ -127,9 +203,11 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
     if (spinTimerRef.current) clearInterval(spinTimerRef.current);
     if (countTimerRef.current) clearInterval(countTimerRef.current);
     setIsSpinning(false);
-    setHighlightIndex(null);
+    setHighlightLocIndex(null);
     setCalledStudentIds([]);
-    setActiveWinner(null);
+    setOpenedLocs({});
+    setWinnerModalData(null);
+    setActiveQuestionSession(null);
   };
 
   return (
@@ -137,23 +215,23 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
       {/* KHUNG MODAL CHIỀU CAO CỐ ĐỊNH 92VH - KHÔNG BAO GIỜ BỊ CO NHỎ */}
       <div className="relative w-full max-w-6xl h-[92vh] sm:h-[94vh] bg-gradient-to-b from-[#2b0808] via-[#1a0404] to-[#0d0101] border-[3.5px] border-amber-500 rounded-[2.2rem] shadow-2xl p-3 sm:p-5 flex flex-col text-amber-100 overflow-hidden space-y-2.5">
         
-        {/* CSS CHUYỂN ĐỘNG THIỆP ĐUNG ĐƯA THEO GIÓ & CÁNH HOA MAI RƠI */}
+        {/* CSS CHUYỂN ĐỘNG ĐÈN LỒNG BẦU DỤC ĐUNG ĐƯA THEO GIÓ & CÁNH HOA MAI */}
         <style>{`
-          @keyframes swingLuckyTag {
+          @keyframes swingLantern {
             0%, 100% {
-              transform: translate(-50%, 0) rotate(-3.5deg);
+              transform: translate(-50%, 0) rotate(-4deg);
               transform-origin: top center;
             }
             50% {
-              transform: translate(-50%, 0) rotate(3.5deg);
+              transform: translate(-50%, 0) rotate(4deg);
               transform-origin: top center;
             }
           }
-          .lucky-tag-swing {
-            animation: swingLuckyTag 3.2s ease-in-out infinite;
+          .lantern-swing {
+            animation: swingLantern 3.2s ease-in-out infinite;
           }
-          .lucky-tag-swing-alt {
-            animation: swingLuckyTag 2.7s ease-in-out infinite reverse;
+          .lantern-swing-alt {
+            animation: swingLantern 2.6s ease-in-out infinite reverse;
           }
 
           @keyframes fallingBlossom {
@@ -192,17 +270,34 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
                 <span>HÁI HOA DÂN CHỦ - CÂY MAI NGÀY TẾT</span>
               </h2>
               <p className="text-[10px] sm:text-xs text-amber-200/80 font-bold mt-0.5">
-                Sĩ số lớp: <span className="text-amber-400">{displayStudents.length} học sinh</span> • Đã hái: <span className="text-emerald-400 font-extrabold">{calledStudentIds.length}</span>/{displayStudents.length} bạn
+                Sĩ số lớp: <span className="text-amber-400">{displayStudents.length} học sinh</span> • Đã hái: <span className="text-emerald-400 font-extrabold">{calledStudentIds.length}</span>/{displayStudents.length} lộc
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-1.5 sm:space-x-2.5">
+            {/* NÚT CẤU HÌNH CÂU HỎI TIẾNG ANH */}
+            <button
+              type="button"
+              onClick={() => {
+                playClick();
+                setIsConfigOpen(true);
+              }}
+              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-300 border-2 border-amber-600/70 text-xs font-black transition cursor-pointer flex items-center space-x-1.5 shadow-md active:scale-95"
+              title="Cài đặt Lớp, Unit, Số câu và Dạng bài tập Tiếng Anh"
+            >
+              <Settings className="w-4 h-4 stroke-[2.5]" />
+              <span className="hidden sm:inline">Cấu Hình Câu Hỏi</span>
+              <span className="text-[10px] bg-amber-500/30 text-amber-200 px-1.5 py-0.5 rounded-full border border-amber-400/40">
+                Lớp {questionConfig.grade}
+              </span>
+            </button>
+
             {/* NÚT QUAY HÁI HOA NGẪU NHIÊN */}
             <button
               type="button"
               onClick={handleRandomPick}
-              disabled={isSpinning || availableStudents.length === 0}
+              disabled={isSpinning || availableLocNumbers.length === 0}
               className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs sm:text-sm transition cursor-pointer flex items-center space-x-1.5 shadow-lg active:scale-95 disabled:opacity-50"
             >
               <Dices className="w-4 h-4 stroke-[2.5]" />
@@ -213,8 +308,8 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
             <button
               type="button"
               onClick={handleResetAll}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-700/60 text-xs font-bold transition cursor-pointer flex items-center space-x-1 shadow-md active:scale-95"
-              title="Đặt lại cành mai"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-700/60 text-xs font-bold transition cursor-pointer flex items-center space-x-1 shadow-md active:scale-95"
+              title="Đặt lại toàn bộ cành mai"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Đặt Lại Cây Mai</span>
@@ -234,12 +329,12 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
 
         {/* HƯỚNG DẪN RÕ RÀNG */}
         <div className="text-[10px] sm:text-xs font-black text-amber-300 flex items-center justify-between bg-amber-950/60 px-3 py-1.5 rounded-xl border border-amber-700/50 shadow-inner flex-shrink-0">
-          <span>🧧 Bấm trực tiếp vào tấm thiệp mang tên học sinh trên cành mai hoặc bấm "Quay Ngẫu Nhiên" để hái hoa trả bài nhận lì xì!</span>
-          <span className="hidden sm:inline text-amber-400">Còn lại: <strong>{availableStudents.length}</strong> bạn</span>
+          <span>🏮 Bấm vào từng chiếc đèn lồng LỘC trên cây mai hoặc bấm "Quay Ngẫu Nhiên" để chọn học sinh trả lời câu hỏi nhận Lì Xì!</span>
+          <span className="hidden sm:inline text-amber-400">Còn lại: <strong>{availableLocNumbers.length}</strong> lộc</span>
         </div>
 
         {/* =================================================================== */}
-        {/* 2. CÂY MAI VÀNG REAL ĐẠI THỤ GẮN ĐẦY ĐỦ TÊN HỌC SINH (CHUẨN 100% REAL) */}
+        {/* 2. CÂY MAI VÀNG REAL 8K GẮN CÁC ĐÈN LỒNG BẦU DỤC ĐỎ CHUẨN ẢNH 2      */}
         {/* =================================================================== */}
         <div className="flex-1 relative w-full rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-amber-500/80 shadow-2xl bg-black min-h-[380px]">
           {/* HÌNH ẢNH CÂY MAI REAL NỞ HOA VÀNG RỰC RỠ 8K */}
@@ -249,7 +344,7 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
             className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
           />
 
-          {/* LỚP PHỦ GRADIENT TỐI NHẸ ĐỂ NỔI BẬT CÁC TẤM THIỆP GẮN TÊN */}
+          {/* LỚP PHỦ GRADIENT TỐI NHẸ ĐỂ NỔI BẬT CÁC CHIẾC ĐÈN LỒNG */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25 pointer-events-none" />
 
           {/* CÁNH HOA MAI VÀNG BAY LƯỢN TRONG GIÓ XUÂN */}
@@ -289,79 +384,76 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
           </div>
 
           {/* ================================================================= */}
-          {/* CÁC TẤM THIỆP GẮN TRỰC TIẾP TÊN HỌC SINH TREO TRÊN TỪNG CÀNH MAI    */}
+          {/* CÁC ĐÈN LỒNG BẦU DỤC ĐỎ VIỀN VÀNG KIM CHUẨN 100% THEO ẢNH 2      */}
           {/* ================================================================= */}
           <div className="absolute inset-0">
-            {displayStudents.map((st, idx) => {
-              const isCalled = calledStudentIds.includes(st.id);
-              const isHighlighted = highlightIndex === idx;
-              
+            {locList.map((locNum, idx) => {
+              const isOpened = Boolean(openedLocs[locNum]);
+              const openedStudent = openedLocs[locNum];
+              const isHighlighted = highlightLocIndex === idx;
+
               // Lấy tọa độ cành mai chuẩn xác
               const coord = MAI_BRANCH_COORDINATES[idx % MAI_BRANCH_COORDINATES.length];
-              const swingClass = idx % 2 === 0 ? 'lucky-tag-swing' : 'lucky-tag-swing-alt';
+              const swingClass = idx % 2 === 0 ? 'lantern-swing' : 'lantern-swing-alt';
 
               return (
                 <div
-                  key={st.id}
+                  key={locNum}
                   className={`absolute cursor-pointer z-20 ${swingClass} ${
-                    isHighlighted ? 'scale-130 z-40 animate-pulse' : ''
+                    isHighlighted ? 'scale-125 z-40 animate-pulse' : ''
                   }`}
                   style={{
                     left: `${coord.x}%`,
                     top: `${coord.y}%`,
                   }}
-                  onClick={() => handlePickStudent(st)}
+                  onClick={() => startPickProcess(locNum)}
+                  title={
+                    isOpened
+                      ? `Lộc ${locNum}: ${openedStudent?.full_name} (Bấm để xem lại)`
+                      : `Bấm để hái Lộc ${locNum}`
+                  }
                 >
-                  {/* SỢI DÂY TREO ĐỎ TỪ CÀNH MAI RỦ XUỐNG */}
-                  <div className="w-0.5 h-3.5 sm:h-5 bg-gradient-to-b from-amber-400 to-rose-600 mx-auto relative">
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-300 border border-amber-600 shadow-2xs" />
-                  </div>
+                  {/* TRỤC QUE VÀNG NHÔ LÊN PHÍA TRÊN ĐÈN LỒNG (CHUẨN ẢNH 2) */}
+                  <div className="w-1 sm:w-1.5 h-2.5 sm:h-3.5 bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 rounded-t-full shadow-xs mx-auto" />
 
-                  {/* THÂN THẺ LIỄN / THIỆP ĐỎ GẤM THIẾT KẾ ĐẶC BIỆT GẮN TÊN HỌC SINH */}
+                  {/* THÂN ĐÈN LỒNG HÌNH BẦU DỤC ĐỨNG ĐỎ VIỀN VÀNG (CHUẨN ẢNH 2) */}
                   <div
-                    className={`w-16 sm:w-20 h-13 sm:h-15 rounded-xl p-1 text-center transition transform hover:scale-120 hover:z-40 shadow-2xl border-2 flex flex-col items-center justify-between ${
+                    className={`w-9 sm:w-11 h-13 sm:h-15 rounded-[1.2rem] text-center transition transform hover:scale-120 hover:z-40 shadow-2xl border-2 flex flex-col items-center justify-center p-0.5 relative ${
                       isHighlighted
                         ? 'bg-yellow-400 text-slate-950 border-white shadow-[0_0_20px_#fde047]'
-                        : isCalled
-                        ? 'bg-gradient-to-b from-amber-600/90 via-amber-700/90 to-amber-900/90 border-amber-300/60 opacity-70'
-                        : 'bg-gradient-to-b from-[#b91c1c] via-[#991b1b] to-[#7f1d1d] border-amber-400/90 hover:border-yellow-200 hover:shadow-[0_0_15px_#f59e0b]'
+                        : isOpened
+                        ? 'bg-gradient-to-b from-[#991b1b] via-[#7f1d1d] to-[#450a0a] border-yellow-400/60 opacity-80'
+                        : 'bg-gradient-to-b from-[#e11d48] via-[#dc2626] to-[#991b1b] border-yellow-300 hover:border-white shadow-[0_0_12px_rgba(234,179,8,0.5)]'
                     }`}
-                    title={isCalled ? `Đã gọi: ${st.full_name}` : `Bấm để chọn: ${st.full_name}`}
                   >
-                    {/* HÀNG TRÊN: HOA MAI HOẶC SỐ ÁO */}
-                    <div className="flex items-center justify-between w-full px-1 leading-none">
-                      <span className="text-[9px]">🌸</span>
-                      {isCalled ? (
-                        <span className="text-[8px] bg-emerald-600 text-white px-1 py-0.2 rounded-full font-bold">
-                          ✓
-                        </span>
-                      ) : (
-                        <span className="text-[8px] text-amber-300 font-mono font-bold">
-                          #{idx + 1}
-                        </span>
-                      )}
-                    </div>
+                    {/* DÒNG TRÊN: CHỮ LỘC VÀNG KIM */}
+                    <span
+                      className={`text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider leading-none ${
+                        isHighlighted ? 'text-slate-950' : 'text-yellow-300 drop-shadow-sm'
+                      }`}
+                    >
+                      LỘC
+                    </span>
 
-                    {/* HÀNG GIỮA: TÊN HỌC SINH GẮN TRỰC TIẾP TRÊN THIỆP CÀNH MAI */}
-                    <div className="w-full px-0.5">
-                      <span className={`block font-black text-[10px] sm:text-[11px] leading-tight truncate tracking-tight ${
-                        isHighlighted ? 'text-slate-950 font-black' : isCalled ? 'text-amber-100' : 'text-amber-200 drop-shadow-sm'
-                      }`}>
-                        {st.full_name}
-                      </span>
-                    </div>
+                    {/* DÒNG DƯỚI: SỐ THỨ TỰ LỘC MÀU TRẮNG DÀY NỔI BẬT */}
+                    <span
+                      className={`text-sm sm:text-base font-black font-mono leading-none mt-0.5 ${
+                        isHighlighted ? 'text-slate-950' : 'text-white drop-shadow-md'
+                      }`}
+                    >
+                      {locNum}
+                    </span>
 
-                    {/* HÀNG DƯỚI: BIỂU TƯỢNG LÌ XÌ */}
-                    <div className="text-[9px] leading-none">
-                      {isCalled ? '🧧' : '🏮'}
-                    </div>
+                    {/* DẤU TÍCH XANH HOẶC LÌ XÌ NẾU ĐÃ MỞ */}
+                    {isOpened && (
+                      <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border border-white text-white flex items-center justify-center text-[8px] font-black shadow-xs">
+                        ✓
+                      </div>
+                    )}
                   </div>
 
-                  {/* CHÙM TUA RUA ĐỎ VÀNG ĐUÔI PHỤNG DƯỚI ĐÁY THIỆP */}
-                  <div className="flex flex-col items-center -mt-0.5 pointer-events-none">
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 border border-amber-600" />
-                    <div className="w-1 h-3 sm:h-4 bg-gradient-to-b from-rose-600 via-amber-400 to-rose-700 rounded-b-sm shadow-xs" />
-                  </div>
+                  {/* TRỤC QUE VÀNG NHÔ XUỐNG PHÍA DƯỚI ĐÈN LỒNG (CHUẨN ẢNH 2) */}
+                  <div className="w-1 sm:w-1.5 h-3 sm:h-4 bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 rounded-b-full shadow-xs mx-auto" />
                 </div>
               );
             })}
@@ -369,7 +461,7 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
         </div>
 
         {/* =================================================================== */}
-        {/* 3. MODAL 6 GIÂY HỒI HỘP KHI ĐANG QUAY HÁI HOA                        */}
+        {/* 3. MODAL 6 GIÂY HỒI HỘP KHI ĐANG QUAY CHỌN HỌC SINH                  */}
         {/* =================================================================== */}
         {isSpinning && (
           <div className="fixed inset-0 z-[115] flex items-center justify-center bg-black/85 p-4 animate-fade-in">
@@ -381,10 +473,10 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
 
                 <div className="space-y-1">
                   <span className="text-xs font-black text-amber-400 uppercase tracking-widest block animate-pulse">
-                    🌸 ĐANG HÁI HOA TRÊN CÀNH MAI 🌸
+                    🌸 ĐANG HÁI LỘC #{targetLocNumber} TRÊN CÂY MAI 🌸
                   </span>
                   <p className="text-xs text-amber-200/80 font-medium">
-                    Ai sẽ là chủ nhân của đóa hoa mai may mắn này?
+                    Ai sẽ là chủ nhân may mắn của chiếc đèn lồng này?
                   </p>
                 </div>
 
@@ -425,48 +517,82 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
         )}
 
         {/* =================================================================== */}
-        {/* 4. MODAL KẾT QUẢ TRÚNG LỘC / HÁI HOA THÀNH CÔNG                      */}
+        {/* 4. MODAL CHÚC MỪNG HỌC SINH TRÚNG LỘC & MỜI TRẢ LỜI CÂU HỎI         */}
         {/* =================================================================== */}
-        {activeWinner && !isSpinning && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 animate-scale-up">
-            <div className="bg-gradient-to-b from-amber-500 to-amber-700 p-1 rounded-[2.5rem] shadow-2xl max-w-sm w-full border-3 border-amber-300">
+        {winnerModalData && !isSpinning && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-scale-up">
+            <div className="bg-gradient-to-b from-amber-500 to-amber-700 p-1.5 rounded-[2.5rem] shadow-2xl max-w-sm w-full border-3 border-amber-300">
               <div className="bg-gradient-to-b from-[#3a0808] to-[#1f0303] rounded-[2.3rem] p-6 text-center space-y-4 text-amber-100">
-                <span className="text-4xl animate-bounce inline-block">🎊 🌸 🎊</span>
+                <span className="text-4xl animate-bounce inline-block">🎊 🏮 🎊</span>
                 <div className="space-y-1">
                   <span className="text-xs font-black text-amber-400 uppercase tracking-widest">
-                    CHÚC MỪNG BẠN ĐÃ ĐƯỢC HÁI HOA
+                    CHÚC MỪNG BẠN ĐÃ TRÚNG LỘC #{winnerModalData.locNumber}
                   </span>
                   <h3 className="text-xl sm:text-2xl font-black text-white drop-shadow-md">
-                    {activeWinner.full_name}
+                    {winnerModalData.student.full_name}
                   </h3>
                   <p className="text-xs text-amber-200/80 font-bold font-mono">
-                    {activeWinner.code ? `${activeWinner.code} • ` : ''}Tổ {activeWinner.team_group || 1}
+                    {winnerModalData.student.code ? `${winnerModalData.student.code} • ` : ''}Tổ {winnerModalData.student.team_group || 1}
                   </p>
                 </div>
 
                 <div className="w-24 h-24 mx-auto rounded-3xl bg-amber-500/20 border-2 border-amber-400 p-2 shadow-inner">
                   <img
-                    src={activeWinner.avatar}
-                    alt={activeWinner.full_name}
+                    src={winnerModalData.student.avatar}
+                    alt={winnerModalData.student.full_name}
                     className="w-full h-full object-cover rounded-2xl"
                   />
                 </div>
 
                 <div className="p-3 bg-amber-950/80 rounded-2xl border border-amber-600/40 text-xs font-bold text-amber-200">
-                  🎯 Xin mời bạn: <span className="text-amber-400 font-black">Lên Bảng Trả Bài / Nhận Lì Xì!</span>
+                  🎯 Hãy trả lời câu hỏi Tiếng Anh để rước lì xì may mắn đầu xuân!
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setActiveWinner(null)}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm rounded-xl shadow-lg transition cursor-pointer active:scale-95"
-                >
-                  Tuyệt Vời & Tiếp Tục
-                </button>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={handleStartQuestionSession}
+                    className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-sm rounded-xl shadow-lg transition cursor-pointer active:scale-95"
+                  >
+                    Bắt Đầu Trả Lời Câu Hỏi 🎯
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWinnerModalData(null)}
+                    className="w-full py-2 bg-transparent hover:bg-white/10 text-amber-300/80 font-bold text-xs rounded-xl transition cursor-pointer"
+                  >
+                    Đóng lại
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
+
+        {/* =================================================================== */}
+        {/* 5. MÀN HÌNH TRẢ LỜI CÂU HỎI TIẾNG ANH TƯƠNG TÁC                     */}
+        {/* =================================================================== */}
+        {activeQuestionSession && (
+          <TetQuestionPlayer
+            student={activeQuestionSession.student}
+            locNumber={activeQuestionSession.locNumber}
+            questions={activeQuestionSession.questions}
+            onComplete={() => setActiveQuestionSession(null)}
+            onAwardStudent={onAwardStudent}
+          />
+        )}
+
+        {/* =================================================================== */}
+        {/* 6. MODAL CẤU HÌNH CÂU HỎI TIẾNG ANH (LỚP, UNIT, SỐ CÂU, DẠNG BÀI)    */}
+        {/* =================================================================== */}
+        <TetQuestionConfigModal
+          isOpen={isConfigOpen}
+          onClose={() => setIsConfigOpen(false)}
+          config={questionConfig}
+          onChangeConfig={handleUpdateConfig}
+        />
+
       </div>
     </div>
   );
