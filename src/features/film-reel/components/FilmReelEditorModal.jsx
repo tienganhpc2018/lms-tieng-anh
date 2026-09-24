@@ -33,6 +33,8 @@ import {
 import { playClick, playCorrect } from '../../../utils/soundEffects';
 import { loadClasses } from '../../behavior/behaviorStorage';
 import { compressImage, compressDataUrlMultiStage } from '../../../utils/imageCompressor';
+import { formatDirectImageUrl, isGoogleDriveUrl } from '../utils/googleDriveHelper';
+import { cleanStorageForEmergency } from '../filmReelStorage';
 
 const PRESET_COVERS = [
   { label: 'Học tập & Thảo luận', url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&auto=format&fit=crop&q=80' },
@@ -49,6 +51,7 @@ export default function FilmReelEditorModal({
   onSave,
 }) {
   const [activeTab, setActiveTab] = useState('edit'); // 'edit' | 'preview'
+  const [coverSourceType, setCoverSourceType] = useState('drive'); // 'drive' | 'upload'
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Học tập');
   const [eventDate, setEventDate] = useState(
@@ -549,62 +552,126 @@ export default function FilmReelEditorModal({
               </div>
 
               {/* KHU VỰC CHỌN ẢNH BÌA */}
-              <div className="space-y-2 bg-purple-50/50 p-4 rounded-2xl border border-purple-200">
-                <label className="text-xs font-black text-purple-950 uppercase flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-purple-600" />
-                  Ảnh Bìa Đại Diện (Tỷ lệ 16:9):
-                </label>
+              <div className="space-y-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-200">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-xs font-black text-purple-950 uppercase flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-purple-600" />
+                    Ảnh Bìa Đại Diện (Tỷ lệ 16:9):
+                  </label>
 
-                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                  {/* Nút chuyển đổi chế độ */}
+                  <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-purple-200">
+                    <button
+                      type="button"
+                      onClick={() => setCoverSourceType('drive')}
+                      className={`px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                        coverSourceType === 'drive'
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-blue-600'
+                      }`}
+                    >
+                      <span>☁️ Dán Link Google Drive / Web</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCoverSourceType('upload')}
+                      className={`px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                        coverSourceType === 'upload'
+                          ? 'bg-purple-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-purple-600'
+                      }`}
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>Tải Từ Máy Tính</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3.5 items-start">
                   {coverImage ? (
-                    <div className="relative w-full sm:w-48 aspect-video rounded-xl overflow-hidden border-2 border-purple-300 shadow-sm shrink-0">
+                    <div className="relative w-full sm:w-52 aspect-video rounded-xl overflow-hidden border-2 border-purple-300 shadow-sm shrink-0 bg-slate-900">
                       <img
                         src={coverImage}
                         alt="Ảnh bìa"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.warn('Lỗi tải ảnh bìa:', coverImage);
+                        }}
                       />
                       <button
                         type="button"
                         onClick={() => setCoverImage('')}
-                        className="absolute top-1 right-1 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-md hover:bg-rose-700"
+                        className="absolute top-1.5 right-1.5 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-md hover:bg-rose-700 cursor-pointer"
                         title="Xóa ảnh bìa"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
-                    <div className="w-full sm:w-48 aspect-video rounded-xl border-2 border-dashed border-purple-300 flex flex-col items-center justify-center text-purple-400 bg-white shrink-0">
-                      <ImageIcon className="w-6 h-6" />
-                      <span className="text-[10px] font-bold mt-1">Chưa có ảnh bìa</span>
+                    <div className="w-full sm:w-52 aspect-video rounded-xl border-2 border-dashed border-purple-300 flex flex-col items-center justify-center text-purple-400 bg-white shrink-0">
+                      <ImageIcon className="w-7 h-7" />
+                      <span className="text-[11px] font-bold mt-1.5">Chưa có ảnh bìa</span>
                     </div>
                   )}
 
-                  <div className="flex-1 w-full space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Dán link ảnh URL (https://...)"
-                      value={coverImage.startsWith('data:') ? '' : coverImage}
-                      onChange={(e) => setCoverImage(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-purple-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-purple-400"
-                    />
+                  <div className="flex-1 w-full space-y-2.5">
+                    {coverSourceType === 'drive' ? (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Dán đường link Google Drive (chia sẻ bất kỳ ai) hoặc link ảnh web..."
+                            value={coverImage.startsWith('data:') ? '' : coverImage}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const directUrl = formatDirectImageUrl(val);
+                              setCoverImage(directUrl);
+                            }}
+                            className="w-full px-3.5 py-2.5 bg-white border-2 border-blue-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
+                          />
+                        </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <label className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer shadow-sm active:scale-95 transition-all">
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>Hoặc tải ảnh từ máy tính</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleCoverUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
+                        {coverImage && isGoogleDriveUrl(coverImage) && (
+                          <div className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold rounded-lg flex items-center gap-1.5">
+                            <span>✅</span>
+                            <span>Đã nhận diện link Google Drive - Ảnh tải trực tiếp không tốn 1 byte dung lượng máy!</span>
+                          </div>
+                        )}
+
+                        {/* Hướng dẫn lấy link Google Drive */}
+                        <div className="p-2.5 bg-blue-50/80 rounded-xl border border-blue-200/80 text-[11px] text-blue-950 space-y-1">
+                          <div className="font-extrabold flex items-center gap-1 text-blue-900">
+                            <span>💡</span> Cách lấy link ảnh Google Drive nhanh nhất:
+                          </div>
+                          <p className="text-slate-600 leading-relaxed">
+                            1. Mở ảnh trên <b>Google Drive</b> &gt; Bấm nút <b>Chia sẻ (Share)</b>.<br/>
+                            2. Chuyển quyền truy cập chung thành <b>"Bất kỳ ai có đường liên kết" (Anyone with link)</b>.<br/>
+                            3. Bấm <b>Sao chép đường liên kết (Copy link)</b> và dán vào ô trên là ảnh sẽ hiển thị ngay!
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer shadow-sm active:scale-95 transition-all">
+                          <Upload className="w-4 h-4" />
+                          <span>Chọn tệp ảnh từ máy tính (Tự động nén siêu nhẹ)</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCoverUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        <p className="text-[11px] text-slate-500 italic">
+                          Hệ thống sẽ tự động nén kích thước chuẩn Web để bảo vệ bộ nhớ trình duyệt.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Gợi ý chọn nhanh ảnh bìa mẫu học đường đẹp */}
-                    <div className="pt-1 border-t border-purple-200/60">
+                    <div className="pt-2 border-t border-purple-200/60">
                       <span className="text-[11px] font-extrabold text-purple-900 block mb-1.5 flex items-center gap-1">
-                        <span>⚡</span> Chọn nhanh ảnh bìa mẫu có sẵn (1-Click):
+                        <span>⚡</span> Hoặc chọn nhanh ảnh bìa học đường có sẵn (1-Click):
                       </span>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                         {PRESET_COVERS.map((cov, cIdx) => (
@@ -750,24 +817,37 @@ export default function FilmReelEditorModal({
                             )}
 
                             <div className="flex-1 w-full space-y-2">
-                              <input
-                                type="text"
-                                placeholder="Dán link ảnh (https://...)"
-                                value={block.url?.startsWith('data:') ? '' : block.url}
-                                onChange={(e) => updateBlock(block.id, { url: e.target.value })}
-                                className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-purple-400"
-                              />
-
-                              <label className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer">
-                                <Upload className="w-3 h-3" />
-                                <span>Tải ảnh từ máy</span>
+                              <div className="relative">
                                 <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(e) => handleBlockImageUpload(block.id, e)}
-                                  className="hidden"
+                                  type="text"
+                                  placeholder="Dán link Google Drive (chia sẻ bất kỳ ai) hoặc link ảnh web..."
+                                  value={block.url?.startsWith('data:') ? '' : (block.url || '')}
+                                  onChange={(e) => {
+                                    const formatted = formatDirectImageUrl(e.target.value);
+                                    updateBlock(block.id, { url: formatted });
+                                  }}
+                                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-blue-400 placeholder:text-slate-400"
                                 />
-                              </label>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2">
+                                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs cursor-pointer transition">
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>Tải ảnh từ máy tính</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => handleBlockImageUpload(block.id, e)}
+                                    className="hidden"
+                                  />
+                                </label>
+
+                                {block.url && isGoogleDriveUrl(block.url) && (
+                                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 flex items-center gap-1">
+                                    <span>☁️</span> Google Drive trực tiếp (0 byte bộ nhớ)
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
 
@@ -846,9 +926,21 @@ export default function FilmReelEditorModal({
         {/* 3. FOOTER HÀNH ĐỘNG */}
         <div className="p-4 bg-slate-50 border-t border-slate-200">
           {errorMessage && (
-            <div className="mb-3 p-3 bg-rose-50 border-2 border-rose-300 text-rose-700 text-xs font-bold rounded-xl flex items-center gap-2 animate-bounce">
-              <span>⚠️</span>
-              <span>{errorMessage}</span>
+            <div className="mb-3 p-3 bg-rose-50 border-2 border-rose-300 text-rose-700 text-xs font-bold rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-base shrink-0">⚠️</span>
+                <span className="leading-relaxed">{errorMessage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  cleanStorageForEmergency();
+                  setErrorMessage('Đã dọn dẹp sạch cache và bài mẫu! Thầy bấm "LƯU & XUẤT BẢN KHOẢNH KHẮC" lại nhé!');
+                }}
+                className="shrink-0 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black shadow-sm transition active:scale-95 cursor-pointer flex items-center gap-1"
+              >
+                <span>⚡ Dọn Dẹp Bộ Nhớ Ngay</span>
+              </button>
             </div>
           )}
           <div className="flex items-center justify-between">

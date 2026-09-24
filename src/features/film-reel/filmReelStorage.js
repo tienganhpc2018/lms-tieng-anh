@@ -1,5 +1,6 @@
-// HỆ THỐNG LƯU TRỮ VÀ QUẢN LÝ CUỘN PHIM KỶ NIỆM (LOCALSTORAGE)
+// HỆ THỐNG LƯU TRỮ VÀ QUẢN LÝ CUỘN PHIM KỶ NIỆM (LOCALSTORAGE + INDEXEDDB)
 import { SAMPLE_FILM_REELS } from './constants/filmReelPresets';
+import { saveReelToIndexedDb, getAllReelsFromIndexedDb } from './services/filmReelIndexedDb';
 
 const STORAGE_KEY_PREFIX = 'film_reels_';
 
@@ -220,7 +221,14 @@ export const saveOrUpdateFilmReel = (reelData, previousClassId = null) => {
   classList = classList.filter((r) => r.id !== finalId && r.id !== reelData?.id);
   classList.unshift(finalReel);
 
-  // Thử lưu với cơ chế tự phục hồi nếu LocalStorage báo đầy
+  // 0. Luôn lưu một bản đầy đủ an toàn vào IndexedDB (không bị giới hạn 5MB của LocalStorage)
+  try {
+    saveReelToIndexedDb(finalReel);
+  } catch (e) {
+    console.warn('Lỗi ghi bản sao IndexedDB:', e);
+  }
+
+  // 1. Thử lưu vào LocalStorage với cơ chế tự phục hồi nếu LocalStorage báo đầy
   try {
     localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(classList));
   } catch (quotaErr) {
@@ -229,12 +237,21 @@ export const saveOrUpdateFilmReel = (reelData, previousClassId = null) => {
     try {
       localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(classList));
     } catch (retryErr) {
-      // Nếu vẫn đầy, nén bớt bài cũ chỉ giữ 8 bài mới nhất của lớp
-      if (classList.length > 8) {
-        classList = classList.slice(0, 8);
-        localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(classList));
-      } else {
-        throw retryErr; // Ném lại để FilmReelEditorModal kích hoạt cấp nén sâu hơn
+      // Nếu vẫn đầy, lược bỏ ảnh data: nặng trong các bài cũ để bảo vệ bài mới
+      console.warn('Tối ưu hóa dung lượng các bài cũ để nhường chỗ cho bài mới:', retryErr);
+      try {
+        const lightweightList = classList.slice(0, 8).map((item, idx) => {
+          if (idx === 0) return item; // Bài mới nhất của Thầy giữ nguyên
+          return {
+            ...item,
+            blocks: (item.blocks || []).map((b) =>
+              b.type === 'image' && b.url?.startsWith('data:') ? { ...b, url: '' } : b
+            ),
+          };
+        });
+        localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(lightweightList));
+      } catch (finalErr) {
+        console.warn('LocalStorage đã đầy hoàn toàn, bài viết được lưu trữ trong IndexedDB:', finalErr);
       }
     }
   }
