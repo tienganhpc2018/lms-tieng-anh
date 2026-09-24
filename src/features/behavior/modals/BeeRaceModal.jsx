@@ -100,17 +100,30 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     animalScale = 1.15;
   }
 
-  // Tọa độ vạch xuất phát nghiêng -20 độ xếp hàng xéo so le chen chúc nhau như Ảnh 3
+  // Tọa độ vạch xuất phát nghiêng -20 độ xếp hàng 2 cột so le kề sát vạch xuất phát chuẩn 100% Ảnh 3
   const getStartingPos = (idx, count) => {
-    const yPercent = count > 1 ? (16 + (idx / (count - 1)) * 72) : 50;
-    const lineX = 26 - ((yPercent - 16) / 72) * 14;
-    const staggerX = (idx % 2 === 0 ? -5.5 : -10.5) - (idx % 3) * 1.5;
-    const startX = Math.max(3, lineX + staggerX);
+    const numRows = Math.max(1, Math.ceil(count / 2));
+    const row = Math.floor(idx / 2);
+    const col = idx % 2; // 0: hàng trước sát vạch, 1: hàng sau lùi lại
+
+    // Phân bổ đều theo chiều dọc từ 11% đến 89%
+    let yPercent = 11 + (row / Math.max(1, numRows - 1)) * 78;
+    if (col === 1) {
+      yPercent += 2.0; // so le nhẹ để xen vào khe giữa 2 con hàng trước
+    }
+    yPercent = Math.min(91, yPercent);
+
+    // Đường nghiêng của vạch xuất phát tại độ cao yPercent (skewX -20deg)
+    // Ở y=10% thì lineX=31.5%, ở y=90% thì lineX=16.5%
+    const lineX = 31.5 - ((yPercent - 10) / 80) * 15.0;
+
+    // Hàng 0 (sát vạch) cách vạch 4.5%, Hàng 1 (so le) lùi lại 9.5%
+    const startX = col === 0 ? (lineX - 4.5) : (lineX - 9.5);
     return { x: startX, y: yPercent };
   };
 
-  // Khởi tạo vị trí đàn thú đua tại vạch xuất phát xếp hàng xéo ngay ngắn (Ảnh 1)
-  const initDuckPositions = () => {
+  // Khởi tạo vị trí đàn thú đua tại vạch xuất phát xếp hàng xéo ngay ngắn (Ảnh 3)
+  const initDuckPositions = (customDuration) => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     stopRiverWaterSound();
     setIsRunning(false);
@@ -121,7 +134,8 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     setWinnerNumber(null);
     pendingWinnerRef.current = null;
     pendingWinnerNumberRef.current = null;
-    setTimeLeft(duration);
+    const dur = customDuration !== undefined ? customDuration : duration;
+    setTimeLeft(dur);
     pausedElapsedRef.current = 0;
     setShowRankModal(false);
 
@@ -744,7 +758,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
                   onClick={() => {
                     setDuration(item.s);
                     setTimeLeft(item.s);
-                    initDuckPositions();
+                    initDuckPositions(item.s);
                     setShowSettings(false);
                   }}
                   className={`px-2 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
@@ -856,10 +870,10 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
 
                 {/* CHÚ VỊT DUY NHẤT VỀ ĐÍCH Ở CHÍNH GIỮA DÒNG SÔNG - SIZE LỚN CHUẨN ẢNH 2 */}
                 <div className="relative flex flex-col items-center justify-center animate-fade-in">
-                  {/* NHÃN TÊN HỌC SINH ĐẦY ĐỦ 100% TO RÕ RÀNG KHÔNG BỊ CẮT CHỮ (YÊU CẦU 1) */}
+                  {/* NHÃN TÊN HỌC SINH ĐẦY ĐỦ 100% TO RÕ RÀNG KHÔNG BỊ CẮT CHỮ (CHỈ ĐỂ TÊN THEO YÊU CẦU THẦY) */}
                   <div className="mb-4 whitespace-nowrap bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-slate-950 font-black text-base sm:text-xl px-6 py-2.5 rounded-2xl shadow-2xl border-[3px] border-black flex items-center space-x-2 animate-bounce">
                     <span className="text-xl">👑</span>
-                    <span>#{winnerNumber}. {winnerStudent.full_name || winnerStudent.name}</span>
+                    <span>{winnerStudent.full_name || winnerStudent.name}</span>
                   </div>
 
                   {/* THÂN CHÚ VỊT QUÁN QUÂN SIZE LỚN LƠ LỬNG TRÊN SÓNG NƯỚC (YÊU CẦU 3) */}
@@ -905,7 +919,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
                         zIndex: Math.floor(y * 10),
                         transition: isRunning ? 'none' : 'all 0.4s ease-out',
                       }}
-                      title={`#${studentNumber} - ${st.full_name}`}
+                      title={st.full_name || st.name}
                     >
                       {/* BỌT NƯỚC RẼ SÓNG DƯỚI BỤNG */}
                       <div className={`absolute -bottom-1 -left-1 w-14 h-4 bg-cyan-200/40 rounded-full blur-2xs ${isRunning ? 'animate-pulse' : ''}`} />
@@ -915,11 +929,11 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
                         {renderDuckSVG(variant, studentNumber)}
                       </div>
 
-                      {/* NHÃN TÊN HỌC SINH KHI RÊ CHUỘT */}
+                      {/* NHÃN TÊN HỌC SINH KHI RÊ CHUỘT (CHỈ ĐỂ TÊN THEO YÊU CẦU THẦY) */}
                       <div className={`absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/85 text-amber-200 font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full shadow-md border border-white/20 z-30 pointer-events-none transition-opacity ${
                         isRunning ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
                       }`}>
-                        {studentNumber}. {st.full_name}
+                        {st.full_name || st.name}
                       </div>
                     </div>
                   );
@@ -976,7 +990,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
                           <span className="text-3xl flex-shrink-0">{medals[idx]}</span>
                           <div className="text-left min-w-0">
                             <span className="text-sm font-black text-white block">
-                              #{stNum}. {st.full_name}
+                              {st.full_name || st.name}
                             </span>
                             <span className="text-[10px] font-bold text-amber-300 block uppercase">
                               {titles[idx]}
@@ -1015,7 +1029,6 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
                       <div className="space-y-1.5">
                         {displayRankings.slice(3).map((st, i) => {
                           const rankNum = i + 4;
-                          const stNum = getStudentNumber(st);
 
                           return (
                             <div
@@ -1027,7 +1040,7 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
                                   {rankNum}
                                 </span>
                                 <span className="text-xs font-bold text-slate-200 truncate">
-                                  #{stNum}. {st.full_name}
+                                  {st.full_name || st.name}
                                 </span>
                               </div>
 
