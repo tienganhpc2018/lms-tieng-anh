@@ -17,7 +17,7 @@ const DEFAULT_TOP_STUDENTS = [
     class: 'Học sinh Lớp 9A',
     badge: 'Gương mặt xuất sắc',
     points: 15,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+    avatar: '/images/avatars/student_female_1.jpg',
     comment:
       'Luôn ghi điểm với phát biểu sôi nổi và sự tự tin. Điểm cao của bạn không chỉ phản ánh nỗ lực cá nhân mà còn truyền động viên cho lớp.',
     isSample: true,
@@ -28,7 +28,7 @@ const DEFAULT_TOP_STUDENTS = [
     class: 'Học sinh Lớp 8B',
     badge: 'Nỗ lực bứt phá',
     points: 12,
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
+    avatar: '/images/avatars/student_female_2.jpg',
     comment:
       'Vượt qua nhiều khó khăn trong học tập với sự kiên nhẫn và quyết tâm. Phát biểu của bạn đã tạo động lực cho cả lớp.',
     isSample: true,
@@ -39,24 +39,22 @@ const DEFAULT_TOP_STUDENTS = [
     class: 'Học sinh Lớp 7C',
     badge: 'Tinh thần gương mẫu',
     points: 10,
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80',
+    avatar: '/images/avatars/student_male_1.jpg',
     comment:
       'Đã thể hiện một tinh thần học tập xuất sắc, luôn chấp hành nội quy và truyền đạt kiến thức một cách xuất sắc. Điều này đã ảnh hưởng tích cực đến lớp học.',
     isSample: true,
   },
 ];
 
-// Bộ avatar học sinh ảnh thật đẹp mắt phong cách học đường theo giới tính
+// Bộ avatar học sinh Việt Nam áo trắng khăn quàng đỏ thắm chuẩn lứa tuổi học trò THCS
 const AVATAR_PRESETS = {
   female: [
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80',
+    '/images/avatars/student_female_1.jpg',
+    '/images/avatars/student_female_2.jpg',
   ],
   male: [
-    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
+    '/images/avatars/student_male_1.jpg',
+    '/images/avatars/student_male_2.jpg',
   ],
 };
 
@@ -221,8 +219,7 @@ export default function TopStudentsBox() {
                   alt={student.name}
                   className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-3 border-emerald-400 shadow-md group-hover:scale-105 transition"
                   onError={(e) => {
-                    e.currentTarget.src =
-                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
+                    e.currentTarget.src = '/images/avatars/student_female_1.jpg';
                   }}
                 />
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center text-xs font-black shadow-xs">

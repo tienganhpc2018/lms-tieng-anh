@@ -65,7 +65,7 @@ export default function StudentDetailModal({
         points: st.plus_points || 0,
         avatar: st.avatar && !st.avatar.includes('bottts')
           ? st.avatar
-          : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
+          : '/images/avatars/student_female_1.jpg',
         comment: `Được Thầy/Cô vinh danh tại ${cName} với tinh thần học tập xuất sắc và nỗ lực rèn luyện nổi bật.`,
         isCustom: true,
       });
@@ -118,8 +118,7 @@ export default function StudentDetailModal({
                 alt={student.name}
                 className="w-20 h-20 rounded-full object-cover border-3 border-emerald-500 shadow-md"
                 onError={(e) => {
-                  e.currentTarget.src =
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
+                  e.currentTarget.src = '/images/avatars/student_female_1.jpg';
                 }}
               />
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center text-xs font-black shadow-xs">
