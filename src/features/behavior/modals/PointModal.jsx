@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Star,
@@ -16,12 +16,24 @@ import {
   Sparkles,
   ArrowRight,
   History,
+  Camera,
+  Upload,
+  User,
+  Image,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { loadCriteria, convertStudentPoints, loadBehaviorSettings } from '../behaviorStorage';
 import { playClick, playCorrect, playWinner, playDeduct } from '../../../utils/soundEffects';
 import { speakPraise } from '../utils/speechPraise';
 import CriteriaSettingsModal from './CriteriaSettingsModal';
+
+// Bộ avatar học sinh Việt Nam áo trắng khăn quàng đỏ THCS
+const VIETNAMESE_STUDENT_AVATARS = [
+  { name: 'Nữ sinh Áo trắng 1', url: '/images/avatars/student_female_1.jpg', gender: 'Nữ' },
+  { name: 'Nữ sinh Áo trắng 2', url: '/images/avatars/student_female_2.jpg', gender: 'Nữ' },
+  { name: 'Nam sinh Áo trắng 1', url: '/images/avatars/student_male_1.jpg', gender: 'Nam' },
+  { name: 'Nam sinh Áo trắng 2', url: '/images/avatars/student_male_2.jpg', gender: 'Nam' },
+];
 
 export default function PointModal({
   isOpen,
@@ -172,15 +184,55 @@ export default function PointModal({
     }
   };
 
-  // Đổi Avatar Robot
-  const handleChangeAvatar = (newAvatarUrl) => {
+  const fileInputRef = useRef(null);
+
+  // Đổi Giới Tính Học Sinh (Nam / Nữ)
+  const handleToggleGender = () => {
+    playClick();
+    const newGender = student.gender === 'Nam' ? 'Nữ' : 'Nam';
+    const updated = {
+      ...student,
+      gender: newGender,
+    };
+    onUpdateStudent(updated);
+    setToastMsg(`Đã đổi giới tính sang ${newGender === 'Nam' ? 'Nam 👦' : 'Nữ 👧'}`);
+    setTimeout(() => setToastMsg(''), 2500);
+  };
+
+  // Tải ảnh đại diện từ máy tính / điện thoại
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Vui lòng chọn ảnh dung lượng dưới 5MB!');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Data = event.target.result;
+      playCorrect();
+      const updated = {
+        ...student,
+        avatar: base64Data,
+      };
+      onUpdateStudent(updated);
+      setToastMsg('📸 Đã cập nhật ảnh avatar từ máy tính thành công!');
+      setTimeout(() => setToastMsg(''), 3000);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Đổi Avatar (Ảnh mẫu hoặc Robot)
+  const handleChangeAvatar = (newAvatarUrl, label = 'avatar') => {
     playCorrect();
     const updated = {
       ...student,
       avatar: newAvatarUrl,
     };
     onUpdateStudent(updated);
-    setToastMsg('🤖 Đã đổi avatar robot!');
+    setToastMsg(`✨ Đã đổi ${label}!`);
     setTimeout(() => setToastMsg(''), 2000);
   };
 
@@ -193,19 +245,37 @@ export default function PointModal({
             <div className="flex items-center space-x-3.5">
               <div className="relative">
                 <div className="w-14 h-14 rounded-2xl bg-amber-50 border-2 border-amber-300 p-1 shadow-md">
-                  <img src={student.avatar} alt={student.full_name} className="w-full h-full object-cover" />
+                  <img src={student.avatar} alt={student.full_name} className="w-full h-full object-cover rounded-xl" />
                 </div>
-                <span
-                  className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                    student.gender === 'Nam' ? 'bg-blue-500' : 'bg-pink-500'
+                <button
+                  type="button"
+                  onClick={handleToggleGender}
+                  title="Bấm để đổi giới tính Nam / Nữ"
+                  className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-xs cursor-pointer ${
+                    student.gender === 'Nam' ? 'bg-blue-600' : 'bg-pink-600'
                   }`}
-                />
+                >
+                  {student.gender === 'Nam' ? '♂' : '♀'}
+                </button>
               </div>
 
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="font-mono text-xs font-bold text-slate-400">{student.code}</span>
                   <h3 className="text-lg font-black text-slate-900 leading-snug">{student.full_name}</h3>
+                  <button
+                    type="button"
+                    onClick={handleToggleGender}
+                    title="Bấm để đổi giới tính Nam / Nữ"
+                    className={`px-2 py-0.5 rounded-full text-xs font-black transition cursor-pointer flex items-center gap-1 border shadow-2xs ${
+                      student.gender === 'Nam'
+                        ? 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200'
+                        : 'bg-pink-100 text-pink-700 border-pink-300 hover:bg-pink-200'
+                    }`}
+                  >
+                    <span>{student.gender === 'Nam' ? '👦 Nam' : '👧 Nữ'}</span>
+                    <span className="text-[10px] opacity-70 underline">Đổi</span>
+                  </button>
                 </div>
                 <div className="flex items-center space-x-2 text-xs font-bold text-slate-500 mt-0.5 flex-wrap">
                   <span>Tổ {student.team_group}</span>
@@ -636,31 +706,152 @@ export default function PointModal({
             </div>
           )}
 
-          {/* TAB 3: ĐỔI AVATAR ROBOT */}
+          {/* TAB 3: ĐỔI AVATAR & GIỚI TÍNH */}
           {activeTab === 'avatar' && (
-            <div className="space-y-3 flex-1 overflow-y-auto pr-1">
-              <span className="text-xs font-black text-slate-600 uppercase tracking-wider block">
-                Chọn Avatar Robot mới cho học sinh:
-              </span>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                {[
-                  'Sparky', 'Bolt', 'Cosmo', 'Titan', 'Byte', 'Pixel',
-                  'Nova', 'Echo', 'Orbit', 'Pulse', 'Cyber', 'Aero',
-                  'Blaze', 'Gizmo', 'Rust', 'Quantum', 'Vortex', 'Neon',
-                ].map((seed, idx) => {
-                  const url = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
-                  return (
+            <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+              {/* Input file ẩn cho upload ảnh */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept="image/*"
+                className="hidden"
+              />
+
+              {/* 1. KHUNG TẢI ẢNH TỪ MÁY TÍNH / ĐIỆN THOẠI */}
+              <div className="bg-gradient-to-r from-teal-50 to-emerald-50 p-4 rounded-2xl border-2 border-dashed border-teal-300 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center text-xl shadow-sm shrink-0">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-teal-950 uppercase">
+                      Tải Ảnh Thẻ / Chân Dung Từ Máy Tính:
+                    </h4>
+                    <p className="text-[11px] text-teal-700 leading-snug">
+                      Tự do chọn file ảnh (.jpg, .png) của học sinh từ máy tính hoặc điện thoại của Thầy/Cô.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-xs font-black shadow-md transition flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Chọn File Ảnh</span>
+                </button>
+              </div>
+
+              {/* 2. CHỌN GIỚI TÍNH CHO HỌC SINH */}
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+                <span className="text-xs font-black text-slate-700 uppercase flex items-center justify-between">
+                  <span>Giới Tính Học Sinh:</span>
+                  <span className="text-[11px] font-extrabold text-teal-700">
+                    {student.gender === 'Nam' ? '👦 Học sinh Nam' : '👧 Học sinh Nữ'}
+                  </span>
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (student.gender !== 'Nam') handleToggleGender();
+                    }}
+                    className={`py-2 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 border ${
+                      student.gender === 'Nam'
+                        ? 'bg-blue-600 text-white border-blue-700 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-blue-50'
+                    }`}
+                  >
+                    <span>👦</span>
+                    <span>Học Sinh Nam</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (student.gender !== 'Nữ') handleToggleGender();
+                    }}
+                    className={`py-2 rounded-xl text-xs font-black transition cursor-pointer flex items-center justify-center gap-1.5 border ${
+                      student.gender === 'Nữ'
+                        ? 'bg-pink-600 text-white border-pink-700 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-pink-50'
+                    }`}
+                  >
+                    <span>👧</span>
+                    <span>Học Sinh Nữ</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. BỘ SƯU TẬP AVATAR HỌC SINH VIỆT NAM ÁO TRẮNG KHĂN QUÀNG ĐỎ */}
+              <div className="space-y-2">
+                <span className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                  Avatar Học Sinh Việt Nam Áo Trắng Khăn Quàng:
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {VIETNAMESE_STUDENT_AVATARS.map((item, idx) => (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => handleChangeAvatar(url)}
-                      className="p-2 bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-400 rounded-2xl transition cursor-pointer group flex flex-col items-center space-y-1"
+                      onClick={() => handleChangeAvatar(item.url, item.name)}
+                      className={`p-2 rounded-2xl border transition cursor-pointer flex items-center space-x-2.5 ${
+                        student.avatar === item.url
+                          ? 'border-teal-600 bg-teal-50 ring-2 ring-teal-500'
+                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}
                     >
-                      <img src={url} alt={seed} className="w-12 h-12 group-hover:scale-110 transition" />
-                      <span className="text-[10px] font-bold text-slate-500">{seed}</span>
+                      <img
+                        src={item.url}
+                        alt={item.name}
+                        className="w-10 h-10 rounded-full object-cover border border-slate-300 shrink-0"
+                      />
+                      <div className="text-left min-w-0">
+                        <span className="text-xs font-bold text-slate-800 block truncate">
+                          {item.name}
+                        </span>
+                        <span
+                          className={`text-[9px] font-bold px-1.5 py-0.2 rounded inline-block ${
+                            item.gender === 'Nam' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'
+                          }`}
+                        >
+                          {item.gender}
+                        </span>
+                      </div>
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. BỘ SƯU TẬP AVATAR ROBOT HOẠT HÌNH */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <span className="text-xs font-black text-slate-600 uppercase tracking-wider block">
+                  Hoặc Chọn Avatar Robot Hoạt Hình:
+                </span>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {[
+                    'Sparky', 'Bolt', 'Cosmo', 'Titan', 'Byte', 'Pixel',
+                    'Nova', 'Echo', 'Orbit', 'Pulse', 'Cyber', 'Aero',
+                    'Blaze', 'Gizmo', 'Rust', 'Quantum', 'Vortex', 'Neon',
+                  ].map((seed, idx) => {
+                    const url = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleChangeAvatar(url, `Robot ${seed}`)}
+                        className={`p-1.5 rounded-xl transition cursor-pointer flex flex-col items-center border ${
+                          student.avatar === url
+                            ? 'border-purple-600 bg-purple-50 ring-1 ring-purple-500'
+                            : 'bg-slate-50 hover:bg-purple-50 border-slate-200 hover:border-purple-300'
+                        }`}
+                      >
+                        <img src={url} alt={seed} className="w-10 h-10 transition hover:scale-105" />
+                        <span className="text-[10px] font-bold text-slate-500 mt-0.5">{seed}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

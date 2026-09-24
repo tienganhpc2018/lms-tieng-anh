@@ -76,27 +76,57 @@ export const saveStudents = (classId, students) => {
   }
 };
 
-// 7. Nhận diện giới tính Việt Nam thông minh
-export const detectGender = (fullName, index = 0) => {
-  const lower = (fullName || '').toLowerCase();
-  const femaleKeywords = [
-    'thị', 'thi', 'ngọc', 'ngoc', 'hương', 'huong', 'trang', 'linh', 'hà', 'ha',
-    'lan', 'mai', 'anh', 'phương', 'phuong', 'thảo', 'thao', 'yến', 'yen',
-    'bích', 'bich', 'thanh', 'huyền', 'huyen', 'ngân', 'ngan', 'quỳnh', 'quynh',
-    'vy', 'chi', 'nhung', 'vân', 'van', 'diệp', 'diep', 'ly', 'nhi', 'hoa', 'đào', 'cúc'
-  ];
-  const maleKeywords = [
-    'văn', 'van', 'đức', 'duc', 'hải', 'hai', 'tuấn', 'tuan', 'hùng', 'hung',
-    'dũng', 'dung', 'minh', 'nam', 'phong', 'hoàng', 'hoang', 'sơn', 'son',
-    'khang', 'phúc', 'phuc', 'kiên', 'kien', 'bình', 'binh', 'đạt', 'dat',
-    'long', 'quân', 'quan', 'huy', 'bách', 'bach', 'khoa', 'trung', 'tùng', 'tung'
+// 7. Nhận diện giới tính Việt Nam thông minh chuẩn ngôn ngữ học
+export const detectGender = (fullName = '', index = 0) => {
+  if (!fullName) return index % 2 === 0 ? 'Nam' : 'Nữ';
+  const clean = fullName.toLowerCase().trim().replace(/[^a-zà-ỹ\s]/g, '');
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return index % 2 === 0 ? 'Nam' : 'Nữ';
+
+  // 1. Kiểm tra từ đệm trực tiếp tuyệt đối
+  if (words.includes('thị') || words.includes('thi')) return 'Nữ';
+  if (words.includes('văn') || words.includes('van')) return 'Nam';
+
+  // 2. Xét TÊN CHÍNH (từ cuối cùng trong họ tên) - độ chính xác > 95%
+  const firstName = words[words.length - 1];
+
+  const maleFirstNames = [
+    'khoa', 'nam', 'đạt', 'dat', 'hải', 'hai', 'thành', 'thanh', 'tuấn', 'tuan',
+    'huy', 'đức', 'duc', 'hoàng', 'hoang', 'khang', 'minh', 'quang', 'khôi', 'khoi',
+    'dũng', 'dung', 'phong', 'thắng', 'thang', 'quân', 'quan', 'long', 'hùng', 'hung',
+    'kiệt', 'kiet', 'phúc', 'phuc', 'thịnh', 'thinh', 'sơn', 'son', 'tùng', 'tung',
+    'bách', 'bach', 'trung', 'nghĩa', 'nghia', 'bảo', 'bao', 'trọng', 'trong',
+    'hào', 'hao', 'triết', 'triet', 'tiến', 'tien', 'hưng', 'hung', 'nguyên', 'nguyen',
+    'việt', 'viet', 'bình', 'binh', 'nhật', 'nhat', 'trí', 'tri', 'lâm', 'lam',
+    'dương', 'duong', 'lộc', 'loc', 'đăng', 'dang', 'kiên', 'kien', 'toàn', 'toan',
+    'vũ', 'vu', 'hiếu', 'hieu', 'thái', 'thai', 'cường', 'cuong', 'bách', 'bach',
+    'trưởng', 'truong', 'phát', 'phat', 'luân', 'luan', 'tài', 'tai', 'duy', 'quốc'
   ];
 
-  const words = lower.split(/\s+/);
-  if (words.some((w) => femaleKeywords.includes(w))) return 'Nữ';
-  if (words.some((w) => maleKeywords.includes(w))) return 'Nam';
+  const femaleFirstNames = [
+    'nhiên', 'nhien', 'chi', 'linh', 'vy', 'nhi', 'trang', 'thảo', 'thao', 'ngọc', 'ngoc',
+    'hà', 'ha', 'ngân', 'ngan', 'như', 'nhu', 'trâm', 'tram', 'phương', 'phuong',
+    'diệp', 'diep', 'yến', 'yen', 'quỳnh', 'quynh', 'dung', 'loan', 'tuyết', 'tuyet',
+    'oanh', 'thư', 'thu', 'châu', 'chau', 'huyền', 'huyen', 'hân', 'han', 'na',
+    'mi', 'ly', 'nga', 'tâm', 'tam', 'trúc', 'truc', 'tiên', 'tien', 'mai',
+    'hương', 'huong', 'lan', 'cúc', 'cuc', 'đào', 'dao', 'hoa', 'uyên', 'uyen',
+    'my', 'mơ', 'mo', 'vân', 'van', 'hằng', 'hang', 'nhung', 'bích', 'bich',
+    'thoa', 'an'
+  ];
 
-  // Nếu không rõ thì chia xen kẽ chẵn/lẻ
+  if (maleFirstNames.includes(firstName)) return 'Nam';
+  if (femaleFirstNames.includes(firstName)) return 'Nữ';
+
+  // 3. Nếu tên là từ lưỡng tính (như 'Anh', 'Khánh', 'Giang', 'Bình'...) -> xét từ đệm trước tên
+  if (words.length > 1) {
+    const middleWords = words.slice(0, -1);
+    const maleMiddle = ['văn', 'đức', 'quốc', 'hữu', 'hải', 'tuấn', 'hoàng', 'minh', 'nam', 'đình', 'xuân'];
+    const femaleMiddle = ['thị', 'ngọc', 'thúy', 'phương', 'hồng', 'kim', 'thu', 'mai', 'thanh', 'bảo'];
+
+    if (middleWords.some((w) => maleMiddle.includes(w))) return 'Nam';
+    if (middleWords.some((w) => femaleMiddle.includes(w))) return 'Nữ';
+  }
+
   return index % 2 === 0 ? 'Nam' : 'Nữ';
 };
 

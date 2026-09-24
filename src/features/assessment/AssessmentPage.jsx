@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   loadClasses,
   loadStudents,
+  saveStudents,
   loadSelectedClassId,
   saveSelectedClassId,
 } from '../behavior/behaviorStorage';
@@ -20,6 +21,7 @@ import ConfigAssessmentModal from './components/ConfigAssessmentModal';
 import AiCommentModal from './components/AiCommentModal';
 import ImportGradesModal from './components/ImportGradesModal';
 import QuickAddStudentsModal from './components/QuickAddStudentsModal';
+import EditStudentModal from './components/EditStudentModal';
 
 export default function AssessmentPage() {
   // 1. Quản lý cấu hình sổ điểm
@@ -44,6 +46,7 @@ export default function AssessmentPage() {
   const [isAiCommentOpen, setIsAiCommentOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
 
   const autoSaveTimerRef = useRef(null);
 
@@ -227,6 +230,14 @@ export default function AssessmentPage() {
       : `Lớp ${currentClassObj.name}`
     : 'Lớp Học';
 
+  // Lưu cập nhật thông tin học sinh (Giới tính, Avatar, Họ tên)
+  const handleSaveEditedStudent = (updatedStudent) => {
+    if (!selectedClassId) return;
+    const updatedList = students.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
+    setStudents(updatedList);
+    saveStudents(selectedClassId, updatedList);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/60 pb-16 pt-4 px-3 sm:px-6 max-w-7xl mx-auto space-y-6">
       {/* 1. THANH TIÊU ĐỀ, BỘ LỌC VÀ CỤM NÚT TÁC VỤ */}
@@ -275,6 +286,7 @@ export default function AssessmentPage() {
           playClick();
           setIsQuickAddOpen(true);
         }}
+        onEditStudent={(st) => setEditingStudent(st)}
       />
 
       {/* 3. CÁC MODAL HỖ TRỢ */}
@@ -313,6 +325,14 @@ export default function AssessmentPage() {
           setSelectedClassId(newClassId);
           setStudents(newStudents);
         }}
+      />
+
+      {/* 4. MODAL CHỈNH SỬA HỌC SINH (GIỚI TÍNH, AVATAR TỪ MÁY TÍNH, HỌ TÊN) */}
+      <EditStudentModal
+        isOpen={Boolean(editingStudent)}
+        onClose={() => setEditingStudent(null)}
+        student={editingStudent}
+        onSaveStudent={handleSaveEditedStudent}
       />
     </div>
   );

@@ -15,6 +15,7 @@ export default function AssessmentTable({
   onUpdateGrade,
   onUpdateComment,
   onOpenQuickAddStudents,
+  onEditStudent,
 }) {
   const inputRefs = useRef({});
 
@@ -163,23 +164,44 @@ export default function AssessmentTable({
                     {rowIndex + 1}
                   </td>
 
-                  {/* Họ và tên + Avatar */}
+                  {/* Họ và tên + Avatar + Nút Sửa */}
                   <td className={`${paddingClass} border-r border-slate-100`}>
-                    <div className="flex items-center space-x-2.5">
-                      <img
-                        src={avatarUrl}
-                        alt=""
-                        className="w-7 h-7 rounded-full object-cover border border-emerald-400 shrink-0 shadow-2xs"
-                        onError={(e) => {
-                          e.currentTarget.src = '/images/avatars/student_female_1.jpg';
-                        }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <span className="font-black text-slate-900 group-hover:text-teal-900 transition block truncate text-xs sm:text-[13px]">
-                          {student.full_name || student.name}
+                    <div
+                      onClick={() => onEditStudent && onEditStudent(student)}
+                      title="Bấm để sửa Giới tính hoặc Thay ảnh Avatar từ máy tính"
+                      className="flex items-center space-x-2.5 cursor-pointer group/name p-1 -m-1 rounded-xl hover:bg-teal-100/50 transition"
+                    >
+                      <div className="relative shrink-0">
+                        <img
+                          src={avatarUrl}
+                          alt=""
+                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-emerald-400 shrink-0 shadow-2xs group-hover/name:scale-105 transition"
+                          onError={(e) => {
+                            e.currentTarget.src = '/images/avatars/student_male_1.jpg';
+                          }}
+                        />
+                        <span
+                          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-white text-[8px] flex items-center justify-center font-bold text-white shadow-2xs ${
+                            student.gender === 'Nam' ? 'bg-blue-600' : 'bg-pink-600'
+                          }`}
+                        >
+                          {student.gender === 'Nam' ? '♂' : '♀'}
                         </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-1.5">
+                          <span className="font-black text-slate-900 group-hover/name:text-teal-900 transition block truncate text-xs sm:text-[13px]">
+                            {student.full_name || student.name}
+                          </span>
+                          <span className="opacity-0 group-hover/name:opacity-100 text-[10px] text-teal-700 bg-white px-1 py-0.2 rounded border border-teal-300 font-bold transition">
+                            ✏️ Sửa
+                          </span>
+                        </div>
                         <span className="text-[10px] text-slate-400 font-mono">
-                          {student.id ? `ID: ${String(student.id).slice(-4)}` : ''}
+                          {student.id ? `ID: ${String(student.id).slice(-4)}` : ''} •{' '}
+                          <span className={student.gender === 'Nam' ? 'text-blue-600 font-bold' : 'text-pink-600 font-bold'}>
+                            {student.gender || 'Nam'}
+                          </span>
                         </span>
                       </div>
                     </div>

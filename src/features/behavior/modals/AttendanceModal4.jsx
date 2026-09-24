@@ -1,10 +1,23 @@
-import React, { useState } from 'react';
-import { X, UserCheck, Copy, Check, AlertCircle, Clock, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, UserCheck, Copy, Check, AlertCircle, Clock, Calendar, UserPlus } from 'lucide-react';
 import { playClick, playCorrect } from '../../../utils/soundEffects';
 
-export default function AttendanceModal4({ isOpen, onClose, classInfo, students, onUpdateStudents }) {
+export default function AttendanceModal4({
+  isOpen,
+  onClose,
+  classInfo,
+  students = [],
+  onUpdateStudents,
+  onOpenQuickAdd,
+}) {
   const [localStudents, setLocalStudents] = useState([...students]);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLocalStudents(Array.isArray(students) ? [...students] : []);
+    }
+  }, [isOpen, students]);
 
   if (!isOpen) return null;
 
@@ -140,13 +153,40 @@ export default function AttendanceModal4({ isOpen, onClose, classInfo, students,
           </button>
         </div>
 
-        {/* DANH SÁCH ĐIỂM DANH */}
+        {/* DANH SÁCH ĐIỂM DANH HOẶC THÔNG BÁO CHƯA CÓ HỌC SINH */}
         <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-          {localStudents.map((st, idx) => {
-            const isPresent = st.status === 'Present';
-            const isAbsentPerm = st.status === 'Absent_Perm';
-            const isAbsentNoPerm = st.status === 'Absent_NoPerm';
-            const isLate = st.status === 'Late';
+          {localStudents.length === 0 ? (
+            <div className="py-12 px-4 text-center space-y-3 bg-slate-50 rounded-2xl border border-dashed border-slate-300 my-auto">
+              <div className="text-4xl">📋</div>
+              <h4 className="text-base font-black text-slate-800">
+                Lớp {classInfo?.name || 'này'} Chưa Có Danh Sách Học Sinh
+              </h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                Để điểm danh, Thầy/Cô hãy nạp danh sách học sinh vào lớp trước. Thầy/Cô có thể dán nhanh danh sách từ Word hoặc Excel.
+              </p>
+              {onOpenQuickAdd && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClick();
+                      onClose();
+                      onOpenQuickAdd();
+                    }}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-md transition cursor-pointer flex items-center gap-2 mx-auto"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>+ Dán Danh Sách Học Sinh Vào Lớp Ngay</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            localStudents.map((st, idx) => {
+              const isPresent = st.status === 'Present';
+              const isAbsentPerm = st.status === 'Absent_Perm';
+              const isAbsentNoPerm = st.status === 'Absent_NoPerm';
+              const isLate = st.status === 'Late';
 
             return (
               <div
@@ -238,7 +278,7 @@ export default function AttendanceModal4({ isOpen, onClose, classInfo, students,
                 </div>
               </div>
             );
-          })}
+          }))}
         </div>
 
         {/* ACTIONS */}

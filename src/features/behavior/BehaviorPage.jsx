@@ -1038,6 +1038,7 @@ export default function BehaviorPage() {
         classInfo={activeClass}
         students={students}
         onUpdateStudents={handleUpdateStudents}
+        onOpenQuickAdd={() => setIsQuickAddOpen(true)}
       />
 
       {/* 4. Modal Cho Điểm & Đổi Avatar & Quy Đổi Điểm Thưởng */}

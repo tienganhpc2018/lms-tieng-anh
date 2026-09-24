@@ -19,14 +19,16 @@ const MALE_KEYWORDS = [
   'minh', 'quang', 'khôi', 'dũng', 'phong', 'thắng', 'quân', 'long', 'hùng',
   'kiệt', 'phúc', 'thịnh', 'sơn', 'tùng', 'bách', 'trung', 'nghĩa', 'khoa',
   'bảo', 'trọng', 'hào', 'triết', 'tiến', 'hưng', 'nguyên', 'việt', 'bình',
-  'nhật', 'trí', 'lâm', 'dương', 'lộc', 'đăng'
+  'nhật', 'trí', 'lâm', 'dương', 'lộc', 'đăng', 'kiên', 'toàn', 'vũ', 'hiếu',
+  'thái', 'cường', 'phát', 'luân', 'tài', 'duy', 'quốc'
 ];
 
 const FEMALE_KEYWORDS = [
   'thị', 'lan', 'hương', 'mai', 'linh', 'vy', 'nhi', 'chi', 'trang',
   'thảo', 'ngọc', 'hà', 'ngân', 'như', 'trâm', 'phương', 'diệp', 'yến',
   'quỳnh', 'dung', 'loan', 'tuyết', 'oanh', 'thư', 'châu', 'huyền', 'hân',
-  'na', 'mi', 'ly', 'nga', 'tâm', 'trúc', 'tiên'
+  'na', 'mi', 'ly', 'nga', 'tâm', 'trúc', 'tiên', 'nhiên', 'khuê', 'uyên',
+  'my', 'mơ', 'vân', 'hằng', 'nhung', 'bích', 'thoa', 'an'
 ];
 
 /**
@@ -36,15 +38,15 @@ const FEMALE_KEYWORDS = [
  */
 export const detectGenderFromName = (fullName = '') => {
   if (!fullName) return 'female';
-  const lower = fullName.toLowerCase().trim();
-  const words = lower.split(/\s+/).filter(Boolean);
+  const clean = fullName.toLowerCase().trim().replace(/[^a-zà-ỹ\s]/g, '');
+  const words = clean.split(/\s+/).filter(Boolean);
   if (words.length === 0) return 'female';
 
   // 1. Kiểm tra từ đệm trực tiếp (Thị -> Nữ, Văn -> Nam)
-  if (words.includes('thị')) return 'female';
-  if (words.includes('văn')) return 'male';
+  if (words.includes('thị') || words.includes('thi')) return 'female';
+  if (words.includes('văn') || words.includes('van')) return 'male';
 
-  // 2. Kiểm tra tên gọi chính (từ cuối cùng)
+  // 2. Kiểm tra tên gọi chính (từ cuối cùng) - chuẩn xác nhất
   const firstName = words[words.length - 1];
   if (MALE_KEYWORDS.includes(firstName)) return 'male';
   if (FEMALE_KEYWORDS.includes(firstName)) return 'female';
@@ -56,7 +58,6 @@ export const detectGenderFromName = (fullName = '') => {
     if (FEMALE_KEYWORDS.includes(w)) return 'female';
   }
 
-  // Mặc định nữ hoặc nam theo quy ước
   return 'female';
 };
 
@@ -67,28 +68,35 @@ export const detectGenderFromName = (fullName = '') => {
  * @returns {string} URL Avatar
  */
 export const getStudentAvatarPreset = (student = {}, index = 0) => {
-  // Nếu học sinh đã có ảnh đại diện tải lên thật (không phải robot bottts/dicebear mặc định)
+  // Nếu học sinh đã có ảnh đại diện tải lên thật (base64 hoặc ảnh upload)
   if (
     student.avatar &&
     (student.avatar.startsWith('http') || student.avatar.startsWith('data:')) &&
     !student.avatar.includes('bottts') &&
     !student.avatar.includes('dicebear') &&
-    !student.avatar.includes('unsplash')
+    !student.avatar.includes('unsplash') &&
+    !student.avatar.startsWith('/images/avatars/')
   ) {
     return student.avatar;
   }
 
   const name = student.full_name || student.name || '';
-  const rawGender = (student.gender || '').toLowerCase();
-  let gender = 'female';
+  const detected = detectGenderFromName(name);
 
+  // Nếu người dùng đã chỉ định giới tính rõ ràng thì tôn trọng,
+  // nhưng nếu tên chính rõ mười mươi là Khoa (nam) hoặc Nhiên/Khuê (nữ) thì tự động sửa lỗi
+  let gender = detected;
+  const rawGender = (student.gender || '').toLowerCase();
   if (rawGender === 'nam' || rawGender === 'male') {
     gender = 'male';
   } else if (rawGender === 'nữ' || rawGender === 'female') {
     gender = 'female';
-  } else {
-    gender = detectGenderFromName(name);
   }
+
+  // Tự động sửa lỗi tên Khoa -> Nam, Nhiên/Khuê -> Nữ
+  const clean = name.toLowerCase().trim();
+  if (clean.endsWith('khoa')) gender = 'male';
+  if (clean.endsWith('nhiên') || clean.endsWith('khuê')) gender = 'female';
 
   const pool = gender === 'male' ? AVATAR_PRESETS.male : AVATAR_PRESETS.female;
   return pool[Math.abs(index) % pool.length];
