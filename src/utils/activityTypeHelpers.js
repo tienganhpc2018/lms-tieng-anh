@@ -79,3 +79,64 @@ export const isWorksheetAct = (act) => {
     Boolean(act.settings && Array.isArray(act.settings.tasks) && act.settings.tasks.length > 0)
   );
 };
+
+// HÀM NHẬN DIỆN BÀI TẬP & BÀI KIỂM TRA (EXERCISES & EXAMS)
+export const isExerciseOrExam = (act) => {
+  if (!act) return false;
+  const type = String(act.type || '').toLowerCase();
+  const customType = String(act.settings?.customType || '').toLowerCase();
+  const title = String(act.title || '').toLowerCase();
+
+  // 1. Kiểm tra theo type dữ liệu
+  if (
+    ['quiz', 'assignment', 'worksheet', 'dictation', 'audio_record'].includes(type) ||
+    ['quiz', 'assignment', 'worksheet', 'dictation', 'audio_record'].includes(customType)
+  ) {
+    // Trừ trường hợp là Whiteboard/Bảng vẽ thuần túy
+    if (isWhiteboardAct(act)) return false;
+    return true;
+  }
+
+  // 2. Kiểm tra helper chuyên biệt
+  if (isDictationAct(act) || isWorksheetAct(act) || isAudioRecordAct(act)) {
+    return true;
+  }
+
+  // 3. Kiểm tra từ khóa trong tiêu đề
+  const examKeywords = [
+    'kiểm tra', 'bài tập', 'quiz', 'test', 'exam', 'worksheet',
+    'chính tả', 'luyện tập', 'practice', 'trắc nghiệm', 'ôn tập'
+  ];
+  if (examKeywords.some((kw) => title.includes(kw)) && !isWhiteboardAct(act)) {
+    return true;
+  }
+
+  return false;
+};
+
+// HÀM NHẬN DIỆN NỘI DUNG SOẠN / BÀI GIẢNG LÝ THUYẾT CỦA THẦY (TEACHER LECTURES & LESSON CONTENT)
+export const isTeacherLessonContent = (act) => {
+  if (!act) return false;
+
+  // Nếu là bảng trắng hoặc video tương tác hoặc tài liệu lý thuyết -> 100% là bài soạn Thầy dạy
+  if (isWhiteboardAct(act) || isInteractiveVideoAct(act) || isVocabularyAct(act)) {
+    return true;
+  }
+
+  const type = String(act.type || '').toLowerCase();
+  const customType = String(act.settings?.customType || '').toLowerCase();
+  if (
+    ['whiteboard', 'page', 'video', 'interactive_video', 'iframe', 'vocabulary', 'glossary', 'h5p'].includes(type) ||
+    ['whiteboard', 'page', 'video', 'interactive_video', 'iframe', 'vocabulary', 'glossary', 'h5p'].includes(customType)
+  ) {
+    return true;
+  }
+
+  // Nếu đã được xác định là Bài tập / Kiểm tra thì không phải là bài soạn lý thuyết
+  if (isExerciseOrExam(act)) {
+    return false;
+  }
+
+  // Mặc định các nội dung bài học khác do Thầy soạn
+  return true;
+};

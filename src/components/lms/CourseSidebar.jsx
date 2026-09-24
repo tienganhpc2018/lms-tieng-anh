@@ -13,6 +13,8 @@ export default function CourseSidebar({
   onSelectActivity,
   isTeacher,
   onOpenEnrolledModal,
+  hiddenSectionIds = [],
+  onToggleHideSection,
 }) {
   const navigate = useNavigate();
   const [navExpanded, setNavExpanded] = useState({
@@ -102,10 +104,15 @@ export default function CourseSidebar({
 
                 {/* DỮ LIỆU ĐỘNG LẶP THEO TỪNG UNIT TRONG CSDL */}
                 {sections.map((sec) => {
+                  const isSecHidden = hiddenSectionIds.includes(sec.id);
+                  // Học sinh tuyệt đối không nhìn thấy Unit bị Giáo viên ẩn
+                  if (!isTeacher && isSecHidden) return null;
+
                   const isUnitExpanded = navExpanded.units[sec.id] !== false;
                   const secActivities = activities.filter((a) => {
                     if (a.section_id !== sec.id) return false;
                     if (isTeacher) return true;
+                    if (isSecHidden) return false;
                     if (a.is_hidden) return false; // HỌC SINH TUYỆT ĐỐI BỊ ẨN KHỎI SIDEBAR
                     return true;
                   });
@@ -119,10 +126,17 @@ export default function CourseSidebar({
                         }}
                         className={`w-full flex items-center justify-between p-1.5 hover:bg-slate-50 rounded-lg transition font-extrabold text-xs ${
                           activeSectionId === sec.id ? 'text-emerald-700 bg-emerald-50/60' : 'text-slate-800'
-                        }`}
+                        } ${isSecHidden ? 'opacity-80' : ''}`}
                       >
-                        <span className="truncate">{sec.title}</span>
-                        {isUnitExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                        <div className="flex items-center space-x-1.5 truncate">
+                          {isSecHidden && (
+                            <span className="text-[10px] text-amber-600 font-extrabold flex-shrink-0" title="Unit này đang ẩn khỏi học sinh">
+                              🔒
+                            </span>
+                          )}
+                          <span className="truncate">{sec.title}</span>
+                        </div>
+                        {isUnitExpanded ? <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />}
                       </button>
 
                       {/* DANH SÁCH CÁC TIẾT HỌC / BÀI TẬP ĐỘNG THỰC TẾ TRONG UNIT */}
@@ -140,17 +154,24 @@ export default function CourseSidebar({
                                     onSelectSection(sec.id);
                                     if (onSelectActivity) onSelectActivity(act.id);
                                   }}
-                                  className={`p-1.5 rounded-lg cursor-pointer flex items-center space-x-1.5 transition ${
+                                  className={`p-1.5 rounded-lg cursor-pointer flex items-center justify-between space-x-1.5 transition ${
                                     isActActive
                                       ? 'bg-emerald-600 text-white font-bold shadow-xs'
                                       : 'hover:bg-sky-50 text-slate-700 hover:text-sky-800 font-semibold'
                                   }`}
                                 >
-                                  {act.type === 'quiz' && <HelpCircle className={`w-3.5 h-3.5 ${isActActive ? 'text-white' : 'text-emerald-600'}`} />}
-                                  {act.type === 'video' && <Video className={`w-3.5 h-3.5 ${isActActive ? 'text-white' : 'text-rose-500'}`} />}
-                                  {act.type === 'h5p' && <span className={`px-1 text-[9px] font-bold rounded ${isActActive ? 'bg-white text-emerald-800' : 'bg-purple-100 text-purple-800'}`}>H5P</span>}
-                                  {act.type === 'page' && <FileText className={`w-3.5 h-3.5 ${isActActive ? 'text-white' : 'text-sky-500'}`} />}
-                                  <span className="truncate">{act.title}</span>
+                                  <div className="flex items-center space-x-1.5 truncate">
+                                    {act.type === 'quiz' && <HelpCircle className={`w-3.5 h-3.5 flex-shrink-0 ${isActActive ? 'text-white' : 'text-emerald-600'}`} />}
+                                    {act.type === 'video' && <Video className={`w-3.5 h-3.5 flex-shrink-0 ${isActActive ? 'text-white' : 'text-rose-500'}`} />}
+                                    {act.type === 'h5p' && <span className={`px-1 text-[9px] font-bold rounded flex-shrink-0 ${isActActive ? 'bg-white text-emerald-800' : 'bg-purple-100 text-purple-800'}`}>H5P</span>}
+                                    {act.type === 'page' && <FileText className={`w-3.5 h-3.5 flex-shrink-0 ${isActActive ? 'text-white' : 'text-sky-500'}`} />}
+                                    <span className="truncate">{act.title}</span>
+                                  </div>
+                                  {isTeacher && act.is_hidden && (
+                                    <span className="text-[10px] text-amber-500 font-extrabold flex-shrink-0" title="Bài học này đang ẩn khỏi học sinh">
+                                      🔒
+                                    </span>
+                                  )}
                                 </div>
                               );
                             })

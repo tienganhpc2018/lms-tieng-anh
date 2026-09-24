@@ -1,4 +1,15 @@
-import { isWhiteboardAct, isAudioRecordAct, isInteractiveVideoAct, isDictationAct, isWorksheetAct, getCleanTitle, getValidDbType } from '../utils/activityTypeHelpers';
+import {
+  isWhiteboardAct,
+  isAudioRecordAct,
+  isInteractiveVideoAct,
+  isDictationAct,
+  isWorksheetAct,
+  isExerciseOrExam,
+  isTeacherLessonContent,
+  getCleanTitle,
+  getValidDbType,
+} from '../utils/activityTypeHelpers';
+import { getSiteSetting, saveSiteSetting, subscribeSiteSetting } from '../services/siteSettingsService';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -6,7 +17,12 @@ import { useAuth } from '../context/AuthContext';
 import CourseSidebar from '../components/lms/CourseSidebar';
 import EnrolledUsersModal from '../components/lms/EnrolledUsersModal';
 import CenterToastModal from '../components/common/CenterToastModal';
-import { BookOpen, Plus, Users, ArrowLeft, Key, Eye, EyeOff, Copy, Check, Lock, ChevronRight, PlayCircle, FileText, CheckSquare, Palette, Rocket, Zap, MessageSquare, Headphones, Edit3, Trash2, Trophy, Star, Sparkles, Target, Compass } from 'lucide-react';
+import {
+  BookOpen, Plus, Users, ArrowLeft, Key, Eye, EyeOff, Copy, Check, Lock,
+  ChevronRight, PlayCircle, FileText, CheckSquare, Palette, Rocket, Zap,
+  MessageSquare, Headphones, Edit3, Trash2, Trophy, Star, Sparkles, Target,
+  Compass, ShieldCheck, CheckCircle2, AlertCircle, Layers
+} from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 
@@ -148,6 +164,19 @@ export default function CourseView() {
     }
   });
   const [loadError, setLoadError] = useState(null);
+
+  // Danh sách Unit bị Giáo viên ẩn khỏi Học sinh (Lưu & Đồng bộ Real-time qua site_settings)
+  const [hiddenSectionIds, setHiddenSectionIds] = useState(() => {
+    try {
+      const cached = localStorage.getItem(`lms_course_hidden_sections_${courseId}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Phạm vi thao tác Ẩn/Mở hàng loạt ('current': Unit đang chọn, 'all': Toàn bộ khóa học)
+  const [bulkScope, setBulkScope] = useState('current');
 
   // Danh sách bài học của Unit đang được kích hoạt
   const activities = allActivities.filter((a) => a.section_id === activeSectionId);
@@ -437,6 +466,161 @@ export default function CourseView() {
     showToast('success', 'Đã Xóa Chủ Đề', `Đã xóa chủ đề "${sec.title}" thành công!`);
   };
 
+  // 1-Click Ẩn / Hiện Cả Unit (Section) Khỏi Học Sinh
+  const handleToggleHideSection = async (sec, e) => {
+    if (e) e.stopPropagation();
+    const isCurrentlyHidden = hiddenSectionIds.includes(sec.id);
+    const newHiddenList = isCurrentlyHidden
+      ? hiddenSectionIds.filter((id) => id !== sec.id)
+      : [...hiddenSectionIds, sec.id];
+
+    setHiddenSectionIds(newHiddenList);
+    try {
+      localStorage.setItem(`lms_course_hidden_sections_${courseId}`, JSON.stringify(newHiddenList));
+    } catch (err) {}
+
+    await saveSiteSetting(`course_hidden_sections_${courseId}`, newHiddenList);
+
+    // Cập nhật thử vào database nếu cột is_hidden đã được tạo
+    try {
+      await supabase.from('course_sections').update({ is_hidden: !isCurrentlyHidden }).eq('id', sec.id);
+    } catch (err) {}
+
+    showToast(
+      'success',
+      !isCurrentlyHidden ? '🔒 ĐÃ ẨN UNIT KHỎI HỌC SINH' : '👁️ ĐÃ MỞ UNIT CHO HỌC SINH',
+      `Chủ đề "${sec.title}" ${!isCurrentlyHidden ? 'đã được ẩn khỏi tầm mắt Học sinh.' : 'đã hiển thị cho Học sinh.'}`
+    );
+  };
+
+  // TÁC VỤ 1: CHỈ MỞ BÀI TẬP & BÀI KIỂM TRA (ẨN TOÀN BỘ NỘI DUNG SOẠN LÝ THUYẾT)
+  const handleOnlyOpenExercisesAndExams = async (applyToAll = false) => {
+    const targetActs = applyToAll
+      ? allActivities
+      : allActivities.filter((a) => a.section_id === activeSectionId);
+
+    if (targetActs.length === 0) {
+      showToast('warning', 'Chưa Có Bài Học', 'Chưa có bài học nào trong phạm vi đã chọn để áp dụng.');
+      return;
+    }
+
+    const updates = targetActs.map((act) => {
+      const isExam = isExerciseOrExam(act);
+      return {
+        id: act.id,
+        is_hidden: !isExam, // Ẩn nếu KHÔNG PHẢI bài tập/kiểm tra
+      };
+    });
+
+    setAllActivities((prev) =>
+      prev.map((a) => {
+        const found = updates.find((u) => u.id === a.id);
+        return found ? { ...a, is_hidden: found.is_hidden } : a;
+      })
+    );
+
+    try {
+      await Promise.all(
+        updates.map((u) =>
+          supabase.from('activities').update({ is_hidden: u.is_hidden }).eq('id', u.id)
+        )
+      );
+    } catch (err) {}
+
+    const examCount = updates.filter((u) => !u.is_hidden).length;
+    const hiddenCount = updates.filter((u) => u.is_hidden).length;
+
+    showToast(
+      'success',
+      '🎯 ĐÃ CHỈ MỞ BÀI TẬP & KIỂM TRA!',
+      `Đã mở ${examCount} bài tập/kiểm tra cho học sinh và tạm ẩn ${hiddenCount} nội dung bài soạn lý thuyết (${applyToAll ? 'Toàn bộ khóa học' : 'Unit này'}).`
+    );
+  };
+
+  // TÁC VỤ 2: CHỈ MỞ BÀI SOẠN LÝ THUYẾT (KHÓA TOÀN BỘ BÀI TẬP & BÀI KIỂM TRA)
+  const handleOnlyOpenLectures = async (applyToAll = false) => {
+    const targetActs = applyToAll
+      ? allActivities
+      : allActivities.filter((a) => a.section_id === activeSectionId);
+
+    if (targetActs.length === 0) {
+      showToast('warning', 'Chưa Có Bài Học', 'Chưa có bài học nào trong phạm vi đã chọn.');
+      return;
+    }
+
+    const updates = targetActs.map((act) => {
+      const isLecture = isTeacherLessonContent(act);
+      return {
+        id: act.id,
+        is_hidden: !isLecture, // Ẩn nếu KHÔNG PHẢI bài giảng/lý thuyết
+      };
+    });
+
+    setAllActivities((prev) =>
+      prev.map((a) => {
+        const found = updates.find((u) => u.id === a.id);
+        return found ? { ...a, is_hidden: found.is_hidden } : a;
+      })
+    );
+
+    try {
+      await Promise.all(
+        updates.map((u) =>
+          supabase.from('activities').update({ is_hidden: u.is_hidden }).eq('id', u.id)
+        )
+      );
+    } catch (err) {}
+
+    const lectureCount = updates.filter((u) => !u.is_hidden).length;
+    const hiddenCount = updates.filter((u) => u.is_hidden).length;
+
+    showToast(
+      'success',
+      '📚 ĐÃ CHỈ MỞ NỘI DUNG SOẠN!',
+      `Đã mở ${lectureCount} bài giảng lý thuyết và tạm khóa ${hiddenCount} bài tập kiểm tra (${applyToAll ? 'Toàn bộ khóa học' : 'Unit này'}).`
+    );
+  };
+
+  // TÁC VỤ 3: MỞ TẤT CẢ BÀI HỌC
+  const handleOpenAllActivities = async (applyToAll = false) => {
+    const targetActs = applyToAll
+      ? allActivities
+      : allActivities.filter((a) => a.section_id === activeSectionId);
+
+    if (targetActs.length === 0) return;
+    const ids = targetActs.map((a) => a.id);
+
+    setAllActivities((prev) =>
+      prev.map((a) => (ids.includes(a.id) ? { ...a, is_hidden: false } : a))
+    );
+
+    try {
+      await supabase.from('activities').update({ is_hidden: false }).in('id', ids);
+    } catch (err) {}
+
+    showToast('success', '👁️ ĐÃ MỞ TẤT CẢ BÀI HỌC', `Đã hiển thị toàn bộ ${ids.length} bài học cho Học sinh (${applyToAll ? 'Toàn khóa' : 'Unit này'})!`);
+  };
+
+  // TÁC VỤ 4: ẨN TẤT CẢ BÀI HỌC
+  const handleHideAllActivities = async (applyToAll = false) => {
+    const targetActs = applyToAll
+      ? allActivities
+      : allActivities.filter((a) => a.section_id === activeSectionId);
+
+    if (targetActs.length === 0) return;
+    const ids = targetActs.map((a) => a.id);
+
+    setAllActivities((prev) =>
+      prev.map((a) => (ids.includes(a.id) ? { ...a, is_hidden: true } : a))
+    );
+
+    try {
+      await supabase.from('activities').update({ is_hidden: true }).in('id', ids);
+    } catch (err) {}
+
+    showToast('success', '🔒 ĐÃ ẨN TẤT CẢ BÀI HỌC', `Đã tạm ẩn toàn bộ ${ids.length} bài học khỏi tầm mắt Học sinh (${applyToAll ? 'Toàn khóa' : 'Unit này'})!`);
+  };
+
   // 1-Click Ẩn / Hiện Bài học
   const handleToggleHideActivity = async (act, e) => {
     e.stopPropagation();
@@ -618,10 +802,53 @@ export default function CourseView() {
     checkEnrollment();
   }, [courseId, user]);
 
+  // NẠP VÀ LẮNG NGHE ĐỒNG BỘ REAL-TIME DANH SÁCH UNIT BỊ ẨN
+  useEffect(() => {
+    if (!courseId) return;
+    getSiteSetting(`course_hidden_sections_${courseId}`, []).then((val) => {
+      if (Array.isArray(val)) {
+        setHiddenSectionIds(val);
+        try {
+          localStorage.setItem(`lms_course_hidden_sections_${courseId}`, JSON.stringify(val));
+        } catch (e) {}
+      }
+    });
+
+    const unsub = subscribeSiteSetting(`course_hidden_sections_${courseId}`, (val) => {
+      if (Array.isArray(val)) {
+        setHiddenSectionIds(val);
+        try {
+          localStorage.setItem(`lms_course_hidden_sections_${courseId}`, JSON.stringify(val));
+        } catch (e) {}
+      }
+    });
+
+    return () => unsub();
+  }, [courseId]);
+
   const userIsTeacher = isTeacher || profile?.is_teacher || profile?.role === 'admin' || profile?.role === 'teacher' || (user?.email && (user.email.toLowerCase().includes('hai') || user.email.toLowerCase().includes('nguyensea')));
 
+  // LỌC CHỦ ĐỀ / UNIT CHO HỌC SINH (NẾU BỊ ẨN THÌ HỌC SINH HOÀN TOÀN KHÔNG THẤY)
+  const displayableSections = sections.filter((sec) => {
+    if (userIsTeacher) return true;
+    return !hiddenSectionIds.includes(sec.id);
+  });
+
+  // TỰ ĐỘNG CHUYỂN SANG UNIT HỢP LỆ NẾU UNIT HIỆN TẠI ĐANG BỊ ẨN KHỎI HỌC SINH
+  useEffect(() => {
+    if (!userIsTeacher && activeSectionId && hiddenSectionIds.includes(activeSectionId)) {
+      const firstAvailable = sections.find((s) => !hiddenSectionIds.includes(s.id));
+      if (firstAvailable) {
+        setActiveSectionId(firstAvailable.id);
+      }
+    }
+  }, [userIsTeacher, activeSectionId, hiddenSectionIds, sections]);
+
+  // LỌC BÀI HỌC CHO HỌC SINH (NẾU UNIT BỊ ẨN HOẶC BÀI HỌC BỊ ẨN THÌ HỌC SINH KHÔNG THẤY)
+  const isCurrentSectionHidden = hiddenSectionIds.includes(activeSectionId);
   const displayableActivities = activities.filter((act) => {
     if (userIsTeacher) return true;
+    if (isCurrentSectionHidden) return false;
     if (act.is_hidden) return false; // HỌC SINH TUYỆT ĐỐI BỊ ẨN KHỎI DANH SÁCH BÀI HỌC 100%
     return true;
   });
@@ -850,12 +1077,14 @@ export default function CourseView() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-1">
             <CourseSidebar
-              sections={sections}
+              sections={displayableSections}
               activeSectionId={activeSectionId}
               onSelectSection={handleSelectSection}
               onAddSection={handleAddSection}
               isTeacher={userIsTeacher}
               activities={allActivities}
+              hiddenSectionIds={hiddenSectionIds}
+              onToggleHideSection={handleToggleHideSection}
             />
           </div>
 
@@ -867,6 +1096,11 @@ export default function CourseView() {
                     <h2 className="text-lg font-extrabold text-slate-900">
                       {sections.find((s) => s.id === activeSectionId)?.title || 'Danh Sách Bài Học'}
                     </h2>
+                    {hiddenSectionIds.includes(activeSectionId) && (
+                      <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-md border border-amber-500 shadow-2xs">
+                        🔒 ĐÃ ẨN UNIT KHỎI HỌC SINH
+                      </span>
+                    )}
                     {userIsTeacher && activeSectionId && (
                       <div className="flex items-center space-x-1.5 ml-2 flex-wrap gap-y-1">
                         <button
@@ -883,6 +1117,23 @@ export default function CourseView() {
                           className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-950 font-extrabold text-[11px] rounded-lg transition border border-amber-300 cursor-pointer flex items-center space-x-1"
                         >
                           <span>✏️ Sửa Tên</span>
+                        </button>
+
+                        {/* Nút Ẩn / Mở Unit này khỏi Học sinh */}
+                        <button
+                          type="button"
+                          title={hiddenSectionIds.includes(activeSectionId) ? "Mở Unit này cho Học sinh xem" : "Ẩn Unit này khỏi Học sinh"}
+                          onClick={(e) => {
+                            const currentSec = sections.find((s) => s.id === activeSectionId);
+                            if (currentSec) handleToggleHideSection(currentSec, e);
+                          }}
+                          className={`px-2 py-1 font-extrabold text-[11px] rounded-lg transition border cursor-pointer flex items-center space-x-1 ${
+                            hiddenSectionIds.includes(activeSectionId)
+                              ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-500 shadow-xs'
+                              : 'bg-slate-200 hover:bg-slate-300 text-slate-800 border-slate-300'
+                          }`}
+                        >
+                          <span>{hiddenSectionIds.includes(activeSectionId) ? '👁️ Mở Unit Cho HS' : '🔒 Ẩn Unit Khỏi HS'}</span>
                         </button>
 
                         <button
@@ -976,28 +1227,50 @@ export default function CourseView() {
               </div>
 
               {/* THANH TABS CHỌN NHANH CÁC UNITS (UNIT 1, UNIT 2, UNIT 3...) */}
-              {sections.length > 0 && (
+              {displayableSections.length > 0 && (
                 <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-thin border-b border-slate-100 pt-2">
-                  {sections.map((sec) => {
+                  {displayableSections.map((sec) => {
                     const isActive = sec.id === activeSectionId;
+                    const isSecHidden = hiddenSectionIds.includes(sec.id);
                     return (
                       <div
                         key={sec.id}
                         className={`group flex items-center rounded-xl text-xs font-extrabold transition flex-shrink-0 border shadow-xs ${
                           isActive
                             ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                            : isSecHidden
+                            ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                         }`}
                       >
                         <button
                           type="button"
                           onClick={() => handleSelectSection(sec.id)}
-                          className="px-3.5 py-1.5 cursor-pointer flex items-center space-x-1"
+                          className="px-3.5 py-1.5 cursor-pointer flex items-center space-x-1.5"
                         >
+                          {userIsTeacher && isSecHidden && (
+                            <span className="text-[10px] text-amber-800 font-black">🔒</span>
+                          )}
                           <span>{sec.title}</span>
                         </button>
                         {userIsTeacher && (
-                          <div className="flex items-center pr-1.5 space-x-1">
+                          <div className="flex items-center pr-1.5 space-x-0.5">
+                            {/* Nút Ẩn/Mở Unit nhanh ngay trên Tab */}
+                            <button
+                              type="button"
+                              onClick={(e) => handleToggleHideSection(sec, e)}
+                              className={`p-1 rounded-md transition cursor-pointer ${
+                                isSecHidden
+                                  ? 'bg-amber-400 text-slate-950 font-black hover:bg-amber-300'
+                                  : isActive
+                                  ? 'hover:bg-emerald-700 text-emerald-100'
+                                  : 'hover:bg-slate-300 text-slate-500'
+                              }`}
+                              title={isSecHidden ? `Mở "${sec.title}" cho học sinh xem` : `Ẩn "${sec.title}" khỏi học sinh`}
+                            >
+                              {isSecHidden ? <EyeOff className="w-3.5 h-3.5 text-slate-950" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1040,11 +1313,129 @@ export default function CourseView() {
                 </div>
               )}
 
+              {/* THANH CÔNG CỤ QUẢN LÝ ẨN / MỞ NỘI DUNG CHO HỌC SINH (CHUYÊN BIỆT GIÁO VIÊN THEO CHỈ ĐẠO CỦA THẦY HẢI) */}
+              {userIsTeacher && (
+                <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 border border-indigo-500/30 shadow-md space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center space-x-2.5">
+                      <span className="text-xl">🛡️</span>
+                      <div>
+                        <h4 className="font-extrabold text-sm text-amber-300 flex items-center space-x-2">
+                          <span>QUẢN LÝ ẨN / MỞ NỘI DUNG CHO HỌC SINH</span>
+                          <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded text-[10px] font-bold">
+                            Chế Độ Giáo Viên
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-slate-300">
+                          Học sinh chỉ vào xem những nội dung khi Thầy cho phép thuộc về khóa học
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Phạm vi áp dụng */}
+                    <div className="flex items-center space-x-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700 text-xs font-bold self-start sm:self-auto">
+                      <span className="text-[10px] text-slate-400 px-2 uppercase font-extrabold">Phạm vi:</span>
+                      <button
+                        type="button"
+                        onClick={() => setBulkScope('current')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-xs ${
+                          bulkScope === 'current'
+                            ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                            : 'text-slate-300 hover:text-white'
+                        }`}
+                      >
+                        Unit hiện tại
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBulkScope('all')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer text-xs ${
+                          bulkScope === 'all'
+                            ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                            : 'text-slate-300 hover:text-white'
+                        }`}
+                      >
+                        Toàn bộ khóa học ({sections.length} Units)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 4 Nút Tác Vụ Nhanh 1-Click */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
+                    {/* NÚT 1: CHỈ MỞ BÀI TẬP & KIỂM TRA (ĐÚNG YÊU CẦU CỦA THẦY HẢI) */}
+                    <button
+                      type="button"
+                      onClick={() => handleOnlyOpenExercisesAndExams(bulkScope === 'all')}
+                      className="p-3 bg-emerald-700/80 hover:bg-emerald-600 text-white rounded-xl font-extrabold text-xs transition border border-emerald-400/40 shadow-sm flex items-center space-x-2.5 text-left cursor-pointer group transform hover:-translate-y-0.5"
+                      title="Ẩn toàn bộ bài giảng lý thuyết Thầy soạn, chỉ mở bài tập và bài kiểm tra cho học sinh làm"
+                    >
+                      <span className="text-2xl flex-shrink-0 group-hover:scale-110 transition">🎯</span>
+                      <div>
+                        <div className="font-black text-amber-200 text-xs">Chỉ Mở Bài Tập & Kiểm Tra</div>
+                        <div className="text-[10px] text-emerald-100 font-medium">Ẩn nội dung Thầy soạn</div>
+                      </div>
+                    </button>
+
+                    {/* NÚT 2: CHỈ MỞ BÀI SOẠN LÝ THUYẾT */}
+                    <button
+                      type="button"
+                      onClick={() => handleOnlyOpenLectures(bulkScope === 'all')}
+                      className="p-3 bg-sky-700/80 hover:bg-sky-600 text-white rounded-xl font-extrabold text-xs transition border border-sky-400/40 shadow-sm flex items-center space-x-2.5 text-left cursor-pointer group transform hover:-translate-y-0.5"
+                      title="Chỉ mở các bài giảng, bảng trắng, video Thầy soạn; ẩn các bài tập kiểm tra khi chưa đến giờ làm"
+                    >
+                      <span className="text-2xl flex-shrink-0 group-hover:scale-110 transition">📚</span>
+                      <div>
+                        <div className="font-black text-sky-200 text-xs">Chỉ Mở Nội Dung Soạn</div>
+                        <div className="text-[10px] text-sky-100 font-medium">Khóa bài tập & kiểm tra</div>
+                      </div>
+                    </button>
+
+                    {/* NÚT 3: MỞ TẤT CẢ BÀI HỌC */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAllActivities(bulkScope === 'all')}
+                      className="p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-extrabold text-xs transition border border-slate-600 shadow-sm flex items-center space-x-2.5 text-left cursor-pointer group transform hover:-translate-y-0.5"
+                      title="Mở tất cả bài học trong phạm vi cho học sinh xem"
+                    >
+                      <span className="text-2xl flex-shrink-0 group-hover:scale-110 transition">👁️</span>
+                      <div>
+                        <div className="font-black text-emerald-400 text-xs">Mở Tất Cả Bài Học</div>
+                        <div className="text-[10px] text-slate-300 font-medium">Hiển thị 100% cho HS</div>
+                      </div>
+                    </button>
+
+                    {/* NÚT 4: ẨN TẤT CẢ BÀI HỌC */}
+                    <button
+                      type="button"
+                      onClick={() => handleHideAllActivities(bulkScope === 'all')}
+                      className="p-3 bg-rose-950/80 hover:bg-rose-900 text-white rounded-xl font-extrabold text-xs transition border border-rose-500/40 shadow-sm flex items-center space-x-2.5 text-left cursor-pointer group transform hover:-translate-y-0.5"
+                      title="Ẩn toàn bộ bài học trong phạm vi khỏi học sinh"
+                    >
+                      <span className="text-2xl flex-shrink-0 group-hover:scale-110 transition">🔒</span>
+                      <div>
+                        <div className="font-black text-rose-300 text-xs">Ẩn Tất Cả Bài Học</div>
+                        <div className="text-[10px] text-rose-200 font-medium">Tạm khóa toàn bộ khỏi HS</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {loading ? (
                 <LoadingSpinner text="Đang tải bài học..." />
               ) : displayableActivities.length === 0 ? (
                 <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl space-y-3">
-                  <p className="text-xs text-slate-400 font-semibold">Chủ đề này chưa có bài học nào mở cho học sinh.</p>
+                  <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-2xl font-black">
+                    🔒
+                  </div>
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                    CHƯA CÓ BÀI HỌC NÀO ĐƯỢC MỞ
+                  </h3>
+                  <p className="text-xs text-slate-500 font-semibold max-w-md mx-auto leading-relaxed">
+                    {userIsTeacher
+                      ? 'Thầy đang ẩn toàn bộ bài học trong chủ đề này hoặc chưa tạo bài học. Thầy có thể dùng bộ công cụ phía trên để mở cho Học sinh xem.'
+                      : 'Nội dung trong chủ đề này hiện đang được Thầy/Cô chuẩn bị và tạm ẩn. Em vui lòng quay lại khi được Thầy/Cô mở bài nhé!'}
+                  </p>
                   {userIsTeacher && (
                     <div className="flex items-center justify-center space-x-2 pt-2">
                       <button

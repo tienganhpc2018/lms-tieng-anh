@@ -142,6 +142,55 @@ export default function AssignmentView() {
     return <LoadingSpinner text="Đang nạp bài học..." />;
   }
 
+  const userEmail = (user?.email || profile?.email || '').toLowerCase();
+  const isMasterTeacherEmail = userEmail.includes('nguyensea') || userEmail.includes('nguyenvanhai') || userEmail.includes('tienganhpc2018');
+  const isExplicitStudent = profile?.role === 'student' || userEmail.includes('hoangnm');
+  const userIsTeacher = !isExplicitStudent && Boolean(
+    isTeacher || 
+    profile?.is_teacher || 
+    profile?.role === 'teacher' || 
+    profile?.role === 'admin' || 
+    profile?.is_admin || 
+    isMasterTeacherEmail
+  );
+
+  // KIỂM SOÁT BẢO MẬT: NẾU BÀI HỌC BỊ ẨN VÀ NGƯỜI XEM LÀ HỌC SINH -> CHẶN TRUY CẬP
+  if (!userIsTeacher && !isStudentPreviewMode && activity?.is_hidden) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl max-w-md text-center space-y-4">
+          <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-3xl font-black shadow-xs">
+            🔒
+          </div>
+          <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">
+            NỘI DUNG ĐANG ĐƯỢC GIÁO VIÊN TẠM ẨN
+          </h2>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Bài học <span className="font-extrabold text-slate-800">"{activity?.title || 'này'}"</span> hiện đang được Thầy/Cô tạm ẩn hoặc chưa mở cho học sinh. Em vui lòng quay lại khi được Thầy/Cô cho phép nhé!
+          </p>
+          <div className="pt-2 flex flex-col gap-2">
+            {activity?.section?.course?.id && (
+              <button
+                type="button"
+                onClick={() => navigate(`/course/${activity.section.course.id}`)}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer"
+              >
+                📚 Quay Lại Khóa Học
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs rounded-xl transition cursor-pointer"
+            >
+              🏠 Về Trang Chủ
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleSaveInteractiveVideo = async (videoData) => {
     try {
       const updatedSettings = {
@@ -299,17 +348,6 @@ export default function AssignmentView() {
   };
 
   const activeAct = activity || { id: targetActivityId, title: 'Bài Kiểm Tra / Thi Thử Online', type: 'quiz' };
-  const userEmail = (user?.email || profile?.email || '').toLowerCase();
-  const isMasterTeacherEmail = userEmail.includes('nguyensea') || userEmail.includes('nguyenvanhai') || userEmail.includes('tienganhpc2018');
-  const isExplicitStudent = profile?.role === 'student' || userEmail.includes('hoangnm');
-  const userIsTeacher = !isExplicitStudent && Boolean(
-    isTeacher || 
-    profile?.is_teacher || 
-    profile?.role === 'teacher' || 
-    profile?.role === 'admin' || 
-    profile?.is_admin || 
-    isMasterTeacherEmail
-  );
 
   const searchParams = new URLSearchParams(window.location.search);
   const isReviewMode = searchParams.get('review') === 'true' || searchParams.has('submissionId') || searchParams.has('studentId');

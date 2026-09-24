@@ -235,6 +235,7 @@ export default function WhiteboardView() {
   const [lessonTitle, setLessonTitle] = useState('Getting started');
   const [savingLesson, setSavingLesson] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [isActivityHidden, setIsActivityHidden] = useState(false);
 
   // BẢNG MÀU CHỌN NHANH PHONG PHÚ CHO BÚT VẼ (PEN PALETTE POPUP)
   const PEN_COLORS = [
@@ -469,6 +470,12 @@ export default function WhiteboardView() {
             .single();
 
           if (!error && data) {
+            // NẾU BÀI HỌC BỊ ẨN VÀ LÀ HỌC SINH -> CHẶN HIỂN THỊ
+            if (!userIsTeacher && data.is_hidden) {
+              setIsActivityHidden(true);
+              return;
+            }
+
             // SỬ DỤNG HÀM formatLessonTitle CHUẨN XÁC V49 VĨNH VIỄN KHÔNG LỖI [] Gng s
             const cleanTitle = formatLessonTitle(data.title);
             setLessonTitle(cleanTitle);
@@ -1319,6 +1326,34 @@ export default function WhiteboardView() {
         return 'fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] bg-[#ded8be] p-1.5 rounded-2xl shadow-2xl border-2 border-[#b8af91] flex items-center space-x-1.5 animate-scale-up font-sans';
     }
   };
+
+  // KIỂM SOÁT BẢO MẬT: NẾU BÀI BẢNG TRẮNG BỊ ẨN VÀ NGƯỜI XEM LÀ HỌC SINH -> CHẶN XEM
+  if (isActivityHidden && !userIsTeacher) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans text-white">
+        <div className="bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl max-w-md text-center space-y-4">
+          <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center mx-auto text-3xl font-black border border-amber-500/30">
+            🔒
+          </div>
+          <h2 className="text-lg font-black text-amber-300 uppercase tracking-tight">
+            BÀI GIẢNG ĐANG ĐƯỢC GIÁO VIÊN TẠM ẨN
+          </h2>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            Nội dung bài giảng Bảng trắng này hiện đang được Thầy/Cô tạm ẩn hoặc chưa mở cho học sinh. Em vui lòng quay lại khi được Thầy/Cô cho phép nhé!
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition cursor-pointer"
+            >
+              Quay Lại Khóa Học
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
