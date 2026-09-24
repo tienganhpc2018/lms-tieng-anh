@@ -96,10 +96,10 @@ export async function getSiteSetting(key, fallbackDefault) {
 
 /**
  * Lưu cấu hình hệ thống:
- * 1. Lưu ngay vào localStorage
- * 2. Lưu vào Supabase Cloud Storage (đảm bảo HS mở máy khác sẽ đọc được 100%)
- * 3. Đồng bộ vào bảng site_settings (nếu có)
- * 4. Phát sóng Realtime Broadcast cho mọi tài khoản HS đang online
+ * 1. Lưu ngay vào localStorage (0ms phản hồi cục bộ)
+ * 2. Đồng bộ lên bảng site_settings trong Supabase DB (kích hoạt Postgres Changes Real-time)
+ * 3. Phát sóng Realtime Broadcast cho mọi trình duyệt HS đang online
+ * 4. Dự phòng Cloud Storage ngầm
  * @param {string} key - Tên cấu hình
  * @param {object} value - Giá trị cấu hình cần lưu
  * @returns {Promise<{success: boolean, error?: any}>}
@@ -114,28 +114,9 @@ export async function saveSiteSetting(key, value) {
     console.warn(`[SiteSettings] Lỗi lưu cache ${key}:`, e);
   }
 
-  let cloudSaveSuccess = false;
+  let dbSaveSuccess = false;
 
-  // 2. Lưu trực tiếp vào Cloud Storage (đảm bảo 100% học sinh máy khác đọc được)
-  try {
-    const jsonStr = JSON.stringify(value);
-    const { error: storageErr } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(`settings/${key}.json`, jsonStr, {
-        upsert: true,
-        contentType: 'application/json',
-      });
-
-    if (!storageErr) {
-      cloudSaveSuccess = true;
-    } else {
-      console.warn(`[SiteSettings] Storage upload warning:`, storageErr.message);
-    }
-  } catch (storageException) {
-    console.warn(`[SiteSettings] Storage upload exception:`, storageException);
-  }
-
-  // 3. Đồng bộ lên bảng site_settings trong Supabase DB
+  // 2. Ưu tiên hàng đầu: Đồng bộ lên bảng site_settings trong Supabase DB (Tốc độ vài chục ms)
   try {
     const payload = {
       key,
@@ -148,36 +129,59 @@ export async function saveSiteSetting(key, value) {
       .upsert([payload], { onConflict: 'key' });
 
     if (!dbErr) {
-      cloudSaveSuccess = true;
+      dbSaveSuccess = true;
+    } else {
+      console.warn(`[SiteSettings] Lỗi lưu DB ${key}:`, dbErr.message);
     }
   } catch (dbException) {
-    // Bỏ qua lỗi nếu bảng SQL chưa tạo
+    console.warn(`[SiteSettings] Ngoại lệ lưu DB:`, dbException);
   }
 
-  // 4. Phát sóng Realtime qua Supabase Broadcast Channel tới mọi trình duyệt của học sinh
+  // 3. Phát sóng Realtime qua Supabase Broadcast Channel tới mọi trình duyệt của học sinh
+  // Tối ưu: Nếu dữ liệu lớn (>50KB, ví dụ cuộn phim chứa ảnh), chỉ gửi key + timestamp để không vượt 256KB giới hạn WebSocket
   try {
     const channel = getRealtimeChannel();
+    const jsonStr = JSON.stringify(value);
+    const isLightPayload = jsonStr.length < 50000;
+
+    const broadcastPayload = {
+      key,
+      timestamp: Date.now(),
+    };
+    if (isLightPayload) {
+      broadcastPayload.value = value;
+    }
+
     await channel.send({
       type: 'broadcast',
       event: 'setting_change',
-      payload: {
-        key,
-        value,
-        timestamp: Date.now(),
-      },
+      payload: broadcastPayload,
     });
   } catch (broadcastErr) {
     console.warn(`[SiteSettings] Realtime broadcast error:`, broadcastErr);
   }
 
-  return { success: cloudSaveSuccess };
+  // 4. Dự phòng Cloud Storage ngầm (không chặn luồng chính)
+  try {
+    const jsonStr = JSON.stringify(value);
+    supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(`settings/${key}.json`, jsonStr, {
+        upsert: true,
+        contentType: 'application/json',
+      })
+      .catch(() => {});
+  } catch (e) {}
+
+  return { success: dbSaveSuccess };
 }
 
 /**
  * Đăng ký nhận cập nhật Real-time khi Giáo viên thay đổi cấu hình:
+ * - Lắng nghe Postgres Changes trên bảng site_settings của Supabase DB
  * - Lắng nghe kênh Realtime Broadcast của Supabase
  * - Lắng nghe sự kiện window 'focus' (khi HS chuyển qua tab LMS)
- * - Tự động polling kiểm tra mỗi 12 giây
+ * - Tự động polling kiểm tra mỗi 8 giây
  * @param {string} key - Tên cấu hình cần theo dõi
  * @param {function} callback - Hàm gọi lại khi có dữ liệu mới (newConfig) => void
  * @returns {function} Hàm hủy đăng ký (unsubscribe)
@@ -186,37 +190,70 @@ export function subscribeSiteSetting(key, callback) {
   let isSubscribed = true;
   let lastKnownJson = '';
 
+  // Nạp trạng thái đã biết từ cache cục bộ
+  try {
+    const cached = localStorage.getItem(`lms_${key}`);
+    if (cached) lastKnownJson = cached;
+  } catch (e) {}
+
   const channel = getRealtimeChannel();
 
-  // Handler xử lý Realtime Broadcast
-  const handleBroadcast = (data) => {
+  // Hàm xử lý dữ liệu mới nhận được
+  const handleIncomingValue = (val) => {
+    if (!isSubscribed || val === undefined || val === null) return;
+    const newJson = JSON.stringify(val);
+    if (newJson !== lastKnownJson) {
+      lastKnownJson = newJson;
+      try {
+        localStorage.setItem(`lms_${key}`, newJson);
+      } catch (e) {}
+      callback(val);
+    }
+  };
+
+  // 1. Lắng nghe Realtime Broadcast
+  const handleBroadcast = async (data) => {
     if (!isSubscribed) return;
     const payload = data?.payload;
-    if (payload && payload.key === key && payload.value) {
-      const newJson = JSON.stringify(payload.value);
-      if (newJson !== lastKnownJson) {
-        lastKnownJson = newJson;
-        // Cập nhật lại cache cục bộ
-        localStorage.setItem(`lms_${key}`, newJson);
-        callback(payload.value);
+    if (payload && payload.key === key) {
+      if (payload.value !== undefined && payload.value !== null) {
+        handleIncomingValue(payload.value);
+      } else {
+        // Payload rút gọn -> kéo dữ liệu mới nhất từ Supabase DB ngay
+        try {
+          const fresh = await getSiteSetting(key, null);
+          if (fresh) handleIncomingValue(fresh);
+        } catch (e) {}
       }
     }
   };
 
   channel.on('broadcast', { event: 'setting_change' }, handleBroadcast);
 
-  // Polling ngầm định kỳ 12s và kiểm tra khi người dùng quay lại tab LMS
+  // 2. Lắng nghe trực tiếp Postgres Changes trên bảng site_settings (Độ trễ <100ms)
+  channel.on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: TABLE_NAME,
+      filter: `key=eq.${key}`,
+    },
+    (payload) => {
+      if (!isSubscribed) return;
+      const newValue = payload?.new?.value;
+      if (newValue !== undefined && newValue !== null) {
+        handleIncomingValue(newValue);
+      }
+    }
+  );
+
+  // 3. Polling ngầm định kỳ 8s và kiểm tra khi người dùng quay lại tab LMS (Dự phòng mạng)
   const checkFreshUpdate = async () => {
     if (!isSubscribed) return;
     try {
       const fresh = await getSiteSetting(key, null);
-      if (fresh && isSubscribed) {
-        const freshJson = JSON.stringify(fresh);
-        if (freshJson !== lastKnownJson) {
-          lastKnownJson = freshJson;
-          callback(fresh);
-        }
-      }
+      if (fresh) handleIncomingValue(fresh);
     } catch (e) {}
   };
 
@@ -225,7 +262,7 @@ export function subscribeSiteSetting(key, callback) {
   };
 
   window.addEventListener('focus', handleFocus);
-  const intervalId = setInterval(checkFreshUpdate, 12000);
+  const intervalId = setInterval(checkFreshUpdate, 8000);
 
   return () => {
     isSubscribed = false;

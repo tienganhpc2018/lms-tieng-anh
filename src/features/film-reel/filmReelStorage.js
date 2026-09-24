@@ -387,6 +387,8 @@ export const saveOrUpdateFilmReel = (reelData, previousClassId = null) => {
     currentAll.unshift(finalReel);
     if (currentAll.length > 20) currentAll = currentAll.slice(0, 20);
     localStorage.setItem('all_published_film_reels', JSON.stringify(currentAll));
+    // Tự động đồng bộ lên Supabase Cloud để Học sinh nhận được bài viết ngay lập tức
+    saveSiteSetting('published_film_reels', currentAll).catch(() => {});
   } catch (errSync) {
     console.warn('Không thể đồng bộ all_published_film_reels do đầy bộ nhớ (bỏ qua an toàn):', errSync);
   }
@@ -445,6 +447,9 @@ export const deleteFilmReel = async (classId, reelId) => {
         }
       }
     }
+    // Đồng bộ danh sách bài viết còn lại lên Supabase Cloud để Học sinh không bị xem bài đã xóa
+    const remainingAll = loadAllFilmReelsAcrossClasses();
+    saveSiteSetting('published_film_reels', remainingAll).catch(() => {});
     notifyFilmReelsChanged();
   } catch (e) {
     console.error('Lỗi khi xóa bài viết khỏi LocalStorage:', e);
@@ -622,6 +627,9 @@ export const togglePinReel = (classId, reelId) => {
         }
       }
     }
+    // Đồng bộ thứ tự bài ghim mới lên Supabase Cloud để Học sinh thấy bài ghim ở FRAME #01
+    const updatedAll = loadAllFilmReelsAcrossClasses();
+    saveSiteSetting('published_film_reels', updatedAll).catch(() => {});
     notifyFilmReelsChanged();
   } catch (err) {
     console.error('Lỗi khi ghim bài viết:', err);

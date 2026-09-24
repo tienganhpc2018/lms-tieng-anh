@@ -143,8 +143,8 @@ export default function TopStudentsBox({ userIsTeacher = false }) {
 
       setTopStudents(finalList);
 
-      // Nếu là Giáo viên/Admin và có học sinh thực tế, tự động đồng bộ lên Supabase Cloud
-      if (userIsTeacher && mappedStudents.some((s) => !s.isSample)) {
+      // Nếu là Giáo viên/Admin, tự động đồng bộ danh sách học sinh tiêu biểu lên Supabase Cloud
+      if (userIsTeacher && Array.isArray(finalList) && finalList.length > 0) {
         saveSiteSetting('featured_top_students', finalList).catch(() => {});
       }
     } catch (e) {
@@ -154,7 +154,7 @@ export default function TopStudentsBox({ userIsTeacher = false }) {
   };
 
   useEffect(() => {
-    // 1. Thử kéo dữ liệu thật từ Cloud về trước (đảm bảo Học sinh mở ở máy nào cũng có dữ liệu của Admin)
+    // 1. Nếu là Học sinh: Ưu tiên kéo dữ liệu mới nhất từ Supabase Cloud của Thầy về máy
     const loadFromCloud = async () => {
       try {
         const cloudData = await getSiteSetting('featured_top_students', null);
@@ -169,9 +169,13 @@ export default function TopStudentsBox({ userIsTeacher = false }) {
       refreshTopStudents();
     };
 
-    loadFromCloud();
+    if (userIsTeacher) {
+      refreshTopStudents();
+    } else {
+      loadFromCloud();
+    }
 
-    // 2. Lắng nghe Realtime Broadcast từ Supabase khi Admin/GV thay đổi
+    // 2. Lắng nghe Realtime (cả Postgres Changes và Broadcast) từ Supabase khi Admin/GV thay đổi
     const unsubCloud = subscribeSiteSetting('featured_top_students', (freshTop) => {
       if (Array.isArray(freshTop) && freshTop.length > 0) {
         setTopStudents(freshTop);

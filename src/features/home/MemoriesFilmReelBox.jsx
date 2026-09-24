@@ -13,6 +13,7 @@ import {
   Copy,
   Check,
   MessageCircle,
+  RefreshCw,
 } from 'lucide-react';
 import {
   loadAllFilmReelsAcrossClasses,
@@ -24,7 +25,7 @@ import {
 import { loadClasses } from '../behavior/behaviorStorage';
 import { playClick } from '../../utils/soundEffects';
 import SafeFilmImage from '../film-reel/components/SafeFilmImage';
-import { getSiteSetting, subscribeSiteSetting } from '../../services/siteSettingsService';
+import { getSiteSetting, saveSiteSetting, subscribeSiteSetting } from '../../services/siteSettingsService';
 
 export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const navigate = useNavigate();
@@ -36,6 +37,8 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const [sampleLikesMap, setSampleLikesMap] = useState({});
   const [copyToast, setCopyToast] = useState(false);
   const [popHeartId, setPopHeartId] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncToast, setSyncToast] = useState(null);
 
   // Định dạng danh sách bài viết từ kho lưu trữ để hiển thị trên Cuộn Phim Hồi Ức
   const formatReels = (reelsList, classMap) => {
@@ -107,16 +110,54 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
 
       // 1. Nạp tức thì từ LocalStorage
       const reelsFromStorage = loadAllFilmReelsAcrossClasses() || [];
-      setCustomReels(formatReels(reelsFromStorage, classMap));
+      if (reelsFromStorage.length > 0) {
+        setCustomReels(formatReels(reelsFromStorage, classMap));
+        // Nếu là Thầy/Admin có bài viết, tự động đẩy lên Cloud Supabase để Học sinh đồng bộ tức thì
+        if (userIsTeacher) {
+          saveSiteSetting('published_film_reels', reelsFromStorage).catch(() => {});
+        }
+      }
 
       // 2. Nạp đồng bộ từ IndexedDB để không bị sót bài viết có ảnh lớn
       syncAndLoadFilmReels('all_classes').then((synced) => {
         if (synced && synced.length > 0) {
           setCustomReels(formatReels(synced, classMap));
+          if (userIsTeacher) {
+            saveSiteSetting('published_film_reels', synced).catch(() => {});
+          }
         }
       }).catch(() => {});
     } catch (e) {
       console.error('Lỗi nạp cuộn phim hồi ức:', e);
+    }
+  };
+
+  // Hàm ép đồng bộ thủ công từ Cloud về máy
+  const handleManualSync = async () => {
+    playClick();
+    setIsSyncing(true);
+    try {
+      const cloudReels = await getSiteSetting('published_film_reels', null);
+      if (Array.isArray(cloudReels) && cloudReels.length > 0) {
+        const classesList = loadClasses() || [];
+        const classMap = {};
+        classesList.forEach((c) => {
+          if (c.id) classMap[c.id] = c.name;
+        });
+        setCustomReels(formatReels(cloudReels, classMap));
+        try {
+          localStorage.setItem('all_published_film_reels', JSON.stringify(cloudReels));
+        } catch (e) {}
+        setSyncToast('Đã đồng bộ bài viết mới nhất từ Thầy!');
+      } else {
+        refreshCustomReels();
+        setSyncToast('Dữ liệu đã ở phiên bản mới nhất!');
+      }
+    } catch (err) {
+      setSyncToast('Lỗi kết nối mạng khi đồng bộ!');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncToast(null), 3000);
     }
   };
 
@@ -132,10 +173,13 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
           if (c.id) classMap[c.id] = c.name;
         });
         setCustomReels(formatReels(cloudReels, classMap));
+        try {
+          localStorage.setItem('all_published_film_reels', JSON.stringify(cloudReels));
+        } catch (e) {}
       }
     }).catch(() => {});
 
-    // Lắng nghe Realtime Broadcast khi Admin đăng hoặc sửa bài
+    // Lắng nghe Realtime (cả Postgres Changes và Broadcast) khi Admin đăng hoặc sửa bài
     const unsubCloud = subscribeSiteSetting('published_film_reels', (freshReels) => {
       if (Array.isArray(freshReels) && freshReels.length > 0) {
         const classesList = loadClasses() || [];
@@ -144,6 +188,9 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
           if (c.id) classMap[c.id] = c.name;
         });
         setCustomReels(formatReels(freshReels, classMap));
+        try {
+          localStorage.setItem('all_published_film_reels', JSON.stringify(freshReels));
+        } catch (e) {}
       }
     });
 
@@ -156,7 +203,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
       window.removeEventListener('filmReelsUpdated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, []);
+  }, [userIsTeacher]);
 
   // DANH SÁCH 7 BÀI MẪU CUỘN PHIM HỒI ỨC CHO CẢ 3 KHỐI LỚP 9, 8, 7
   const FILM_MEMORIES = [
@@ -440,6 +487,18 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
             </div>
           )}
 
+          {/* NÚT ĐỒNG BỘ REALTIME TỨC THÌ TỪ CLOUD */}
+          <button
+            type="button"
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="flex items-center space-x-1.5 bg-white hover:bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-xl border border-emerald-300 shadow-2xs text-xs font-bold transition cursor-pointer active:scale-95"
+            title="Nhấn để đồng bộ bài viết mới nhất từ Giáo viên"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-emerald-600' : ''}`} />
+            <span className="hidden sm:inline">{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}</span>
+          </button>
+
           {userIsTeacher && (
             <Link
               to="/film-reel"
@@ -450,6 +509,14 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
           )}
         </div>
       </div>
+
+      {/* TOAST THÔNG BÁO ĐỒNG BỘ REAL-TIME */}
+      {syncToast && (
+        <div className="bg-emerald-600 text-white text-xs font-bold py-1.5 px-4 rounded-xl shadow-md inline-flex items-center space-x-2 animate-bounce">
+          <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+          <span>{syncToast}</span>
+        </div>
+      )}
 
       {/* DẢI PHIM NHỰA ĐIỆN ẢNH - NỀN TRONG SUỐT LIỀN MẠCH, KHÔNG MỜ, ẢNH GỐC SẮC NÉT */}
       <div className="bg-transparent rounded-3xl p-4 sm:p-5 border-2 border-emerald-200/90 relative overflow-hidden shadow-2xs">
