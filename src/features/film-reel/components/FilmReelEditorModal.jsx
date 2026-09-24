@@ -963,12 +963,12 @@ export default function FilmReelEditorModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>ĐANG XUẤT BẢN...</span>
+                  <span>{initialData ? 'ĐANG CẬP NHẬT...' : 'ĐANG XUẤT BẢN...'}</span>
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4" />
-                  <span>LƯU & XUẤT BẢN KHOẢNH KHẮC</span>
+                  <span>{initialData ? 'CẬP NHẬT KHOẢNH KHẮC' : 'LƯU & XUẤT BẢN KHOẢNH KHẮC'}</span>
                 </>
               )}
             </button>

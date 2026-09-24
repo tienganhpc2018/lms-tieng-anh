@@ -1,10 +1,45 @@
 // HỆ THỐNG LƯU TRỮ VÀ QUẢN LÝ CUỘN PHIM KỶ NIỆM (LOCALSTORAGE + INDEXEDDB)
 import { SAMPLE_FILM_REELS } from './constants/filmReelPresets';
-import { saveReelToIndexedDb, getAllReelsFromIndexedDb } from './services/filmReelIndexedDb';
+import {
+  saveReelToIndexedDb,
+  getAllReelsFromIndexedDb,
+  deleteReelFromIndexedDb,
+} from './services/filmReelIndexedDb';
 
 const STORAGE_KEY_PREFIX = 'film_reels_';
+const DELETED_IDS_KEY = 'film_reels_deleted_ids';
 
-// Bài viết Văn Nghệ của Thầy (Đảm bảo luôn hiện diện trên hệ thống)
+// Danh sách các ID bài viết đã bị người dùng chủ động xóa (ngăn hồi sinh từ IndexedDB hoặc cache)
+export const getDeletedReelIds = () => {
+  try {
+    const raw = localStorage.getItem(DELETED_IDS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const markReelAsDeleted = (reelId) => {
+  if (!reelId) return;
+  try {
+    const ids = getDeletedReelIds();
+    if (!ids.includes(reelId)) {
+      ids.push(reelId);
+      localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(ids));
+    }
+  } catch (e) {}
+};
+
+export const unmarkReelAsDeleted = (reelId) => {
+  if (!reelId) return;
+  try {
+    let ids = getDeletedReelIds();
+    ids = ids.filter((id) => id !== reelId);
+    localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(ids));
+  } catch (e) {}
+};
+
+// Bài viết Văn Nghệ ban đầu (chỉ nạp mẫu lần đầu tiên nếu chưa từng bị xóa)
 export const VY_LIVESHOW_REEL = {
   id: 'reel_liveshow_den_ong_sao_vy',
   classId: 'class_7a',
@@ -37,10 +72,12 @@ export const loadFilmReels = (classId) => {
   if (classId === 'all_classes') {
     return loadAllFilmReelsAcrossClasses();
   }
+  const deletedIds = getDeletedReelIds();
   const targetClassId = classId || 'class_7a';
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PREFIX + targetClassId);
     let list = raw ? JSON.parse(raw) : [];
+
     // Nếu lớp cụ thể chưa có bài, thử nạp từ all_published_film_reels lọc theo targetClassId
     if (list.length === 0) {
       const all = loadAllFilmReelsAcrossClasses();
@@ -48,26 +85,20 @@ export const loadFilmReels = (classId) => {
       if (matched.length > 0) list = matched;
     }
 
-    // Đảm bảo bài viết Văn nghệ của Thầy luôn có trong danh sách nếu chưa có
-    const hasVanNghe = list.some(
-      (r) =>
-        (r.category || '').toLowerCase() === 'văn nghệ' ||
-        (r.title || '').includes('Chiếc Đèn Ông Sao')
-    );
-    if (!hasVanNghe) {
-      list.unshift({ ...VY_LIVESHOW_REEL, classId: targetClassId });
-    }
+    // Lọc bỏ triệt để các bài viết mà người dùng đã bấm XÓA
+    list = list.filter((r) => r && r.id && !deletedIds.includes(r.id));
 
     return sortFilmReelsByPinAndDate(list);
   } catch (e) {
     console.error(`Lỗi tải cuộn phim lớp ${targetClassId}:`, e);
-    return [VY_LIVESHOW_REEL];
+    return [];
   }
 };
 
 // Đồng bộ danh sách bài viết từ cả LocalStorage và IndexedDB
 export const syncAndLoadFilmReels = async (classId) => {
-  const localList = loadFilmReels(classId);
+  const deletedIds = getDeletedReelIds();
+  const localList = loadFilmReels(classId).filter((r) => r && r.id && !deletedIds.includes(r.id));
   try {
     const idbList = await getAllReelsFromIndexedDb();
     if (!Array.isArray(idbList) || idbList.length === 0) {
@@ -76,11 +107,12 @@ export const syncAndLoadFilmReels = async (classId) => {
 
     const map = new Map();
     localList.forEach((r) => {
-      if (r && r.id) map.set(r.id, r);
+      if (r && r.id && !deletedIds.includes(r.id)) map.set(r.id, r);
     });
 
     idbList.forEach((r) => {
-      if (r && r.id && !map.has(r.id)) {
+      // TUYỆT ĐỐI không nạp lại các bài viết mà Thầy đã bấm XÓA
+      if (r && r.id && !deletedIds.includes(r.id) && !map.has(r.id)) {
         if (classId === 'all_classes' || !classId || r.classId === classId) {
           map.set(r.id, r);
         }
@@ -276,6 +308,11 @@ export const saveOrUpdateFilmReel = (reelData, previousClassId = null) => {
     updatedAt: new Date().toISOString(),
   };
 
+  // Nếu bài viết này trước đây từng bị đánh dấu xóa (ví dụ do trùng id hoặc tạo lại) -> Bỏ đánh dấu xóa
+  if (finalId) {
+    unmarkReelAsDeleted(finalId);
+  }
+
   // 1. Lưu vào danh sách của lớp mục tiêu
   let classList = [];
   try {
@@ -366,17 +403,30 @@ export const updateFilmReel = (classId, reelData) => {
   return result.updated;
 };
 
-// 9. Xóa bài viết triệt để khỏi mọi bảng lưu trữ
-export const deleteFilmReel = (classId, reelId) => {
+// 9. Xóa bài viết triệt để khỏi mọi bảng lưu trữ (LocalStorage + IndexedDB + Danh sách đánh dấu đã xóa)
+export const deleteFilmReel = async (classId, reelId) => {
+  if (!reelId) return [];
+
+  // 1. Đánh dấu vào danh sách đã xóa để ngăn chặn việc tự phục hồi từ bất kỳ bộ nhớ nào
+  markReelAsDeleted(reelId);
+
+  // 2. Xóa triệt để trong IndexedDB
   try {
-    // 1. Xóa trong key của lớp cụ thể nếu có
+    await deleteReelFromIndexedDb(reelId);
+  } catch (errIdb) {
+    console.warn('Lỗi khi xóa trong IndexedDB:', errIdb);
+  }
+
+  // 3. Xóa trong tất cả các key của LocalStorage
+  try {
+    // Xóa trong key của lớp cụ thể nếu có
     if (classId && classId !== 'all_classes') {
       const current = loadFilmReels(classId);
       const updated = current.filter((r) => r.id !== reelId);
       localStorage.setItem(STORAGE_KEY_PREFIX + classId, JSON.stringify(updated));
     }
 
-    // 2. Quét toàn bộ localStorage để xóa triệt để id này khỏi mọi key
+    // Quét toàn bộ localStorage để xóa triệt để id này khỏi mọi key (kể cả all_published_film_reels)
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && (key.startsWith(STORAGE_KEY_PREFIX) || key === 'all_published_film_reels')) {
@@ -394,7 +444,7 @@ export const deleteFilmReel = (classId, reelId) => {
     }
     notifyFilmReelsChanged();
   } catch (e) {
-    console.error('Lỗi khi xóa bài viết:', e);
+    console.error('Lỗi khi xóa bài viết khỏi LocalStorage:', e);
   }
   return classId ? loadFilmReels(classId) : [];
 };
@@ -480,6 +530,7 @@ export const extractAllReelImages = (reels = []) => {
 // 12. Tải tất cả bài viết cuộn phim từ tất cả các lớp (Phục vụ Cuộn Phim Hồi Ức trên Trang Chủ)
 export const loadAllFilmReelsAcrossClasses = () => {
   const map = new Map();
+  const deletedIds = getDeletedReelIds();
   try {
     // 1. Quét all_published_film_reels trước
     const rawAll = localStorage.getItem('all_published_film_reels');
@@ -488,7 +539,7 @@ export const loadAllFilmReelsAcrossClasses = () => {
         const list = JSON.parse(rawAll);
         if (Array.isArray(list)) {
           list.forEach((item) => {
-            if (item && item.id) {
+            if (item && item.id && !deletedIds.includes(item.id)) {
               map.set(item.id, item);
             }
           });
@@ -506,7 +557,7 @@ export const loadAllFilmReelsAcrossClasses = () => {
             const list = JSON.parse(raw);
             if (Array.isArray(list)) {
               list.forEach((item) => {
-                if (item && item.id && !map.has(item.id)) {
+                if (item && item.id && !deletedIds.includes(item.id) && !map.has(item.id)) {
                   map.set(item.id, item);
                 }
               });
@@ -521,16 +572,7 @@ export const loadAllFilmReelsAcrossClasses = () => {
     console.error('Lỗi khi tải toàn bộ bài viết cuộn phim:', e);
   }
 
-  const all = Array.from(map.values());
-  // Đảm bảo bài viết Văn nghệ của Thầy luôn có trong danh sách toàn trường
-  const hasVanNghe = all.some(
-    (r) =>
-      (r.category || '').toLowerCase() === 'văn nghệ' ||
-      (r.title || '').includes('Chiếc Đèn Ông Sao')
-  );
-  if (!hasVanNghe) {
-    all.unshift(VY_LIVESHOW_REEL);
-  }
+  const all = Array.from(map.values()).filter((r) => r && r.id && !deletedIds.includes(r.id));
   // Sắp xếp ưu tiên bài ghim lên đầu tiên (FRAME #01), sau đó đến ngày mới nhất
   return sortFilmReelsByPinAndDate(all);
 };

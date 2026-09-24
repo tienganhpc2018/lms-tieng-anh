@@ -215,14 +215,18 @@ export default function FilmReelView() {
     setTimeout(() => setToastMessage(''), 4000);
   };
 
-  // Xóa bài viết
-  const handleDeleteReel = (reelId) => {
+  // Xóa bài viết (Cập nhật phản hồi tức thì trên UI + Xóa vĩnh viễn ở LocalStorage và IndexedDB)
+  const handleDeleteReel = async (reelId) => {
     playDeduct();
-    deleteFilmReel(selectedClassId, reelId);
-    refreshReels(selectedClassId);
+    // 1. Cập nhật state ngay lập tức để Thầy thấy bài viết biến mất tức thì
+    setReels((prev) => prev.filter((r) => r.id !== reelId));
     if (selectedReelDetail?.id === reelId) {
       setSelectedReelDetail(null);
     }
+    // 2. Xóa triệt để khỏi LocalStorage, IndexedDB và đánh dấu ID đã xóa
+    await deleteFilmReel(selectedClassId, reelId);
+    // 3. Làm mới đồng bộ danh sách
+    refreshReels(selectedClassId);
     setToastMessage('🗑️ Đã xóa bài viết thành công!');
     setTimeout(() => setToastMessage(''), 3000);
   };
