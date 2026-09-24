@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Star, Trophy, Sparkles, ChevronRight, Eye } from 'lucide-react';
+import { Award, Star, Trophy, Sparkles, ChevronRight, Eye, RefreshCw } from 'lucide-react';
 import {
   getTopStudentsAcrossClasses,
   excludeFromTopStudents,
@@ -59,6 +59,8 @@ const DEFAULT_TOP_STUDENTS = [
 export default function TopStudentsBox({ userIsTeacher = false }) {
   const [topStudents, setTopStudents] = useState(DEFAULT_TOP_STUDENTS);
   const [selectedDetailStudent, setSelectedDetailStudent] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncToast, setSyncToast] = useState(null);
 
   // Nạp danh sách top 3 học sinh tiêu biểu nhiều điểm cộng nhất Real-time
   const refreshTopStudents = () => {
@@ -70,9 +72,15 @@ export default function TopStudentsBox({ userIsTeacher = false }) {
         const custom = getCustomFeaturedStudents();
         if (Array.isArray(custom) && custom.length > 0) {
           setTopStudents(custom);
+          if (userIsTeacher) {
+            saveSiteSetting('featured_top_students', custom).catch(() => {});
+          }
           return;
         }
         setTopStudents(DEFAULT_TOP_STUDENTS);
+        if (userIsTeacher) {
+          saveSiteSetting('featured_top_students', DEFAULT_TOP_STUDENTS).catch(() => {});
+        }
         return;
       }
 
@@ -153,6 +161,34 @@ export default function TopStudentsBox({ userIsTeacher = false }) {
     }
   };
 
+  // Hàm đồng bộ thủ công giữa máy GV và HS
+  const handleManualSync = async () => {
+    playClick();
+    setIsSyncing(true);
+    try {
+      if (userIsTeacher) {
+        await saveSiteSetting('featured_top_students', topStudents);
+        saveCustomFeaturedStudents(topStudents);
+        setSyncToast('Đã đồng bộ học sinh tiêu biểu lên hệ thống!');
+      } else {
+        const cloudData = await getSiteSetting('featured_top_students', null);
+        if (Array.isArray(cloudData) && cloudData.length > 0) {
+          setTopStudents(cloudData);
+          saveCustomFeaturedStudents(cloudData);
+          setSyncToast('Đã đồng bộ bảng vinh danh mới nhất từ Thầy!');
+        } else {
+          refreshTopStudents();
+          setSyncToast('Dữ liệu đã ở bản mới nhất!');
+        }
+      }
+    } catch (e) {
+      setSyncToast('Lỗi kết nối khi đồng bộ!');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncToast(null), 3000);
+    }
+  };
+
   useEffect(() => {
     // 1. Nếu là Học sinh: Ưu tiên kéo dữ liệu mới nhất từ Supabase Cloud của Thầy về máy
     const loadFromCloud = async () => {
@@ -230,7 +266,7 @@ export default function TopStudentsBox({ userIsTeacher = false }) {
   return (
     <div className="space-y-4 select-text">
       {/* THANH TIÊU ĐỀ HỌC VIÊN TIÊU BIỂU */}
-      <div className="bg-emerald-50/90 text-emerald-950 px-6 py-3 rounded-2xl flex items-center justify-between border border-emerald-200/90 shadow-2xs">
+      <div className="bg-emerald-50/90 text-emerald-950 px-6 py-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 border border-emerald-200/90 shadow-2xs">
         <div className="flex items-center space-x-2.5">
           <Trophy className="w-5 h-5 text-amber-600" />
           <div>
@@ -239,7 +275,19 @@ export default function TopStudentsBox({ userIsTeacher = false }) {
             </h3>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-wrap gap-2">
+          {/* NÚT ĐỒNG BỘ REAL-TIME */}
+          <button
+            type="button"
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="flex items-center space-x-1.5 bg-white hover:bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full border border-emerald-300 shadow-2xs text-[11px] sm:text-xs font-bold transition cursor-pointer active:scale-95"
+            title={userIsTeacher ? "Nhấn để đồng bộ danh sách học sinh tiêu biểu này lên máy học sinh" : "Nhấn để kiểm tra cập nhật mới nhất từ Thầy"}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-emerald-600' : ''}`} />
+            <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ'}</span>
+          </button>
+
           {userIsTeacher ? (
             <span className="text-[11px] sm:text-xs font-extrabold text-emerald-800 bg-white/90 px-3 py-1 rounded-full border border-emerald-200 shadow-2xs flex items-center gap-1">
               <span>✨ Bấm vào để xem chi tiết & tùy chỉnh</span>
@@ -251,6 +299,14 @@ export default function TopStudentsBox({ userIsTeacher = false }) {
           )}
         </div>
       </div>
+
+      {/* TOAST THÔNG BÁO ĐỒNG BỘ */}
+      {syncToast && (
+        <div className="bg-emerald-600 text-white text-xs font-bold py-1.5 px-4 rounded-xl shadow-md inline-flex items-center space-x-2 animate-bounce">
+          <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+          <span>{syncToast}</span>
+        </div>
+      )}
 
       {/* KHUNG CHỨA 3 HỌC SINH TIÊU BIỂU REAL-TIME */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
