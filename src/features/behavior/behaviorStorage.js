@@ -61,11 +61,16 @@ export const loadStudents = (classId) => {
   }
 };
 
-// 6. Lưu danh sách học sinh của một lớp cụ thể
+// 6. Lưu danh sách học sinh của một lớp cụ thể (Tự động phát sự kiện cập nhật Real-time)
 export const saveStudents = (classId, students) => {
   if (!classId) return;
   try {
     localStorage.setItem(STORAGE_KEYS.STUDENTS_PREFIX + classId, JSON.stringify(students));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('behaviorStudentsUpdated', { detail: { classId, students } })
+      );
+    }
   } catch (e) {
     console.error(`Lỗi lưu học sinh lớp ${classId}:`, e);
   }
@@ -537,4 +542,83 @@ export const applyStudentKttxBonus = (classId, studentId, amountToApply = 1, act
     bonusApplied: bonusDeducted,
     newScore: newFinal,
   };
+};
+
+// 19. TỰ ĐỘNG LẤY TOP HỌC SINH TIÊU BIỂU NHIỀU ĐIỂM CỘNG NHẤT TOÀN TRƯỜNG (REAL-TIME)
+export const getTopStudentsAcrossClasses = (limit = 3) => {
+  try {
+    const classes = loadClasses() || [];
+    const classMap = {};
+    classes.forEach((c) => {
+      if (c && c.id) {
+        classMap[c.id] = c.name ? (c.name.startsWith('Lớp') ? c.name : `Lớp ${c.name}`) : 'Lớp Học';
+      }
+    });
+
+    let allStudents = [];
+
+    // 1. Quét từ danh sách lớp đã đăng ký
+    classes.forEach((c) => {
+      if (c && c.id) {
+        const studs = loadStudents(c.id);
+        if (Array.isArray(studs)) {
+          studs.forEach((st) => {
+            if (st && st.full_name) {
+              allStudents.push({
+                ...st,
+                classId: c.id,
+                className: classMap[c.id] || 'Lớp Học',
+              });
+            }
+          });
+        }
+      }
+    });
+
+    // 2. Quét thêm toàn bộ localStorage phòng trường hợp có lớp tự do chưa thêm vào classes
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(STORAGE_KEYS.STUDENTS_PREFIX)) {
+        const cId = key.replace(STORAGE_KEYS.STUDENTS_PREFIX, '');
+        if (!classes.some((c) => c.id === cId)) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+              const studs = JSON.parse(raw);
+              if (Array.isArray(studs)) {
+                let inferredName = cId.replace(/^class_/i, '').replace(/_/g, '').toUpperCase();
+                if (!inferredName) inferredName = '7A';
+                studs.forEach((st) => {
+                  if (st && st.full_name) {
+                    allStudents.push({
+                      ...st,
+                      classId: cId,
+                      className: `Lớp ${inferredName}`,
+                    });
+                  }
+                });
+              }
+            }
+          } catch (err) {}
+        }
+      }
+    }
+
+    // 3. Lọc những học sinh có điểm cộng thi đua > 0
+    const scoredStudents = allStudents.filter((st) => (st.plus_points || 0) > 0);
+
+    // 4. Sắp xếp giảm dần theo điểm cộng (ưu tiên điểm cộng cao nhất, sau đó đến điểm thực tế net score)
+    scoredStudents.sort((a, b) => {
+      const plusDiff = (b.plus_points || 0) - (a.plus_points || 0);
+      if (plusDiff !== 0) return plusDiff;
+      const netA = (a.plus_points || 0) - (a.minus_points || 0);
+      const netB = (b.plus_points || 0) - (b.minus_points || 0);
+      return netB - netA;
+    });
+
+    return scoredStudents.slice(0, limit);
+  } catch (err) {
+    console.error('Lỗi tính toán học sinh tiêu biểu toàn trường:', err);
+    return [];
+  }
 };
