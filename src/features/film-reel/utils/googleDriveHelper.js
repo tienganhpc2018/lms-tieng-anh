@@ -34,6 +34,23 @@ export const extractGoogleDriveFileId = (url) => {
 };
 
 /**
+ * Danh sách các định dạng URL dự phòng của Google Drive
+ * Ưu tiên:
+ * 1. drive.google.com/thumbnail?id=...&sz=w1200 (Thumbnail API công khai, ổn định nhất, không bị 403)
+ * 2. lh3.googleusercontent.com/d/... (CDN stream của Google)
+ * 3. drive.google.com/uc?export=view&id=... (Export view truyền thống)
+ */
+export const getGoogleDriveFallbackUrls = (url) => {
+  const fileId = extractGoogleDriveFileId(url);
+  if (!fileId) return [url];
+  return [
+    `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`,
+    `https://lh3.googleusercontent.com/d/${fileId}`,
+    `https://drive.google.com/uc?export=view&id=${fileId}`,
+  ];
+};
+
+/**
  * Chuyển link Google Drive sang URL ảnh trực tiếp hiển thị tức thì
  */
 export const formatDirectImageUrl = (url) => {
@@ -42,8 +59,8 @@ export const formatDirectImageUrl = (url) => {
 
   const fileId = extractGoogleDriveFileId(trimmed);
   if (fileId) {
-    // lh3.googleusercontent.com/d/FILE_ID là CDN stream ảnh chất lượng cao và tốc độ tải nhanh nhất của Google
-    return `https://lh3.googleusercontent.com/d/${fileId}`;
+    // drive.google.com/thumbnail?id=...&sz=w1200 là URL nhúng ảnh web tốt nhất của Google, không bị chặn CORS/403
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
   }
 
   return trimmed;
@@ -54,5 +71,9 @@ export const formatDirectImageUrl = (url) => {
  */
 export const isGoogleDriveUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
-  return url.includes('drive.google.com') || url.includes('docs.google.com');
+  return (
+    url.includes('drive.google.com') ||
+    url.includes('docs.google.com') ||
+    url.includes('googleusercontent.com')
+  );
 };

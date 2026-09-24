@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { CATEGORY_BADGES } from '../constants/filmReelPresets';
 import { playClick } from '../../../utils/soundEffects';
+import SafeFilmImage from './SafeFilmImage';
 
 const SLIDE_DURATION = 4000; // 4 giây mỗi slide
 
@@ -214,10 +215,11 @@ export default function FilmReelSlideshow({
 
         {/* Khung ảnh chính */}
         <div className="relative max-w-6xl max-h-[68vh] w-full h-full flex flex-col items-center justify-center">
-          <img
+          <SafeFilmImage
             key={currentImg.url}
             src={currentImg.url}
             alt={currentImg.caption || currentImg.reelTitle}
+            showWarningIfDriveError={true}
             className="max-h-[65vh] max-w-full object-contain rounded-2xl shadow-2xl border border-white/20 animate-in fade-in zoom-in-95 duration-500"
           />
 

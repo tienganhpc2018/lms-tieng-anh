@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Download, Calendar, Tag } from 'lucide-react';
 import { playClick } from '../../../utils/soundEffects';
+import SafeFilmImage from './SafeFilmImage';
 
 export default function FilmReelLightbox({
   isOpen,
@@ -93,9 +94,10 @@ export default function FilmReelLightbox({
 
       {/* Khung chứa ảnh chính */}
       <div className="relative max-w-5xl max-h-[80vh] mx-auto px-4 flex flex-col items-center justify-center">
-        <img
+        <SafeFilmImage
           src={currentImg.url}
           alt={currentImg.caption || 'Hình ảnh cuộn phim'}
+          showWarningIfDriveError={true}
           className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl border border-white/10 animate-in zoom-in-95 duration-200"
         />
 

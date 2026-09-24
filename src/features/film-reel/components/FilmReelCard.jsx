@@ -3,6 +3,7 @@ import { Heart, Edit3, Eye, Calendar, Image as ImageIcon, Trash2, Pin } from 'lu
 import { CATEGORY_BADGES } from '../constants/filmReelPresets';
 import { isSampleReel } from '../filmReelStorage';
 import { playClick, playDeduct } from '../../../utils/soundEffects';
+import SafeFilmImage from './SafeFilmImage';
 
 // Dải đục lỗ răng cưa phim nhựa 35mm (35mm Sprocket Holes)
 function SprocketStrip() {
@@ -73,8 +74,8 @@ export default function FilmReelCard({
         onClick={() => onView && onView(reel)}
         className="relative aspect-video w-full overflow-hidden cursor-pointer bg-slate-950"
       >
-        <img
-          src={reel.coverImage || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=80'}
+        <SafeFilmImage
+          src={reel.coverImage}
           alt={reel.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"

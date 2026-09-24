@@ -22,6 +22,7 @@ import {
 } from '../film-reel/filmReelStorage';
 import { loadClasses } from '../behavior/behaviorStorage';
 import { playClick } from '../../utils/soundEffects';
+import SafeFilmImage from '../film-reel/components/SafeFilmImage';
 
 export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const navigate = useNavigate();
@@ -417,7 +418,7 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                 >
                   {/* KHUNG ẢNH KỶ NIỆM NGUYÊN BẢN SẮC NÉT KHÔNG MỜ */}
                   <div className="relative aspect-4/3 w-full rounded-xl overflow-hidden bg-slate-100 border border-emerald-200/80">
-                    <img
+                    <SafeFilmImage
                       src={post.coverImage}
                       alt={post.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
@@ -535,9 +536,10 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto pt-16 sm:pt-10 pb-8 animate-fade-in">
           <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-200 space-y-0 text-slate-900 my-auto">
             <div className="relative aspect-video w-full bg-slate-950">
-              <img
+              <SafeFilmImage
                 src={activeModalPost.coverImage}
                 alt={activeModalPost.title}
+                showWarningIfDriveError={true}
                 className="w-full h-full object-cover"
               />
               <button
@@ -575,9 +577,10 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
                     if (blk.type === 'image' && blk.url) {
                       return (
                         <div key={bIdx} className="space-y-1.5 my-3">
-                          <img
+                          <SafeFilmImage
                             src={blk.url}
                             alt="Ảnh khoảnh khắc"
+                            showWarningIfDriveError={true}
                             className="w-full rounded-2xl shadow-md border border-slate-200 max-h-96 object-cover"
                           />
                           {blk.caption && (

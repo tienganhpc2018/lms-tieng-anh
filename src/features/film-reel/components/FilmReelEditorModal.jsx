@@ -35,6 +35,7 @@ import { loadClasses } from '../../behavior/behaviorStorage';
 import { compressImage, compressDataUrlMultiStage } from '../../../utils/imageCompressor';
 import { formatDirectImageUrl, isGoogleDriveUrl } from '../utils/googleDriveHelper';
 import { cleanStorageForEmergency } from '../filmReelStorage';
+import SafeFilmImage from './SafeFilmImage';
 
 const PRESET_COVERS = [
   { label: 'Học tập & Thảo luận', url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&auto=format&fit=crop&q=80' },
@@ -590,13 +591,11 @@ export default function FilmReelEditorModal({
                 <div className="flex flex-col sm:flex-row gap-3.5 items-start">
                   {coverImage ? (
                     <div className="relative w-full sm:w-52 aspect-video rounded-xl overflow-hidden border-2 border-purple-300 shadow-sm shrink-0 bg-slate-900">
-                      <img
+                      <SafeFilmImage
                         src={coverImage}
                         alt="Ảnh bìa"
+                        showWarningIfDriveError={true}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.warn('Lỗi tải ảnh bìa:', coverImage);
-                        }}
                       />
                       <button
                         type="button"
@@ -797,9 +796,10 @@ export default function FilmReelEditorModal({
                           <div className="flex flex-col sm:flex-row gap-3 items-center">
                             {block.url ? (
                               <div className="w-full sm:w-36 aspect-video rounded-xl overflow-hidden border border-slate-300 shrink-0 relative">
-                                <img
+                                <SafeFilmImage
                                   src={block.url}
                                   alt="Ảnh hoạt động"
+                                  showWarningIfDriveError={true}
                                   className="w-full h-full object-cover"
                                 />
                                 <button
@@ -873,9 +873,10 @@ export default function FilmReelEditorModal({
             <div className="space-y-6">
               {/* Khung ảnh bìa Preview */}
               <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-900 shadow-md">
-                <img
-                  src={coverImage || 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=80'}
+                <SafeFilmImage
+                  src={coverImage}
                   alt={title}
+                  showWarningIfDriveError={true}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6 text-white space-y-2">
@@ -903,9 +904,10 @@ export default function FilmReelEditorModal({
                   if (block.type === 'image' && block.url) {
                     return (
                       <figure key={idx} className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-                        <img
+                        <SafeFilmImage
                           src={block.url}
-                          alt={block.caption}
+                          alt={block.caption || 'Ảnh khoảnh khắc'}
+                          showWarningIfDriveError={true}
                           className="w-full max-h-[400px] object-cover"
                         />
                         {block.caption && (

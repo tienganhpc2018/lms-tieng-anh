@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { CATEGORY_BADGES } from '../constants/filmReelPresets';
 import { playClick, playDeduct } from '../../../utils/soundEffects';
+import SafeFilmImage from './SafeFilmImage';
 
 export default function FilmReelDetailModal({
   isOpen,
@@ -217,9 +218,10 @@ export default function FilmReelDetailModal({
 
           {/* 2. KHU VỰC ẢNH BÌA HERO (16:9) */}
           <div className="relative aspect-video w-full overflow-hidden bg-slate-900">
-            <img
+            <SafeFilmImage
               src={reel.coverImage}
               alt={reel.title}
+              showWarningIfDriveError={true}
               className="w-full h-full object-cover cursor-pointer hover:scale-102 transition-transform duration-300"
               onClick={() => onOpenLightbox && onOpenLightbox(allImages, 0)}
             />
@@ -283,9 +285,10 @@ export default function FilmReelDetailModal({
                       className="my-6 rounded-2xl overflow-hidden border border-slate-200 shadow-lg bg-slate-50 group"
                     >
                       <div className="relative overflow-hidden cursor-pointer">
-                        <img
+                        <SafeFilmImage
                           src={block.url}
                           alt={block.caption || 'Ảnh hoạt động'}
+                          showWarningIfDriveError={true}
                           className="w-full max-h-[500px] object-cover group-hover:scale-102 transition-transform duration-300"
                           onClick={() => onOpenLightbox && onOpenLightbox(allImages, imgIdx >= 0 ? imgIdx : 0)}
                         />
