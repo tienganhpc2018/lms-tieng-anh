@@ -25,6 +25,41 @@ export const loadFilmReels = (classId) => {
   }
 };
 
+// Hàm dọn dẹp bộ nhớ khẩn cấp khi trình duyệt báo đầy QuotaExceededError
+export const cleanStorageForEmergency = () => {
+  try {
+    const keysToClean = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('cache_') || k.startsWith('temp_') || k.startsWith('debug_'))) {
+        keysToClean.push(k);
+      }
+    }
+    keysToClean.forEach((k) => localStorage.removeItem(k));
+
+    // Dọn dẹp các bài mẫu nếu có bài viết thật của Thầy để nhường bộ nhớ
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith(STORAGE_KEY_PREFIX) || key === 'all_published_film_reels')) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list) && list.some((r) => isSampleReel(r))) {
+              const cleaned = list.filter((r) => !isSampleReel(r));
+              if (cleaned.length > 0) {
+                localStorage.setItem(key, JSON.stringify(cleaned));
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Lỗi dọn dẹp bộ nhớ khẩn cấp:', e);
+  }
+};
+
 // 2. Lưu danh sách cuộn phim của lớp học (với cơ chế tự phục hồi chống tràn bộ nhớ Quota)
 export const saveFilmReels = (classId, reels) => {
   const targetClassId = classId || 'class_7a';
@@ -32,23 +67,15 @@ export const saveFilmReels = (classId, reels) => {
     localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(reels));
   } catch (quotaErr) {
     console.warn(`LocalStorage đầy, đang tối ưu dọn dẹp để lưu lớp ${targetClassId}:`, quotaErr);
+    cleanStorageForEmergency();
     try {
-      // Dọn bớt các cache tạm nếu có
-      const keysToClean = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && (k.startsWith('cache_') || k.startsWith('temp_'))) {
-          keysToClean.push(k);
-        }
-      }
-      keysToClean.forEach((k) => localStorage.removeItem(k));
       localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(reels));
     } catch (retryErr) {
       console.error('Không thể lưu do bộ nhớ trình duyệt đã đầy:', retryErr);
     }
   }
 
-  // Đồng bộ vào all_published_film_reels (Giữ tối đa 50 bài mới nhất)
+  // Đồng bộ vào all_published_film_reels (Giới hạn tối đa 20 bài mới nhất để tiết kiệm bộ nhớ)
   try {
     const rawAll = localStorage.getItem('all_published_film_reels');
     let currentAll = rawAll ? JSON.parse(rawAll) : [];
@@ -62,9 +89,11 @@ export const saveFilmReels = (classId, reels) => {
         currentAll.unshift(r);
       }
     });
-    if (currentAll.length > 50) currentAll = currentAll.slice(0, 50);
+    if (currentAll.length > 20) currentAll = currentAll.slice(0, 20);
     localStorage.setItem('all_published_film_reels', JSON.stringify(currentAll));
-  } catch (errSync) {}
+  } catch (errSync) {
+    console.warn('Không thể đồng bộ all_published_film_reels do đầy bộ nhớ (bỏ qua an toàn):', errSync);
+  }
 
   notifyFilmReelsChanged();
 };
@@ -190,7 +219,25 @@ export const saveOrUpdateFilmReel = (reelData, previousClassId = null) => {
   // Lọc bỏ bài cũ nếu trùng id hoặc trùng id ban đầu
   classList = classList.filter((r) => r.id !== finalId && r.id !== reelData?.id);
   classList.unshift(finalReel);
-  localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(classList));
+
+  // Thử lưu với cơ chế tự phục hồi nếu LocalStorage báo đầy
+  try {
+    localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(classList));
+  } catch (quotaErr) {
+    console.warn(`LocalStorage đầy khi lưu bài viết lớp ${targetClassId}, tiến hành dọn dẹp khẩn cấp:`, quotaErr);
+    cleanStorageForEmergency();
+    try {
+      localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(classList));
+    } catch (retryErr) {
+      // Nếu vẫn đầy, nén bớt bài cũ chỉ giữ 8 bài mới nhất của lớp
+      if (classList.length > 8) {
+        classList = classList.slice(0, 8);
+        localStorage.setItem(STORAGE_KEY_PREFIX + targetClassId, JSON.stringify(classList));
+      } else {
+        throw retryErr; // Ném lại để FilmReelEditorModal kích hoạt cấp nén sâu hơn
+      }
+    }
+  }
 
   // 2. Nếu chuyển từ lớp cũ sang lớp mới -> Xóa khỏi lớp cũ
   if (previousClassId && previousClassId !== targetClassId && previousClassId !== 'all_classes') {
@@ -206,7 +253,7 @@ export const saveOrUpdateFilmReel = (reelData, previousClassId = null) => {
     } catch (e) {}
   }
 
-  // 3. Luôn đồng bộ vào danh sách toàn cục all_published_film_reels để Trang Chủ luôn hiển thị tức thì
+  // 3. Luôn đồng bộ vào danh sách toàn cục all_published_film_reels (Tối đa 20 bài mới nhất)
   try {
     const rawAll = localStorage.getItem('all_published_film_reels');
     let currentAll = rawAll ? JSON.parse(rawAll) : [];
@@ -214,8 +261,11 @@ export const saveOrUpdateFilmReel = (reelData, previousClassId = null) => {
 
     currentAll = currentAll.filter((r) => r.id !== finalId && r.id !== reelData?.id);
     currentAll.unshift(finalReel);
+    if (currentAll.length > 20) currentAll = currentAll.slice(0, 20);
     localStorage.setItem('all_published_film_reels', JSON.stringify(currentAll));
-  } catch (errSync) {}
+  } catch (errSync) {
+    console.warn('Không thể đồng bộ all_published_film_reels do đầy bộ nhớ (bỏ qua an toàn):', errSync);
+  }
 
   notifyFilmReelsChanged();
   return { updated: classList, savedReel: finalReel };

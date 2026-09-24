@@ -32,42 +32,7 @@ import {
 } from '../services/filmReelAiService';
 import { playClick, playCorrect } from '../../../utils/soundEffects';
 import { loadClasses } from '../../behavior/behaviorStorage';
-import { compressImage } from '../../../utils/imageCompressor';
-
-// Hàm nén chuỗi DataURL nếu dung lượng còn lớn để chống tràn bộ nhớ trình duyệt
-async function compressDataUrlIfNeeded(dataUrl, maxDim = 1100, quality = 0.75) {
-  if (!dataUrl || typeof dataUrl !== 'string') return dataUrl;
-  if (!dataUrl.startsWith('data:image')) return dataUrl;
-  // Nếu ảnh đã nhẹ (< 200KB) thì giữ nguyên
-  if (dataUrl.length < 200000) return dataUrl;
-
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      let width = img.width;
-      let height = img.height;
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-}
+import { compressImage, compressDataUrlMultiStage } from '../../../utils/imageCompressor';
 
 const PRESET_COVERS = [
   { label: 'Học tập & Thảo luận', url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&auto=format&fit=crop&q=80' },
@@ -150,16 +115,19 @@ export default function FilmReelEditorModal({
 
   if (!isOpen) return null;
 
-  // Xử lý tải ảnh bìa qua file hoặc link (TỰ ĐỘNG NÉN DƯỚI 150KB CHỐNG TRÀN BỘ NHỚ)
+  // Xử lý tải ảnh bìa qua file hoặc link (TỰ ĐỘNG NÉN CHUẨN WEB CHỐNG TRÀN BỘ NHỚ)
   const handleCoverUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImage(file, 1200, 1200, 0.75);
+        const compressed = await compressImage(file, 900, 900, 0.65);
         setCoverImage(compressed);
       } catch (err) {
         const reader = new FileReader();
-        reader.onload = (event) => setCoverImage(event.target.result);
+        reader.onload = async (event) => {
+          const fallbackCompressed = await compressDataUrlMultiStage(event.target.result, 1);
+          setCoverImage(fallbackCompressed);
+        };
         reader.readAsDataURL(file);
       }
     }
@@ -235,17 +203,18 @@ export default function FilmReelEditorModal({
   };
   const handleMoveBlockDown = moveBlockDown;
 
-  // Tải ảnh cho một khối ảnh (Tự động nén dung lượng cao chống tràn bộ nhớ)
+  // Tải ảnh cho một khối ảnh (Tự động nén dung lượng chuẩn web chống tràn bộ nhớ)
   const handleBlockImageUpload = async (id, fileOrEvent) => {
     const file = fileOrEvent?.target?.files?.[0] || fileOrEvent;
     if (file && file instanceof Blob) {
       try {
-        const compressed = await compressImage(file, 1100, 1100, 0.75);
+        const compressed = await compressImage(file, 800, 800, 0.65);
         updateBlock(id, { url: compressed });
       } catch (err) {
         const reader = new FileReader();
-        reader.onload = (event) => {
-          updateBlock(id, { url: event.target.result });
+        reader.onload = async (event) => {
+          const fallbackCompressed = await compressDataUrlMultiStage(event.target.result, 1);
+          updateBlock(id, { url: fallbackCompressed });
         };
         reader.readAsDataURL(file);
       }
@@ -304,7 +273,7 @@ export default function FilmReelEditorModal({
     }
   };
 
-  // Lưu & Xuất bản bài viết (BẢO VỆ CHỐNG TRÀN BỘ NHỚ VÀ XỬ LÝ LỖI TOÀN DIỆN)
+  // Lưu & Xuất bản bài viết (BẢO VỆ CHỐNG TRÀN BỘ NHỚ VÀ TỰ ĐỘNG NÉN ĐA CẤP ĐỘ)
   const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
@@ -317,68 +286,96 @@ export default function FilmReelEditorModal({
       const safeTitle = title.trim() || `Khoảnh khắc ${category} - ${classNameText}`;
 
       // Tự động fallback ảnh bìa thông minh nếu Thầy chưa chọn ảnh
-      let finalCover = coverImage;
-      if (!finalCover) {
+      let baseCover = coverImage;
+      if (!baseCover) {
         const firstImgBlock = blocks.find((b) => b.type === 'image' && b.url);
         if (firstImgBlock) {
-          finalCover = firstImgBlock.url;
+          baseCover = firstImgBlock.url;
         } else {
-          finalCover = PRESET_COVERS[0].url;
+          baseCover = PRESET_COVERS[0].url;
         }
       }
 
-      // Nén phòng thủ ảnh bìa nếu dung lượng còn lớn để chắc chắn 100% lưu được
-      if (finalCover && finalCover.startsWith('data:image')) {
-        finalCover = await compressDataUrlIfNeeded(finalCover, 1200, 0.75);
-      }
-
       // Đảm bảo luôn có ít nhất 1 khối nội dung
-      let validBlocks = blocks.filter(
+      let rawBlocks = blocks.filter(
         (b) => (b.type === 'paragraph' && b.text?.trim()) || (b.type === 'image' && b.url)
       );
-      if (validBlocks.length === 0) {
-        validBlocks = [
+      if (rawBlocks.length === 0) {
+        rawBlocks = [
           {
             id: `blk_${Date.now()}`,
             type: 'paragraph',
             text: `Ghi lại khoảnh khắc hoạt động ${category.toLowerCase()} đáng nhớ cùng tập thể ${classNameText}.`,
           },
         ];
-      } else {
-        // Nén các ảnh trong block nếu còn dung lượng nặng
-        validBlocks = await Promise.all(
-          validBlocks.map(async (blk) => {
-            if (blk.type === 'image' && blk.url?.startsWith('data:image')) {
-              const compressedUrl = await compressDataUrlIfNeeded(blk.url, 1100, 0.75);
-              return { ...blk, url: compressedUrl };
-            }
-            return blk;
-          })
-        );
       }
 
-      const payload = {
-        ...(initialData || {}),
-        classId: targetClassId || classId || 'class_7a',
-        title: safeTitle,
-        category,
-        eventDate: eventDate || new Date().toISOString().split('T')[0],
-        coverImage: finalCover,
-        blocks: validBlocks,
-        isPinned: Boolean(isPinned),
-      };
+      // Vòng lặp nén thích ứng đa cấp độ (Cấp 1 -> Cấp 2 -> Cấp 3) để chống tràn bộ nhớ trình duyệt
+      let saveSuccess = false;
+      let lastError = null;
 
-      onSave(payload);
-      playCorrect();
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.6 },
-      });
-      onClose();
+      for (let stage = 1; stage <= 3; stage++) {
+        try {
+          if (stage > 1) {
+            setErrorMessage(`Bộ nhớ trình duyệt gần đầy, đang tự động nén sâu ảnh để hoàn tất xuất bản (Cấp ${stage})...`);
+          }
+
+          // Nén ảnh bìa theo cấp độ
+          let processedCover = baseCover;
+          if (processedCover && processedCover.startsWith('data:image')) {
+            processedCover = await compressDataUrlMultiStage(processedCover, stage);
+          }
+
+          // Nén các ảnh trong khối nội dung theo cấp độ
+          const processedBlocks = await Promise.all(
+            rawBlocks.map(async (blk) => {
+              if (blk.type === 'image' && blk.url?.startsWith('data:image')) {
+                const compressedUrl = await compressDataUrlMultiStage(blk.url, stage);
+                return { ...blk, url: compressedUrl };
+              }
+              return blk;
+            })
+          );
+
+          const payload = {
+            ...(initialData || {}),
+            classId: targetClassId || classId || 'class_7a',
+            title: safeTitle,
+            category,
+            eventDate: eventDate || new Date().toISOString().split('T')[0],
+            coverImage: processedCover,
+            blocks: processedBlocks,
+            isPinned: Boolean(isPinned),
+          };
+
+          // Thử xuất bản bài viết
+          onSave(payload);
+          saveSuccess = true;
+          break; // Lưu thành công thì dừng vòng lặp ngay
+        } catch (attemptErr) {
+          lastError = attemptErr;
+          console.warn(`Lưu khoảnh khắc thất bại ở cấp nén ${stage}:`, attemptErr);
+        }
+      }
+
+      if (saveSuccess) {
+        setErrorMessage('');
+        playCorrect();
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 },
+        });
+        onClose();
+      } else {
+        console.error('Không thể lưu khoảnh khắc sau 3 cấp độ nén:', lastError);
+        setErrorMessage(
+          'Không thể lưu do bộ nhớ trình duyệt (LocalStorage) đã bị đầy bởi các dữ liệu khác. Thầy hãy thử xóa bớt các bài cũ hoặc dọn dẹp bộ nhớ tạm nhé!'
+        );
+      }
     } catch (err) {
       console.error('Lỗi khi xuất bản khoảnh khắc:', err);
-      setErrorMessage('Không thể lưu do dung lượng ảnh quá lớn hoặc trình duyệt chặn lưu. Đang nén ảnh...');
+      setErrorMessage('Đã xảy ra lỗi khi lưu bài viết. Thầy vui lòng thử lại nhé!');
     } finally {
       setIsSubmitting(false);
     }
