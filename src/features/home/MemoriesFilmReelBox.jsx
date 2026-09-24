@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import {
   loadAllFilmReelsAcrossClasses,
+  syncAndLoadFilmReels,
   toggleLikeReel,
   toggleSampleReelLike,
   getSampleReelLikes,
@@ -35,7 +36,63 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const [copyToast, setCopyToast] = useState(false);
   const [popHeartId, setPopHeartId] = useState(null);
 
-  // Nạp các bài viết thực tế từ hệ thống Cuộn phim kỷ niệm
+  // Định dạng danh sách bài viết từ kho lưu trữ để hiển thị trên Cuộn Phim Hồi Ức
+  const formatReels = (reelsList, classMap) => {
+    if (!Array.isArray(reelsList)) return [];
+    return reelsList.map((r) => {
+      const firstParagraph = r.blocks?.find((b) => b.type === 'paragraph' && b.text)?.text || '';
+      
+      // Xử lý tên lớp thông minh (nhận diện chính xác các dạng 7A5, class_7a5, 7a_5)
+      let cName = classMap[r.classId];
+      if (!cName && r.classId) {
+        cName = r.classId.replace(/^class_/i, '').replace(/_/g, '').toUpperCase();
+      }
+      if (!cName) cName = '7A';
+
+      // Nhận diện khối lớp thông minh dựa trên tên lớp, classId, tiêu đề và danh mục
+      const fullCheck = `${cName} ${r.classId || ''} ${r.title || ''} ${r.category || ''}`.toLowerCase();
+      let gradeNum = '7';
+      if (fullCheck.includes('9') || fullCheck.includes('khối 9') || fullCheck.includes('lớp 9')) {
+        gradeNum = '9';
+      } else if (fullCheck.includes('8') || fullCheck.includes('khối 8') || fullCheck.includes('lớp 8')) {
+        gradeNum = '8';
+      } else if (fullCheck.includes('7') || fullCheck.includes('khối 7') || fullCheck.includes('lớp 7') || fullCheck.includes('7a5')) {
+        gradeNum = '7';
+      }
+
+      let dateFormatted = r.eventDate || '';
+      if (dateFormatted.includes('-')) {
+        const parts = dateFormatted.split('-');
+        if (parts.length === 3) dateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+
+      let displayTag = cName.startsWith('Lớp') ? cName : `Lớp ${cName}`;
+      if (displayTag.toLowerCase().includes('all_classes')) {
+        displayTag = 'Toàn trường';
+      }
+
+      return {
+        id: r.id,
+        grade: gradeNum,
+        title: r.title,
+        date: dateFormatted || 'Mới cập nhật',
+        classTag: displayTag,
+        category: r.category || 'Kỷ Niệm',
+        coverImage:
+          r.coverImage ||
+          'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80',
+        description: firstParagraph || 'Khoảnh khắc đáng nhớ và tự hào cùng tập thể lớp.',
+        tags: ['✨ ' + (r.category || 'Kỷ Niệm'), '📸 Cuộn Phim', '🌟 Mới Đăng'],
+        likes: r.likesCount || 0,
+        isLiked: Boolean(r.isLiked),
+        isPinned: Boolean(r.isPinned),
+        rawReel: r,
+        isCustom: true,
+      };
+    });
+  };
+
+  // Nạp các bài viết thực tế từ hệ thống Cuộn phim kỷ niệm (LocalStorage + IndexedDB)
   const refreshCustomReels = () => {
     try {
       const classesList = loadClasses() || [];
@@ -47,53 +104,16 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
       const sampleLikes = getSampleReelLikes();
       setSampleLikesMap(sampleLikes);
 
+      // 1. Nạp tức thì từ LocalStorage
       const reelsFromStorage = loadAllFilmReelsAcrossClasses() || [];
-      const formatted = reelsFromStorage.map((r) => {
-        const firstParagraph = r.blocks?.find((b) => b.type === 'paragraph' && b.text)?.text || '';
-        const cName = classMap[r.classId] || r.classId || 'Lớp 7A';
+      setCustomReels(formatReels(reelsFromStorage, classMap));
 
-        // Nhận diện khối lớp thông minh dựa trên tên lớp, classId, tiêu đề và danh mục
-        const fullCheck = `${cName} ${r.classId || ''} ${r.title || ''} ${r.category || ''}`.toLowerCase();
-        let gradeNum = 'all';
-        if (fullCheck.includes('7') || fullCheck.includes('khối 7') || fullCheck.includes('lớp 7')) {
-          gradeNum = '7';
-        } else if (fullCheck.includes('8') || fullCheck.includes('khối 8') || fullCheck.includes('lớp 8')) {
-          gradeNum = '8';
-        } else if (fullCheck.includes('9') || fullCheck.includes('khối 9') || fullCheck.includes('lớp 9')) {
-          gradeNum = '9';
-        } else {
-          gradeNum = '7'; // Mặc định gán lớp 7 nếu Thầy tạo bài tập/học tập chưa phân loại
+      // 2. Nạp đồng bộ từ IndexedDB để không bị sót bài viết có ảnh lớn
+      syncAndLoadFilmReels('all_classes').then((synced) => {
+        if (synced && synced.length > 0) {
+          setCustomReels(formatReels(synced, classMap));
         }
-
-        let dateFormatted = r.eventDate || '';
-        if (dateFormatted.includes('-')) {
-          const parts = dateFormatted.split('-');
-          if (parts.length === 3) dateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
-        }
-
-        const displayTag = cName.startsWith('Lớp') ? cName : `Lớp ${cName}`;
-
-        return {
-          id: r.id,
-          grade: gradeNum,
-          title: r.title,
-          date: dateFormatted || 'Mới cập nhật',
-          classTag: displayTag === 'Lớp all_classes' ? 'Lớp 7A' : displayTag,
-          category: r.category || 'Kỷ Niệm',
-          coverImage:
-            r.coverImage ||
-            'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80',
-          description: firstParagraph || 'Khoảnh khắc đáng nhớ và tự hào cùng tập thể lớp.',
-          tags: ['✨ ' + (r.category || 'Kỷ Niệm'), '📸 Cuộn Phim', '🌟 Mới Đăng'],
-          likes: r.likesCount || 0,
-          isLiked: Boolean(r.isLiked),
-          isPinned: Boolean(r.isPinned),
-          rawReel: r,
-          isCustom: true,
-        };
-      });
-
-      setCustomReels(formatted);
+      }).catch(() => {});
     } catch (e) {
       console.error('Lỗi nạp cuộn phim hồi ức:', e);
     }
@@ -209,11 +229,20 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   // BỘ LỌC KỶ NIỆM THEO KHỐI LỚP (Ưu tiên bài viết được Ghim lên đầu tiên, sau đó đến bài viết thật của Thầy)
   const combinedMemories = [...customReels, ...enrichedSampleMemories];
 
-  // Sắp xếp: Ưu tiên bài viết isPinned === true lên đầu tiên (FRAME #01)
+  // Sắp xếp thông minh:
+  // 1. Ưu tiên bài viết được Ghim (isPinned === true) lên FRAME #01
+  // 2. Bài viết thật của Thầy (isCustom === true) LUÔN ĐỨNG TRƯỚC bài mẫu mặc định (isCustom === false)
+  // 3. Sắp xếp theo ngày sự kiện hoặc ngày tạo mới nhất lên trước
   const sortedMemories = [...combinedMemories].sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
-    return 0;
+
+    if (a.isCustom && !b.isCustom) return -1;
+    if (!a.isCustom && b.isCustom) return 1;
+
+    const timeA = new Date(a.rawReel?.eventDate || a.rawReel?.createdAt || 0).getTime();
+    const timeB = new Date(b.rawReel?.eventDate || b.rawReel?.createdAt || 0).getTime();
+    return timeB - timeA;
   });
 
   const filteredMemories =

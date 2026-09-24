@@ -62,7 +62,7 @@ export default function FilmReelEditorModal({
   const [blocks, setBlocks] = useState([]);
   const [targetClassId, setTargetClassId] = useState(classId || 'class_7a');
   const [availableClasses, setAvailableClasses] = useState([]);
-  const [isPinned, setIsPinned] = useState(false);
+  const [isPinned, setIsPinned] = useState(true);
 
   // State Trợ lý AI & Trạng thái
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -90,15 +90,15 @@ export default function FilmReelEditorModal({
       setEventDate(initialData.eventDate || new Date().toISOString().split('T')[0]);
       setCoverImage(initialData.coverImage || '');
       setBlocks(initialData.blocks ? JSON.parse(JSON.stringify(initialData.blocks)) : []);
-      setIsPinned(Boolean(initialData.isPinned));
+      setIsPinned(initialData.isPinned !== undefined ? Boolean(initialData.isPinned) : true);
       if (initialData.classId) setTargetClassId(initialData.classId);
     } else {
-      // Khởi tạo bài viết mới sạch sẽ
+      // Khởi tạo bài viết mới sạch sẽ (Mặc định bật Ghim ra FRAME #01 Trang Chủ)
       setTitle('');
       setCategory('Học tập');
       setEventDate(new Date().toISOString().split('T')[0]);
       setCoverImage('');
-      setIsPinned(false);
+      setIsPinned(true);
       setBlocks([
         {
           id: `blk_${Date.now()}_1`,
