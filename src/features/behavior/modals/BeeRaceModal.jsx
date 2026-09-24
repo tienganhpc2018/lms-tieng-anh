@@ -59,6 +59,8 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
   const pausedElapsedRef = useRef(0);
   const duckConfigRef = useRef({});
   const duckDomRefs = useRef({});
+  const pendingWinnerRef = useRef(null);
+  const pendingWinnerNumberRef = useRef(null);
 
   // Vạch đích xuất hiện ở 80% phía trước đàn vịt khi còn 4 giây cuối
   const FINISH_LINE_X = 80.0;
@@ -97,6 +99,9 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
     setRaceFinished(false);
     setShowFinishLine(false); // Ẩn vạch đích lúc đầu
     setWinnerStudent(null);
+    setWinnerNumber(null);
+    pendingWinnerRef.current = null;
+    pendingWinnerNumberRef.current = null;
     setTimeLeft(duration);
     pausedElapsedRef.current = 0;
     setShowRankModal(false);
@@ -163,8 +168,10 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
 
     const realWinner = shuffledStudents[0];
     const winnerStNum = getStudentNumber(realWinner);
-    setWinnerStudent(realWinner);
-    setWinnerNumber(winnerStNum);
+    pendingWinnerRef.current = realWinner;
+    pendingWinnerNumberRef.current = winnerStNum;
+    setWinnerStudent(null);
+    setWinnerNumber(null);
 
     const configs = {};
 
@@ -357,6 +364,8 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         setIsRunning(false);
         setIsPaused(false);
         setShowFinishLine(false);
+        setWinnerStudent(pendingWinnerRef.current);
+        setWinnerNumber(pendingWinnerNumberRef.current);
         setRaceFinished(true);
 
         if (soundEnabled) {
@@ -724,17 +733,35 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
           {raceFinished && winnerStudent ? (
             <div className="flex-1 relative flex items-center justify-center">
               
-              {/* KHỐI VINH DANH CHÍNH GIỮA DÒNG SÔNG CHUẨN ẢNH MẪU */}
+              {/* KHỐI VINH DANH CHÍNH GIỮA DÒNG SÔNG RỰC RỠ, HÃNH DIỆN */}
               <div className="flex flex-col items-center animate-bounce-subtle z-20">
-                {/* NHÃN TÊN TO MÀU CAM BO TRÒN NỔI BẬT */}
-                <div className="px-8 py-2.5 bg-[#f97316] text-white font-black text-2xl sm:text-3xl rounded-2xl shadow-2xl border-[3px] border-white/80 mb-3 tracking-wide filter drop-shadow-lg">
-                  {winnerStudent?.full_name}
+                {/* VƯƠNG MIỆN VÀNG HOÀNG GIA HOÀNH TRÁNG */}
+                <div className="text-5xl sm:text-6xl mb-1 animate-bounce drop-shadow-2xl">
+                  👑
                 </div>
 
-                {/* HÌNH CHÚ LINH VẬT CÓ BIỂN SỐ ÁO TO TRÊN THÂN */}
-                <div className="relative w-40 h-36 sm:w-48 sm:h-42 filter drop-shadow-2xl flex items-center justify-center">
+                {/* NHÃN TÊN TO MÀU CAM BO TRÒN NỔI BẬT VIỀN VÀNG RỰC RỠ */}
+                <div className="px-8 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white font-black text-2xl sm:text-3xl rounded-3xl shadow-2xl border-4 border-amber-200 mb-2 tracking-wide filter drop-shadow-2xl flex items-center space-x-3">
+                  <span className="text-2xl animate-spin-slow">⭐</span>
+                  <span className="drop-shadow-md">{winnerStudent?.full_name}</span>
+                  <span className="text-2xl animate-spin-slow">⭐</span>
+                </div>
+
+                {/* THẺ HUY HIỆU QUÁN QUÂN VỀ ĐÍCH ĐẦU TIÊN */}
+                <div className="px-5 py-1.5 bg-slate-950/90 text-amber-300 font-black text-xs sm:text-sm rounded-full border-2 border-amber-400/80 shadow-xl mb-4 flex items-center space-x-2.5">
+                  <span className="text-base">🏆</span>
+                  <span>QUÁN QUÂN CÁN ĐÍCH ĐẦU TIÊN</span>
+                  <span className="text-white/60">•</span>
+                  <span className="text-cyan-300 font-mono tracking-wider">SỐ ÁO #{winnerNumber}</span>
+                </div>
+
+                {/* HÌNH CHÚ LINH VẬT CÓ BIỂN SỐ ÁO TO TRÊN THÂN KÈM HÀO QUANG VÀNG */}
+                <div className="relative w-44 h-40 sm:w-52 sm:h-46 filter drop-shadow-2xl flex items-center justify-center">
+                  {/* Hào quang tỏa sáng */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-amber-400/40 via-yellow-300/30 to-cyan-300/30 rounded-full blur-xl animate-pulse" />
+
                   {/* Bóng nước rẽ sóng dưới bụng */}
-                  <div className="absolute -bottom-2 w-44 h-8 bg-cyan-200/40 rounded-full blur-xs" />
+                  <div className="absolute -bottom-2 w-48 h-9 bg-cyan-200/50 rounded-full blur-xs" />
 
                   {/* SVG chú linh vật */}
                   {renderAnimalSVG(selectedAnimal)}
@@ -828,21 +855,49 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
         <div className="relative z-30 px-6 py-3.5 bg-[#0a1124] border-t border-amber-500/40 flex items-center justify-between gap-4">
           {/* THÔNG TIN HỌC SINH ĐẠI DIỆN LÊN BẢNG TRẢ BÀI */}
           <div className="flex items-center space-x-3.5 min-w-0">
-            {/* HUY HIỆU 1st VÀNG CAM BO TRÒN */}
-            <div className="w-12 h-12 rounded-2xl bg-amber-400 border-2 border-amber-300 flex items-center justify-center font-black text-slate-950 text-lg shadow-md flex-shrink-0">
-              1st
+            {/* HUY HIỆU TRẠNG THÁI */}
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-md flex-shrink-0 transition-all ${
+              raceFinished && winnerStudent
+                ? 'bg-amber-400 border-2 border-amber-300 text-slate-950 animate-bounce-subtle'
+                : isRunning
+                ? 'bg-cyan-500/20 border-2 border-cyan-400 text-cyan-300 animate-pulse text-base'
+                : 'bg-slate-800 border-2 border-slate-700 text-slate-400 text-[11px]'
+            }`}>
+              {raceFinished && winnerStudent ? '1st' : isRunning ? '⚡' : 'READY'}
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center space-x-2 text-xs font-bold text-amber-300">
-                <span>🎯 HỌC SINH ĐẠI DIỆN LÊN BẢNG TRẢ BÀI:</span>
-                <span className="px-2 py-0.5 rounded-full bg-slate-800 text-cyan-300 font-mono text-[11px] border border-slate-700">
-                  Số #{winnerStudent ? winnerNumber : (racerStudents[0] ? getStudentNumber(racerStudents[0]) : 1)}
-                </span>
-              </div>
-              <div className="text-xl sm:text-2xl font-black text-white truncate drop-shadow-sm">
-                {winnerStudent ? winnerStudent.full_name : (racerStudents[0]?.full_name || 'Đang chuẩn bị đua...')}
-              </div>
+              {raceFinished && winnerStudent ? (
+                <>
+                  <div className="flex items-center space-x-2 text-xs font-bold text-amber-300">
+                    <span>🎯 QUÁN QUÂN LÊN BẢNG TRẢ BÀI:</span>
+                    <span className="px-2 py-0.5 rounded-full bg-slate-800 text-cyan-300 font-mono text-[11px] border border-slate-700">
+                      Số #{winnerNumber}
+                    </span>
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-white truncate drop-shadow-sm">
+                    {winnerStudent.full_name}
+                  </div>
+                </>
+              ) : isRunning ? (
+                <>
+                  <div className="flex items-center space-x-2 text-xs font-bold text-cyan-300 animate-pulse">
+                    <span>🏁 CUỘC ĐUA ĐANG DIỄN RA VÔ CÙNG GAY CẤN...</span>
+                  </div>
+                  <div className="text-sm sm:text-base font-extrabold text-amber-200 truncate">
+                    Chờ xem chú vịt nào sẽ bứt tốc cán đích đầu tiên! 🔥
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-400">
+                    <span>🎯 CHỜ XUẤT PHÁT:</span>
+                  </div>
+                  <div className="text-sm sm:text-base font-bold text-slate-300 truncate">
+                    Bấm START để các thí sinh bắt đầu tranh tài trả bài!
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -851,8 +906,12 @@ export default function BeeRaceModal({ isOpen, onClose, students = [] }) {
             <button
               type="button"
               onClick={handleConfirmCallStudent}
-              disabled={!winnerStudent}
-              className="px-5 py-2.5 bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5 active:scale-95 uppercase tracking-wider"
+              disabled={!raceFinished || !winnerStudent}
+              className={`px-5 py-2.5 font-black text-xs sm:text-sm rounded-xl shadow-md transition flex items-center space-x-1.5 uppercase tracking-wider ${
+                raceFinished && winnerStudent
+                  ? 'bg-[#10b981] hover:bg-[#059669] text-slate-950 cursor-pointer active:scale-95 animate-pulse'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+              }`}
             >
               <UserCheck className="w-4 h-4 stroke-[2.5]" />
               <span>XÁC NHẬN GỌI EM NÀY</span>

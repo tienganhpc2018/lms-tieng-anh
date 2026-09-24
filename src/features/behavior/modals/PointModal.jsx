@@ -51,6 +51,7 @@ export default function PointModal({
 
   // Số điểm muốn quy đổi (bội số của 10)
   const [convertBatch, setConvertBatch] = useState(10);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -183,8 +184,6 @@ export default function PointModal({
       setTimeout(() => setToastMsg(''), 3500);
     }
   };
-
-  const fileInputRef = useRef(null);
 
   // Đổi Giới Tính Học Sinh (Nam / Nữ)
   const handleToggleGender = () => {
