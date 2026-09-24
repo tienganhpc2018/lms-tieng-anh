@@ -43,15 +43,28 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   // Định dạng danh sách bài viết từ kho lưu trữ để hiển thị trên Cuộn Phim Hồi Ức
   const formatReels = (reelsList, classMap) => {
     if (!Array.isArray(reelsList)) return [];
-    return reelsList.map((r) => {
-      const firstParagraph = r.blocks?.find((b) => b.type === 'paragraph' && b.text)?.text || '';
+
+    // KHỬ TRÙNG LẶP TRIỆT ĐỂ: Một bài viết chỉ xuất hiện DUY NHẤT 1 lần (theo ID hoặc theo Tiêu Đề)
+    const seen = new Set();
+    const uniqueReels = [];
+    for (const r of reelsList) {
+      if (!r || !r.title) continue;
+      const cleanTitle = r.title.trim().toLowerCase();
+      if (seen.has(r.id) || seen.has(cleanTitle)) continue;
+      seen.add(r.id);
+      seen.add(cleanTitle);
+      uniqueReels.push(r);
+    }
+
+    return uniqueReels.map((r) => {
+      const firstParagraph = r.description || r.blocks?.find((b) => b.type === 'paragraph' && (b.text || b.content))?.text || r.blocks?.find((b) => b.type === 'paragraph' && (b.text || b.content))?.content || '';
       
       // Xử lý tên lớp thông minh (nhận diện chính xác các dạng 7A5, class_7a5, 7a_5)
       let cName = classMap[r.classId];
       if (!cName && r.classId) {
         cName = r.classId.replace(/^class_/i, '').replace(/_/g, '').toUpperCase();
       }
-      if (!cName) cName = '7A';
+      if (!cName) cName = '7A5';
 
       // Nhận diện khối lớp thông minh dựa trên tên lớp, classId, tiêu đề và danh mục
       const fullCheck = `${cName} ${r.classId || ''} ${r.title || ''} ${r.category || ''}`.toLowerCase();
@@ -112,19 +125,12 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
       const reelsFromStorage = loadAllFilmReelsAcrossClasses() || [];
       if (reelsFromStorage.length > 0) {
         setCustomReels(formatReels(reelsFromStorage, classMap));
-        // Nếu là Thầy/Admin có bài viết, tự động đẩy lên Cloud Supabase để Học sinh đồng bộ tức thì
-        if (userIsTeacher) {
-          saveSiteSetting('published_film_reels', reelsFromStorage).catch(() => {});
-        }
       }
 
       // 2. Nạp đồng bộ từ IndexedDB để không bị sót bài viết có ảnh lớn
       syncAndLoadFilmReels('all_classes').then((synced) => {
         if (synced && synced.length > 0) {
           setCustomReels(formatReels(synced, classMap));
-          if (userIsTeacher) {
-            saveSiteSetting('published_film_reels', synced).catch(() => {});
-          }
         }
       }).catch(() => {});
     } catch (e) {
@@ -318,10 +324,20 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
     return timeB - timeA;
   });
 
+  // LỌC KHỬ TRÙNG LẶP TOÀN DIỆN: Đảm bảo không bao giờ hiện 2 bài trùng tiêu đề
+  const uniqueSortedMemories = [];
+  const seenTitles = new Set();
+  for (const m of sortedMemories) {
+    const key = (m.title || '').trim().toLowerCase();
+    if (seenTitles.has(key)) continue;
+    seenTitles.add(key);
+    uniqueSortedMemories.push(m);
+  }
+
   const filteredMemories =
     selectedGrade === 'all'
-      ? sortedMemories
-      : sortedMemories.filter(
+      ? uniqueSortedMemories
+      : uniqueSortedMemories.filter(
           (m) =>
             m.grade === selectedGrade ||
             m.classTag?.includes(selectedGrade) ||
