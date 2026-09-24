@@ -16,6 +16,7 @@ import InteractiveLessonBookView from './pages/InteractiveLessonBookView';
 import BehaviorPage from './features/behavior/BehaviorPage';
 import GiftShopView from './features/gift-shop/GiftShopView';
 import FilmReelView from './features/film-reel/FilmReelView';
+import AssessmentPage from './features/assessment/AssessmentPage';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import NotFound from './pages/NotFound';
 
@@ -241,6 +242,17 @@ export default function App() {
                   <TeacherRoute>
                     <ErrorBoundary>
                       <FilmReelView />
+                    </ErrorBoundary>
+                  </TeacherRoute>
+                }
+              />
+
+              <Route
+                path="/assessment"
+                element={
+                  <TeacherRoute>
+                    <ErrorBoundary>
+                      <AssessmentPage />
                     </ErrorBoundary>
                   </TeacherRoute>
                 }

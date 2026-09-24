@@ -8,6 +8,11 @@ import {
 } from '../behavior/behaviorStorage';
 import StudentDetailModal from './StudentDetailModal';
 import { playClick } from '../../utils/soundEffects';
+import {
+  AVATAR_PRESETS,
+  getStudentAvatarPreset,
+  detectGenderFromName,
+} from './studentAvatarHelper';
 
 // DANH SÁCH 3 HỌC VIÊN MẪU DỰ PHÒNG (Fallback khi toàn trường chưa có học sinh nào được cộng điểm)
 const DEFAULT_TOP_STUDENTS = [
@@ -46,18 +51,6 @@ const DEFAULT_TOP_STUDENTS = [
   },
 ];
 
-// Bộ avatar học sinh Việt Nam áo trắng khăn quàng đỏ thắm chuẩn lứa tuổi học trò THCS
-const AVATAR_PRESETS = {
-  female: [
-    '/images/avatars/student_female_1.jpg',
-    '/images/avatars/student_female_2.jpg',
-  ],
-  male: [
-    '/images/avatars/student_male_1.jpg',
-    '/images/avatars/student_male_2.jpg',
-  ],
-};
-
 export default function TopStudentsBox() {
   const [topStudents, setTopStudents] = useState(DEFAULT_TOP_STUDENTS);
   const [selectedDetailStudent, setSelectedDetailStudent] = useState(null);
@@ -82,21 +75,28 @@ export default function TopStudentsBox() {
       const mappedStudents = realTop.map((st, idx) => {
         // Nếu học sinh đã có sẵn lời bình hoặc cấu hình tùy chỉnh
         if (st.comment && st.class) {
-          return st;
+          // Chuẩn hoá avatar theo giới tính nếu trước đó bị gán nhầm hoặc là ảnh chưa khớp
+          const smartAvatar = getStudentAvatarPreset({ ...st, full_name: st.name }, idx);
+          const needsFixAvatar =
+            !st.avatar ||
+            st.avatar.includes('unsplash') ||
+            (st.avatar.startsWith('/images/avatars/student_') &&
+              detectGenderFromName(st.name) !== (st.avatar.includes('female') ? 'female' : 'male'));
+
+          return {
+            ...st,
+            avatar: needsFixAvatar ? smartAvatar : st.avatar,
+          };
         }
 
         const config = BADGE_CONFIG[idx] || BADGE_CONFIG[2];
-        const isFemale = (st.gender || '').toLowerCase() === 'nữ';
-        const presetList = isFemale ? AVATAR_PRESETS.female : AVATAR_PRESETS.male;
-        const fallbackAvatar = presetList[idx % presetList.length];
+        const finalAvatar = getStudentAvatarPreset(st, idx);
 
-        // Ưu tiên avatar nếu có ảnh thực tế (không phải avatar bottts mặc định)
-        let finalAvatar = fallbackAvatar;
-        if (st.avatar && (st.avatar.startsWith('http') || st.avatar.startsWith('data:')) && !st.avatar.includes('bottts')) {
-          finalAvatar = st.avatar;
-        }
-
-        const classNameDisplay = st.className ? (st.className.startsWith('Lớp') ? st.className : `Lớp ${st.className}`) : 'Lớp Học';
+        const classNameDisplay = st.className
+          ? st.className.startsWith('Lớp')
+            ? st.className
+            : `Lớp ${st.className}`
+          : 'Lớp Học';
         const points = st.plus_points || 0;
 
         // Xây dựng lời nhận xét chân thực dựa trên hoạt động thực tế
@@ -217,24 +217,24 @@ export default function TopStudentsBox() {
                 <img
                   src={student.avatar}
                   alt={student.name}
-                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-3 border-emerald-400 shadow-md group-hover:scale-105 transition"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-3 border-emerald-400 shadow-md group-hover:scale-105 transition"
                   onError={(e) => {
                     e.currentTarget.src = '/images/avatars/student_female_1.jpg';
                   }}
                 />
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center text-xs font-black shadow-xs">
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center text-[10px] font-black shadow-xs">
                   ★
                 </div>
               </div>
 
               {/* THÔNG TIN VÀ LỜI TUYÊN DƯƠNG CHUẨN ẢNH MẪU */}
               <div className="space-y-1.5 flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-1">
-                  <h4 className="text-base sm:text-lg font-black text-slate-900 leading-snug group-hover:text-emerald-700 transition truncate">
+                <div className="flex items-start justify-between gap-1.5">
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 leading-snug group-hover:text-emerald-700 transition break-words">
                     {student.name}
                   </h4>
                   {student.points > 0 && (
-                    <span className="text-xs font-black text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300 shrink-0">
+                    <span className="text-[11px] font-black text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300 shrink-0 whitespace-nowrap mt-0.5">
                       +{student.points} điểm
                     </span>
                   )}

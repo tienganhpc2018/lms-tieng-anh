@@ -117,6 +117,18 @@ export default function Navbar() {
                 <span>🎞️</span>
                 <span>Cuộn Phim Kỷ Niệm</span>
               </Link>
+
+              <Link
+                to="/assessment"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-2xs border ${
+                  location.pathname === '/assessment'
+                    ? 'bg-teal-700 text-white border-teal-800 shadow-xs'
+                    : 'bg-white/90 hover:bg-teal-50 text-teal-950 border-teal-300/80'
+                }`}
+              >
+                <span>📊</span>
+                <span>Sổ Điểm TT22</span>
+              </Link>
             </div>
           )}
 
@@ -149,6 +161,14 @@ export default function Navbar() {
                       title="Cuộn Phim Kỷ Niệm"
                     >
                       🎞️
+                    </Link>
+
+                    <Link
+                      to="/assessment"
+                      className="md:hidden p-2 rounded-xl bg-white/90 border border-teal-300 text-teal-900 text-xs font-bold shadow-2xs"
+                      title="Sổ Điểm TT22"
+                    >
+                      📊
                     </Link>
                   </>
                 )}
@@ -216,10 +236,19 @@ export default function Navbar() {
                         <Link
                           to="/film-reel"
                           onClick={() => setIsUserDropdownOpen(false)}
-                          className="px-4 py-2 hover:bg-purple-50 hover:text-purple-800 flex items-center space-x-2 transition"
+                          className="px-4 py-2 hover:bg-emerald-50 hover:text-emerald-800 flex items-center space-x-2 transition"
                         >
                           <span className="text-sm">🎞️</span>
-                          <span className="text-purple-700 font-extrabold">Cuộn Phim Kỷ Niệm</span>
+                          <span className="text-emerald-700 font-extrabold">Cuộn Phim Kỷ Niệm</span>
+                        </Link>
+
+                        <Link
+                          to="/assessment"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="px-4 py-2 hover:bg-teal-50 hover:text-teal-800 flex items-center space-x-2 transition"
+                        >
+                          <span className="text-sm">📊</span>
+                          <span className="text-teal-700 font-extrabold">Sổ Điểm TT22</span>
                         </Link>
 
                         <Link
