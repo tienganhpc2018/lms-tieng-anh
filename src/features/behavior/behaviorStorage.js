@@ -1,4 +1,5 @@
 // HỆ THỐNG LƯU TRỮ VÀ QUẢN LÝ DỮ LIỆU SỔ NỀ NẾP 4.0 (LOCALSTORAGE CHUẨN)
+import { saveSiteSetting } from '../../services/siteSettingsService';
 
 export const STORAGE_KEYS = {
   CLASSES: 'user_created_classes',
@@ -633,6 +634,8 @@ export const saveCustomFeaturedStudents = (studentsList) => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('behaviorStudentsUpdated'));
     }
+    // Tự động đồng bộ lên Supabase Cloud để Học sinh mọi nơi đều xem được
+    saveSiteSetting('featured_top_students', studentsList || []).catch(() => {});
   } catch (e) {}
 };
 

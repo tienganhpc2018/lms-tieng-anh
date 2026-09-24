@@ -1,4 +1,5 @@
 // HỆ THỐNG LƯU TRỮ VÀ QUẢN LÝ CUỘN PHIM KỶ NIỆM (LOCALSTORAGE + INDEXEDDB)
+import { saveSiteSetting } from '../../services/siteSettingsService';
 import { SAMPLE_FILM_REELS } from './constants/filmReelPresets';
 import {
   saveReelToIndexedDb,
@@ -191,6 +192,8 @@ export const saveFilmReels = (classId, reels) => {
     });
     if (currentAll.length > 20) currentAll = currentAll.slice(0, 20);
     localStorage.setItem('all_published_film_reels', JSON.stringify(currentAll));
+    // Tự động đồng bộ lên Supabase Cloud để Học sinh mọi nơi đều nhận được bài viết mới của Admin
+    saveSiteSetting('published_film_reels', currentAll).catch(() => {});
   } catch (errSync) {
     console.warn('Không thể đồng bộ all_published_film_reels do đầy bộ nhớ (bỏ qua an toàn):', errSync);
   }

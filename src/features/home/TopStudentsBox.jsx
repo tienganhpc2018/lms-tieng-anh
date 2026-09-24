@@ -13,6 +13,11 @@ import {
   getStudentAvatarPreset,
   detectGenderFromName,
 } from './studentAvatarHelper';
+import {
+  getSiteSetting,
+  saveSiteSetting,
+  subscribeSiteSetting,
+} from '../../services/siteSettingsService';
 
 // DANH SÁCH 3 HỌC VIÊN MẪU DỰ PHÒNG (Fallback khi toàn trường chưa có học sinh nào được cộng điểm)
 const DEFAULT_TOP_STUDENTS = [
@@ -51,7 +56,7 @@ const DEFAULT_TOP_STUDENTS = [
   },
 ];
 
-export default function TopStudentsBox() {
+export default function TopStudentsBox({ userIsTeacher = false }) {
   const [topStudents, setTopStudents] = useState(DEFAULT_TOP_STUDENTS);
   const [selectedDetailStudent, setSelectedDetailStudent] = useState(null);
 
@@ -61,6 +66,12 @@ export default function TopStudentsBox() {
       const realTop = getTopStudentsAcrossClasses(3);
 
       if (!realTop || realTop.length === 0) {
+        // Kiểm tra xem trong LocalStorage có danh sách do Cloud tải về trước đó không
+        const custom = getCustomFeaturedStudents();
+        if (Array.isArray(custom) && custom.length > 0) {
+          setTopStudents(custom);
+          return;
+        }
         setTopStudents(DEFAULT_TOP_STUDENTS);
         return;
       }
@@ -75,7 +86,6 @@ export default function TopStudentsBox() {
       const mappedStudents = realTop.map((st, idx) => {
         // Nếu học sinh đã có sẵn lời bình hoặc cấu hình tùy chỉnh
         if (st.comment && st.class) {
-          // Chuẩn hoá avatar theo giới tính nếu trước đó bị gán nhầm hoặc là ảnh chưa khớp
           const smartAvatar = getStudentAvatarPreset({ ...st, full_name: st.name }, idx);
           const needsFixAvatar =
             !st.avatar ||
@@ -99,7 +109,6 @@ export default function TopStudentsBox() {
           : 'Lớp Học';
         const points = st.plus_points || 0;
 
-        // Xây dựng lời nhận xét chân thực dựa trên hoạt động thực tế
         let realisticComment = '';
         if (Array.isArray(st.activity_history) && st.activity_history.length > 0) {
           const topReason = st.activity_history[0]?.reason || 'Khen ngợi nề nếp';
@@ -124,12 +133,19 @@ export default function TopStudentsBox() {
         };
       });
 
-      // Nếu ít hơn 3 học sinh thật thì bổ sung thêm các bạn mẫu dự phòng để luôn đủ 3 khung tròn đẹp mắt
+      let finalList;
       if (mappedStudents.length < 3) {
         const remaining = DEFAULT_TOP_STUDENTS.slice(mappedStudents.length);
-        setTopStudents([...mappedStudents, ...remaining]);
+        finalList = [...mappedStudents, ...remaining];
       } else {
-        setTopStudents(mappedStudents);
+        finalList = mappedStudents;
+      }
+
+      setTopStudents(finalList);
+
+      // Nếu là Giáo viên/Admin và có học sinh thực tế, tự động đồng bộ lên Supabase Cloud
+      if (userIsTeacher && mappedStudents.some((s) => !s.isSample)) {
+        saveSiteSetting('featured_top_students', finalList).catch(() => {});
       }
     } catch (e) {
       console.error('Lỗi cập nhật học sinh tiêu biểu Real-time:', e);
@@ -138,46 +154,73 @@ export default function TopStudentsBox() {
   };
 
   useEffect(() => {
-    refreshTopStudents();
+    // 1. Thử kéo dữ liệu thật từ Cloud về trước (đảm bảo Học sinh mở ở máy nào cũng có dữ liệu của Admin)
+    const loadFromCloud = async () => {
+      try {
+        const cloudData = await getSiteSetting('featured_top_students', null);
+        if (Array.isArray(cloudData) && cloudData.length > 0) {
+          setTopStudents(cloudData);
+          saveCustomFeaturedStudents(cloudData);
+          return;
+        }
+      } catch (err) {
+        console.warn('Lỗi đọc top học sinh từ Cloud:', err);
+      }
+      refreshTopStudents();
+    };
 
-    // 1. Lắng nghe sự kiện cập nhật điểm nề nếp học sinh trong cùng tab
+    loadFromCloud();
+
+    // 2. Lắng nghe Realtime Broadcast từ Supabase khi Admin/GV thay đổi
+    const unsubCloud = subscribeSiteSetting('featured_top_students', (freshTop) => {
+      if (Array.isArray(freshTop) && freshTop.length > 0) {
+        setTopStudents(freshTop);
+        saveCustomFeaturedStudents(freshTop);
+      }
+    });
+
+    // 3. Lắng nghe sự kiện cập nhật điểm nề nếp học sinh trong cùng tab
     const handleUpdate = () => refreshTopStudents();
     window.addEventListener('behaviorStudentsUpdated', handleUpdate);
 
-    // 2. Lắng nghe sự kiện thay đổi LocalStorage giữa các tab khác nhau
+    // 4. Lắng nghe sự kiện thay đổi LocalStorage giữa các tab khác nhau
     window.addEventListener('storage', handleUpdate);
 
-    // 3. Cơ chế kiểm tra định kỳ 3 giây để đảm bảo luôn real-time tuyệt đối
-    const interval = setInterval(refreshTopStudents, 3000);
+    // 5. Kiểm tra định kỳ 5 giây để đảm bảo luôn real-time tuyệt đối
+    const interval = setInterval(refreshTopStudents, 5000);
 
     return () => {
+      unsubCloud();
       window.removeEventListener('behaviorStudentsUpdated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
       clearInterval(interval);
     };
-  }, []);
+  }, [userIsTeacher]);
 
-  // Xử lý chỉnh sửa lời nhận xét học sinh tiêu biểu
+  // Xử lý chỉnh sửa lời nhận xét học sinh tiêu biểu (Đồng bộ cả Local và Cloud)
   const handleUpdateStudentComment = (studentId, newComment) => {
     const updatedList = topStudents.map((s) => (s.id === studentId ? { ...s, comment: newComment } : s));
     setTopStudents(updatedList);
     saveCustomFeaturedStudents(updatedList);
+    saveSiteSetting('featured_top_students', updatedList).catch(() => {});
   };
 
-  // Xử lý gỡ học sinh khỏi danh sách tiêu biểu
+  // Xử lý gỡ học sinh khỏi danh sách tiêu biểu (Đồng bộ cả Local và Cloud)
   const handleRemoveFromFeatured = (studentId) => {
     excludeFromTopStudents(studentId);
     const updatedList = topStudents.filter((s) => s.id !== studentId);
     setTopStudents(updatedList);
     saveCustomFeaturedStudents(updatedList.length > 0 ? updatedList : null);
+    saveSiteSetting('featured_top_students', updatedList.length > 0 ? updatedList : []).catch(() => {});
     refreshTopStudents();
   };
 
-  // Xử lý chọn học sinh khác thay thế
+  // Xử lý chọn học sinh khác thay thế (Đồng bộ cả Local và Cloud)
   const handleChangeFeaturedStudent = (oldId, newStudentData) => {
     const updatedList = topStudents.map((s) => (s.id === oldId ? newStudentData : s));
     setTopStudents(updatedList);
     saveCustomFeaturedStudents(updatedList);
+    saveSiteSetting('featured_top_students', updatedList).catch(() => {});
   };
 
   return (
@@ -193,9 +236,15 @@ export default function TopStudentsBox() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <span className="text-[11px] sm:text-xs font-extrabold text-emerald-800 bg-white/90 px-3 py-1 rounded-full border border-emerald-200 shadow-2xs flex items-center gap-1">
-            <span>✨ Bấm vào để xem chi tiết & tùy chỉnh</span>
-          </span>
+          {userIsTeacher ? (
+            <span className="text-[11px] sm:text-xs font-extrabold text-emerald-800 bg-white/90 px-3 py-1 rounded-full border border-emerald-200 shadow-2xs flex items-center gap-1">
+              <span>✨ Bấm vào để xem chi tiết & tùy chỉnh</span>
+            </span>
+          ) : (
+            <span className="text-[11px] sm:text-xs font-extrabold text-emerald-800 bg-white/90 px-3 py-1 rounded-full border border-emerald-200 shadow-2xs flex items-center gap-1">
+              <span>🏆 Bảng Vinh Danh Tuần Này</span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -209,7 +258,7 @@ export default function TopStudentsBox() {
                 playClick();
                 setSelectedDetailStudent(student);
               }}
-              title="Bấm để xem chi tiết hồ sơ học sinh"
+              title={userIsTeacher ? 'Bấm để xem chi tiết & tùy chỉnh' : 'Bấm để xem chi tiết thành tích'}
               className="flex items-start space-x-4 p-4 rounded-2xl hover:bg-emerald-50/50 transition-all border border-transparent hover:border-emerald-300 hover:shadow-md group cursor-pointer relative"
             >
               {/* AVATAR TRÒN CỦA HỌC SINH VỚI NGÔI SAO VÀNG */}
@@ -253,7 +302,7 @@ export default function TopStudentsBox() {
                 </p>
                 <div className="pt-1 flex items-center text-[11px] font-bold text-emerald-600 group-hover:text-emerald-700 gap-0.5 opacity-80 group-hover:opacity-100">
                   <Eye className="w-3 h-3" />
-                  <span>Xem chi tiết & tùy chỉnh</span>
+                  <span>{userIsTeacher ? 'Xem chi tiết & tùy chỉnh' : 'Xem thành tích'}</span>
                 </div>
               </div>
             </div>
@@ -267,6 +316,7 @@ export default function TopStudentsBox() {
           isOpen={Boolean(selectedDetailStudent)}
           onClose={() => setSelectedDetailStudent(null)}
           student={selectedDetailStudent}
+          userIsTeacher={userIsTeacher}
           onUpdateStudentComment={handleUpdateStudentComment}
           onRemoveFromFeatured={handleRemoveFromFeatured}
           onChangeFeaturedStudent={handleChangeFeaturedStudent}

@@ -24,6 +24,7 @@ import {
 import { loadClasses } from '../behavior/behaviorStorage';
 import { playClick } from '../../utils/soundEffects';
 import SafeFilmImage from '../film-reel/components/SafeFilmImage';
+import { getSiteSetting, subscribeSiteSetting } from '../../services/siteSettingsService';
 
 export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   const navigate = useNavigate();
@@ -122,11 +123,36 @@ export default function MemoriesFilmReelBox({ userIsTeacher = false }) {
   useEffect(() => {
     refreshCustomReels();
 
+    // Tải từ Supabase Cloud để đồng bộ bài viết của Admin cho Học sinh trên mọi thiết bị
+    getSiteSetting('published_film_reels', null).then((cloudReels) => {
+      if (Array.isArray(cloudReels) && cloudReels.length > 0) {
+        const classesList = loadClasses() || [];
+        const classMap = {};
+        classesList.forEach((c) => {
+          if (c.id) classMap[c.id] = c.name;
+        });
+        setCustomReels(formatReels(cloudReels, classMap));
+      }
+    }).catch(() => {});
+
+    // Lắng nghe Realtime Broadcast khi Admin đăng hoặc sửa bài
+    const unsubCloud = subscribeSiteSetting('published_film_reels', (freshReels) => {
+      if (Array.isArray(freshReels) && freshReels.length > 0) {
+        const classesList = loadClasses() || [];
+        const classMap = {};
+        classesList.forEach((c) => {
+          if (c.id) classMap[c.id] = c.name;
+        });
+        setCustomReels(formatReels(freshReels, classMap));
+      }
+    });
+
     const handleUpdate = () => refreshCustomReels();
     window.addEventListener('filmReelsUpdated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
 
     return () => {
+      unsubCloud();
       window.removeEventListener('filmReelsUpdated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };

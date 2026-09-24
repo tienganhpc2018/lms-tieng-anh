@@ -28,7 +28,7 @@ export default function HomeLandingView({ courses = [], userIsTeacher = false })
       <MemoriesFilmReelBox userIsTeacher={userIsTeacher} />
 
       {/* (4) HỌC VIÊN TIÊU BIỂU (3 HỌC SINH) */}
-      <TopStudentsBox />
+      <TopStudentsBox userIsTeacher={userIsTeacher} />
 
       {/* (5) FORUM & THÔNG BÁO LỚP HỌC (3 NỘI DUNG MẪU) */}
       <ClassForumBox />
