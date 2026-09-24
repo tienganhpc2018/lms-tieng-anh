@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Star, Trophy, Sparkles } from 'lucide-react';
-import { getTopStudentsAcrossClasses } from '../behavior/behaviorStorage';
+import { Award, Star, Trophy, Sparkles, ChevronRight, Eye } from 'lucide-react';
+import {
+  getTopStudentsAcrossClasses,
+  excludeFromTopStudents,
+  saveCustomFeaturedStudents,
+  getCustomFeaturedStudents,
+} from '../behavior/behaviorStorage';
+import StudentDetailModal from './StudentDetailModal';
+import { playClick } from '../../utils/soundEffects';
 
 // DANH SÁCH 3 HỌC VIÊN MẪU DỰ PHÒNG (Fallback khi toàn trường chưa có học sinh nào được cộng điểm)
 const DEFAULT_TOP_STUDENTS = [
@@ -55,6 +62,7 @@ const AVATAR_PRESETS = {
 
 export default function TopStudentsBox() {
   const [topStudents, setTopStudents] = useState(DEFAULT_TOP_STUDENTS);
+  const [selectedDetailStudent, setSelectedDetailStudent] = useState(null);
 
   // Nạp danh sách top 3 học sinh tiêu biểu nhiều điểm cộng nhất Real-time
   const refreshTopStudents = () => {
@@ -66,26 +74,19 @@ export default function TopStudentsBox() {
         return;
       }
 
-      // Huy hiệu và lời khen tự động thông minh theo thứ hạng
+      // Huy hiệu thi đua theo thứ hạng
       const BADGE_CONFIG = [
-        {
-          badge: 'Gương mặt xuất sắc',
-          commentTemplate: (name, points, className) =>
-            `Xuất sắc dẫn đầu toàn trường với +${points} điểm cộng thi đua tại ${className}. Luôn ghi điểm với phát biểu sôi nổi, sự tự tin và tinh thần học tập gương mẫu truyền cảm hứng cho cả lớp.`,
-        },
-        {
-          badge: 'Nỗ lực bứt phá',
-          commentTemplate: (name, points, className) =>
-            `Thành tích ấn tượng với +${points} điểm cộng thi đua tại ${className}. Tích cực tham gia xây dựng bài, kiên nhẫn vượt qua thử thách học tập và luôn sẵn sàng hỗ trợ các bạn cùng tiến bộ.`,
-        },
-        {
-          badge: 'Tinh thần gương mẫu',
-          commentTemplate: (name, points, className) =>
-            `Ghi dấu ấn với +${points} điểm cộng thi đua tại ${className}. Luôn chấp hành xuất sắc nề nếp, tác phong nghiêm túc, làm bài tập đầy đủ và lan tỏa năng lượng tích cực đến lớp học.`,
-        },
+        { badge: 'Gương mặt xuất sắc' },
+        { badge: 'Nỗ lực bứt phá' },
+        { badge: 'Tinh thần gương mẫu' },
       ];
 
       const mappedStudents = realTop.map((st, idx) => {
+        // Nếu học sinh đã có sẵn lời bình hoặc cấu hình tùy chỉnh
+        if (st.comment && st.class) {
+          return st;
+        }
+
         const config = BADGE_CONFIG[idx] || BADGE_CONFIG[2];
         const isFemale = (st.gender || '').toLowerCase() === 'nữ';
         const presetList = isFemale ? AVATAR_PRESETS.female : AVATAR_PRESETS.male;
@@ -98,16 +99,30 @@ export default function TopStudentsBox() {
         }
 
         const classNameDisplay = st.className ? (st.className.startsWith('Lớp') ? st.className : `Lớp ${st.className}`) : 'Lớp Học';
+        const points = st.plus_points || 0;
+
+        // Xây dựng lời nhận xét chân thực dựa trên hoạt động thực tế
+        let realisticComment = '';
+        if (Array.isArray(st.activity_history) && st.activity_history.length > 0) {
+          const topReason = st.activity_history[0]?.reason || 'Khen ngợi nề nếp';
+          realisticComment = `Ghi nhận thành tích tại ${classNameDisplay} với +${points} điểm cộng: "${topReason}". Tinh thần học tập và rèn luyện rất đáng khen ngợi.`;
+        } else if (st.notes && st.notes.trim()) {
+          realisticComment = `Thành tích thi đua tại ${classNameDisplay}: ${st.notes}. Đạt +${points} điểm cộng nề nếp.`;
+        } else {
+          realisticComment = `Đạt thành tích thi đua nề nếp tốt tại ${classNameDisplay} với +${points} điểm cộng tích lũy. Luôn có ý thức học tập và rèn luyện gương mẫu.`;
+        }
 
         return {
           id: st.id,
           name: st.full_name,
           class: `Học sinh ${classNameDisplay}`,
+          classId: st.classId,
           badge: config.badge,
-          points: st.plus_points || 0,
+          points,
           avatar: finalAvatar,
-          comment: config.commentTemplate(st.full_name, st.plus_points || 0, classNameDisplay),
+          comment: realisticComment,
           isSample: false,
+          rawStudent: st,
         };
       });
 
@@ -144,19 +159,44 @@ export default function TopStudentsBox() {
     };
   }, []);
 
+  // Xử lý chỉnh sửa lời nhận xét học sinh tiêu biểu
+  const handleUpdateStudentComment = (studentId, newComment) => {
+    const updatedList = topStudents.map((s) => (s.id === studentId ? { ...s, comment: newComment } : s));
+    setTopStudents(updatedList);
+    saveCustomFeaturedStudents(updatedList);
+  };
+
+  // Xử lý gỡ học sinh khỏi danh sách tiêu biểu
+  const handleRemoveFromFeatured = (studentId) => {
+    excludeFromTopStudents(studentId);
+    const updatedList = topStudents.filter((s) => s.id !== studentId);
+    setTopStudents(updatedList);
+    saveCustomFeaturedStudents(updatedList.length > 0 ? updatedList : null);
+    refreshTopStudents();
+  };
+
+  // Xử lý chọn học sinh khác thay thế
+  const handleChangeFeaturedStudent = (oldId, newStudentData) => {
+    const updatedList = topStudents.map((s) => (s.id === oldId ? newStudentData : s));
+    setTopStudents(updatedList);
+    saveCustomFeaturedStudents(updatedList);
+  };
+
   return (
     <div className="space-y-4 select-text">
-      {/* THANH TIÊU ĐỀ HỌC VIÊN TIÊU BIỂU CHUẨN ẢNH MẪU */}
+      {/* THANH TIÊU ĐỀ HỌC VIÊN TIÊU BIỂU */}
       <div className="bg-emerald-50/90 text-emerald-950 px-6 py-3 rounded-2xl flex items-center justify-between border border-emerald-200/90 shadow-2xs">
         <div className="flex items-center space-x-2.5">
           <Trophy className="w-5 h-5 text-amber-600" />
-          <h3 className="text-xl sm:text-2xl font-black tracking-tight text-emerald-800">
-            Học viên tiêu biểu
-          </h3>
+          <div>
+            <h3 className="text-xl sm:text-2xl font-black tracking-tight text-emerald-800">
+              Học viên tiêu biểu
+            </h3>
+          </div>
         </div>
         <div className="flex items-center space-x-2">
-          <span className="text-xs font-extrabold text-emerald-800 bg-white/90 px-3 py-1 rounded-full border border-emerald-200 shadow-2xs">
-            Gương Sáng Thi Đua
+          <span className="text-[11px] sm:text-xs font-extrabold text-emerald-800 bg-white/90 px-3 py-1 rounded-full border border-emerald-200 shadow-2xs flex items-center gap-1">
+            <span>✨ Bấm vào để xem chi tiết & tùy chỉnh</span>
           </span>
         </div>
       </div>
@@ -167,7 +207,12 @@ export default function TopStudentsBox() {
           {topStudents.map((student, idx) => (
             <div
               key={student.id || idx}
-              className="flex items-start space-x-4 p-4 rounded-2xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 group"
+              onClick={() => {
+                playClick();
+                setSelectedDetailStudent(student);
+              }}
+              title="Bấm để xem chi tiết hồ sơ học sinh"
+              className="flex items-start space-x-4 p-4 rounded-2xl hover:bg-emerald-50/50 transition-all border border-transparent hover:border-emerald-300 hover:shadow-md group cursor-pointer relative"
             >
               {/* AVATAR TRÒN CỦA HỌC SINH VỚI NGÔI SAO VÀNG */}
               <div className="relative flex-shrink-0">
@@ -186,13 +231,13 @@ export default function TopStudentsBox() {
               </div>
 
               {/* THÔNG TIN VÀ LỜI TUYÊN DƯƠNG CHUẨN ẢNH MẪU */}
-              <div className="space-y-1.5 flex-1">
+              <div className="space-y-1.5 flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
-                  <h4 className="text-base sm:text-lg font-black text-slate-900 leading-snug group-hover:text-emerald-700 transition">
+                  <h4 className="text-base sm:text-lg font-black text-slate-900 leading-snug group-hover:text-emerald-700 transition truncate">
                     {student.name}
                   </h4>
                   {student.points > 0 && (
-                    <span className="text-xs font-black text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300 shrink-0">
+                    <span className="text-xs font-black text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300 shrink-0">
                       +{student.points} điểm
                     </span>
                   )}
@@ -206,14 +251,30 @@ export default function TopStudentsBox() {
                     {student.badge}
                   </span>
                 </div>
-                <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed font-normal pt-1">
+                <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed font-normal pt-1 line-clamp-3">
                   {student.comment}
                 </p>
+                <div className="pt-1 flex items-center text-[11px] font-bold text-emerald-600 group-hover:text-emerald-700 gap-0.5 opacity-80 group-hover:opacity-100">
+                  <Eye className="w-3 h-3" />
+                  <span>Xem chi tiết & tùy chỉnh</span>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* MODAL XEM CHI TIẾT VÀ TÙY CHỈNH HỌC SINH */}
+      {selectedDetailStudent && (
+        <StudentDetailModal
+          isOpen={Boolean(selectedDetailStudent)}
+          onClose={() => setSelectedDetailStudent(null)}
+          student={selectedDetailStudent}
+          onUpdateStudentComment={handleUpdateStudentComment}
+          onRemoveFromFeatured={handleRemoveFromFeatured}
+          onChangeFeaturedStudent={handleChangeFeaturedStudent}
+        />
+      )}
     </div>
   );
 }

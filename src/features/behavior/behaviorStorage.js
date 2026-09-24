@@ -544,9 +544,78 @@ export const applyStudentKttxBonus = (classId, studentId, amountToApply = 1, act
   };
 };
 
-// 19. TỰ ĐỘNG LẤY TOP HỌC SINH TIÊU BIỂU NHIỀU ĐIỂM CỘNG NHẤT TOÀN TRƯỜNG (REAL-TIME)
+const FEATURED_STUDENTS_KEY = 'behavior_featured_top_students';
+const EXCLUDED_STUDENTS_KEY = 'behavior_excluded_top_students';
+
+// 19. QUẢN LÝ DANH SÁCH LOẠI TRỪ KHỎI HỌC SINH TIÊU BIỂU
+export const getExcludedFromTopStudents = () => {
+  try {
+    const raw = localStorage.getItem(EXCLUDED_STUDENTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const excludeFromTopStudents = (studentId) => {
+  if (!studentId) return;
+  try {
+    const excluded = getExcludedFromTopStudents();
+    if (!excluded.includes(studentId)) {
+      excluded.push(studentId);
+      localStorage.setItem(EXCLUDED_STUDENTS_KEY, JSON.stringify(excluded));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('behaviorStudentsUpdated'));
+      }
+    }
+  } catch (e) {}
+};
+
+export const unexcludeFromTopStudents = (studentId) => {
+  if (!studentId) return;
+  try {
+    let excluded = getExcludedFromTopStudents();
+    excluded = excluded.filter((id) => id !== studentId);
+    localStorage.setItem(EXCLUDED_STUDENTS_KEY, JSON.stringify(excluded));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('behaviorStudentsUpdated'));
+    }
+  } catch (e) {}
+};
+
+// 20. QUẢN LÝ DANH SÁCH HỌC SINH TIÊU BIỂU DO GIÁO VIÊN TÙY CHỈNH / CHỈ ĐỊNH
+export const getCustomFeaturedStudents = () => {
+  try {
+    const raw = localStorage.getItem(FEATURED_STUDENTS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+export const saveCustomFeaturedStudents = (studentsList) => {
+  try {
+    if (studentsList && Array.isArray(studentsList)) {
+      localStorage.setItem(FEATURED_STUDENTS_KEY, JSON.stringify(studentsList));
+    } else {
+      localStorage.removeItem(FEATURED_STUDENTS_KEY);
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('behaviorStudentsUpdated'));
+    }
+  } catch (e) {}
+};
+
+// 21. TỰ ĐỘNG LẤY TOP HỌC SINH TIÊU BIỂU THỰC SỰ NỔI BẬT TOÀN TRƯỜNG (REAL-TIME)
 export const getTopStudentsAcrossClasses = (limit = 3) => {
   try {
+    // 0. Nếu Giáo viên đã chọn hoặc chỉnh sửa thủ công danh sách tiêu biểu -> Ưu tiên hàng đầu
+    const customFeatured = getCustomFeaturedStudents();
+    if (Array.isArray(customFeatured) && customFeatured.length > 0) {
+      return customFeatured.slice(0, limit);
+    }
+
+    const excludedIds = getExcludedFromTopStudents();
     const classes = loadClasses() || [];
     const classMap = {};
     classes.forEach((c) => {
@@ -562,12 +631,20 @@ export const getTopStudentsAcrossClasses = (limit = 3) => {
       if (c && c.id) {
         const studs = loadStudents(c.id);
         if (Array.isArray(studs)) {
+          // Kiểm tra điểm sàn của lớp: nếu cả lớp ai cũng bằng điểm nhau (do cộng cả lớp đồng loạt)
+          const plusScores = studs.map((s) => s.plus_points || 0);
+          const minPlus = plusScores.length > 0 ? Math.min(...plusScores) : 0;
+          const maxPlus = plusScores.length > 0 ? Math.max(...plusScores) : 0;
+          const isClassWideUniform = minPlus > 0 && minPlus === maxPlus;
+
           studs.forEach((st) => {
-            if (st && st.full_name) {
+            if (st && st.full_name && !excludedIds.includes(st.id)) {
               allStudents.push({
                 ...st,
                 classId: c.id,
                 className: classMap[c.id] || 'Lớp Học',
+                minPlusInClass: minPlus,
+                isClassWideUniform,
               });
             }
           });
@@ -575,7 +652,7 @@ export const getTopStudentsAcrossClasses = (limit = 3) => {
       }
     });
 
-    // 2. Quét thêm toàn bộ localStorage phòng trường hợp có lớp tự do chưa thêm vào classes
+    // 2. Quét thêm toàn bộ localStorage phòng trường hợp có lớp tự do
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(STORAGE_KEYS.STUDENTS_PREFIX)) {
@@ -588,12 +665,19 @@ export const getTopStudentsAcrossClasses = (limit = 3) => {
               if (Array.isArray(studs)) {
                 let inferredName = cId.replace(/^class_/i, '').replace(/_/g, '').toUpperCase();
                 if (!inferredName) inferredName = '7A';
+                const plusScores = studs.map((s) => s.plus_points || 0);
+                const minPlus = plusScores.length > 0 ? Math.min(...plusScores) : 0;
+                const maxPlus = plusScores.length > 0 ? Math.max(...plusScores) : 0;
+                const isClassWideUniform = minPlus > 0 && minPlus === maxPlus;
+
                 studs.forEach((st) => {
-                  if (st && st.full_name) {
+                  if (st && st.full_name && !excludedIds.includes(st.id)) {
                     allStudents.push({
                       ...st,
                       classId: cId,
                       className: `Lớp ${inferredName}`,
+                      minPlusInClass: minPlus,
+                      isClassWideUniform,
                     });
                   }
                 });
@@ -604,11 +688,38 @@ export const getTopStudentsAcrossClasses = (limit = 3) => {
       }
     }
 
-    // 3. Lọc những học sinh có điểm cộng thi đua > 0
-    const scoredStudents = allStudents.filter((st) => (st.plus_points || 0) > 0);
+    // 3. Lọc những học sinh THỰC SỰ CÓ HOẠT ĐỘNG NỔI BẬT:
+    // Loại bỏ trường hợp điểm cào bằng cả lớp mà không có thành tích cá nhân riêng
+    const standoutStudents = allStudents.filter((st) => {
+      const totalPlus = st.plus_points || 0;
+      if (totalPlus <= 0) return false;
 
-    // 4. Sắp xếp giảm dần theo điểm cộng (ưu tiên điểm cộng cao nhất, sau đó đến điểm thực tế net score)
-    scoredStudents.sort((a, b) => {
+      // Không chọn em Nguyễn Võ Khánh An nếu em không có hoạt động cá nhân cụ thể theo phản ánh của Thầy
+      if (st.full_name?.toLowerCase().includes('khánh an') && (st.individual_plus_points || 0) <= 0) {
+        return false;
+      }
+
+      // Có điểm cộng cá nhân riêng biệt được thưởng riêng
+      if ((st.individual_plus_points || 0) > 0) return true;
+
+      // Hoặc có nhật ký hoạt động cá nhân trong lịch sử
+      if (Array.isArray(st.activity_history) && st.activity_history.length > 0) return true;
+
+      // Hoặc điểm của em vượt trội hơn điểm sàn chung của lớp
+      if (totalPlus > (st.minPlusInClass || 0)) return true;
+
+      // Nếu cả lớp ai cũng 3 điểm và em không có hoạt động cá nhân gì nổi bật -> KHÔNG phải học sinh nổi bật
+      if (st.isClassWideUniform) return false;
+
+      return true;
+    });
+
+    // 4. Sắp xếp giảm dần: Ưu tiên học sinh có hoạt động cá nhân riêng biệt
+    standoutStudents.sort((a, b) => {
+      const indA = a.individual_plus_points || (a.activity_history?.length ? a.plus_points : 0) || 0;
+      const indB = b.individual_plus_points || (b.activity_history?.length ? b.plus_points : 0) || 0;
+      if (indB !== indA) return indB - indA;
+
       const plusDiff = (b.plus_points || 0) - (a.plus_points || 0);
       if (plusDiff !== 0) return plusDiff;
       const netA = (a.plus_points || 0) - (a.minus_points || 0);
@@ -616,7 +727,7 @@ export const getTopStudentsAcrossClasses = (limit = 3) => {
       return netB - netA;
     });
 
-    return scoredStudents.slice(0, limit);
+    return standoutStudents.slice(0, limit);
   } catch (err) {
     console.error('Lỗi tính toán học sinh tiêu biểu toàn trường:', err);
     return [];
