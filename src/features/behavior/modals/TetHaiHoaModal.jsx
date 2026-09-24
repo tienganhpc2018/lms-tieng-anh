@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti';
 import { playClick, playWinner, playSuspenseSpin, playTick } from '../../../utils/soundEffects';
 import TetQuestionConfigModal from '../components/TetQuestionConfigModal';
 import TetQuestionPlayer from '../components/TetQuestionPlayer';
-import { getFilteredTetQuestions } from '../data/tetQuestionsBank';
+import { getFilteredTetQuestions, loadTetBank, saveTetBank, resetTetBankToDefault } from '../data/tetQuestionsBank';
 
 // Bảng tọa độ chuẩn xác gắn các đèn lồng LỘC lên các nhánh cành cây mai vàng Real
 const MAI_BRANCH_COORDINATES = [
@@ -44,6 +44,7 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
 
   // Modal cấu hình câu hỏi Tiếng Anh
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [questionBank, setQuestionBank] = useState(() => loadTetBank());
   const [questionConfig, setQuestionConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('tet_haihoa_question_config');
@@ -54,6 +55,7 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
     return {
       grade: 3,
       unit: 'all',
+      lesson: 'all',
       count: 2,
       questionType: 'all' // 'all' | 'multiple_choice' | 'short_answer' | 'word_reorder'
     };
@@ -70,6 +72,18 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
     } catch (e) {
       // ignore
     }
+  };
+
+  // Cập nhật ngân hàng câu hỏi tùy chỉnh của GV
+  const handleUpdateBank = (newBank) => {
+    setQuestionBank(newBank);
+    saveTetBank(newBank);
+  };
+
+  // Khôi phục bộ câu hỏi mẫu mặc định từ hệ thống
+  const handleResetBank = () => {
+    const def = resetTetBankToDefault();
+    setQuestionBank(def);
   };
 
   useEffect(() => {
@@ -182,8 +196,10 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
     const questions = getFilteredTetQuestions({
       grade: questionConfig.grade,
       unit: questionConfig.unit,
+      lesson: questionConfig.lesson || 'all',
       questionType: questionConfig.questionType,
-      count: questionConfig.count
+      count: questionConfig.count,
+      bank: questionBank
     });
 
     const student = winnerModalData.student;
@@ -276,7 +292,7 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
           </div>
 
           <div className="flex items-center space-x-1.5 sm:space-x-2.5">
-            {/* NÚT CẤU HÌNH CÂU HỎI TIẾNG ANH */}
+            {/* NÚT CẤU HÌNH CÂU HỎI TIẾNG ANH & SOẠN ĐỀ */}
             <button
               type="button"
               onClick={() => {
@@ -284,12 +300,12 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
                 setIsConfigOpen(true);
               }}
               className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-300 border-2 border-amber-600/70 text-xs font-black transition cursor-pointer flex items-center space-x-1.5 shadow-md active:scale-95"
-              title="Cài đặt Lớp, Unit, Số câu và Dạng bài tập Tiếng Anh"
+              title="Cài đặt Lớp, Unit, Lesson, Số câu và Soạn câu hỏi Tiếng Anh"
             >
               <Settings className="w-4 h-4 stroke-[2.5]" />
-              <span className="hidden sm:inline">Cấu Hình Câu Hỏi</span>
+              <span className="hidden sm:inline">Cấu Hình & Soạn Đề</span>
               <span className="text-[10px] bg-amber-500/30 text-amber-200 px-1.5 py-0.5 rounded-full border border-amber-400/40">
-                Lớp {questionConfig.grade}
+                Lớp {questionConfig.grade} {questionConfig.lesson && questionConfig.lesson !== 'all' ? `• L${questionConfig.lesson}` : ''}
               </span>
             </button>
 
@@ -591,6 +607,9 @@ export default function TetHaiHoaModal({ isOpen, onClose, students = [], onAward
           onClose={() => setIsConfigOpen(false)}
           config={questionConfig}
           onChangeConfig={handleUpdateConfig}
+          bank={questionBank}
+          onUpdateBank={handleUpdateBank}
+          onResetBankToDefault={handleResetBank}
         />
 
       </div>

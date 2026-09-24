@@ -1,9 +1,11 @@
-// Ngân hàng câu hỏi Tiếng Anh chuẩn chương trình GDPT theo Lớp, Unit và 3 dạng bài tập:
+// Ngân hàng câu hỏi Tiếng Anh chuẩn chương trình GDPT theo Lớp, Unit, Lesson và 3 dạng bài tập:
 // 1. Trắc nghiệm (multiple_choice)
 // 2. Trả lời ngắn / Điền từ (short_answer)
 // 3. Sắp xếp từ thành câu (word_reorder)
 
-export const TET_ENGLISH_BANK = [
+const STORAGE_KEY = 'tet_custom_questions_bank_v2';
+
+export const DEFAULT_TET_ENGLISH_BANK = [
   // ==========================================
   // LỚP 3
   // ==========================================
@@ -16,6 +18,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g3_u1_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: 'Hello, my name _____ Nam.',
             options: ['is', 'am', 'are', 'be'],
@@ -23,15 +26,8 @@ export const TET_ENGLISH_BANK = [
             explanation: "Với chủ ngữ số ít 'my name', dùng động từ to be 'is'."
           },
           {
-            id: 'g3_u1_mc2',
-            type: 'multiple_choice',
-            question: 'How are you? - I am _____, thank you.',
-            options: ['fine', 'five', 'name', 'hello'],
-            correctAnswer: 'fine',
-            explanation: "I am fine, thank you: Mình khỏe, cảm ơn bạn."
-          },
-          {
             id: 'g3_u1_sa1',
+            lesson: 1,
             type: 'short_answer',
             question: 'Nice to meet _____. (Điền 1 từ thích hợp)',
             correctAnswer: 'you',
@@ -39,7 +35,26 @@ export const TET_ENGLISH_BANK = [
             explanation: 'Nice to meet you: Rất vui được gặp bạn.'
           },
           {
+            id: 'g3_u1_wo1',
+            lesson: 1,
+            type: 'word_reorder',
+            question: 'Sắp xếp các từ sau thành câu chào hỏi:',
+            scrambledWords: ['How', 'you', 'are', '?'],
+            correctOrder: ['How', 'are', 'you', '?'],
+            explanation: 'Câu hỏi thăm sức khỏe: How are you?'
+          },
+          {
+            id: 'g3_u1_mc2',
+            lesson: 2,
+            type: 'multiple_choice',
+            question: 'How are you? - I am _____, thank you.',
+            options: ['fine', 'five', 'name', 'hello'],
+            correctAnswer: 'fine',
+            explanation: "I am fine, thank you: Mình khỏe, cảm ơn bạn."
+          },
+          {
             id: 'g3_u1_sa2',
+            lesson: 2,
             type: 'short_answer',
             question: 'Goodbye, see you _____! (Điền 1 từ thích hợp)',
             correctAnswer: 'again',
@@ -47,15 +62,8 @@ export const TET_ENGLISH_BANK = [
             explanation: 'See you again: Hẹn gặp lại bạn.'
           },
           {
-            id: 'g3_u1_wo1',
-            type: 'word_reorder',
-            question: 'Sắp xếp các từ sau thành câu hoàn chỉnh:',
-            scrambledWords: ['How', 'you', 'are', '?'],
-            correctOrder: ['How', 'are', 'you', '?'],
-            explanation: 'Câu hỏi thăm sức khỏe: How are you?'
-          },
-          {
             id: 'g3_u1_wo2',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp các từ sau thành câu giới thiệu tên:',
             scrambledWords: ['is', 'My', 'Mai', '.', 'name'],
@@ -70,6 +78,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g3_u2_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: "What's _____ name? - My name is Peter.",
             options: ['your', 'you', 'he', 'she'],
@@ -78,6 +87,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g3_u2_sa1',
+            lesson: 2,
             type: 'short_answer',
             question: 'How do you spell your _____? (Điền từ)',
             correctAnswer: 'name',
@@ -86,6 +96,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g3_u2_wo1',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp câu hỏi tên người đối diện:',
             scrambledWords: ['name', 'What', 'is', 'your', '?'],
@@ -100,6 +111,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g3_u3_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: 'Is this Mary? - Yes, it _____.',
             options: ['is', 'are', 'am', "isn't"],
@@ -108,6 +120,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g3_u3_sa1',
+            lesson: 2,
             type: 'short_answer',
             question: 'This is my _____, Quan. (Điền 1 từ chỉ "bạn bè")',
             correctAnswer: 'friend',
@@ -116,6 +129,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g3_u3_wo1',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp câu giới thiệu bạn bè:',
             scrambledWords: ['my', 'is', 'This', 'friend', '.'],
@@ -130,6 +144,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g3_u4_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: 'Is your school big? - Yes, it is _____.',
             options: ['big', 'small', 'new', 'old'],
@@ -138,6 +153,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g3_u4_sa1',
+            lesson: 2,
             type: 'short_answer',
             question: 'Go to the _____. (Điền từ chỉ "lớp học")',
             correctAnswer: 'classroom',
@@ -146,6 +162,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g3_u4_wo1',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp câu:',
             scrambledWords: ['school', 'is', 'My', 'big', '.'],
@@ -160,6 +177,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g3_u5_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: 'I have a _____. It is a red pen.',
             options: ['pen', 'ruler', 'book', 'eraser'],
@@ -168,6 +186,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g3_u5_sa1',
+            lesson: 2,
             type: 'short_answer',
             question: 'Open your _____ and read. (Điền từ chỉ "quyển sách")',
             correctAnswer: 'book',
@@ -176,6 +195,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g3_u5_wo1',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp câu nói về đồ dùng học tập:',
             scrambledWords: ['have', 'I', 'a', 'pencil', '.'],
@@ -199,6 +219,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g4_u1_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: 'Where are you from? - I am from _____.',
             options: ['Vietnam', 'Vietnamese', 'American', 'English'],
@@ -207,6 +228,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g4_u1_sa1',
+            lesson: 2,
             type: 'short_answer',
             question: 'What nationality are you? - I am _____. (Quốc tịch Việt Nam)',
             correctAnswer: 'vietnamese',
@@ -215,6 +237,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g4_u1_wo1',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp câu hỏi xuất xứ quê hương:',
             scrambledWords: ['Where', 'you', 'from', 'are', '?'],
@@ -229,6 +252,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g4_u2_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: 'What time is it? - It is seven _____ o’clock.',
             options: ['thirty', 'fifteen', 'forty-five', 'sharp'],
@@ -237,6 +261,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g4_u2_sa1',
+            lesson: 2,
             type: 'short_answer',
             question: 'I get _____ at 6 o’clock in the morning. (Điền giới từ)',
             correctAnswer: 'up',
@@ -245,41 +270,12 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g4_u2_wo1',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp câu hỏi thời gian:',
             scrambledWords: ['time', 'is', 'What', 'it', '?'],
             correctOrder: ['What', 'time', 'is', 'it', '?'],
             explanation: 'Câu hỏi mấy giờ: What time is it?'
-          }
-        ]
-      },
-      {
-        unit: 3,
-        title: 'Unit 3: Days of the Week',
-        questions: [
-          {
-            id: 'g4_u3_mc1',
-            type: 'multiple_choice',
-            question: 'What day is it today? - It is _____.',
-            options: ['Monday', 'March', 'Morning', 'Month'],
-            correctAnswer: 'Monday',
-            explanation: "Monday là thứ Hai trong tuần."
-          },
-          {
-            id: 'g4_u3_sa1',
-            type: 'short_answer',
-            question: 'Today is Sunday. Tomorrow is _____. (Thứ Hai)',
-            correctAnswer: 'monday',
-            hint: 'Thứ Hai bằng tiếng Anh',
-            explanation: 'Hôm nay là Chủ nhật thì ngày mai là Monday.'
-          },
-          {
-            id: 'g4_u3_wo1',
-            type: 'word_reorder',
-            question: 'Sắp xếp câu hỏi ngày hôm nay:',
-            scrambledWords: ['What', 'today', 'day', 'is', 'it', '?'],
-            correctOrder: ['What', 'day', 'is', 'it', 'today', '?'],
-            explanation: 'Câu chuẩn: What day is it today?'
           }
         ]
       }
@@ -298,6 +294,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g5_u1_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: 'I live _____ 81 Tran Hung Dao Street.',
             options: ['at', 'in', 'on', 'with'],
@@ -306,6 +303,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g5_u1_sa1',
+            lesson: 2,
             type: 'short_answer',
             question: "What's the village like? - It's small and _____. (Điền từ có nghĩa là 'yên tĩnh')",
             correctAnswer: 'quiet',
@@ -314,6 +312,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g5_u1_wo1',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp câu hỏi địa chỉ:',
             scrambledWords: ['your', 'address', 'What', 'is', '?'],
@@ -328,6 +327,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g5_u2_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: 'How often do you go to the cinema? - _____ a month.',
             options: ['Once', 'One', 'First', 'Single'],
@@ -336,6 +336,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g5_u2_sa1',
+            lesson: 2,
             type: 'short_answer',
             question: 'I brush my _____ twice a day. (Điền từ chỉ "răng")',
             correctAnswer: 'teeth',
@@ -344,41 +345,12 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g5_u2_wo1',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp câu về thói quen hàng ngày:',
             scrambledWords: ['I', 'always', 'early', 'up', 'get', '.'],
             correctOrder: ['I', 'always', 'get', 'up', 'early', '.'],
             explanation: 'Cấu trúc: I always get up early.'
-          }
-        ]
-      },
-      {
-        unit: 3,
-        title: 'Unit 3: Where did you go on holiday?',
-        questions: [
-          {
-            id: 'g5_u3_mc1',
-            type: 'multiple_choice',
-            question: 'Where did you go on holiday? - I _____ to Ha Long Bay.',
-            options: ['went', 'go', 'goes', 'going'],
-            correctAnswer: 'went',
-            explanation: "Quá khứ đơn của 'go' là 'went'."
-          },
-          {
-            id: 'g5_u3_sa1',
-            type: 'short_answer',
-            question: 'How did you get there? - I went _____ plane.',
-            correctAnswer: 'by',
-            hint: 'Giới từ 2 chữ cái dùng trước phương tiện giao thông',
-            explanation: 'By plane: Đi bằng máy bay.'
-          },
-          {
-            id: 'g5_u3_wo1',
-            type: 'word_reorder',
-            question: 'Sắp xếp câu hỏi kỳ nghỉ vừa qua:',
-            scrambledWords: ['did', 'Where', 'go', 'you', '?'],
-            correctOrder: ['Where', 'did', 'you', 'go', '?'],
-            explanation: 'Câu hỏi thì quá khứ: Where did you go?'
           }
         ]
       }
@@ -397,6 +369,7 @@ export const TET_ENGLISH_BANK = [
         questions: [
           {
             id: 'g6_u1_mc1',
+            lesson: 1,
             type: 'multiple_choice',
             question: 'We _____ uniform on Mondays.',
             options: ['wear', 'plays', 'has', 'studies'],
@@ -405,6 +378,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g6_u1_sa1',
+            lesson: 2,
             type: 'short_answer',
             question: 'Phong does his _____ after dinner. (Điền từ chỉ "bài tập về nhà")',
             correctAnswer: 'homework',
@@ -413,6 +387,7 @@ export const TET_ENGLISH_BANK = [
           },
           {
             id: 'g6_u1_wo1',
+            lesson: 3,
             type: 'word_reorder',
             question: 'Sắp xếp câu về trường mới:',
             scrambledWords: ['love', 'I', 'new', 'my', 'school', '.'],
@@ -425,36 +400,107 @@ export const TET_ENGLISH_BANK = [
   }
 ];
 
-// Hàm lấy danh sách câu hỏi phù hợp theo cấu hình của Thầy Cô
-export function getFilteredTetQuestions({ grade = 3, unit = 'all', questionType = 'all', count = 2 }) {
+// Hàm nạp ngân hàng câu hỏi (Ưu tiên bộ nhớ lưu trữ tùy chỉnh của GV)
+export function loadTetBank() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Error loading custom tet bank:', e);
+  }
+  return DEFAULT_TET_ENGLISH_BANK;
+}
+
+// Lưu ngân hàng câu hỏi của GV vào localStorage
+export function saveTetBank(bank) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(bank));
+  } catch (e) {
+    console.error('Error saving tet bank:', e);
+  }
+}
+
+// Khôi phục bộ câu hỏi mẫu từ hệ thống
+export function resetTetBankToDefault() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.error('Error resetting tet bank:', e);
+  }
+  return DEFAULT_TET_ENGLISH_BANK;
+}
+
+// Hàm lấy danh sách câu hỏi phù hợp theo cấu hình của Thầy Cô (có hỗ trợ Lesson)
+export function getFilteredTetQuestions({
+  grade = 3,
+  unit = 'all',
+  lesson = 'all',
+  questionType = 'all',
+  count = 2,
+  bank = null
+}) {
+  const sourceBank = bank || loadTetBank();
   let pool = [];
 
-  const gradeGroup = TET_ENGLISH_BANK.find((g) => g.grade === Number(grade)) || TET_ENGLISH_BANK[0];
+  const gradeGroup = sourceBank.find((g) => Number(g.grade) === Number(grade)) || sourceBank[0];
+
+  if (!gradeGroup) return [];
 
   gradeGroup.units.forEach((u) => {
-    if (unit === 'all' || u.unit === Number(unit)) {
-      u.questions.forEach((q) => {
-        if (questionType === 'all' || q.type === questionType) {
+    if (unit === 'all' || Number(u.unit) === Number(unit)) {
+      (u.questions || []).forEach((q) => {
+        // Lọc theo Lesson
+        const matchLesson = lesson === 'all' || Number(q.lesson || 1) === Number(lesson);
+        // Lọc theo Dạng câu hỏi
+        const matchType = questionType === 'all' || q.type === questionType;
+
+        if (matchLesson && matchType) {
           pool.push({
             ...q,
             unitNumber: u.unit,
             unitTitle: u.title,
-            grade: gradeGroup.grade
+            grade: gradeGroup.grade,
+            lesson: q.lesson || 1
           });
         }
       });
     }
   });
 
-  // Nếu không đủ câu hỏi với điều kiện gắt, nới lỏng sang toàn bộ grade
+  // Nếu không tìm thấy câu với điều kiện gắt, nới lỏng bỏ qua điều kiện Lesson
   if (pool.length === 0) {
     gradeGroup.units.forEach((u) => {
-      u.questions.forEach((q) => {
+      if (unit === 'all' || Number(u.unit) === Number(unit)) {
+        (u.questions || []).forEach((q) => {
+          if (questionType === 'all' || q.type === questionType) {
+            pool.push({
+              ...q,
+              unitNumber: u.unit,
+              unitTitle: u.title,
+              grade: gradeGroup.grade,
+              lesson: q.lesson || 1
+            });
+          }
+        });
+      }
+    });
+  }
+
+  // Nếu vẫn rỗng, lấy tất cả câu hỏi của khối lớp đó
+  if (pool.length === 0) {
+    gradeGroup.units.forEach((u) => {
+      (u.questions || []).forEach((q) => {
         pool.push({
           ...q,
           unitNumber: u.unit,
           unitTitle: u.title,
-          grade: gradeGroup.grade
+          grade: gradeGroup.grade,
+          lesson: q.lesson || 1
         });
       });
     });
