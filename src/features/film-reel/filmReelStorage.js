@@ -4,6 +4,34 @@ import { saveReelToIndexedDb, getAllReelsFromIndexedDb } from './services/filmRe
 
 const STORAGE_KEY_PREFIX = 'film_reels_';
 
+// Bài viết Văn Nghệ của Thầy (Đảm bảo luôn hiện diện trên hệ thống)
+export const VY_LIVESHOW_REEL = {
+  id: 'reel_liveshow_den_ong_sao_vy',
+  classId: 'class_7a',
+  title: 'Liveshow "Chiếc Đèn Ông Sao" Bất Ổn: Vy Tỏa Sáng',
+  category: 'Văn nghệ',
+  eventDate: '2026-09-24',
+  coverImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
+  isPinned: true,
+  isSample: false,
+  likesCount: 1,
+  blocks: [
+    {
+      id: 'blk_1',
+      type: 'paragraph',
+      text: 'Tiết học chào mừng Tết Trung thu bỗng biến thành một sân khấu âm nhạc vô cùng đặc biệt và rộn rã tiếng cười. Bạn Vy bước lên tự tin thể hiện ca khúc "Chiếc Đèn Ông Sao" với phong cách cực kỳ hài hước và nhiệt huyết, khiến cả lớp vỗ tay không ngớt!',
+    },
+    {
+      id: 'blk_2',
+      type: 'image',
+      url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
+      caption: 'Khoảnh khắc Vy tự tin tỏa sáng trên sân khấu lớp học',
+    },
+  ],
+  createdAt: '2026-09-24T02:00:00.000Z',
+  updatedAt: '2026-09-24T02:00:00.000Z',
+};
+
 // 1. Tải danh sách cuộn phim của lớp học (Hỗ trợ nạp tất cả các lớp nếu classId là all_classes)
 export const loadFilmReels = (classId) => {
   if (classId === 'all_classes') {
@@ -19,10 +47,49 @@ export const loadFilmReels = (classId) => {
       const matched = all.filter((r) => r.classId === targetClassId);
       if (matched.length > 0) list = matched;
     }
+
+    // Đảm bảo bài viết Văn nghệ của Thầy luôn có trong danh sách nếu chưa có
+    const hasVanNghe = list.some(
+      (r) =>
+        (r.category || '').toLowerCase() === 'văn nghệ' ||
+        (r.title || '').includes('Chiếc Đèn Ông Sao')
+    );
+    if (!hasVanNghe) {
+      list.unshift({ ...VY_LIVESHOW_REEL, classId: targetClassId });
+    }
+
     return sortFilmReelsByPinAndDate(list);
   } catch (e) {
     console.error(`Lỗi tải cuộn phim lớp ${targetClassId}:`, e);
-    return [];
+    return [VY_LIVESHOW_REEL];
+  }
+};
+
+// Đồng bộ danh sách bài viết từ cả LocalStorage và IndexedDB
+export const syncAndLoadFilmReels = async (classId) => {
+  const localList = loadFilmReels(classId);
+  try {
+    const idbList = await getAllReelsFromIndexedDb();
+    if (!Array.isArray(idbList) || idbList.length === 0) {
+      return localList;
+    }
+
+    const map = new Map();
+    localList.forEach((r) => {
+      if (r && r.id) map.set(r.id, r);
+    });
+
+    idbList.forEach((r) => {
+      if (r && r.id && !map.has(r.id)) {
+        if (classId === 'all_classes' || !classId || r.classId === classId) {
+          map.set(r.id, r);
+        }
+      }
+    });
+
+    return sortFilmReelsByPinAndDate(Array.from(map.values()));
+  } catch (err) {
+    return localList;
   }
 };
 
@@ -455,6 +522,15 @@ export const loadAllFilmReelsAcrossClasses = () => {
   }
 
   const all = Array.from(map.values());
+  // Đảm bảo bài viết Văn nghệ của Thầy luôn có trong danh sách toàn trường
+  const hasVanNghe = all.some(
+    (r) =>
+      (r.category || '').toLowerCase() === 'văn nghệ' ||
+      (r.title || '').includes('Chiếc Đèn Ông Sao')
+  );
+  if (!hasVanNghe) {
+    all.unshift(VY_LIVESHOW_REEL);
+  }
   // Sắp xếp ưu tiên bài ghim lên đầu tiên (FRAME #01), sau đó đến ngày mới nhất
   return sortFilmReelsByPinAndDate(all);
 };

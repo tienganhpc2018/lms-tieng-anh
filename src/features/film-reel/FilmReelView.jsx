@@ -18,6 +18,7 @@ import {
 import confetti from 'canvas-confetti';
 import {
   loadClasses,
+  saveClasses,
   loadSelectedClassId,
   saveSelectedClassId,
 } from '../behavior/behaviorStorage';
@@ -35,6 +36,7 @@ import {
   togglePinReel,
   extractAllReelImages,
   isSampleReel,
+  syncAndLoadFilmReels,
 } from './filmReelStorage';
 import { FILM_REEL_CATEGORIES } from './constants/filmReelPresets';
 import { playClick, playCorrect, playWinner, playDeduct } from '../../utils/soundEffects';
@@ -115,6 +117,19 @@ export default function FilmReelView() {
     }
   }, [selectedClassId]);
 
+  // Lắng nghe sự kiện cập nhật bài viết toàn cục để tự động làm mới giao diện ngay lập tức
+  useEffect(() => {
+    const handleUpdate = () => {
+      refreshReels();
+    };
+    window.addEventListener('filmReelsUpdated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('filmReelsUpdated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [selectedClassId]);
+
   const refreshReels = (targetId = selectedClassId) => {
     const cId = targetId || selectedClassId || 'all_classes';
     let data = loadFilmReels(cId);
@@ -131,6 +146,14 @@ export default function FilmReelView() {
     }
 
     setReels(data);
+
+    // Đồng bộ thêm từ IndexedDB phòng trường hợp bài viết có dung lượng lớn
+    syncAndLoadFilmReels(cId).then((synced) => {
+      if (synced && synced.length > 0) {
+        setReels(synced);
+      }
+    }).catch(() => {});
+
     const now = new Date();
     setLastSavedTime(
       `${now.getHours().toString().padStart(2, '0')}:${now
@@ -249,10 +272,13 @@ export default function FilmReelView() {
     });
   };
 
+  const normalizeCategory = (cat) => (cat || '').trim().toLowerCase();
+
   // Lọc bài viết theo Danh mục & Từ khóa tìm kiếm
   const filteredReels = reels.filter((r) => {
     const matchesCategory =
-      activeCategory === 'Tất cả' || r.category === activeCategory;
+      activeCategory === 'Tất cả' ||
+      normalizeCategory(r.category) === normalizeCategory(activeCategory);
 
     const matchesSearch =
       (r.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -266,7 +292,9 @@ export default function FilmReelView() {
   // Đếm số lượng bài viết theo từng danh mục
   const getCategoryCount = (cat) => {
     if (cat === 'Tất cả') return reels.length;
-    return reels.filter((r) => r.category === cat).length;
+    return reels.filter(
+      (r) => normalizeCategory(r.category) === normalizeCategory(cat)
+    ).length;
   };
 
   const selectedClass = classes.find((c) => c.id === selectedClassId);
