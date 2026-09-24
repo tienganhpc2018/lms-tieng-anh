@@ -103,14 +103,14 @@ export default function AssessmentTable({
     <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden select-text">
       {/* KHUNG BẢNG ĐIỂM CHUẨN THÔNG TƯ 22 */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[950px]">
+        <table className="w-full text-left border-collapse min-w-[1020px]">
           {/* HEADER BẢNG ĐIỂM (TÔNG MÀU XANH MÒNG KÉT TEAL ĐẬM #0f766e) */}
           <thead className="bg-[#0f766e] text-white uppercase text-[11px] font-black tracking-wider">
             <tr>
               <th className="p-3 text-center w-12 border-r border-teal-700/60" rowSpan="2">
                 STT
               </th>
-              <th className="p-3 w-56 border-r border-teal-700/60" rowSpan="2">
+              <th className="p-3 min-w-[240px] sm:min-w-[260px] border-r border-teal-700/60" rowSpan="2">
                 Họ và Tên Học Sinh
               </th>
               <th
@@ -165,7 +165,7 @@ export default function AssessmentTable({
                   </td>
 
                   {/* Họ và tên + Avatar + Nút Sửa */}
-                  <td className={`${paddingClass} border-r border-slate-100`}>
+                  <td className={`${paddingClass} min-w-[240px] sm:min-w-[260px] border-r border-slate-100`}>
                     <div
                       onClick={() => onEditStudent && onEditStudent(student)}
                       title="Bấm để sửa Giới tính hoặc Thay ảnh Avatar từ máy tính"
@@ -189,8 +189,8 @@ export default function AssessmentTable({
                         </span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="font-black text-slate-900 group-hover/name:text-teal-900 transition block truncate text-xs sm:text-[13px]">
+                        <div className="flex items-center space-x-1.5 flex-wrap">
+                          <span className="font-black text-slate-900 group-hover/name:text-teal-900 transition whitespace-nowrap text-xs sm:text-[13px]">
                             {student.full_name || student.name}
                           </span>
                           <span className="opacity-0 group-hover/name:opacity-100 text-[10px] text-teal-700 bg-white px-1 py-0.2 rounded border border-teal-300 font-bold transition">
