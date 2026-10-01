@@ -1675,159 +1675,270 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
               })()}
 
               <div className="space-y-1.5 pt-0.5">
-                {(childQuestions.length > 0
-                  ? childQuestions
-                  : [
-                      {
-                        question: q.content?.question || '1. Choose the correct answer A, B, C, or D.',
-                        options: q.content?.options || [
-                          { text: 'Option A', isCorrect: true },
-                          { text: 'Option B', isCorrect: false },
-                          { text: 'Option C', isCorrect: false },
-                          { text: 'Option D', isCorrect: false },
-                        ],
-                        explanation: q.content?.explanation,
-                      },
-                    ]
-                ).map((cQ, cIdx) => {
-                  const childKey = `${q.id}_c${cIdx}`;
-                  const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                {(() => {
+                  const rawChildQuestions = (Array.isArray(q.content?.childQuestions) && q.content.childQuestions.length > 0)
+                    ? q.content.childQuestions
+                    : (Array.isArray(q.childQuestions) && q.childQuestions.length > 0)
+                    ? q.childQuestions
+                    : [
+                        {
+                          question: q.content?.question || '1. Choose the correct answer A, B, C, or D.',
+                          options: q.content?.options || [
+                            { text: 'Option A', isCorrect: true },
+                            { text: 'Option B', isCorrect: false },
+                            { text: 'Option C', isCorrect: false },
+                            { text: 'Option D', isCorrect: false },
+                          ],
+                          explanation: q.content?.explanation,
+                        },
+                      ];
 
-                  // HÀM BẮT CHÍNH XÁC ĐÁP ÁN ĐÚNG CỦA CÂU HỎI
-                  const getCorrectOptionIndex = () => {
-                    if (!Array.isArray(cOpts) || cOpts.length === 0) return -1;
-                    const foundIdx = cOpts.findIndex(
-                      (o) => o?.isCorrect || o?.is_correct || o?.correct || o?.status === 'correct'
-                    );
-                    if (foundIdx !== -1) return foundIdx;
-                    const rawAns = cQ?.correct_answer || cQ?.answer || q?.content?.answer || q?.content?.correct_answer;
-                    if (rawAns !== undefined && rawAns !== null) {
-                      const strAns = String(rawAns).trim().toUpperCase();
-                      if (['A', 'B', 'C', 'D'].includes(strAns)) {
-                        return strAns.charCodeAt(0) - 65;
+                  return rawChildQuestions.map((cQ, cIdx) => {
+                    const childKey = `${q.id}_c${cIdx}`;
+                    const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                    const isGapFillChild = cQ.type === 'gap_fill' || sectionType === 'gap_fill' || (cOpts.length === 0 && (cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer));
+
+                    // DẠNG ĐIỀN KHUYẾT (GAP-FILL / INLINE BLANK) CHO CÂU HỎI CON
+                    if (isGapFillChild) {
+                      const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer || '';
+                      const userVal = userAnswers[childKey] || '';
+                      const isCorrect = isGapFillAnswer(userVal, targetAns);
+                      const displayCorrectAnswer = targetAns ? String(targetAns).trim() : '';
+
+                      let qDisplay = (cQ.question || '').trim();
+                      qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
+                      qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
+                      const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
+
+                      const blankRegex = /(_{2,}|\[blank\]|\[chỗ trống\]|\[___+\]|\[\.\.\.+\]|\(\.\.\.+\)|\.\.\.+)/i;
+                      const hasInlineBlank = blankRegex.test(finalQuestionTitle);
+
+                      let textBefore = '';
+                      let textAfter = '';
+                      if (hasInlineBlank) {
+                        const match = finalQuestionTitle.match(blankRegex);
+                        if (match) {
+                          const idx = finalQuestionTitle.indexOf(match[0]);
+                          textBefore = finalQuestionTitle.slice(0, idx);
+                          textAfter = finalQuestionTitle.slice(idx + match[0].length);
+                        }
                       }
-                      const idxByText = cOpts.findIndex((o) => {
-                        const t = typeof o === 'string' ? o : (o.text || o.label || '');
-                        return t.toLowerCase().includes(String(rawAns).toLowerCase());
-                      });
-                      if (idxByText !== -1) return idxByText;
-                    }
-                    return 0;
-                  };
 
-                  // HÀM BẮT CHÍNH XÁC VÀ LƯU VỊ TRÍ HỌC SINH ĐÃ CHỌN
-                  const getStudentSelectedIndex = () => {
-                    const userAns = userAnswers[childKey];
-                    if (userAns === undefined || userAns === null || userAns === '') return -1;
-                    if (typeof userAns === 'number') return userAns;
-                    if (typeof userAns === 'string') {
-                      const trimmed = userAns.trim();
-                      if (!isNaN(trimmed) && trimmed !== '') return Number(trimmed);
-                      const upper = trimmed.toUpperCase();
-                      if (['A', 'B', 'C', 'D'].includes(upper)) {
-                        return upper.charCodeAt(0) - 65;
-                      }
-                      const idxByText = cOpts.findIndex((o) => {
-                        const t = typeof o === 'string' ? o : (o.text || o.label || '');
-                        return t.toLowerCase().includes(trimmed.toLowerCase()) || trimmed.toLowerCase().includes(t.toLowerCase());
-                      });
-                      if (idxByText !== -1) return idxByText;
-                    }
-                    if (typeof userAns === 'object' && userAns.index !== undefined) {
-                      return Number(userAns.index);
-                    }
-                    return -1;
-                  };
-
-                  const correctOptIdx = getCorrectOptionIndex();
-                  const studentSelectedIdx = getStudentSelectedIndex();
-                  const isStudentCorrect = (studentSelectedIdx !== -1 && studentSelectedIdx === correctOptIdx);
-                  const isStudentWrong = (studentSelectedIdx !== -1 && studentSelectedIdx !== correctOptIdx);
-                  const correctText = cOpts[correctOptIdx]?.text || cOpts[correctOptIdx]?.label || 'Đáp án đúng';
-
-                  const maxOptLen = Math.max(...cOpts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
-
-                  let btnFontSize = 'text-xs px-2.5 py-1.5';
-                  if (maxOptLen > 30) {
-                    btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
-                  } else if (maxOptLen > 18) {
-                    btnFontSize = 'text-[11px] px-2 py-1 leading-snug';
-                  }
-
-                  return (
-                    <div
-                      key={cIdx}
-                      className={`p-2.5 bg-white border rounded-xl space-y-1.5 transition ${
-                        submitted
-                          ? isStudentCorrect
-                            ? 'border-emerald-400 bg-emerald-50/20'
-                            : 'border-rose-400 bg-rose-50/20'
-                          : 'border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-extrabold text-xs text-slate-900">
-                          {cQ.question}
-                        </h4>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch pt-0.5">
-                        {cOpts.map((opt, oIdx) => {
-                          const label = String.fromCharCode(65 + oIdx);
-                          const isSelected = (studentSelectedIdx === oIdx);
-                          const isThisCorrectOpt = (correctOptIdx === oIdx);
-
-                          let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
-                          let resultBadge = null;
-
-                          if (submitted) {
-                            if (isSelected && isThisCorrectOpt) {
-                              // HỌC SINH CHỌN ĐÚNG
-                              btnStyle = 'bg-emerald-600 text-white font-black border-emerald-600 shadow-md ring-2 ring-emerald-400';
-                              resultBadge = <span className="text-[9px] font-black bg-emerald-800 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">✓ Đúng</span>;
-                            } else if (isSelected && !isThisCorrectOpt) {
-                              // HỌC SINH CHỌN SAI -> HIGHLIGHT MÀU ĐỎ GẠCH NGANG CÂU SAI
-                              btnStyle = 'bg-rose-600 text-white font-black border-rose-600 line-through shadow-md ring-2 ring-rose-400';
-                              resultBadge = <span className="text-[9px] font-black bg-rose-950 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">✕ HS Chọn (Sai)</span>;
-                            } else if (isThisCorrectOpt && isStudentWrong) {
-                              // HIGHLIGHT ĐÁP ÁN ĐÚNG BẰNG MÀU ĐỎ CHÓI LỌI KHI HỌC SINH LÀM SAI
-                              btnStyle = 'bg-rose-50 border-2 border-rose-500 text-rose-950 font-black shadow-xs';
-                              resultBadge = <span className="text-[9px] font-black bg-rose-600 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">★ Đáp án đúng</span>;
-                            }
-                          } else if (isSelected) {
-                            btnStyle = 'bg-emerald-600 text-white font-bold border-transparent shadow-xs';
-                          }
-
-                          return (
-                            <button
-                              key={oIdx}
-                              disabled={submitted}
-                              onClick={() => handleSelectAnswer(childKey, oIdx)}
-                              className={`w-full text-left rounded-xl ${btnFontSize} font-semibold border transition flex items-center justify-between space-x-1 whitespace-normal break-words ${btnStyle}`}
-                            >
-                              <div className="flex items-center space-x-1 min-w-0">
-                                <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
-                                  isSelected ? 'bg-white text-slate-900' : 'bg-slate-200 text-slate-600'
-                                }`}>
-                                  {label}
+                      return (
+                        <div key={cIdx} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 shadow-xs transition">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                            {hasInlineBlank ? (
+                              <div className="text-xs sm:text-sm font-extrabold text-slate-900 leading-relaxed sm:leading-loose flex-1">
+                                <span>{textBefore}</span>
+                                <span className="inline-flex items-center mx-1.5 align-middle">
+                                  <input
+                                    type="text"
+                                    disabled={submitted}
+                                    value={userVal}
+                                    onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                    placeholder="điền từ..."
+                                    className={`min-w-[120px] max-w-[200px] w-32 sm:w-44 px-3 py-1 text-xs sm:text-sm font-black text-center rounded-xl border-2 transition-all outline-none ${
+                                      submitted
+                                        ? isCorrect
+                                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black shadow-xs ring-1 ring-emerald-300'
+                                          : 'bg-rose-50 border-rose-400 text-rose-950 font-bold line-through shadow-xs ring-1 ring-rose-200'
+                                        : 'bg-white border-indigo-300 text-slate-800 hover:border-indigo-500 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
+                                    }`}
+                                  />
+                                  {submitted && (
+                                    <span className="ml-1 text-xs font-black">
+                                      {isCorrect ? <span className="text-emerald-600 font-extrabold">✓</span> : <span className="text-rose-600 font-extrabold">✕</span>}
+                                    </span>
+                                  )}
                                 </span>
-                                <span className="leading-snug truncate">{typeof opt === 'string' ? opt : (opt.text || opt.label || '')}</span>
+                                <span>{textAfter}</span>
                               </div>
-                              {resultBadge}
-                            </button>
-                          );
-                        })}
-                      </div>
+                            ) : (
+                              <div className="flex-1 space-y-1.5">
+                                <h4 className="font-extrabold text-xs text-slate-900 leading-relaxed">{finalQuestionTitle}</h4>
+                                <div className="relative w-full max-w-sm pt-1">
+                                  <input
+                                    type="text"
+                                    disabled={submitted}
+                                    value={userVal}
+                                    onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                    placeholder="Nhập từ cần điền..."
+                                    className={`w-full px-3 py-1.5 text-xs font-semibold rounded-xl border-2 transition-all outline-none ${
+                                      submitted
+                                        ? isCorrect
+                                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
+                                          : 'bg-rose-50 border-rose-400 text-rose-950 font-semibold line-through shadow-xs'
+                                        : 'bg-white border-slate-300 text-slate-800 hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
+                                    }`}
+                                  />
+                                </div>
+                              </div>
+                            )}
 
-                      {submitted && renderCompactExplanation(
-                        cQ.explanation || (cQ.question ? null : q.content?.explanation),
-                        correctText,
-                        cQ,
-                        cOpts[studentSelectedIdx]?.text || cOpts[studentSelectedIdx]?.label
-                      )}
-                    </div>
-                  );
-                })}
+                            {submitted && (
+                              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black shrink-0 ${
+                                isCorrect ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
+                              }`}>
+                                {isCorrect ? '✓ ĐÚNG' : '✕ SAI'}
+                              </span>
+                            )}
+                          </div>
+
+                          {submitted && (
+                            <div className="p-2.5 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-extrabold text-emerald-950">➔ Đáp án đúng:</span>
+                                <span className="font-black font-mono text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300 shadow-2xs">
+                                  {displayCorrectAnswer || 'Chưa thiết lập đáp án'}
+                                </span>
+                              </div>
+                              {(cQ.explanation || q.content?.explanation) && (
+                                <p className="text-[11px] text-slate-800 font-medium pt-1 border-t border-emerald-200/60 leading-relaxed">
+                                  💡 <strong>Giải thích:</strong> {cQ.explanation || q.content?.explanation}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // HÀM BẮT CHÍNH XÁC ĐÁP ÁN ĐÚNG CỦA CÂU HỎI
+                    const getCorrectOptionIndex = () => {
+                      if (!Array.isArray(cOpts) || cOpts.length === 0) return -1;
+                      const foundIdx = cOpts.findIndex(
+                        (o) => o?.isCorrect || o?.is_correct || o?.correct || o?.status === 'correct'
+                      );
+                      if (foundIdx !== -1) return foundIdx;
+                      const rawAns = cQ?.correct_answer || cQ?.answer || q?.content?.answer || q?.content?.correct_answer;
+                      if (rawAns !== undefined && rawAns !== null) {
+                        const strAns = String(rawAns).trim().toUpperCase();
+                        if (['A', 'B', 'C', 'D'].includes(strAns)) {
+                          return strAns.charCodeAt(0) - 65;
+                        }
+                        const idxByText = cOpts.findIndex((o) => {
+                          const t = typeof o === 'string' ? o : (o.text || o.label || '');
+                          return t.toLowerCase().includes(String(rawAns).toLowerCase());
+                        });
+                        if (idxByText !== -1) return idxByText;
+                      }
+                      return 0;
+                    };
+
+                    // HÀM BẮT CHÍNH XÁC VÀ LƯU VỊ TRÍ HỌC SINH ĐÃ CHỌN
+                    const getStudentSelectedIndex = () => {
+                      const userAns = userAnswers[childKey];
+                      if (userAns === undefined || userAns === null || userAns === '') return -1;
+                      if (typeof userAns === 'number') return userAns;
+                      if (typeof userAns === 'string') {
+                        const trimmed = userAns.trim();
+                        if (!isNaN(trimmed) && trimmed !== '') return Number(trimmed);
+                        const upper = trimmed.toUpperCase();
+                        if (['A', 'B', 'C', 'D'].includes(upper)) {
+                          return upper.charCodeAt(0) - 65;
+                        }
+                        const idxByText = cOpts.findIndex((o) => {
+                          const t = typeof o === 'string' ? o : (o.text || o.label || '');
+                          return t.toLowerCase().includes(trimmed.toLowerCase()) || trimmed.toLowerCase().includes(t.toLowerCase());
+                        });
+                        if (idxByText !== -1) return idxByText;
+                      }
+                      if (typeof userAns === 'object' && userAns.index !== undefined) {
+                        return Number(userAns.index);
+                      }
+                      return -1;
+                    };
+
+                    const correctOptIdx = getCorrectOptionIndex();
+                    const studentSelectedIdx = getStudentSelectedIndex();
+                    const isStudentCorrect = (studentSelectedIdx !== -1 && studentSelectedIdx === correctOptIdx);
+                    const isStudentWrong = (studentSelectedIdx !== -1 && studentSelectedIdx !== correctOptIdx);
+                    const correctText = cOpts[correctOptIdx]?.text || cOpts[correctOptIdx]?.label || 'Đáp án đúng';
+
+                    const maxOptLen = Math.max(...cOpts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
+
+                    let btnFontSize = 'text-xs px-2.5 py-1.5';
+                    if (maxOptLen > 30) {
+                      btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
+                    } else if (maxOptLen > 18) {
+                      btnFontSize = 'text-[11px] px-2 py-1 leading-snug';
+                    }
+
+                    return (
+                      <div
+                        key={cIdx}
+                        className={`p-2.5 bg-white border rounded-xl space-y-1.5 transition ${
+                          submitted
+                            ? isStudentCorrect
+                              ? 'border-emerald-400 bg-emerald-50/20'
+                              : 'border-rose-400 bg-rose-50/20'
+                            : 'border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-extrabold text-xs text-slate-900">
+                            {cQ.question}
+                          </h4>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch pt-0.5">
+                          {cOpts.map((opt, oIdx) => {
+                            const label = String.fromCharCode(65 + oIdx);
+                            const isSelected = (studentSelectedIdx === oIdx);
+                            const isThisCorrectOpt = (correctOptIdx === oIdx);
+
+                            let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
+                            let resultBadge = null;
+
+                            if (submitted) {
+                              if (isSelected && isThisCorrectOpt) {
+                                // HỌC SINH CHỌN ĐÚNG
+                                btnStyle = 'bg-emerald-600 text-white font-black border-emerald-600 shadow-md ring-2 ring-emerald-400';
+                                resultBadge = <span className="text-[9px] font-black bg-emerald-800 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">✓ Đúng</span>;
+                              } else if (isSelected && !isThisCorrectOpt) {
+                                // HỌC SINH CHỌN SAI -> HIGHLIGHT MÀU ĐỎ GẠCH NGANG CÂU SAI
+                                btnStyle = 'bg-rose-600 text-white font-black border-rose-600 line-through shadow-md ring-2 ring-rose-400';
+                                resultBadge = <span className="text-[9px] font-black bg-rose-950 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">✕ HS Chọn (Sai)</span>;
+                              } else if (isThisCorrectOpt && isStudentWrong) {
+                                // HIGHLIGHT ĐÁP ÁN ĐÚNG BẰNG MÀU ĐỎ CHÓI LỌI KHI HỌC SINH LÀM SAI
+                                btnStyle = 'bg-rose-50 border-2 border-rose-500 text-rose-950 font-black shadow-xs';
+                                resultBadge = <span className="text-[9px] font-black bg-rose-600 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">★ Đáp án đúng</span>;
+                              }
+                            } else if (isSelected) {
+                              btnStyle = 'bg-emerald-600 text-white font-bold border-transparent shadow-xs';
+                            }
+
+                            return (
+                              <button
+                                key={oIdx}
+                                disabled={submitted}
+                                onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                className={`w-full text-left rounded-xl ${btnFontSize} font-semibold border transition flex items-center justify-between space-x-1 whitespace-normal break-words ${btnStyle}`}
+                              >
+                                <div className="flex items-center space-x-1 min-w-0">
+                                  <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
+                                    isSelected ? 'bg-white text-slate-900' : 'bg-slate-200 text-slate-600'
+                                  }`}>
+                                    {label}
+                                  </span>
+                                  <span className="leading-snug truncate">{typeof opt === 'string' ? opt : (opt.text || opt.label || '')}</span>
+                                </div>
+                                {resultBadge}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {submitted && renderCompactExplanation(
+                          cQ.explanation || (cQ.question ? null : q.content?.explanation),
+                          correctText,
+                          cQ,
+                          cOpts[studentSelectedIdx]?.text || cOpts[studentSelectedIdx]?.label
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           );

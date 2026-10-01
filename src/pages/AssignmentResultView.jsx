@@ -183,7 +183,26 @@ export default function AssignmentResultView() {
           {/* DANH SÁCH CÂU HỎI TRONG BÀI THI */}
           <div className="space-y-6">
             {questions.map((q, qIdx) => {
-              const parts = Array.isArray(q.content?.parts) ? q.content.parts : [];
+              const parts = Array.isArray(q.content?.parts) && q.content.parts.length > 0
+                ? q.content.parts
+                : [
+                    {
+                      part_title: q.content?.title || '',
+                      part_type: q.type || 'multiple_choice',
+                      passage: q.content?.passage || '',
+                      explanation: q.content?.explanation || '',
+                      questions: Array.isArray(q.content?.childQuestions) && q.content.childQuestions.length > 0
+                        ? q.content.childQuestions
+                        : [
+                            {
+                              question: q.content?.question || 'Câu hỏi',
+                              options: q.content?.options || [],
+                              correctAnswer: q.content?.correct_answer || q.content?.answer || '',
+                              explanation: q.content?.explanation || '',
+                            }
+                          ]
+                    }
+                  ];
 
               return (
                 <div key={q.id || qIdx} className="space-y-4 border border-slate-200 rounded-2xl p-5 bg-slate-50/50">
