@@ -53,6 +53,17 @@ const getGoogleDriveDirectViewUrl = (url) => {
   return url || '';
 };
 
+const isGapFillAnswer = (selected, targetAns) => {
+  if (selected === undefined || selected === null || selected === '') return false;
+  if (!targetAns) return false;
+  const cleanSel = String(selected).trim().toLowerCase().replace(/[.,!?;:]+$/, '');
+  const targets = String(targetAns)
+    .split(/[\/,;]+/)
+    .map((t) => t.trim().toLowerCase().replace(/[.,!?;:]+$/, ''))
+    .filter(Boolean);
+  return targets.includes(cleanSel);
+};
+
 export default function QuizEngine({ activity, activityId, onComplete }) {
   const navigate = useNavigate();
   const { user, profile, isTeacher: contextIsTeacher } = useAuth();
@@ -448,8 +459,14 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
       } else if (['listening_section', 'reading_section', 'writing_section', 'multiple_choice'].includes(sectionType) && Array.isArray(q.content?.parts) && q.content.parts.length > 0) {
         q.content.parts.forEach((pItem, pIdx) => {
           const pQs = pItem.questions || [];
-          const isTF = pItem.part_type === 'true_false';
+          const isTF = pItem.part_type === 'true_false' || (pItem.part_title && (pItem.part_title.includes('True') || pItem.part_title.includes('False')));
           const isEssay = pItem.part_type === 'short_essay' || pItem.part_type === 'full_essay';
+          const hasOptions = pQs.some((cq) => Array.isArray(cq.options) && cq.options.length > 0);
+          const isGapFill = pItem.part_type === 'gap_fill' ||
+                            pItem.part_type === 'fill_in_blank' ||
+                            pItem.part_type === 'short_answer' ||
+                            (pItem.part_type === 'cloze_test' && !hasOptions) ||
+                            (!hasOptions && pQs.some((cq) => (cq.correctAnswer || cq.correct_answer)));
 
           pQs.forEach((cQ, qIdx) => {
             totalQCount += 1;
@@ -457,8 +474,14 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
             const selected = userAnswers[key];
 
             if (isTF) {
-              const correctAns = (cQ.correctAnswer || 'T').toUpperCase();
+              const correctAns = (cQ.correctAnswer || cQ.correct_answer || 'T').toUpperCase();
               if (selected && String(selected).toUpperCase() === correctAns) {
+                correctCount += 1;
+                totalScore += 1;
+              }
+            } else if (isGapFill) {
+              const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer;
+              if (isGapFillAnswer(selected, targetAns)) {
                 correctCount += 1;
                 totalScore += 1;
               }
@@ -570,21 +593,52 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
       questions.forEach((q) => {
         if (Array.isArray(q.content?.parts)) {
           q.content.parts.forEach((p, pIdx) => {
-            (p.questions || []).forEach((cQ, cIdx) => {
+            const pQuestions = p.questions || [];
+            const hasOptions = pQuestions.some((cq) => Array.isArray(cq.options) && cq.options.length > 0);
+            const isTF = p.part_type === 'true_false' || (p.part_title && (p.part_title.includes('True') || p.part_title.includes('False')));
+            const isGap = p.part_type === 'gap_fill' ||
+                          p.part_type === 'fill_in_blank' ||
+                          p.part_type === 'short_answer' ||
+                          (p.part_type === 'cloze_test' && !hasOptions) ||
+                          (!hasOptions && pQuestions.some((cq) => (cq.correctAnswer || cq.correct_answer)));
+
+            pQuestions.forEach((cQ, cIdx) => {
               const key = `${q.id}_p${pIdx}_q${cIdx}`;
               const selected = userAnswers[key];
               if (selected !== undefined) {
-                const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
-                const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' && o?.isCorrect);
-                if (correctOptIndex !== -1 && selected !== correctOptIndex) {
-                  const correctText = cOpts[correctOptIndex]?.text || 'Đáp án đúng';
-                  const userSelectedText = cOpts[selected]?.text || selected || 'Chưa chọn';
-                  wrongQs.push({
-                    question: cQ.question || 'Câu hỏi',
-                    userAnswer: userSelectedText,
-                    correctAnswer: correctText,
-                    explanation: cQ.explanation || p.explanation,
-                  });
+                if (isTF) {
+                  const correctAns = (cQ.correctAnswer || cQ.correct_answer || 'T').toUpperCase();
+                  if (String(selected).toUpperCase() !== correctAns) {
+                    wrongQs.push({
+                      question: cQ.question || 'Câu hỏi True/False',
+                      userAnswer: String(selected),
+                      correctAnswer: correctAns,
+                      explanation: cQ.explanation || p.explanation,
+                    });
+                  }
+                } else if (isGap) {
+                  const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer;
+                  if (!isGapFillAnswer(selected, targetAns)) {
+                    wrongQs.push({
+                      question: cQ.question || 'Câu hỏi điền từ',
+                      userAnswer: selected || '(Bỏ trống)',
+                      correctAnswer: targetAns || 'Chưa thiết lập',
+                      explanation: cQ.explanation || p.explanation,
+                    });
+                  }
+                } else {
+                  const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                  const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' && o?.isCorrect);
+                  if (correctOptIndex !== -1 && selected !== correctOptIndex) {
+                    const correctText = cOpts[correctOptIndex]?.text || 'Đáp án đúng';
+                    const userSelectedText = cOpts[selected]?.text || selected || 'Chưa chọn';
+                    wrongQs.push({
+                      question: cQ.question || 'Câu hỏi',
+                      userAnswer: userSelectedText,
+                      correctAnswer: correctText,
+                      explanation: cQ.explanation || p.explanation,
+                    });
+                  }
                 }
               }
             });
@@ -1059,8 +1113,14 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
                 {sectionParts.map((pItem, pIdx) => {
                   const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
+                  const hasOptions = pQs.some((cq) => Array.isArray(cq.options) && cq.options.length > 0);
                   const isTrueFalse = pItem.part_type === 'true_false' || (pItem.part_title && (pItem.part_title.includes('True') || pItem.part_title.includes('False')));
-                  const isPart1MC = (pItem.part_type === 'multiple_choice' || !pItem.part_type) && !isTrueFalse;
+                  const isGapFill = pItem.part_type === 'gap_fill' ||
+                                    pItem.part_type === 'fill_in_blank' ||
+                                    pItem.part_type === 'short_answer' ||
+                                    (pItem.part_type === 'cloze_test' && !hasOptions) ||
+                                    (!hasOptions && pQs.some((cq) => (cq.correctAnswer || cq.correct_answer)));
+                  const isPart1MC = (pItem.part_type === 'multiple_choice' || (pItem.part_type === 'cloze_test' && hasOptions) || (!pItem.part_type && hasOptions)) && !isTrueFalse && !isGapFill;
                   const isPart2Short = pItem.part_type === 'short_essay';
 
                   const extractAudioForPart = () => {
@@ -1348,6 +1408,121 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                   correctText,
                                   cQ,
                                   selectedText
+                                )}
+                              </div>
+                            );
+                          } else if (isGapFill) {
+                            const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer || '';
+                            const isCorrect = isGapFillAnswer(selectedVal, targetAns);
+                            const displayCorrectAnswer = targetAns ? String(targetAns).trim() : '';
+
+                            // Lọc số thứ tự thừa tránh "6. 6. Vy likes..."
+                            let qDisplay = (cQ.question || '').trim();
+                            qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
+                            qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
+                            const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
+
+                            // NHẬN DIỆN VỊ TRÍ CHỖ TRỐNG ĐỂ BIẾN THÀNH INLINE INPUT (LỌT LÒNG CÙNG DÒNG)
+                            const blankRegex = /(_{2,}|\[blank\]|\[chỗ trống\]|\[___+\]|\[\.\.\.+\]|\(\.\.\.+\)|\.\.\.+)/i;
+                            const hasInlineBlank = blankRegex.test(finalQuestionTitle);
+
+                            let textBefore = '';
+                            let textAfter = '';
+                            if (hasInlineBlank) {
+                              const match = finalQuestionTitle.match(blankRegex);
+                              if (match) {
+                                const idx = finalQuestionTitle.indexOf(match[0]);
+                                textBefore = finalQuestionTitle.slice(0, idx);
+                                textAfter = finalQuestionTitle.slice(idx + match[0].length);
+                              }
+                            }
+
+                            return (
+                              <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3 shadow-xs transition-all">
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                                  {hasInlineBlank ? (
+                                    /* DẠNG 1: INLINE BLANK FILLING - Ô NHẬP LỌT LÒNG NGAY GIỮA CÂU VĂN */
+                                    <div className="text-xs sm:text-sm font-extrabold text-slate-900 leading-relaxed sm:leading-loose flex-1">
+                                      <span>{textBefore}</span>
+                                      <span className="inline-flex items-center mx-1.5 align-middle">
+                                        <input
+                                          type="text"
+                                          disabled={submitted}
+                                          value={selectedVal || ''}
+                                          onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                          placeholder="điền từ..."
+                                          className={`min-w-[130px] max-w-[220px] w-36 sm:w-48 px-3 py-1 text-xs sm:text-sm font-black text-center rounded-xl border-2 transition-all outline-none ${
+                                            submitted
+                                              ? isCorrect
+                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black shadow-xs ring-1 ring-emerald-300'
+                                                : 'bg-rose-50 border-rose-400 text-rose-950 font-bold line-through shadow-xs ring-1 ring-rose-200'
+                                              : 'bg-white border-indigo-300 text-slate-800 hover:border-indigo-500 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
+                                          }`}
+                                        />
+                                        {submitted && (
+                                          <span className="ml-1 text-xs font-black">
+                                            {isCorrect ? (
+                                              <span className="text-emerald-600 font-extrabold">✓</span>
+                                            ) : (
+                                              <span className="text-rose-600 font-extrabold">✕</span>
+                                            )}
+                                          </span>
+                                        )}
+                                      </span>
+                                      <span>{textAfter}</span>
+                                    </div>
+                                  ) : (
+                                    /* DẠNG 2: NẾU CÂU HỎI KHÔNG CHỨA DẤU CHỖ TRỐNG THÌ HIỆN CÂU HỎI Ở TRÊN VÀ Ô NHẬP DƯỚI */
+                                    <div className="flex-1 space-y-2">
+                                      <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-relaxed whitespace-pre-line">
+                                        {finalQuestionTitle}
+                                      </h4>
+                                      <div className="relative w-full max-w-sm sm:max-w-md pt-1">
+                                        <input
+                                          type="text"
+                                          disabled={submitted}
+                                          value={selectedVal || ''}
+                                          onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                          placeholder="Nhập 1 - 3 từ cần điền..."
+                                          className={`w-full px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl border-2 transition-all outline-none ${
+                                            submitted
+                                              ? isCorrect
+                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
+                                                : 'bg-rose-50 border-rose-400 text-rose-950 font-semibold line-through shadow-xs'
+                                              : 'bg-white border-slate-300 text-slate-800 hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
+                                          }`}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {submitted && (
+                                    <span className={`px-2.5 py-0.5 rounded-lg text-[11px] font-black shrink-0 flex items-center space-x-1 ${
+                                      isCorrect
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                    }`}>
+                                      <span>{isCorrect ? '✓ ĐÚNG' : '✕ SAI'}</span>
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* HIỂN THỊ ĐÁP ÁN ĐÚNG VÀ GIẢI THÍCH CHI TIẾT SAU KHI NỘP BÀI */}
+                                {submitted && (
+                                  <div className="p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1.5 animate-fadeIn">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-extrabold text-emerald-950">➔ Đáp án đúng:</span>
+                                      <span className="font-black font-mono text-emerald-800 bg-white px-2.5 py-0.5 rounded-md border border-emerald-300 shadow-2xs">
+                                        {displayCorrectAnswer || 'Chưa thiết lập đáp án'}
+                                      </span>
+                                    </div>
+
+                                    {(cQ.explanation || pItem.explanation) && (
+                                      <p className="text-[11px] text-slate-800 font-medium pt-1 border-t border-emerald-200/60 leading-relaxed">
+                                        💡 <strong>Giải thích chi tiết:</strong> {cQ.explanation || pItem.explanation}
+                                      </p>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             );

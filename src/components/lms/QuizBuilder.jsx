@@ -253,7 +253,30 @@ export default function QuizBuilder({ activityId, onSaved }) {
     let content = '';
     let filename = '';
 
-    if (format === 'json_writing_part') {
+    if (format === 'json_gap_fill_part') {
+      filename = 'mau_de_listening_gap_fill_part.json';
+      content = JSON.stringify(
+        {
+          part_type: "gap_fill",
+          part_title: "PART 2: Listen and write NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
+          audio_url: "https://example.com/audio_part2.mp3",
+          questions: [
+            {
+              question: "6. Transport from the airport will be provided by: _______",
+              correct_answer: "bus",
+              explanation: "💡 Evidence: The speaker states that a bus will pick up all participants directly from the airport terminal."
+            },
+            {
+              question: "7. Vy likes _______ models in her free time.",
+              correct_answer: "making / to make",
+              explanation: "💡 Evidence: Vy mentioned she enjoys making miniature models during weekends."
+            }
+          ]
+        },
+        null,
+        2
+      );
+    } else if (format === 'json_writing_part') {
       filename = 'mau_de_writing_section_parts.json';
       content = JSON.stringify(
         {
@@ -412,14 +435,36 @@ export default function QuizBuilder({ activityId, onSaved }) {
         {
           part_type: 'true_false',
           part_title: 'PART 2: Listen again and decide whether the statements are True (T) or False (F).',
+          audioUrl: '',
           questions: [
             {
               question: '2. Young people in the community often ask Phong how to keep up with modern trends.',
               correctAnswer: 'T',
+              correct_answer: 'T',
               explanation: '💡 Evidence: Young people often ask how to keep up with modern trends.'
             }
           ],
           explanation: '🔍 Phân tích Part 2 True/False.'
+        },
+        {
+          part_type: 'gap_fill',
+          part_title: 'PART 3: Listen and fill in each blank with NO MORE THAN THREE WORDS AND/OR A NUMBER.',
+          audioUrl: '',
+          questions: [
+            {
+              question: '6. Vy likes _______ models in her free time.',
+              correctAnswer: 'making',
+              correct_answer: 'making',
+              explanation: '💡 Evidence: Vy mentioned she enjoys making models in her free time.'
+            },
+            {
+              question: '7. Transport from the airport will be provided by: _______',
+              correctAnswer: 'bus',
+              correct_answer: 'bus',
+              explanation: '💡 Evidence: The tour guide confirmed transport is by bus.'
+            }
+          ],
+          explanation: '🔍 Phân tích Part 3: Điền từ vào chỗ trống (Gap-Fill).'
         }
       ]);
     } else if (normType === 'reading_section') {
@@ -1309,7 +1354,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
                             <span className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center font-extrabold text-xs">
                               {pIdx + 1}
                             </span>
-                            <span>PART #{pIdx + 1}: {pItem.part_type === 'short_essay' ? 'Tự Luận Ngắn' : pItem.part_type === 'full_essay' ? 'Bài Luận Dài / Tải Ảnh' : 'Trắc Nghiệm A,B,C,D'}</span>
+                            <span>PART #{pIdx + 1}: {
+                              pItem.part_type === 'gap_fill' ? 'Điền Từ Chỗ Trống (Gap-Fill)' :
+                              pItem.part_type === 'true_false' ? 'True / False (Đúng/Sai)' :
+                              pItem.part_type === 'short_essay' ? 'Tự Luận Ngắn' :
+                              pItem.part_type === 'full_essay' ? 'Bài Luận Dài / Tải Ảnh' :
+                              pItem.part_type === 'cloze_test' ? 'Cloze Test Đục Lỗ' :
+                              'Trắc Nghiệm A,B,C,D'
+                            }</span>
                           </span>
 
                           <div className="flex items-center space-x-2">
@@ -1326,7 +1378,11 @@ export default function QuizBuilder({ activityId, onSaved }) {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDownloadSampleFile(isWriting ? 'json_writing_part' : isCloze ? 'json_cloze_part' : 'json')}
+                              onClick={() => handleDownloadSampleFile(
+                                pItem.part_type === 'gap_fill' ? 'json_gap_fill_part' :
+                                isWriting ? 'json_writing_part' :
+                                isCloze ? 'json_cloze_part' : 'json'
+                              )}
                               className="px-2.5 py-1 bg-blue-50 text-blue-900 rounded-lg text-[11px] font-bold hover:bg-blue-100"
                             >
                               📥 Tải JSON Mẫu
@@ -1352,13 +1408,26 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               value={pItem.part_type || 'multiple_choice'}
                               onChange={(e) => {
                                 const newParts = [...sectionParts];
-                                newParts[pIdx].part_type = e.target.value;
+                                const newType = e.target.value;
+                                newParts[pIdx].part_type = newType;
+                                if (newType === 'gap_fill') {
+                                  (newParts[pIdx].questions || []).forEach(cq => {
+                                    if (!cq.correctAnswer && !cq.correct_answer) {
+                                      const correctOpt = cq.options?.find(o => o.isCorrect);
+                                      if (correctOpt) {
+                                        cq.correctAnswer = correctOpt.text;
+                                        cq.correct_answer = correctOpt.text;
+                                      }
+                                    }
+                                  });
+                                }
                                 setSectionParts(newParts);
                               }}
                               className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white font-bold"
                             >
                               <option value="multiple_choice">Trắc Nghiệm A, B, C, D</option>
                               <option value="true_false">True / False (Đúng/Sai)</option>
+                              <option value="gap_fill">Điền từ vào chỗ trống (Gap-Fill / Nghe điền 1-3 từ)</option>
                               <option value="short_essay">Part 2: Tự Luận Ngắn (Viết lại câu)</option>
                               <option value="full_essay">Part 3: Bài Luận Dài (Dán Văn Bản / Tải Ảnh Bài Làm)</option>
                               <option value="cloze_test">Cloze Test Đục Lỗ</option>
@@ -1547,11 +1616,34 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               onClick={() => {
                                 const newParts = [...sectionParts];
                                 const qList = newParts[pIdx].questions || [];
-                                qList.push({
+                                const pType = newParts[pIdx].part_type || 'multiple_choice';
+
+                                let newQ = {
                                   question: `${qList.length + 1}. Question text...`,
-                                  options: [{ text: 'Option A', isCorrect: true }, { text: 'Option B', isCorrect: false }, { text: 'Option C', isCorrect: false }, { text: 'Option D', isCorrect: false }],
                                   explanation: ''
-                                });
+                                };
+
+                                if (pType === 'gap_fill') {
+                                  newQ.question = `${qList.length + 1}. Sentence with _______ blank.`;
+                                  newQ.correctAnswer = '';
+                                  newQ.correct_answer = '';
+                                } else if (pType === 'true_false') {
+                                  newQ.question = `${qList.length + 1}. Statement question...`;
+                                  newQ.correctAnswer = 'T';
+                                  newQ.correct_answer = 'T';
+                                } else if (pType === 'short_essay' || pType === 'full_essay') {
+                                  newQ.question = `${qList.length + 1}. Question text...`;
+                                  newQ.sample_answer = '';
+                                } else {
+                                  newQ.options = [
+                                    { text: 'Option A', isCorrect: true },
+                                    { text: 'Option B', isCorrect: false },
+                                    { text: 'Option C', isCorrect: false },
+                                    { text: 'Option D', isCorrect: false }
+                                  ];
+                                }
+
+                                qList.push(newQ);
                                 newParts[pIdx].questions = qList;
                                 setSectionParts(newParts);
                               }}
@@ -1562,85 +1654,271 @@ export default function QuizBuilder({ activityId, onSaved }) {
                             </button>
                           </div>
 
-                          {(pItem.questions || []).map((cQ, cIdx) => (
-                            <div key={cIdx} className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs font-bold text-slate-800">Câu hỏi #{cIdx + 1}</span>
-                                {(pItem.questions || []).length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newParts = [...sectionParts];
-                                      newParts[pIdx].questions = newParts[pIdx].questions.filter((_, i) => i !== cIdx);
-                                      setSectionParts(newParts);
-                                    }}
-                                    className="text-rose-600 text-xs font-bold hover:underline"
-                                  >
-                                    ✕ Xóa câu này
-                                  </button>
-                                )}
-                              </div>
+                          {(pItem.questions || []).map((cQ, cIdx) => {
+                            const isGap = pItem.part_type === 'gap_fill' || (pItem.part_type === 'cloze_test' && (!cQ.options || cQ.options.length === 0));
+                            const blankRegex = /(_{2,}|\[blank\]|\[chỗ trống\]|\[___+\]|\[\.\.\.+\]|\(\.\.\.+\)|\.\.\.+)/i;
+                            const hasBlank = isGap && blankRegex.test(cQ.question || '');
 
-                              <input
-                                type="text"
-                                value={cQ.question || ''}
-                                onChange={(e) => {
-                                  const newParts = [...sectionParts];
-                                  newParts[pIdx].questions[cIdx].question = e.target.value;
-                                  setSectionParts(newParts);
-                                }}
-                                placeholder="Nhập câu hỏi hoặc yêu cầu bài viết..."
-                                className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
-                              />
-
-                              {pItem.part_type === 'short_essay' || pItem.part_type === 'full_essay' ? (
-                                <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-xl space-y-1">
-                                  <span className="text-[11px] font-bold text-purple-900 block">💡 Gợi ý câu trả lời / Đáp án mẫu (Sample Answer):</span>
-                                  <textarea
-                                    rows={2}
-                                    value={cQ.sample_answer || ''}
-                                    onChange={(e) => {
-                                      const newParts = [...sectionParts];
-                                      newParts[pIdx].questions[cIdx].sample_answer = e.target.value;
-                                      setSectionParts(newParts);
-                                    }}
-                                    className="w-full p-2 border border-purple-300 rounded text-xs bg-white"
-                                  />
-                                </div>
-                              ) : (
-                                /* 4 LỰA CHỌN A, B, C, D DẠNG PILL SÁT CHỮ NẰM TRÊN 1 HÀNG 🎯 CHUẨN 100% ẢNH 2 CỦA THẦY */
-                                <div className="flex flex-wrap items-center gap-3 pt-2 w-full">
-                                  {(cQ.options || []).map((opt, oIdx) => (
-                                    <div key={oIdx} className="flex items-center space-x-1.5 bg-slate-50 border border-slate-200 rounded-full px-3 py-1 text-xs">
-                                      <input
-                                        type="radio"
-                                        name={`mc_opt_${pIdx}_${cIdx}`}
-                                        checked={opt.isCorrect}
-                                        onChange={() => {
+                            return (
+                              <div key={cIdx} className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-bold text-slate-800">Câu hỏi #{cIdx + 1}</span>
+                                  <div className="flex items-center space-x-2">
+                                    {isGap && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
                                           const newParts = [...sectionParts];
-                                          newParts[pIdx].questions[cIdx].options.forEach((o, i) => {
-                                            o.isCorrect = i === oIdx;
-                                          });
+                                          const curQ = newParts[pIdx].questions[cIdx].question || '';
+                                          newParts[pIdx].questions[cIdx].question = curQ ? `${curQ} _______` : `${cIdx + 1}. Sentence with _______ blank.`;
                                           setSectionParts(newParts);
                                         }}
-                                        className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                      />
-                                      <span className="font-extrabold text-slate-700">{String.fromCharCode(65 + oIdx)}.</span>
-                                      <input
-                                        type="text"
-                                        value={opt.text || ''}
+                                        className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold flex items-center space-x-1 transition shadow-2xs"
+                                        title="Bấm để chèn nhanh ký tự chỗ trống _______ vào câu hỏi"
+                                      >
+                                        <span>✏️ + Chèn chỗ trống _______</span>
+                                      </button>
+                                    )}
+                                    {(pItem.questions || []).length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const newParts = [...sectionParts];
+                                          newParts[pIdx].questions = newParts[pIdx].questions.filter((_, i) => i !== cIdx);
+                                          setSectionParts(newParts);
+                                        }}
+                                        className="text-rose-600 text-xs font-bold hover:underline"
+                                      >
+                                        ✕ Xóa câu này
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <input
+                                  type="text"
+                                  value={cQ.question || ''}
+                                  onChange={(e) => {
+                                    const newParts = [...sectionParts];
+                                    newParts[pIdx].questions[cIdx].question = e.target.value;
+                                    setSectionParts(newParts);
+                                  }}
+                                  placeholder="Nhập câu hỏi (Ví dụ: 6. Vy likes _______ models in her free time.)..."
+                                  className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold bg-white"
+                                />
+
+                                {/* LIVE PREVIEW INLINE BLANK TRỰC TIẾP DÀNH CHO GIÁO VIÊN */}
+                                {hasBlank && (
+                                  <div className="p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl text-xs space-y-1">
+                                    <span className="text-[10px] font-extrabold text-indigo-900 uppercase flex items-center space-x-1">
+                                      <span>👁️ Xem trước giao diện điền từ Inline (lọt lòng trong câu) của học sinh:</span>
+                                    </span>
+                                    <div className="font-serif text-xs text-slate-800 leading-loose bg-white p-2 rounded-lg border border-indigo-100">
+                                      {(() => {
+                                        const qText = cQ.question || '';
+                                        const m = qText.match(blankRegex);
+                                        if (!m) return qText;
+                                        const idx = qText.indexOf(m[0]);
+                                        const b4 = qText.slice(0, idx);
+                                        const aft = qText.slice(idx + m[0].length);
+                                        return (
+                                          <span>
+                                            <span>{b4}</span>
+                                            <span className="inline-block mx-1.5 px-3 py-0.5 text-center text-xs font-bold text-indigo-700 bg-indigo-50 border-2 border-indigo-400 border-dashed rounded-lg min-w-[100px]">
+                                              {cQ.correctAnswer || cQ.correct_answer || '...điền từ...'}
+                                            </span>
+                                            <span>{aft}</span>
+                                          </span>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
+
+                              {/* BỘ SOẠN ĐÁP ÁN CHUẨN XÁC THEO TỪNG LOẠI DẠNG ĐỀ PART */}
+                              {(() => {
+                                const pType = pItem.part_type || 'multiple_choice';
+
+                                // 1. DẠNG ĐIỀN TỪ (GAP-FILL / CLOZE KHÔNG CÓ OPTIONS) -> FIX TRIỆT ĐỂ ẢNH 2 & ẢNH 3
+                                if (pType === 'gap_fill' || (pType === 'cloze_test' && (!cQ.options || cQ.options.length === 0))) {
+                                  return (
+                                    <div className="p-3 bg-emerald-50/80 border border-emerald-300 rounded-xl space-y-2">
+                                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                        <label className="block text-[11px] font-black text-emerald-950 uppercase flex items-center space-x-1.5">
+                                          <span>🎯 ĐÁP ÁN ĐÚNG CẦN ĐIỀN (CORRECT ANSWER) CHO CÂU #{cIdx + 1}:</span>
+                                        </label>
+                                        <span className="text-[10px] text-emerald-700 italic font-medium">
+                                          (Nhiều đáp án cùng đúng: phân tách bằng dấu / ví dụ: making / to make)
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <input
+                                          type="text"
+                                          value={cQ.correctAnswer || cQ.correct_answer || ''}
+                                          onChange={(e) => {
+                                            const newParts = [...sectionParts];
+                                            const val = e.target.value;
+                                            newParts[pIdx].questions[cIdx].correctAnswer = val;
+                                            newParts[pIdx].questions[cIdx].correct_answer = val;
+                                            setSectionParts(newParts);
+                                          }}
+                                          placeholder="Ví dụ: making (hoặc: making / to make)..."
+                                          className="w-full px-3 py-2 border-2 border-emerald-400 focus:border-emerald-600 rounded-xl text-xs font-bold text-emerald-950 bg-white shadow-inner outline-none"
+                                        />
+                                        {pType === 'cloze_test' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const newParts = [...sectionParts];
+                                              newParts[pIdx].questions[cIdx].options = [
+                                                { text: '', isCorrect: true },
+                                                { text: '', isCorrect: false },
+                                                { text: '', isCorrect: false },
+                                                { text: '', isCorrect: false },
+                                              ];
+                                              setSectionParts(newParts);
+                                            }}
+                                            className="shrink-0 px-2.5 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-300 rounded-xl text-[10px] font-bold"
+                                            title="Chuyển câu này sang dạng 4 lựa chọn A, B, C, D"
+                                          >
+                                            + Đổi sang A,B,C,D
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                // 2. DẠNG TRUE / FALSE (ĐÚNG HOẶC SAI)
+                                if (pType === 'true_false') {
+                                  const curAns = (cQ.correctAnswer || cQ.correct_answer || 'T').toUpperCase();
+                                  return (
+                                    <div className="p-3 bg-blue-50/80 border border-blue-300 rounded-xl space-y-1.5">
+                                      <label className="block text-[11px] font-black text-blue-950 uppercase">
+                                        🎯 ĐÁP ÁN ĐÚNG CHO CÂU #{cIdx + 1} (TRUE / FALSE):
+                                      </label>
+                                      <div className="flex items-center space-x-3">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newParts = [...sectionParts];
+                                            newParts[pIdx].questions[cIdx].correctAnswer = 'T';
+                                            newParts[pIdx].questions[cIdx].correct_answer = 'T';
+                                            setSectionParts(newParts);
+                                          }}
+                                          className={`px-4 py-1.5 rounded-xl text-xs font-extrabold border transition flex items-center space-x-1.5 cursor-pointer ${
+                                            curAns === 'T' || curAns === 'TRUE'
+                                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300'
+                                              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                          }`}
+                                        >
+                                          <span>✓ TRUE (T - Đúng)</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newParts = [...sectionParts];
+                                            newParts[pIdx].questions[cIdx].correctAnswer = 'F';
+                                            newParts[pIdx].questions[cIdx].correct_answer = 'F';
+                                            setSectionParts(newParts);
+                                          }}
+                                          className={`px-4 py-1.5 rounded-xl text-xs font-extrabold border transition flex items-center space-x-1.5 cursor-pointer ${
+                                            curAns === 'F' || curAns === 'FALSE'
+                                              ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
+                                              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                          }`}
+                                        >
+                                          <span>✕ FALSE (F - Sai)</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                // 3. DẠNG TỰ LUẬN NGẮN / BÀI LUẬN
+                                if (pType === 'short_essay' || pType === 'full_essay') {
+                                  return (
+                                    <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-xl space-y-1">
+                                      <span className="text-[11px] font-bold text-purple-900 block">💡 Gợi ý câu trả lời / Đáp án mẫu (Sample Answer):</span>
+                                      <textarea
+                                        rows={2}
+                                        value={cQ.sample_answer || ''}
                                         onChange={(e) => {
                                           const newParts = [...sectionParts];
-                                          newParts[pIdx].questions[cIdx].options[oIdx].text = e.target.value;
+                                          newParts[pIdx].questions[cIdx].sample_answer = e.target.value;
                                           setSectionParts(newParts);
                                         }}
-                                        placeholder={`Đáp án ${String.fromCharCode(65 + oIdx)}...`}
-                                        className="w-32 px-2 py-0.5 border-b border-slate-300 text-xs bg-transparent focus:border-emerald-500 font-medium outline-none"
+                                        className="w-full p-2 border border-purple-300 rounded text-xs bg-white"
                                       />
                                     </div>
-                                  ))}
-                                </div>
-                              )}
+                                  );
+                                }
+
+                                // 4. DẠNG TRẮC NGHIỆM A, B, C, D (HOẶC CLOZE TEST CÓ OPTIONS)
+                                const currentOptions = Array.isArray(cQ.options) && cQ.options.length > 0
+                                  ? cQ.options
+                                  : [
+                                      { text: '', isCorrect: true },
+                                      { text: '', isCorrect: false },
+                                      { text: '', isCorrect: false },
+                                      { text: '', isCorrect: false }
+                                    ];
+
+                                return (
+                                  <div className="space-y-1.5">
+                                    <div className="flex flex-wrap items-center gap-3 pt-1 w-full">
+                                      {currentOptions.map((opt, oIdx) => (
+                                        <div key={oIdx} className="flex items-center space-x-1.5 bg-slate-50 border border-slate-200 rounded-full px-3 py-1 text-xs">
+                                          <input
+                                            type="radio"
+                                            name={`mc_opt_${pIdx}_${cIdx}`}
+                                            checked={opt.isCorrect}
+                                            onChange={() => {
+                                              const newParts = [...sectionParts];
+                                              if (!newParts[pIdx].questions[cIdx].options) {
+                                                newParts[pIdx].questions[cIdx].options = [...currentOptions];
+                                              }
+                                              newParts[pIdx].questions[cIdx].options.forEach((o, i) => {
+                                                o.isCorrect = i === oIdx;
+                                              });
+                                              setSectionParts(newParts);
+                                            }}
+                                            className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                          />
+                                          <span className="font-extrabold text-slate-700">{String.fromCharCode(65 + oIdx)}.</span>
+                                          <input
+                                            type="text"
+                                            value={opt.text || ''}
+                                            onChange={(e) => {
+                                              const newParts = [...sectionParts];
+                                              if (!newParts[pIdx].questions[cIdx].options) {
+                                                newParts[pIdx].questions[cIdx].options = [...currentOptions];
+                                              }
+                                              newParts[pIdx].questions[cIdx].options[oIdx].text = e.target.value;
+                                              setSectionParts(newParts);
+                                            }}
+                                            placeholder={`Đáp án ${String.fromCharCode(65 + oIdx)}...`}
+                                            className="w-32 px-2 py-0.5 border-b border-slate-300 text-xs bg-transparent focus:border-emerald-500 font-medium outline-none"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {pType === 'cloze_test' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const newParts = [...sectionParts];
+                                          delete newParts[pIdx].questions[cIdx].options;
+                                          setSectionParts(newParts);
+                                        }}
+                                        className="text-[10px] text-slate-500 hover:text-rose-600 underline font-medium pt-1"
+                                      >
+                                        Xóa các lựa chọn (chuyển sang điền từ trực tiếp)
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })()}
 
                               {/* Ô NHẬP LỜI GIẢI THÍCH CHI TIẾT DÀNH RIÊNG CHO TỪNG CÂU HỎI CON 🎯 CHUẨN 100% THEO YÊU CẦU THẦY HẢI */}
                               <div className="p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-1 mt-2">
@@ -1660,7 +1938,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 />
                               </div>
                             </div>
-                          ))}
+                          );
+                        })}
                         </div>
 
                         {/* GIẢI THÍCH CHUẨN 4 KHỐI */}

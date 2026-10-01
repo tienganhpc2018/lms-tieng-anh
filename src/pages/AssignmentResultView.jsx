@@ -193,7 +193,13 @@ export default function AssignmentResultView() {
 
                   {parts.map((pItem, pIdx) => {
                     const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
+                    const hasOptions = pQs.some((cq) => Array.isArray(cq.options) && cq.options.length > 0);
                     const isTrueFalse = pItem.part_type === 'true_false' || (pItem.part_title && (pItem.part_title.includes('True') || pItem.part_title.includes('False')));
+                    const isGapFill = pItem.part_type === 'gap_fill' ||
+                                      pItem.part_type === 'fill_in_blank' ||
+                                      pItem.part_type === 'short_answer' ||
+                                      (pItem.part_type === 'cloze_test' && !hasOptions) ||
+                                      (!hasOptions && pQs.some((cq) => (cq.correctAnswer || cq.correct_answer)));
 
                     return (
                       <div key={pIdx} className="space-y-3 pt-2">
@@ -235,6 +241,91 @@ export default function AssignmentResultView() {
                                     <p className="text-[11px] text-slate-800 font-medium">
                                       💡 <strong>Giải thích & Dẫn chứng chi tiết:</strong> {cQ.explanation || pItem.explanation || 'Dựa vào nội dung bài đọc, phát biểu này khớp chính xác với thông tin.'}
                                     </p>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            if (isGapFill) {
+                              const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer || '';
+                              const cleanUser = String(userChoice || '').trim().toLowerCase().replace(/[.,!?;:]+$/, '');
+                              const targets = String(targetAns)
+                                .split(/[\/,;]+/)
+                                .map((t) => t.trim().toLowerCase().replace(/[.,!?;:]+$/, ''))
+                                .filter(Boolean);
+                              const isCorrect = cleanUser !== '' && targets.includes(cleanUser);
+
+                              let qDisplay = (cQ.question || '').trim();
+                              qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
+                              qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
+                              const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
+
+                              const blankRegex = /(_{2,}|\[blank\]|\[chỗ trống\]|\[___+\]|\[\.\.\.+\]|\(\.\.\.+\)|\.\.\.+)/i;
+                              const hasInlineBlank = blankRegex.test(finalQuestionTitle);
+
+                              let textBefore = '';
+                              let textAfter = '';
+                              if (hasInlineBlank) {
+                                const match = finalQuestionTitle.match(blankRegex);
+                                if (match) {
+                                  const idx = finalQuestionTitle.indexOf(match[0]);
+                                  textBefore = finalQuestionTitle.slice(0, idx);
+                                  textAfter = finalQuestionTitle.slice(idx + match[0].length);
+                                }
+                              }
+
+                              return (
+                                <div key={cIdx} className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
+                                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                                    {hasInlineBlank ? (
+                                      <div className="text-xs sm:text-sm font-extrabold text-slate-900 leading-relaxed sm:leading-loose flex-1">
+                                        <span>{textBefore}</span>
+                                        <span className="inline-flex items-center mx-1.5 align-middle">
+                                          <span className={`inline-block px-3 py-1 rounded-xl border-2 text-xs sm:text-sm font-black text-center min-w-[120px] max-w-[200px] ${
+                                            isCorrect
+                                              ? 'bg-emerald-50 border-emerald-500 text-emerald-950 shadow-xs'
+                                              : 'bg-rose-50 border-rose-400 text-rose-950 line-through shadow-xs'
+                                          }`}>
+                                            {userChoice || '(Bỏ trống)'}
+                                          </span>
+                                          <span className="ml-1 text-xs font-black">
+                                            {isCorrect ? (
+                                              <span className="text-emerald-600 font-extrabold">✓</span>
+                                            ) : (
+                                              <span className="text-rose-600 font-extrabold">✕</span>
+                                            )}
+                                          </span>
+                                        </span>
+                                        <span>{textAfter}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex-1 space-y-1.5">
+                                        <h5 className="font-extrabold text-xs text-slate-900">{finalQuestionTitle}</h5>
+                                        <div className="flex items-center space-x-2 text-xs">
+                                          <span className="font-bold text-slate-600">Bài làm:</span>
+                                          <span className={`px-3 py-1 rounded-lg border font-semibold ${
+                                            isCorrect ? 'bg-emerald-50 border-emerald-400 text-emerald-900' : 'bg-rose-50 border-rose-300 text-rose-900 line-through'
+                                          }`}>
+                                            {userChoice || '(Bỏ trống)'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <span className={`px-2.5 py-0.5 rounded-lg text-[11px] font-black shrink-0 ${
+                                      isCorrect ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                    }`}>
+                                      {isCorrect ? '✓ ĐÚNG' : '✕ SAI'}
+                                    </span>
+                                  </div>
+
+                                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1">
+                                    <span className="font-black block">➔ Đáp án đúng chuẩn: {targetAns || 'Chưa thiết lập'}</span>
+                                    {(cQ.explanation || pItem.explanation) && (
+                                      <p className="text-[11px] text-slate-800 font-medium">
+                                        💡 <strong>Giải thích & Dẫn chứng:</strong> {cQ.explanation || pItem.explanation}
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               );
