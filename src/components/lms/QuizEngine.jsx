@@ -1528,36 +1528,82 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                             );
                           } else if (isPart2Short) {
                             return (
-                              <div key={cIdx} className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-2">
-                                <h4 className="font-extrabold text-xs text-slate-900 whitespace-pre-line">{cQ.question}</h4>
+                              <div key={cIdx} className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-2 shadow-xs">
+                                <h4 className="font-extrabold text-xs text-slate-900 whitespace-pre-line leading-relaxed">{cQ.question}</h4>
                                 <input
                                   type="text"
                                   disabled={submitted}
                                   value={selectedVal || ''}
                                   onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
                                   placeholder="Gõ câu hoàn chỉnh của bạn tại đây..."
-                                  className="w-full p-3 border border-slate-300 rounded-xl text-xs bg-white font-medium"
+                                  className="w-full p-3 border border-slate-300 rounded-xl text-xs bg-white font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
                                 />
                                 {submitted && (
-                                  <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs space-y-1">
-                                    <span className="font-bold text-emerald-950">➔ GỢI Ý ĐÁP ÁN MẪU: {cQ.sample_answer || 'Đáp án mẫu chuẩn'}</span>
+                                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1.5 animate-fadeIn">
+                                    <span className="font-black text-emerald-950 block">➔ GỢI Ý ĐÁP ÁN MẪU: {cQ.sample_answer || 'Đáp án mẫu chuẩn'}</span>
                                     {renderFormattedParagraphs(cQ.explanation || pItem.explanation)}
                                   </div>
                                 )}
                               </div>
                             );
                           } else {
+                            // DẠNG WRITING ESSAY / VIẾT ĐOẠN VĂN (PART 3) - CÓ BỘ ĐẾM SỐ TỪ TRỰC TIẾP
+                            const textVal = selectedVal || '';
+                            const trimmedText = textVal.trim();
+                            const wordCount = trimmedText === '' ? 0 : trimmedText.split(/\s+/).filter(Boolean).length;
+                            const isWordCountGood = wordCount >= 60 && wordCount <= 80;
+                            const isWordCountUnder = wordCount > 0 && wordCount < 60;
+                            const isWordCountOver = wordCount > 80;
+
                             return (
                               <div key={cIdx} className="p-4 bg-white border border-indigo-200 rounded-2xl space-y-3 shadow-xs">
-                                <h4 className="font-extrabold text-xs text-slate-900 whitespace-pre-line">{cQ.question}</h4>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-2">
+                                  <h4 className="font-extrabold text-xs text-indigo-950 whitespace-pre-line leading-relaxed flex-1">
+                                    {cIdx + 1}. {cQ.question}
+                                  </h4>
+
+                                  {/* LIVE WORD COUNTER (BỘ ĐẾM SỐ TỪ THỜI GIAN THỰC) */}
+                                  <div className={`px-3 py-1 rounded-xl text-[11px] font-black border flex items-center space-x-1.5 shrink-0 self-start sm:self-auto ${
+                                    isWordCountGood
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300 ring-1 ring-emerald-200'
+                                      : isWordCountUnder
+                                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                      : isWordCountOver
+                                      ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}>
+                                    <span>✍️ Số từ:</span>
+                                    <strong className="font-mono text-xs">{wordCount} từ</strong>
+                                    <span className="text-[10px] font-normal text-slate-500">
+                                      {isWordCountGood ? '✓ Đạt chuẩn 60-80 từ' : isWordCountUnder ? `(Thiếu ${60 - wordCount} từ)` : isWordCountOver ? '(Vượt 80 từ)' : '(Mục tiêu: 60-80 từ)'}
+                                    </span>
+                                  </div>
+                                </div>
+
                                 <textarea
-                                  rows={5}
+                                  rows={7}
                                   disabled={submitted}
-                                  value={selectedVal || ''}
+                                  value={textVal}
                                   onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                  placeholder="Học sinh gõ/dán bài văn hoàn chỉnh tại đây..."
-                                  className="w-full p-3 border border-indigo-300 rounded-xl text-xs bg-white font-serif leading-relaxed"
+                                  placeholder="Học sinh gõ/dán đoạn văn hoàn chỉnh tại đây (Ví dụ: My favourite film is 'The Lion King'...)..."
+                                  className="w-full p-3.5 border border-indigo-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 rounded-xl text-xs sm:text-sm bg-white font-serif leading-relaxed outline-none shadow-inner"
                                 />
+
+                                {submitted && (
+                                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-2 animate-fadeIn">
+                                    <div className="flex items-center space-x-2 text-emerald-950 font-black">
+                                      <span>📝 BÀI VĂN MẪU & DÀN Ý THAM KHẢO (SAMPLE PARAGRAPH):</span>
+                                    </div>
+                                    <p className="font-serif leading-relaxed text-slate-800 italic bg-white p-3 rounded-lg border border-emerald-200/80 whitespace-pre-line">
+                                      {cQ.sample_answer || 'Giáo viên chưa cung cấp bài văn mẫu.'}
+                                    </p>
+                                    {(cQ.explanation || pItem.explanation) && (
+                                      <p className="text-[11px] text-slate-700 leading-relaxed pt-1 border-t border-emerald-200/60 whitespace-pre-line">
+                                        💡 <strong>Tiêu chí đánh giá bài viết:</strong>\n{cQ.explanation || pItem.explanation}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             );
                           }

@@ -350,6 +350,45 @@ export default function AssignmentResultView() {
                               );
                             }
 
+                            const isEssay = pItem.part_type === 'short_essay' || pItem.part_type === 'full_essay' || cQ.type === 'short_essay' || cQ.type === 'full_essay' || (!cQ.options?.length && !isTrueFalse && !isGapFill);
+
+                            if (isEssay) {
+                              const essayText = String(userChoice || '').trim();
+                              const wordCount = essayText === '' ? 0 : essayText.split(/\s+/).filter(Boolean).length;
+
+                              return (
+                                <div key={cIdx} className="p-4 bg-white border border-indigo-200 rounded-2xl space-y-3 shadow-xs">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-2">
+                                    <h5 className="font-extrabold text-xs text-indigo-950 flex-1 leading-relaxed">
+                                      {cIdx + 1}. {cQ.question}
+                                    </h5>
+                                    <div className="px-3 py-0.5 bg-indigo-50 border border-indigo-200 rounded-lg text-[11px] font-black text-indigo-900 shrink-0">
+                                      ✍️ Đã viết: <strong>{wordCount} từ</strong>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1.5">
+                                    <span className="text-[11px] font-bold text-slate-600 block">Bài viết của bạn:</span>
+                                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-serif leading-relaxed text-slate-900 whitespace-pre-line">
+                                      {essayText || '(Học sinh chưa nộp bài viết cho câu này)'}
+                                    </div>
+                                  </div>
+
+                                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1.5">
+                                    <span className="font-black text-emerald-950 block">📝 GỢI Ý ĐÁP ÁN MẪU / DÀN Ý THAM KHẢO (SAMPLE PARAGRAPH):</span>
+                                    <p className="font-serif leading-relaxed text-slate-800 italic bg-white p-2.5 rounded-lg border border-emerald-200/80 whitespace-pre-line">
+                                      {cQ.sample_answer || 'Giáo viên chưa thiết lập bài mẫu.'}
+                                    </p>
+                                    {(cQ.explanation || pItem.explanation) && (
+                                      <p className="text-[11px] text-slate-700 leading-relaxed pt-1 border-t border-emerald-200/60 whitespace-pre-line">
+                                        💡 <strong>Tiêu chuẩn đánh giá:</strong>\n{cQ.explanation || pItem.explanation}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
                             const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
                             const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' ? o?.isCorrect : false);
                             const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || (cOpts[correctOptIndex]?.text) || 'Đáp án đúng';
