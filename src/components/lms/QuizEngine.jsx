@@ -502,11 +502,32 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
               }
             }
           } else {
-            // MẶC ĐỊNH VÀO LÀM BÀI MỚI -> RESET TOÀN BỘ TRẮNG SẠCH CÂU HỎI ĐỂ HỌC SINH / GIÁO VIÊN THI TỰ DO!
-            setUserAnswers({});
-            setUploadedStudentImages({});
-            setSubmitted(false);
-            setResultData(null);
+            // MẶC ĐỊNH VÀO LÀM BÀI MỚI -> KIỂM TRA BẢN NHÁP TRONG LOCALSTORAGE
+            let restored = false;
+            try {
+              const rawDraft = localStorage.getItem(autoSaveKey);
+              if (rawDraft) {
+                const draft = JSON.parse(rawDraft);
+                if (draft && draft.userAnswers && Object.keys(draft.userAnswers).length > 0) {
+                  setUserAnswers(draft.userAnswers || {});
+                  if (draft.uploadedStudentImages) setUploadedStudentImages(draft.uploadedStudentImages);
+                  if (draft.speechTranscripts) setSpeechTranscripts(draft.speechTranscripts);
+                  if (draft.activePartTab !== undefined) setActivePartTab(draft.activePartTab);
+                  if (draft.highlightedPhrases) setHighlightedPhrases(draft.highlightedPhrases);
+                  if (draft.secondsElapsed && !isCountdownMode) setSecondsElapsed(draft.secondsElapsed);
+                  setAutoSaveToast(true);
+                  setTimeout(() => setAutoSaveToast(false), 6000);
+                  restored = true;
+                }
+              }
+            } catch (eDraft) {}
+
+            if (!restored) {
+              setUserAnswers({});
+              setUploadedStudentImages({});
+              setSubmitted(false);
+              setResultData(null);
+            }
           }
         }
       } catch (err) {
@@ -518,6 +539,24 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
     }
     fetchQuestions();
   }, [activity, profile]);
+
+  // TỰ ĐỘNG LƯU BÀI LÀM VÀO LOCALSTORAGE REALTIME KHI HỌC SINH CHỌN ĐÁP ÁN
+  useEffect(() => {
+    if (!submitted && Object.keys(userAnswers).length > 0) {
+      try {
+        const draftObj = {
+          userAnswers,
+          uploadedStudentImages,
+          speechTranscripts,
+          activePartTab,
+          highlightedPhrases,
+          secondsElapsed,
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(autoSaveKey, JSON.stringify(draftObj));
+      } catch (eSave) {}
+    }
+  }, [userAnswers, uploadedStudentImages, speechTranscripts, activePartTab, highlightedPhrases, secondsElapsed, submitted, autoSaveKey]);
 
   const handleSelectAnswer = (questionKey, value) => {
     if (submitted) return;
@@ -1058,48 +1097,6 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
   const minsElapsed = Math.floor(secondsElapsed / 60);
   const secsElapsed = secondsElapsed % 60;
   const isTimeWarning = isCountdownMode && secondsRemaining < 120;
-
-  // TỰ ĐỘNG KHÔI PHỤC BÀI LÀM TỪ LOCALSTORAGE KHI VÀO LẠI TRANG
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const isReview = searchParams.get('mode') === 'review' || searchParams.get('review') === 'true' || searchParams.get('submissionId');
-    if (!isReview && !submitted) {
-      try {
-        const rawDraft = localStorage.getItem(autoSaveKey);
-        if (rawDraft) {
-          const draft = JSON.parse(rawDraft);
-          if (draft && draft.userAnswers && Object.keys(draft.userAnswers).length > 0) {
-            setUserAnswers(draft.userAnswers || {});
-            if (draft.uploadedStudentImages) setUploadedStudentImages(draft.uploadedStudentImages);
-            if (draft.speechTranscripts) setSpeechTranscripts(draft.speechTranscripts);
-            if (draft.activePartTab !== undefined) setActivePartTab(draft.activePartTab);
-            if (draft.highlightedPhrases) setHighlightedPhrases(draft.highlightedPhrases);
-            if (draft.secondsElapsed && !isCountdownMode) setSecondsElapsed(draft.secondsElapsed);
-            setAutoSaveToast(true);
-            setTimeout(() => setAutoSaveToast(false), 6000);
-          }
-        }
-      } catch (eDraft) {}
-    }
-  }, [activityId, activity, autoSaveKey, submitted]);
-
-  // TỰ ĐỘNG LƯU BÀI LÀM VÀO LOCALSTORAGE REALTIME KHI HỌC SINH CHỌN ĐÁP ÁN
-  useEffect(() => {
-    if (!submitted && Object.keys(userAnswers).length > 0) {
-      try {
-        const draftObj = {
-          userAnswers,
-          uploadedStudentImages,
-          speechTranscripts,
-          activePartTab,
-          highlightedPhrases,
-          secondsElapsed,
-          savedAt: new Date().toISOString(),
-        };
-        localStorage.setItem(autoSaveKey, JSON.stringify(draftObj));
-      } catch (eSave) {}
-    }
-  }, [userAnswers, uploadedStudentImages, speechTranscripts, activePartTab, highlightedPhrases, secondsElapsed, submitted, autoSaveKey]);
 
   // TÍNH TOÁN BẢNG MA TRẬN CÂU HỎI (QUESTION PALETTE 1 - 36...) VÀ TIẾN ĐỘ THỜI GIAN THỰC
   const flattenedQuestions = [];
