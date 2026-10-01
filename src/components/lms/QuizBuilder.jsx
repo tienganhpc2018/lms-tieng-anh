@@ -94,7 +94,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
   // State quản lý danh sách các Part (Cho Cloze Test, Listening, Reading, Writing, Multiple Choice)
   const [sectionParts, setSectionParts] = useState([]);
   const [activePartTab, setActivePartTab] = useState(0);
-  const [showAllParts, setShowAllParts] = useState(true);
+  const [showAllParts, setShowAllParts] = useState(false);
+  const [selectedChildTypeToAdd, setSelectedChildTypeToAdd] = useState('multiple_choice');
   const [directJsonText, setDirectJsonText] = useState('');
   const [isJsonDirectMode, setIsJsonDirectMode] = useState(false);
   const [partJsonModalIndex, setPartJsonModalIndex] = useState(null);
@@ -194,7 +195,8 @@ export default function QuizBuilder({ activityId, onSaved }) {
     setExplanation(q.content?.explanation || '');
     setSectionPassage(q.content?.passage || '');
     setIsJsonDirectMode(false);
-    setShowAllParts(true);
+    setShowAllParts(false);
+    setActivePartTab(0);
 
     if (normType === 'cloze_test') {
       const dbTasks = q.content?.tasks || [];
@@ -761,11 +763,15 @@ export default function QuizBuilder({ activityId, onSaved }) {
       newQ.question = `${newNum}. Statement question...`;
       newQ.correctAnswer = 'T';
       newQ.correct_answer = 'T';
-    } else if (qType === 'short_essay' || qType === 'full_essay') {
-      newQ.question = `${newNum}. Write a short paragraph (60-80 words)...`;
+    } else if (qType === 'short_essay') {
+      newQ.question = `${newNum}. Rewrite the sentence so that it has the same meaning...`;
       newQ.sample_answer = '';
+    } else if (qType === 'full_essay') {
+      newQ.question = `${newNum}. Write a short paragraph (60-80 words) about your favourite topic.`;
+      newQ.sample_answer = '';
+      newQ.explanation = '💡 Tiêu chí đánh giá bài viết:\n1. Task Response (Đúng chủ đề, độ dài 60-80 từ)\n2. Coherence & Cohesion (Bố cục rõ ràng)\n3. Lexical Resource (Từ vựng phong phú)\n4. Grammatical Range (Ngữ pháp chính xác)';
     } else if (qType === 'ordering') {
-      newQ.question = `${newNum}. a. First sentence\nb. Second sentence\nc. Third sentence\nd. Fourth sentence`;
+      newQ.question = `${newNum}. Sắp xếp các câu sau thành đoạn hội thoại hợp lý:\na. Hello, how are you today?\nb. I'm good, thank you. What about you?\nc. I'm doing well, let's study together!\nd. That sounds great!`;
       newQ.options = [
         { text: 'a-b-c-d', isCorrect: true },
         { text: 'b-a-c-d', isCorrect: false },
@@ -773,6 +779,18 @@ export default function QuizBuilder({ activityId, onSaved }) {
         { text: 'c-a-b-d', isCorrect: false }
       ];
       newQ.explanation = '💡 Trình tự logic: a ➔ b ➔ c ➔ d.';
+    } else if (qType === 'sentence_transformation') {
+      newQ.question = `${newNum}. Chọn câu có cùng ý nghĩa với câu gốc:\n"This solar-powered ship belongs to them."`;
+      newQ.options = [
+        { text: 'This solar-powered ship is their.', isCorrect: false },
+        { text: 'This solar-powered ship is they.', isCorrect: false },
+        { text: 'This solar-powered ship is theirs.', isCorrect: true },
+        { text: 'This solar-powered ship is them.', isCorrect: false }
+      ];
+      newQ.explanation = '💡 Cấu trúc sở hữu: belong to sb = be + đại từ sở hữu (theirs).';
+    } else if (qType === 'speaking_test') {
+      newQ.question = `${newNum}. Read the sentence out loud into your microphone.`;
+      newQ.sample_answer = 'Practice pronunciation accurately.';
     } else {
       newQ.options = [
         { text: 'Option A', isCorrect: true },
@@ -1499,45 +1517,53 @@ export default function QuizBuilder({ activityId, onSaved }) {
                 <div className="space-y-4 border border-blue-200 rounded-3xl p-5 bg-blue-50/20">
                   <div className="flex items-center justify-between border-b border-blue-200 pb-3 overflow-x-auto gap-2">
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs font-extrabold text-blue-950 uppercase flex items-center space-x-1">
+                      <span className="text-xs font-black text-blue-950 uppercase flex items-center space-x-1">
                         <Layers className="w-4 h-4 text-blue-600" />
-                        <span>DANH SÁCH PART ({sectionParts.length} Part):</span>
+                        <span>CÁC PART ({sectionParts.length} Part):</span>
                       </span>
 
-                      {sectionParts.map((p, pIdx) => (
-                        <button
-                          key={pIdx}
-                          type="button"
-                          onClick={() => {
-                            setActivePartTab(pIdx);
-                            setShowAllParts(false);
-                          }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center space-x-1.5 ${
-                            !showAllParts && activePartTab === pIdx
-                              ? 'bg-blue-600 text-white shadow-md'
-                              : 'bg-white text-blue-900 border border-blue-200 hover:bg-blue-100'
-                          }`}
-                        >
-                          <span>PART #{pIdx + 1}</span>
-                        </button>
-                      ))}
+                      {sectionParts.map((p, pIdx) => {
+                        const qCount = (p.questions || []).length;
+                        return (
+                          <button
+                            key={pIdx}
+                            type="button"
+                            onClick={() => {
+                              setActivePartTab(pIdx);
+                              setShowAllParts(false);
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 cursor-pointer ${
+                              !showAllParts && activePartTab === pIdx
+                                ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-300'
+                                : 'bg-white text-blue-900 border border-blue-200 hover:bg-blue-100'
+                            }`}
+                          >
+                            <span>PART #{pIdx + 1}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                              !showAllParts && activePartTab === pIdx ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700'
+                            }`}>
+                              {qCount} câu
+                            </span>
+                          </button>
+                        );
+                      })}
 
                       <button
                         type="button"
-                        onClick={() => setShowAllParts(true)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center space-x-1 ${
-                          showAllParts ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-amber-800 border border-amber-300'
+                        onClick={() => setShowAllParts(!showAllParts)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center space-x-1 cursor-pointer ${
+                          showAllParts ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-50'
                         }`}
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        <span>👁️ HIỆN TẤT CẢ CÁC PART CÙNG LÚC</span>
+                        <span>{showAllParts ? '📑 Chế độ từng Part' : '👁️ Xem tất cả Part'}</span>
                       </button>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleAddNewPart}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center space-x-1 flex-shrink-0"
+                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs transition flex items-center space-x-1 flex-shrink-0 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>+ THÊM PART {sectionParts.length + 1}</span>
@@ -1560,9 +1586,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
                             <span>PART #{pIdx + 1}: {
                               pItem.part_type === 'gap_fill' ? 'Điền Từ Chỗ Trống (Gap-Fill)' :
                               pItem.part_type === 'true_false' ? 'True / False (Đúng/Sai)' :
+                              pItem.part_type === 'ordering' ? 'Sắp Xếp Hội Thoại / Câu' :
+                              pItem.part_type === 'sentence_transformation' ? 'Chọn Câu Đồng Nghĩa' :
                               pItem.part_type === 'short_essay' ? 'Tự Luận Ngắn' :
-                              pItem.part_type === 'full_essay' ? 'Bài Luận Dài / Tải Ảnh' :
+                              pItem.part_type === 'full_essay' ? 'Bài Luận Dài / Đoạn Văn' :
                               pItem.part_type === 'cloze_test' ? 'Cloze Test Đục Lỗ' :
+                              pItem.part_type === 'reading_section' ? 'Bài Đọc Hiểu 2 Cột' :
+                              pItem.part_type === 'listening_section' ? 'Bài Nghe Audio MP3' :
+                              pItem.part_type === 'speaking_test' ? 'Speaking Test (Phát Âm AI)' :
                               'Trắc Nghiệm A,B,C,D'
                             }</span>
                           </span>
@@ -1574,7 +1605,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 setPartJsonModalIndex(pIdx);
                                 setPartJsonInputText('');
                               }}
-                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1 shadow-xs"
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold flex items-center space-x-1 shadow-xs cursor-pointer"
                             >
                               <FileCode className="w-3.5 h-3.5" />
                               <span>📥 Nhập / Dán JSON</span>
@@ -1586,14 +1617,14 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 isWriting ? 'json_writing_part' :
                                 isCloze ? 'json_cloze_part' : 'json'
                               )}
-                              className="px-2.5 py-1 bg-blue-50 text-blue-900 rounded-lg text-[11px] font-bold hover:bg-blue-100"
+                              className="px-2.5 py-1 bg-blue-50 text-blue-900 rounded-lg text-[11px] font-bold hover:bg-blue-100 cursor-pointer"
                             >
                               📥 Tải JSON Mẫu
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDeletePart(pIdx)}
-                              className="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-[11px] font-bold flex items-center space-x-1"
+                              className="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-[11px] font-bold flex items-center space-x-1 cursor-pointer"
                             >
                               <Trash2 className="w-3 h-3" />
                               <span>Xóa Part #{pIdx + 1}</span>
@@ -1626,14 +1657,19 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 }
                                 setSectionParts(newParts);
                               }}
-                              className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white font-bold"
+                              className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-bold text-slate-800"
                             >
-                              <option value="multiple_choice">Trắc Nghiệm A, B, C, D</option>
-                              <option value="true_false">True / False (Đúng/Sai)</option>
-                              <option value="gap_fill">Điền từ vào chỗ trống (Gap-Fill / Nghe điền 1-3 từ)</option>
-                              <option value="short_essay">Part 2: Tự Luận Ngắn (Viết lại câu)</option>
-                              <option value="full_essay">Part 3: Bài Luận Dài (Dán Văn Bản / Tải Ảnh Bài Làm)</option>
-                              <option value="cloze_test">Cloze Test Đục Lỗ</option>
+                              <option value="multiple_choice">🎯 1. Trắc Nghiệm 4 lựa chọn (Multiple Choice A, B, C, D)</option>
+                              <option value="true_false">⚖️ 2. True / False (Đúng hoặc Sai - T/F)</option>
+                              <option value="gap_fill">✏️ 3. Điền từ vào chỗ trống (Gap-Fill / Inline Blank)</option>
+                              <option value="ordering">🔄 4. Sắp xếp đoạn hội thoại / Sắp xếp câu (Conversation Ordering)</option>
+                              <option value="sentence_transformation">✍️ 5. Chọn câu đồng nghĩa / Viết lại câu (Sentence Transformation)</option>
+                              <option value="short_essay">📝 6. Tự luận ngắn (Short Answer / Rewriting)</option>
+                              <option value="full_essay">📄 7. Viết đoạn văn 60-80 từ / Bài luận (Paragraph Writing & Live Counter)</option>
+                              <option value="cloze_test">🗂️ 8. Cloze Test (Đọc hiểu đục lỗ)</option>
+                              <option value="reading_section">📖 9. Reading Comprehension (Đọc hiểu 2 cột)</option>
+                              <option value="listening_section">🎧 10. Listening Section (Bài nghe Audio MP3)</option>
+                              <option value="speaking_test">🎙️ 11. Speaking Test (Luyện phát âm AI qua Microphone)</option>
                             </select>
                           </div>
 
@@ -1649,13 +1685,13 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                 newParts[pIdx].part_title = e.target.value;
                                 setSectionParts(newParts);
                               }}
-                              className="w-full px-3 py-1.5 border border-slate-300 rounded-xl text-xs bg-white font-bold"
+                              className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white font-bold"
                             />
                           </div>
                         </div>
 
                         {/* KHUNG TẢI FILE ÂM THANH TRỰC TIẾP TỪ MÁY TÍNH CHUẨN ĐÚNG 100% THEO ẢNH 1 CỦA THẦY HẢI */}
-                        {selectedType?.toLowerCase().includes('listening') ? (
+                        {selectedType?.toLowerCase().includes('listening') || pItem.part_type === 'listening_section' ? (
                           <div className="p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 space-y-3 text-slate-900 shadow-sm">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                               <label className="text-xs font-black text-amber-950 flex items-center space-x-2">
@@ -1698,13 +1734,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                   updatedPartsInitial[pIdx].rawAudioFile = file;
                                   setSectionParts([...updatedPartsInitial]);
 
-                                  setToast({
-                                    isOpen: true,
-                                    type: 'info',
-                                    title: '⚡ Đang Upload File Audio Lên Supabase Storage',
-                                    message: `Đang tải vĩnh viễn file "${file.name}" lên máy chủ Storage...`
-                                  });
-
                                   try {
                                     const fileExt = file.name.split('.').pop();
                                     const fileName = `audios/listening_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -1735,12 +1764,6 @@ export default function QuizBuilder({ activityId, onSaved }) {
                                         updatedParts[pIdx].audioUrl = onlineUrl;
                                         updatedParts[pIdx].audioFileName = file.name;
                                         setSectionParts([...updatedParts]);
-                                        setToast({
-                                          isOpen: true,
-                                          type: 'success',
-                                          title: 'Upload Audio Từ Máy Tính Thành Công 100%',
-                                          message: `Đã lưu file "${file.name}"! Thầy Hải có thể bấm nghe thử ngay bên dưới!`
-                                        });
                                       }
                                     }
                                   } catch (ex) {
@@ -1787,7 +1810,7 @@ export default function QuizBuilder({ activityId, onSaved }) {
                               />
                             </div>
                           </div>
-                        ) : ['reading_section', 'cloze_test', 'reading_tf'].includes(selectedType?.toLowerCase()) ? (
+                        ) : ['reading_section', 'cloze_test', 'reading_tf'].includes(selectedType?.toLowerCase()) || pItem.part_type === 'reading_section' || pItem.part_type === 'cloze_test' || Boolean(pItem.passage) ? (
                           /* 2. CHỈ CÓ READING VÀ KNOWLEDGE OF LANGUAGE (CLOZE TEST) MỚI CÓ KHUNG ĐOẠN VĂN CHUNG */
                           <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-1">
                             <label className="block text-[11px] font-extrabold text-sky-950 uppercase flex items-center space-x-1">
@@ -1810,60 +1833,38 @@ export default function QuizBuilder({ activityId, onSaved }) {
 
                         {/* DANH SÁCH CÂU HỎI TRONG PART */}
                         <div className="space-y-3 border-t border-slate-100 pt-3">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-100/80 p-3 rounded-2xl border border-slate-200">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-100/90 p-3 rounded-2xl border border-slate-200">
                             <span className="text-xs font-black text-slate-800 uppercase flex items-center space-x-1.5">
                               <span>📋 DANH SÁCH CÂU HỎI TRONG PART #{pIdx + 1} ({ (pItem.questions || []).length } câu):</span>
                             </span>
 
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleAddQuestionWithType(pIdx, 'multiple_choice')}
-                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs flex items-center space-x-1 transition"
-                                title="Thêm câu trắc nghiệm 4 lựa chọn A, B, C, D"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>+ Trắc nghiệm A,B,C,D</span>
-                              </button>
+                            {/* MENU SỔ XUỐNG TỔNG HỢP TẤT CẢ CÁC DẠNG CÂU HỎI & NÚT THÊM */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex items-center space-x-1.5 bg-white px-2.5 py-1 rounded-xl border border-slate-300 shadow-2xs">
+                                <span className="text-[11px] font-bold text-slate-600">Kiểu câu hỏi:</span>
+                                <select
+                                  value={selectedChildTypeToAdd}
+                                  onChange={(e) => setSelectedChildTypeToAdd(e.target.value)}
+                                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer pr-1"
+                                >
+                                  <option value="multiple_choice">🎯 Trắc nghiệm 4 lựa chọn (A, B, C, D)</option>
+                                  <option value="true_false">⚖️ True / False (Đúng hoặc Sai - T/F)</option>
+                                  <option value="gap_fill">✏️ Điền từ vào chỗ trống (Gap-Fill / Inline Blank)</option>
+                                  <option value="ordering">🔄 Sắp xếp đoạn hội thoại (Conversation Ordering)</option>
+                                  <option value="sentence_transformation">✍️ Chọn câu đồng nghĩa (Sentence Transformation)</option>
+                                  <option value="short_essay">📝 Tự luận ngắn (Short Answer / Viết lại câu)</option>
+                                  <option value="full_essay">📄 Viết đoạn văn (Paragraph Writing 60-80 từ)</option>
+                                  <option value="speaking_test">🎙️ Luyện phát âm AI (Speaking Test)</option>
+                                </select>
+                              </div>
 
                               <button
                                 type="button"
-                                onClick={() => handleAddQuestionWithType(pIdx, 'ordering')}
-                                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold shadow-xs flex items-center space-x-1 transition"
-                                title="Thêm câu sắp xếp câu/hội thoại"
+                                onClick={() => handleAddQuestionWithType(pIdx, selectedChildTypeToAdd)}
+                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-xs flex items-center space-x-1.5 transition cursor-pointer"
                               >
                                 <Plus className="w-3.5 h-3.5" />
-                                <span>+ Sắp xếp hội thoại</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleAddQuestionWithType(pIdx, 'gap_fill')}
-                                className="px-2.5 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-[11px] font-bold shadow-xs flex items-center space-x-1 transition"
-                                title="Thêm câu hỏi điền từ vào chỗ trống"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>+ Điền từ (Gap-Fill)</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleAddQuestionWithType(pIdx, 'full_essay')}
-                                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold shadow-xs flex items-center space-x-1 transition"
-                                title="Thêm câu hỏi viết đoạn văn hoặc bài luận"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>+ Viết đoạn văn (Essay)</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleAddQuestionWithType(pIdx, 'true_false')}
-                                className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[11px] font-bold shadow-xs flex items-center space-x-1 transition"
-                                title="Thêm câu hỏi Đúng / Sai"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>+ True / False</span>
+                                <span>+ Thêm Câu Hỏi Này</span>
                               </button>
                             </div>
                           </div>

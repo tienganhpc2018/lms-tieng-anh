@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, RotateCcw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked, Mic, MicOff, Shuffle, Trophy, Compass } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, RotateCcw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked, Mic, MicOff, Shuffle, Trophy, Compass, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Layers, Check } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { compressImage } from '../../utils/imageCompressor';
 import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
@@ -93,6 +93,11 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
   // LISTENING AUDIO PLAY COUNT & TEACHER TRANSCRIPT STATE
   const [audioPlayCounts, setAudioPlayCounts] = useState({});
   const [openTranscripts, setOpenTranscripts] = useState({});
+
+  // TAB ĐIỀU HƯỚNG CÁC PART & CỠ CHỮ BÀI ĐỌC READING (SPLIT-SCREEN)
+  const [activePartTab, setActivePartTab] = useState(0);
+  const [showAllParts, setShowAllParts] = useState(false);
+  const [passageFontSize, setPassageFontSize] = useState('text-xs sm:text-sm');
 
   const toggleTeacherTranscript = (pIdx) => {
     setOpenTranscripts((prev) => ({ ...prev, [pIdx]: !prev[pIdx] }));
@@ -1098,20 +1103,98 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
           // TRÍCH XUẤT MẢNG PARTS SOẠN TỪ BỘ SOẠN ĐỀ ADMIN (ẢNH 1 & ẢNH 2)
           if (sectionParts.length > 0) {
             return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-600 rounded-3xl p-5 shadow-xs border-y border-r border-slate-200 space-y-4">
-                <div className="bg-emerald-50/70 rounded-xl p-3 flex justify-between items-center">
+              <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-600 rounded-3xl p-4 sm:p-5 shadow-xs border-y border-r border-slate-200 space-y-4">
+                {/* TIÊU ĐỀ ĐỀ THI TỔNG & NÚT XEM TẤT CẢ */}
+                <div className="bg-emerald-50/70 rounded-2xl p-3 flex flex-wrap justify-between items-center gap-2">
                   <h3 className="font-extrabold text-xs text-emerald-950 tracking-wide uppercase flex items-center space-x-2">
                     <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
                       {qIdx + 1}
                     </span>
-                    <span>{q.content?.title || q.content?.question || 'ĐỀ THI TRẮC NGHIỆM'}</span>
+                    <span>{q.content?.title || q.content?.question || 'ĐỀ THI TRẮC NGHIỆM TIẾNG ANH'}</span>
                   </h3>
-                  <span className="text-[10px] font-extrabold bg-emerald-200/80 text-emerald-900 px-2.5 py-0.5 rounded-md uppercase">
-                    📝 ĐỀ THI THỬ
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAllParts(!showAllParts)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition flex items-center space-x-1 border cursor-pointer ${
+                        showAllParts
+                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                      }`}
+                      title="Chuyển đổi giữa chế độ từng Part hoặc xem toàn bộ đề"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{showAllParts ? '📑 Chế độ từng Part' : '👁️ Xem tất cả các Part'}</span>
+                    </button>
+                    <span className="text-[10px] font-extrabold bg-emerald-200/80 text-emerald-900 px-2.5 py-0.5 rounded-md uppercase">
+                      📝 {sectionParts.length} PARTS
+                    </span>
+                  </div>
+                </div>
+
+                {/* THANH TAB ĐIỀU HƯỚNG CÁC PART (SIDETAB / TOP TABS) */}
+                <div className="flex items-center space-x-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin border-b border-slate-100">
+                  {sectionParts.map((pTab, ptIdx) => {
+                    const pTabQs = Array.isArray(pTab.questions) ? pTab.questions : [];
+                    const totalQInThis = pTabQs.length;
+                    const answeredInThis = pTabQs.filter((_, cI) => {
+                      const k = `${q.id}_p${ptIdx}_q${cI}`;
+                      const v = userAnswers[k];
+                      return v !== undefined && v !== null && String(v).trim() !== '';
+                    }).length;
+                    const isAllDone = totalQInThis > 0 && answeredInThis === totalQInThis;
+                    const isPartial = answeredInThis > 0 && !isAllDone;
+
+                    // Xác định icon / badge loại Part
+                    const isListeningPart = pTab.part_type === 'listening_section' || Boolean(pTab.audio_url || pTab.audioUrl || pTab.audio_data);
+                    const isReadingPart = pTab.part_type === 'reading_section' || pTab.part_type === 'cloze_test' || Boolean(pTab.passage);
+                    const isWritingPart = pTab.part_type === 'short_essay' || pTab.part_type === 'full_essay' || pTab.part_type === 'writing_section';
+                    const isTFPart = pTab.part_type === 'true_false' || (pTab.part_title && (pTab.part_title.includes('True') || pTab.part_title.includes('False')));
+                    const isGapPart = pTab.part_type === 'gap_fill' || pTab.part_type === 'fill_in_blank';
+
+                    const partTypeIcon = isListeningPart ? '🎧 Nghe' : isReadingPart ? '📖 Đọc' : isWritingPart ? '✍️ Viết' : isTFPart ? '⚖️ T/F' : isGapPart ? '✏️ Điền' : '🎯 Trắc nghiệm';
+
+                    const isActive = (!showAllParts && activePartTab === ptIdx) || (showAllParts && activePartTab === ptIdx);
+
+                    return (
+                      <button
+                        key={ptIdx}
+                        type="button"
+                        onClick={() => {
+                          setActivePartTab(ptIdx);
+                          setShowAllParts(false);
+                        }}
+                        className={`px-3.5 py-2 rounded-2xl font-black text-xs transition flex items-center space-x-2 shrink-0 cursor-pointer shadow-xs border ${
+                          isActive
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/40'
+                        }`}
+                      >
+                        <span className="uppercase">PART {ptIdx + 1}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {partTypeIcon}
+                        </span>
+                        {totalQInThis > 0 && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black font-mono border ${
+                            isAllDone
+                              ? isActive ? 'bg-white text-emerald-800 border-white' : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : isPartial
+                              ? isActive ? 'bg-amber-400 text-amber-950 border-amber-300' : 'bg-amber-100 text-amber-900 border-amber-300'
+                              : isActive ? 'bg-white/20 text-white border-white/40' : 'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}>
+                            {answeredInThis}/{totalQInThis}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {sectionParts.map((pItem, pIdx) => {
+                  if (!showAllParts && activePartTab !== pIdx) return null;
+
                   const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
                   const hasOptions = pQs.some((cq) => Array.isArray(cq.options) && cq.options.length > 0);
                   const isTrueFalse = pItem.part_type === 'true_false' || (pItem.part_title && (pItem.part_title.includes('True') || pItem.part_title.includes('False')));
@@ -1122,6 +1205,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                     (!hasOptions && pQs.some((cq) => (cq.correctAnswer || cq.correct_answer)));
                   const isPart1MC = (pItem.part_type === 'multiple_choice' || (pItem.part_type === 'cloze_test' && hasOptions) || (!pItem.part_type && hasOptions)) && !isTrueFalse && !isGapFill;
                   const isPart2Short = pItem.part_type === 'short_essay';
+                  const hasPassage = Boolean(pItem.passage && pItem.passage.trim() !== '');
 
                   const extractAudioForPart = () => {
                     const candidates = [
@@ -1154,14 +1238,358 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
                   const activeAudioSource = extractAudioForPart();
 
+                  const renderChildQuestions = () => (
+                    <div className="space-y-3 pt-1">
+                      {pQs.map((cQ, cIdx) => {
+                        const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
+                        const selectedVal = userAnswers[childKey];
+
+                        // 1. DẠNG TRUE / FALSE KHÍT DÒNG HẸP
+                        if (isTrueFalse) {
+                          const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.correctAnswer === 'T' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
+                          const isCorrectFalse = cQ.correctAnswer === 'False' || cQ.correctAnswer === 'F' || cQ.options?.find(o => o.text === 'False')?.isCorrect;
+                          const isSelectedTrue = selectedVal === 'True' || selectedVal === 'T';
+                          const isSelectedFalse = selectedVal === 'False' || selectedVal === 'F';
+                          const correctText = isCorrectTrue ? 'True (Đúng)' : 'False (Sai)';
+
+                          // Lọc số thứ tự nếu câu hỏi đã chứa số
+                          let qText = cQ.question || 'Statement question';
+
+                          return (
+                            <div key={cIdx} className="p-3.5 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-2">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <span className="font-extrabold text-xs text-slate-900 leading-relaxed flex-1">
+                                  {cIdx + 1}. {qText}
+                                </span>
+
+                                {/* ĐÁP ÁN NÚT TRUE / FALSE COMPACT */}
+                                <div className="flex items-center space-x-1.5 self-end sm:self-center">
+                                  <button
+                                    disabled={submitted}
+                                    onClick={() => handleSelectAnswer(childKey, 'True')}
+                                    className={`px-3 py-1 rounded-xl text-xs font-extrabold border transition ${
+                                      isSelectedTrue
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-1 ring-emerald-300'
+                                        : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-500 hover:text-emerald-700'
+                                    }`}
+                                  >
+                                    <span>T</span>
+                                  </button>
+
+                                  <button
+                                    disabled={submitted}
+                                    onClick={() => handleSelectAnswer(childKey, 'False')}
+                                    className={`px-3 py-1 rounded-xl text-xs font-extrabold border transition ${
+                                      isSelectedFalse
+                                        ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-1 ring-rose-300'
+                                        : 'bg-white text-slate-600 border-slate-300 hover:border-rose-500 hover:text-rose-700'
+                                    }`}
+                                  >
+                                    <span>F</span>
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* CHỈ HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT KHI ĐÃ NỘP BÀI (SUBMITTED) */}
+                              {submitted && renderCompactExplanation(
+                                cQ.explanation || pItem.explanation || `Dẫn chứng phân tích: Dựa vào nội dung bài đọc, câu phát biểu này là ${correctText}.`,
+                                correctText,
+                                cQ,
+                                selectedVal
+                              )}
+                            </div>
+                          );
+                        } else if (isPart1MC) {
+                          const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                          const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' ? o?.isCorrect : false);
+                          const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || (cOpts[correctOptIndex]?.text) || 'Đáp án đúng';
+
+                          // LỌC SỐ THỨ TỰ THỪA & LỌC CHỮ "Câu 1:", "Câu 2:" TRÁNH LẶP
+                          let qDisplay = (cQ.question || '').trim();
+                          qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
+                          qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
+                          const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
+
+                          const selectedText = selectedVal;
+
+                          return (
+                            <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3">
+                              <h4 className="font-extrabold text-sm text-slate-900 leading-relaxed whitespace-pre-line">
+                                {finalQuestionTitle}
+                              </h4>
+
+                              {/* 4 LỰA CHỌN A, B, C, D */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full my-1">
+                                {cOpts.map((opt, oIdx) => {
+                                  const optPrefix = String.fromCharCode(65 + oIdx);
+                                  let rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
+                                  
+                                  const cleanRegex = new RegExp(`^(${optPrefix}[\\.\\):]\\s*|\\([A-D]\\)\\s*|[A-D][\\.\\)]\\s*)`, 'i');
+                                  rawOptText = rawOptText.trim().replace(cleanRegex, '').trim();
+
+                                  const isCorrectOpt = (typeof opt === 'object' && opt?.isCorrect) || oIdx === correctOptIndex;
+
+                                  const isSelected = selectedText === rawOptText ||
+                                                     selectedText === optPrefix ||
+                                                     selectedText === oIdx ||
+                                                     selectedText === String(oIdx) ||
+                                                     selectedText === `${optPrefix}. ${rawOptText}`;
+
+                                  let buttonStyle = 'bg-white text-slate-800 border-slate-300 hover:bg-purple-50 hover:border-purple-400 opacity-100 shadow-xs';
+
+                                  if (submitted) {
+                                    if (isSelected && !isCorrectOpt) {
+                                      buttonStyle = 'bg-rose-600 text-white border-rose-700 ring-2 ring-rose-300 font-extrabold shadow-md opacity-100';
+                                    } else if (isCorrectOpt) {
+                                      buttonStyle = 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-300 font-extrabold shadow-md opacity-100';
+                                    } else {
+                                      buttonStyle = 'bg-slate-100 text-slate-800 border-slate-300 opacity-100 font-semibold';
+                                    }
+                                  } else if (isSelected) {
+                                    buttonStyle = 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 font-extrabold shadow-md opacity-100';
+                                  }
+
+                                  return (
+                                    <button
+                                      key={oIdx}
+                                      disabled={submitted}
+                                      onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                      className={`flex items-center justify-start px-3.5 py-2.5 rounded-xl text-xs border font-bold transition w-full text-left cursor-pointer ${buttonStyle}`}
+                                    >
+                                      <span className={`mr-2 font-extrabold text-xs ${submitted && (isSelected || isCorrectOpt) ? 'text-white' : 'text-amber-700'}`}>
+                                        {optPrefix}.
+                                      </span>
+                                      <span className="font-extrabold text-xs truncate flex-1">{rawOptText}</span>
+
+                                      {submitted && isSelected && !isCorrectOpt && (
+                                        <span className="ml-1 text-[10px] bg-rose-900/60 px-1.5 py-0.5 rounded-md text-white font-extrabold shrink-0">✕ SAI</span>
+                                      )}
+                                      {submitted && isCorrectOpt && (
+                                        <span className="ml-1 text-[10px] bg-emerald-900/60 px-1.5 py-0.5 rounded-md text-white font-extrabold shrink-0">✓ ĐÚNG</span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* KHUNG GIẢI THÍCH CHI TIẾT */}
+                              {submitted && renderCompactExplanation(
+                                cQ.explanation || pItem.explanation || `Dẫn chứng & Phân tích: Đáp án đúng chính xác là "${correctText}".`,
+                                correctText,
+                                cQ,
+                                selectedText
+                              )}
+                            </div>
+                          );
+                        } else if (isGapFill) {
+                          const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer || '';
+                          const isCorrect = isGapFillAnswer(selectedVal, targetAns);
+                          const displayCorrectAnswer = targetAns ? String(targetAns).trim() : '';
+
+                          let qDisplay = (cQ.question || '').trim();
+                          qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
+                          qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
+                          const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
+
+                          const blankRegex = /(_{2,}|\[blank\]|\[chỗ trống\]|\[___+\]|\[\.\.\.+\]|\(\.\.\.+\)|\.\.\.+)/i;
+                          const hasInlineBlank = blankRegex.test(finalQuestionTitle);
+
+                          let textBefore = '';
+                          let textAfter = '';
+                          if (hasInlineBlank) {
+                            const match = finalQuestionTitle.match(blankRegex);
+                            if (match) {
+                              const idx = finalQuestionTitle.indexOf(match[0]);
+                              textBefore = finalQuestionTitle.slice(0, idx);
+                              textAfter = finalQuestionTitle.slice(idx + match[0].length);
+                            }
+                          }
+
+                          return (
+                            <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3 shadow-xs transition-all">
+                              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                                {hasInlineBlank ? (
+                                  /* DẠNG 1: INLINE BLANK FILLING */
+                                  <div className="text-xs sm:text-sm font-extrabold text-slate-900 leading-relaxed sm:leading-loose flex-1">
+                                    <span>{textBefore}</span>
+                                    <span className="inline-flex items-center mx-1.5 align-middle">
+                                      <input
+                                        type="text"
+                                        disabled={submitted}
+                                        value={selectedVal || ''}
+                                        onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                        placeholder="điền từ..."
+                                        className={`min-w-[130px] max-w-[220px] w-36 sm:w-48 px-3 py-1 text-xs sm:text-sm font-black text-center rounded-xl border-2 transition-all outline-none ${
+                                          submitted
+                                            ? isCorrect
+                                              ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black shadow-xs ring-1 ring-emerald-300'
+                                              : 'bg-rose-50 border-rose-400 text-rose-950 font-bold line-through shadow-xs ring-1 ring-rose-200'
+                                            : 'bg-white border-indigo-300 text-slate-800 hover:border-indigo-500 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
+                                        }`}
+                                      />
+                                      {submitted && (
+                                        <span className="ml-1 text-xs font-black">
+                                          {isCorrect ? (
+                                            <span className="text-emerald-600 font-extrabold">✓</span>
+                                          ) : (
+                                            <span className="text-rose-600 font-extrabold">✕</span>
+                                          )}
+                                        </span>
+                                      )}
+                                    </span>
+                                    <span>{textAfter}</span>
+                                  </div>
+                                ) : (
+                                  /* DẠNG 2: NẾU CÂU HỎI KHÔNG CHỨA DẤU CHỖ TRỐNG */
+                                  <div className="flex-1 space-y-2">
+                                    <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-relaxed whitespace-pre-line">
+                                      {finalQuestionTitle}
+                                    </h4>
+                                    <div className="relative w-full max-w-sm sm:max-w-md pt-1">
+                                      <input
+                                        type="text"
+                                        disabled={submitted}
+                                        value={selectedVal || ''}
+                                        onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                        placeholder="Nhập 1 - 3 từ cần điền..."
+                                        className={`w-full px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl border-2 transition-all outline-none ${
+                                          submitted
+                                            ? isCorrect
+                                              ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
+                                              : 'bg-rose-50 border-rose-400 text-rose-950 font-semibold line-through shadow-xs'
+                                            : 'bg-white border-slate-300 text-slate-800 hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
+                                        }`}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {submitted && (
+                                  <span className={`px-2.5 py-0.5 rounded-lg text-[11px] font-black shrink-0 flex items-center space-x-1 ${
+                                    isCorrect
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                      : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                  }`}>
+                                    <span>{isCorrect ? '✓ ĐÚNG' : '✕ SAI'}</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* HIỂN THỊ ĐÁP ÁN ĐÚNG VÀ GIẢI THÍCH CHI TIẾT */}
+                              {submitted && (
+                                <div className="p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1.5 animate-fadeIn">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-extrabold text-emerald-950">➔ Đáp án đúng:</span>
+                                    <span className="font-black font-mono text-emerald-800 bg-white px-2.5 py-0.5 rounded-md border border-emerald-300 shadow-2xs">
+                                      {displayCorrectAnswer || 'Chưa thiết lập đáp án'}
+                                    </span>
+                                  </div>
+
+                                  {(cQ.explanation || pItem.explanation) && (
+                                    <p className="text-[11px] text-slate-800 font-medium pt-1 border-t border-emerald-200/60 leading-relaxed">
+                                      💡 <strong>Giải thích chi tiết:</strong> {cQ.explanation || pItem.explanation}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        } else if (isPart2Short) {
+                          return (
+                            <div key={cIdx} className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-2 shadow-xs">
+                              <h4 className="font-extrabold text-xs text-slate-900 whitespace-pre-line leading-relaxed">{cQ.question}</h4>
+                              <input
+                                type="text"
+                                disabled={submitted}
+                                value={selectedVal || ''}
+                                onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                placeholder="Gõ câu hoàn chỉnh của bạn tại đây..."
+                                className="w-full p-3 border border-slate-300 rounded-xl text-xs bg-white font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                              />
+                              {submitted && (
+                                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1.5 animate-fadeIn">
+                                  <span className="font-black text-emerald-950 block">➔ GỢI Ý ĐÁP ÁN MẪU: {cQ.sample_answer || 'Đáp án mẫu chuẩn'}</span>
+                                  {renderFormattedParagraphs(cQ.explanation || pItem.explanation)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        } else {
+                          // DẠNG WRITING ESSAY / VIẾT ĐOẠN VĂN (PART 3) - CÓ BỘ ĐẾM SỐ TỪ TRỰC TIẾP
+                          const textVal = selectedVal || '';
+                          const trimmedText = textVal.trim();
+                          const wordCount = trimmedText === '' ? 0 : trimmedText.split(/\s+/).filter(Boolean).length;
+                          const isWordCountGood = wordCount >= 60 && wordCount <= 80;
+                          const isWordCountUnder = wordCount > 0 && wordCount < 60;
+                          const isWordCountOver = wordCount > 80;
+
+                          return (
+                            <div key={cIdx} className="p-4 bg-white border border-indigo-200 rounded-2xl space-y-3 shadow-xs">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-2">
+                                <h4 className="font-extrabold text-xs text-indigo-950 whitespace-pre-line leading-relaxed flex-1">
+                                  {cIdx + 1}. {cQ.question}
+                                </h4>
+
+                                {/* LIVE WORD COUNTER */}
+                                <div className={`px-3 py-1 rounded-xl text-[11px] font-black border flex items-center space-x-1.5 shrink-0 self-start sm:self-auto ${
+                                  isWordCountGood
+                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300 ring-1 ring-emerald-200'
+                                    : isWordCountUnder
+                                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                    : isWordCountOver
+                                    ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                                }`}>
+                                  <span>✍️ Số từ:</span>
+                                  <strong className="font-mono text-xs">{wordCount} từ</strong>
+                                  <span className="text-[10px] font-normal text-slate-500">
+                                    {isWordCountGood ? '✓ Đạt chuẩn 60-80 từ' : isWordCountUnder ? `(Thiếu ${60 - wordCount} từ)` : isWordCountOver ? '(Vượt 80 từ)' : '(Mục tiêu: 60-80 từ)'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <textarea
+                                rows={7}
+                                disabled={submitted}
+                                value={textVal}
+                                onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                placeholder="Học sinh gõ/dán đoạn văn hoàn chỉnh tại đây (Ví dụ: My favourite film is 'The Lion King'...)..."
+                                className="w-full p-3.5 border border-indigo-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 rounded-xl text-xs sm:text-sm bg-white font-serif leading-relaxed outline-none shadow-inner"
+                              />
+
+                              {submitted && (
+                                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-2 animate-fadeIn">
+                                  <div className="flex items-center space-x-2 text-emerald-950 font-black">
+                                    <span>📝 BÀI VĂN MẪU & DÀN Ý THAM KHẢO (SAMPLE PARAGRAPH):</span>
+                                  </div>
+                                  <p className="font-serif leading-relaxed text-slate-800 italic bg-white p-3 rounded-lg border border-emerald-200/80 whitespace-pre-line">
+                                    {cQ.sample_answer || 'Giáo viên chưa cung cấp bài văn mẫu.'}
+                                  </p>
+                                  {(cQ.explanation || pItem.explanation) && (
+                                    <p className="text-[11px] text-slate-700 leading-relaxed pt-1 border-t border-emerald-200/60 whitespace-pre-line">
+                                      💡 <strong>Tiêu chí đánh giá bài viết:</strong>\n{cQ.explanation || pItem.explanation}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                      })}
+                    </div>
+                  );
+
                   return (
-                    <div key={pIdx} className="space-y-2 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
+                    <div key={pIdx} className="space-y-3 border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
                       {/* TIÊU ĐỀ HƯỚNG DẪN YÊU CẦU ĐỀ PART */}
-                      <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
-                        {pItem.part_title || `PART ${pIdx + 1}: Instructions`}
+                      <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs sm:text-sm leading-relaxed shadow-2xs flex items-center justify-between">
+                        <span>{pItem.part_title || `PART ${pIdx + 1}: Instructions`}</span>
+                        <span className="text-[10px] font-bold text-purple-700 bg-white px-2 py-0.5 rounded-lg border border-purple-200">
+                          {pQs.length} câu hỏi
+                        </span>
                       </div>
 
-                      {/* BÀI NGHE AUDIO MP3: TÍCH HỢP BADGE ĐẾM LẦN NGHE 1/2 + TỰ ĐỘNG KHÓA KHI HẾT LƯỢT + LỜI BÀI NGHE DÀNH CHO GV */}
+                      {/* BÀI NGHE AUDIO MP3 */}
                       {activeAudioSource && (() => {
                         const maxPlays = pItem?.max_plays || 2;
                         const currentCount = audioPlayCounts[pIdx] || 0;
@@ -1203,7 +1631,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                               )}
                             </div>
 
-                            {/* THANH PHÁT AUDIO CONTROL NATIVE HTML5 BẢO VỆ CHỐNG PHÁT KHI KHÓA HOẶC ĐÃ NỘP BÀI */}
+                            {/* THANH PHÁT AUDIO CONTROL NATIVE HTML5 */}
                             <div className={`relative ${isAudioDisabled ? 'opacity-50 pointer-events-none' : ''}`}>
                               <audio
                                 controls
@@ -1227,7 +1655,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                               />
                             </div>
 
-                            {/* POPUP / BOARD TRANSCRIPT CHỈ DÀNH CHO GIÁO VIÊN (ẨN 100% VỚI HỌC SINH) */}
+                            {/* POPUP / BOARD TRANSCRIPT CHỈ DÀNH CHO GIÁO VIÊN */}
                             {isTeacher && openTranscripts[pIdx] && (
                               <div className="p-3 bg-indigo-50/90 border border-indigo-300 rounded-xl text-xs text-indigo-950 space-y-1 animate-scale-up shadow-sm">
                                 <div className="flex items-center justify-between border-b border-indigo-200 pb-1 font-black text-[11px] text-indigo-900">
@@ -1237,7 +1665,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                   <button
                                     type="button"
                                     onClick={() => toggleTeacherTranscript(pIdx)}
-                                    className="text-indigo-600 hover:text-indigo-900 font-bold px-1"
+                                    className="text-indigo-600 hover:text-indigo-900 font-bold px-1 cursor-pointer"
                                   >
                                     ✕
                                   </button>
@@ -1251,364 +1679,114 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                         );
                       })()}
 
-                      {/* HIỂN THỊ ĐOẠN VĂN KHI LÀ BÀI ĐỌC READING SECTION / CLOZE TEST */}
-                      {pItem.passage && (activity?.type === 'reading_section' || activity?.type === 'cloze_test') && (
-                        <div className="p-4 bg-amber-50/80 border border-amber-300/80 rounded-lg text-xs text-slate-800 leading-relaxed font-serif shadow-xs my-2">
-                          <div className="whitespace-pre-line text-slate-900 text-xs font-serif leading-relaxed italic">
-                            {pItem.passage}
+                      {/* BỐ CỤC ĐOẠN VĂN: NẾU CÓ BÀI ĐỌC (READING) -> CHUYỂN SANG DẠNG 2 CỘT SPLIT SCREEN */}
+                      {hasPassage ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start my-2">
+                          {/* CỘT 1 (BÊN TRÁI): ĐOẠN VĂN READING PASSAGE VỚI THANH CUỘN VÀ NÚT ĐIỀU CHỈNH CỠ CHỮ */}
+                          <div className="lg:col-span-5 bg-gradient-to-br from-amber-50/90 to-orange-50/40 border-2 border-amber-300/80 rounded-3xl p-4 shadow-sm lg:sticky lg:top-4 max-h-[70vh] flex flex-col space-y-2">
+                            <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                              <div className="flex items-center space-x-2">
+                                <BookOpen className="w-4 h-4 text-amber-800" />
+                                <span className="text-xs font-black text-amber-950 uppercase tracking-wide">
+                                  📖 ĐOẠN VĂN BÀI ĐỌC (PASSAGE)
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const el = document.getElementById(`reading-passage-${pIdx}`);
+                                    if (el) el.scrollBy({ top: -140, behavior: 'smooth' });
+                                  }}
+                                  className="p-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
+                                  title="Cuộn bài đọc lên trên"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const el = document.getElementById(`reading-passage-${pIdx}`);
+                                    if (el) el.scrollBy({ top: 140, behavior: 'smooth' });
+                                  }}
+                                  className="p-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
+                                  title="Cuộn bài đọc xuống dưới"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPassageFontSize(prev => prev.includes('text-xs') ? 'text-sm sm:text-base' : prev.includes('text-sm') ? 'text-base sm:text-lg' : 'text-xs sm:text-sm');
+                                  }}
+                                  className="px-2 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[10px] font-black transition shadow-2xs cursor-pointer"
+                                  title="Thay đổi cỡ chữ đoạn văn"
+                                >
+                                  A±
+                                </button>
+                              </div>
+                            </div>
+                            <div
+                              id={`reading-passage-${pIdx}`}
+                              className={`overflow-y-auto pr-2 font-serif text-slate-900 leading-relaxed ${passageFontSize} whitespace-pre-line select-text`}
+                            >
+                              {pItem.passage}
+                            </div>
+                          </div>
+
+                          {/* CỘT 2 (BÊN PHẢI): DANH SÁCH CÂU HỎI CON VÀ LỰA CHỌN */}
+                          <div className="lg:col-span-7 space-y-3">
+                            {renderChildQuestions()}
                           </div>
                         </div>
+                      ) : (
+                        renderChildQuestions()
                       )}
 
-                      {/* DANH SÁCH CÂU HỎI TRONG PART */}
-                      <div className="space-y-3 pt-1">
-                        {pQs.map((cQ, cIdx) => {
-                          const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
-                          const selectedVal = userAnswers[childKey];
+                      {/* THANH ĐIỀU HƯỚNG CHÂN TRANG CỦA PART */}
+                      {!showAllParts && (
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
+                          <button
+                            type="button"
+                            disabled={pIdx === 0}
+                            onClick={() => {
+                              setActivePartTab(prev => Math.max(0, prev - 1));
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="px-4 py-2 rounded-xl text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center space-x-1 cursor-pointer"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                            <span>Part trước</span>
+                          </button>
 
-                          // 1. DẠNG TRUE / FALSE KHÍT DÒNG HẸP
-                          if (isTrueFalse) {
-                            const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.correctAnswer === 'T' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
-                            const isCorrectFalse = cQ.correctAnswer === 'False' || cQ.correctAnswer === 'F' || cQ.options?.find(o => o.text === 'False')?.isCorrect;
-                            const isSelectedTrue = selectedVal === 'True' || selectedVal === 'T';
-                            const isSelectedFalse = selectedVal === 'False' || selectedVal === 'F';
-                            const correctText = isCorrectTrue ? 'True (Đúng)' : 'False (Sai)';
+                          <span className="text-xs font-bold text-slate-500">
+                            Part {pIdx + 1} / {sectionParts.length}
+                          </span>
 
-                            // Lọc số thứ tự nếu câu hỏi đã chứa số
-                            let qText = cQ.question || 'Statement question';
-
-                            return (
-                              <div key={cIdx} className="p-3.5 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-2">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                  <span className="font-extrabold text-xs text-slate-900 leading-relaxed flex-1">
-                                    {cIdx + 1}. {qText}
-                                  </span>
-
-                                  {/* ĐÁP ÁN NÚT TRUE / FALSE COMPACT */}
-                                  <div className="flex items-center space-x-1.5 self-end sm:self-center">
-                                    <button
-                                      disabled={submitted}
-                                      onClick={() => handleSelectAnswer(childKey, 'True')}
-                                      className={`px-3 py-1 rounded-xl text-xs font-extrabold border transition ${
-                                        isSelectedTrue
-                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-1 ring-emerald-300'
-                                          : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-500 hover:text-emerald-700'
-                                      }`}
-                                    >
-                                      <span>T</span>
-                                    </button>
-
-                                    <button
-                                      disabled={submitted}
-                                      onClick={() => handleSelectAnswer(childKey, 'False')}
-                                      className={`px-3 py-1 rounded-xl text-xs font-extrabold border transition ${
-                                        isSelectedFalse
-                                          ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-1 ring-rose-300'
-                                          : 'bg-white text-slate-600 border-slate-300 hover:border-rose-500 hover:text-rose-700'
-                                      }`}
-                                    >
-                                      <span>F</span>
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* CHỈ HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT KHI ĐÃ NỘP BÀI (SUBMITTED) -> TUYỆT ĐỐI KHÔNG LỘ ĐÁP ÁN KHI ĐANG LÀM BÀI */}
-                                {submitted && renderCompactExplanation(
-                                  cQ.explanation || pItem.explanation || `Dẫn chứng phân tích: Dựa vào nội dung bài đọc, câu phát biểu này là ${correctText}.`,
-                                  correctText,
-                                  cQ,
-                                  selectedVal
-                                )}
-                              </div>
-                            );
-                          } else if (isPart1MC) {
-                            const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
-                            const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' ? o?.isCorrect : false);
-                            const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || (cOpts[correctOptIndex]?.text) || 'Đáp án đúng';
-
-                            // LỌC SỐ THỨ TỰ THỪA & LỌC CHỮ "Câu 1:", "Câu 2:" TRÁNH LẶP
-                            let qDisplay = (cQ.question || '').trim();
-                            // Gọt bỏ "1. Câu 1: ", "Câu 1: ", "Question 1: "
-                            qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
-                            qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, ''); // Gọt bớt số đầu nếu có
-                            const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
-
-                            const selectedText = selectedVal;
-
-                            return (
-                              <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3">
-                                <h4 className="font-extrabold text-sm text-slate-900 leading-relaxed whitespace-pre-line">
-                                  {finalQuestionTitle}
-                                </h4>
-
-                                {/* 4 LỰA CHỌN A, B, C, D XẾP THẲNG ĐỀU THEO HÀNG CỘT CÂN BẰNG CHUYÊN NGHIỆP Y HỆT 100% BỨC ẢNH 3 */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full my-1">
-                                  {cOpts.map((opt, oIdx) => {
-                                    const optPrefix = String.fromCharCode(65 + oIdx);
-                                    let rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
-                                    
-                                    // GỌT BỎ KÝ TỰ "A. ", "B. ", "A) ", "A: " BỊ LẶP TRONG DỮ LIỆU ĐÁP ÁN TRÁNH "A. A. community"
-                                    const cleanRegex = new RegExp(`^(${optPrefix}[\\.\\):]\\s*|\\([A-D]\\)\\s*|[A-D][\\.\\)]\\s*)`, 'i');
-                                    rawOptText = rawOptText.trim().replace(cleanRegex, '').trim();
-
-                                    const isCorrectOpt = (typeof opt === 'object' && opt?.isCorrect) || oIdx === correctOptIndex;
-
-                                    // Đánh giá lựa chọn của Học sinh
-                                    const isSelected = selectedText === rawOptText ||
-                                                       selectedText === optPrefix ||
-                                                       selectedText === oIdx ||
-                                                       selectedText === String(oIdx) ||
-                                                       selectedText === `${optPrefix}. ${rawOptText}`;
-
-                                    // Định màu nền giao diện - GIỮ NGUYÊN ĐỘ RÕ NÉT 100% KHÔNG LÀM MỜ (CHUẨN THEO YÊU CẦU CỦA THẦY HẢI)
-                                    let buttonStyle = 'bg-white text-slate-800 border-slate-300 hover:bg-purple-50 hover:border-purple-400 opacity-100 shadow-xs';
-
-                                    if (submitted) {
-                                      if (isSelected && !isCorrectOpt) {
-                                        // HỌC SINH LÀM SAI -> ĐỔI MÀU NỀN ĐỎ CHỎI THỂ HIỆN RÕ RÀNG
-                                        buttonStyle = 'bg-rose-600 text-white border-rose-700 ring-2 ring-rose-300 font-extrabold shadow-md opacity-100';
-                                      } else if (isCorrectOpt) {
-                                        // ĐÁP ÁN ĐÚNG CHUẨN -> ĐỔI MÀU NỀN XANH LÁ RỰC RỠ
-                                        buttonStyle = 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-300 font-extrabold shadow-md opacity-100';
-                                      } else {
-                                        // CÁC ĐÁP ÁN CÒN LẠI -> GIỮ NGUYÊN ĐỘ RÕ CHỮ MÀU ĐEN RÕ NÉT KHÔNG BỊ MỜ MỜ
-                                        buttonStyle = 'bg-slate-100 text-slate-800 border-slate-300 opacity-100 font-semibold';
-                                      }
-                                    } else if (isSelected) {
-                                      // ĐANG LÀM BÀI -> HIỂN THỊ MÀU NỀN XANH CHỌN THỜI THỰC
-                                      buttonStyle = 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 font-extrabold shadow-md opacity-100';
-                                    }
-
-                                    return (
-                                      <button
-                                        key={oIdx}
-                                        disabled={submitted}
-                                        onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                        className={`flex items-center justify-start px-3.5 py-2.5 rounded-xl text-xs border font-bold transition w-full text-left cursor-pointer ${buttonStyle}`}
-                                      >
-                                        <span className={`mr-2 font-extrabold text-xs ${submitted && (isSelected || isCorrectOpt) ? 'text-white' : 'text-amber-700'}`}>
-                                          {optPrefix}.
-                                        </span>
-                                        <span className="font-extrabold text-xs truncate flex-1">{rawOptText}</span>
-
-                                        {submitted && isSelected && !isCorrectOpt && (
-                                          <span className="ml-1 text-[10px] bg-rose-900/60 px-1.5 py-0.5 rounded-md text-white font-extrabold shrink-0">✕ SAI</span>
-                                        )}
-                                        {submitted && isCorrectOpt && (
-                                          <span className="ml-1 text-[10px] bg-emerald-900/60 px-1.5 py-0.5 rounded-md text-white font-extrabold shrink-0">✓ ĐÚNG</span>
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-
-                                {/* KHUNG GIẢI THÍCH CHI TIẾT NGAY SAU MỖI CÂU HỎI (TUYỆT ĐỐI CHỈ HIỂN THỊ KHI ĐÃ NỘP BÀI) */}
-                                {submitted && renderCompactExplanation(
-                                  cQ.explanation || pItem.explanation || `Dẫn chứng & Phân tích: Đáp án đúng chính xác là "${correctText}".`,
-                                  correctText,
-                                  cQ,
-                                  selectedText
-                                )}
-                              </div>
-                            );
-                          } else if (isGapFill) {
-                            const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer || '';
-                            const isCorrect = isGapFillAnswer(selectedVal, targetAns);
-                            const displayCorrectAnswer = targetAns ? String(targetAns).trim() : '';
-
-                            // Lọc số thứ tự thừa tránh "6. 6. Vy likes..."
-                            let qDisplay = (cQ.question || '').trim();
-                            qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
-                            qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
-                            const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
-
-                            // NHẬN DIỆN VỊ TRÍ CHỖ TRỐNG ĐỂ BIẾN THÀNH INLINE INPUT (LỌT LÒNG CÙNG DÒNG)
-                            const blankRegex = /(_{2,}|\[blank\]|\[chỗ trống\]|\[___+\]|\[\.\.\.+\]|\(\.\.\.+\)|\.\.\.+)/i;
-                            const hasInlineBlank = blankRegex.test(finalQuestionTitle);
-
-                            let textBefore = '';
-                            let textAfter = '';
-                            if (hasInlineBlank) {
-                              const match = finalQuestionTitle.match(blankRegex);
-                              if (match) {
-                                const idx = finalQuestionTitle.indexOf(match[0]);
-                                textBefore = finalQuestionTitle.slice(0, idx);
-                                textAfter = finalQuestionTitle.slice(idx + match[0].length);
-                              }
-                            }
-
-                            return (
-                              <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3 shadow-xs transition-all">
-                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                                  {hasInlineBlank ? (
-                                    /* DẠNG 1: INLINE BLANK FILLING - Ô NHẬP LỌT LÒNG NGAY GIỮA CÂU VĂN */
-                                    <div className="text-xs sm:text-sm font-extrabold text-slate-900 leading-relaxed sm:leading-loose flex-1">
-                                      <span>{textBefore}</span>
-                                      <span className="inline-flex items-center mx-1.5 align-middle">
-                                        <input
-                                          type="text"
-                                          disabled={submitted}
-                                          value={selectedVal || ''}
-                                          onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                          placeholder="điền từ..."
-                                          className={`min-w-[130px] max-w-[220px] w-36 sm:w-48 px-3 py-1 text-xs sm:text-sm font-black text-center rounded-xl border-2 transition-all outline-none ${
-                                            submitted
-                                              ? isCorrect
-                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black shadow-xs ring-1 ring-emerald-300'
-                                                : 'bg-rose-50 border-rose-400 text-rose-950 font-bold line-through shadow-xs ring-1 ring-rose-200'
-                                              : 'bg-white border-indigo-300 text-slate-800 hover:border-indigo-500 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
-                                          }`}
-                                        />
-                                        {submitted && (
-                                          <span className="ml-1 text-xs font-black">
-                                            {isCorrect ? (
-                                              <span className="text-emerald-600 font-extrabold">✓</span>
-                                            ) : (
-                                              <span className="text-rose-600 font-extrabold">✕</span>
-                                            )}
-                                          </span>
-                                        )}
-                                      </span>
-                                      <span>{textAfter}</span>
-                                    </div>
-                                  ) : (
-                                    /* DẠNG 2: NẾU CÂU HỎI KHÔNG CHỨA DẤU CHỖ TRỐNG THÌ HIỆN CÂU HỎI Ở TRÊN VÀ Ô NHẬP DƯỚI */
-                                    <div className="flex-1 space-y-2">
-                                      <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-relaxed whitespace-pre-line">
-                                        {finalQuestionTitle}
-                                      </h4>
-                                      <div className="relative w-full max-w-sm sm:max-w-md pt-1">
-                                        <input
-                                          type="text"
-                                          disabled={submitted}
-                                          value={selectedVal || ''}
-                                          onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                          placeholder="Nhập 1 - 3 từ cần điền..."
-                                          className={`w-full px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl border-2 transition-all outline-none ${
-                                            submitted
-                                              ? isCorrect
-                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
-                                                : 'bg-rose-50 border-rose-400 text-rose-950 font-semibold line-through shadow-xs'
-                                              : 'bg-white border-slate-300 text-slate-800 hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
-                                          }`}
-                                        />
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {submitted && (
-                                    <span className={`px-2.5 py-0.5 rounded-lg text-[11px] font-black shrink-0 flex items-center space-x-1 ${
-                                      isCorrect
-                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                        : 'bg-rose-100 text-rose-800 border border-rose-300'
-                                    }`}>
-                                      <span>{isCorrect ? '✓ ĐÚNG' : '✕ SAI'}</span>
-                                    </span>
-                                  )}
-                                </div>
-
-                                {/* HIỂN THỊ ĐÁP ÁN ĐÚNG VÀ GIẢI THÍCH CHI TIẾT SAU KHI NỘP BÀI */}
-                                {submitted && (
-                                  <div className="p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1.5 animate-fadeIn">
-                                    <div className="flex items-center space-x-2">
-                                      <span className="font-extrabold text-emerald-950">➔ Đáp án đúng:</span>
-                                      <span className="font-black font-mono text-emerald-800 bg-white px-2.5 py-0.5 rounded-md border border-emerald-300 shadow-2xs">
-                                        {displayCorrectAnswer || 'Chưa thiết lập đáp án'}
-                                      </span>
-                                    </div>
-
-                                    {(cQ.explanation || pItem.explanation) && (
-                                      <p className="text-[11px] text-slate-800 font-medium pt-1 border-t border-emerald-200/60 leading-relaxed">
-                                        💡 <strong>Giải thích chi tiết:</strong> {cQ.explanation || pItem.explanation}
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          } else if (isPart2Short) {
-                            return (
-                              <div key={cIdx} className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-2 shadow-xs">
-                                <h4 className="font-extrabold text-xs text-slate-900 whitespace-pre-line leading-relaxed">{cQ.question}</h4>
-                                <input
-                                  type="text"
-                                  disabled={submitted}
-                                  value={selectedVal || ''}
-                                  onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                  placeholder="Gõ câu hoàn chỉnh của bạn tại đây..."
-                                  className="w-full p-3 border border-slate-300 rounded-xl text-xs bg-white font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
-                                />
-                                {submitted && (
-                                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1.5 animate-fadeIn">
-                                    <span className="font-black text-emerald-950 block">➔ GỢI Ý ĐÁP ÁN MẪU: {cQ.sample_answer || 'Đáp án mẫu chuẩn'}</span>
-                                    {renderFormattedParagraphs(cQ.explanation || pItem.explanation)}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          } else {
-                            // DẠNG WRITING ESSAY / VIẾT ĐOẠN VĂN (PART 3) - CÓ BỘ ĐẾM SỐ TỪ TRỰC TIẾP
-                            const textVal = selectedVal || '';
-                            const trimmedText = textVal.trim();
-                            const wordCount = trimmedText === '' ? 0 : trimmedText.split(/\s+/).filter(Boolean).length;
-                            const isWordCountGood = wordCount >= 60 && wordCount <= 80;
-                            const isWordCountUnder = wordCount > 0 && wordCount < 60;
-                            const isWordCountOver = wordCount > 80;
-
-                            return (
-                              <div key={cIdx} className="p-4 bg-white border border-indigo-200 rounded-2xl space-y-3 shadow-xs">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-2">
-                                  <h4 className="font-extrabold text-xs text-indigo-950 whitespace-pre-line leading-relaxed flex-1">
-                                    {cIdx + 1}. {cQ.question}
-                                  </h4>
-
-                                  {/* LIVE WORD COUNTER (BỘ ĐẾM SỐ TỪ THỜI GIAN THỰC) */}
-                                  <div className={`px-3 py-1 rounded-xl text-[11px] font-black border flex items-center space-x-1.5 shrink-0 self-start sm:self-auto ${
-                                    isWordCountGood
-                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300 ring-1 ring-emerald-200'
-                                      : isWordCountUnder
-                                      ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                      : isWordCountOver
-                                      ? 'bg-purple-100 text-purple-900 border-purple-300'
-                                      : 'bg-slate-100 text-slate-700 border-slate-200'
-                                  }`}>
-                                    <span>✍️ Số từ:</span>
-                                    <strong className="font-mono text-xs">{wordCount} từ</strong>
-                                    <span className="text-[10px] font-normal text-slate-500">
-                                      {isWordCountGood ? '✓ Đạt chuẩn 60-80 từ' : isWordCountUnder ? `(Thiếu ${60 - wordCount} từ)` : isWordCountOver ? '(Vượt 80 từ)' : '(Mục tiêu: 60-80 từ)'}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                <textarea
-                                  rows={7}
-                                  disabled={submitted}
-                                  value={textVal}
-                                  onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                  placeholder="Học sinh gõ/dán đoạn văn hoàn chỉnh tại đây (Ví dụ: My favourite film is 'The Lion King'...)..."
-                                  className="w-full p-3.5 border border-indigo-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 rounded-xl text-xs sm:text-sm bg-white font-serif leading-relaxed outline-none shadow-inner"
-                                />
-
-                                {submitted && (
-                                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-2 animate-fadeIn">
-                                    <div className="flex items-center space-x-2 text-emerald-950 font-black">
-                                      <span>📝 BÀI VĂN MẪU & DÀN Ý THAM KHẢO (SAMPLE PARAGRAPH):</span>
-                                    </div>
-                                    <p className="font-serif leading-relaxed text-slate-800 italic bg-white p-3 rounded-lg border border-emerald-200/80 whitespace-pre-line">
-                                      {cQ.sample_answer || 'Giáo viên chưa cung cấp bài văn mẫu.'}
-                                    </p>
-                                    {(cQ.explanation || pItem.explanation) && (
-                                      <p className="text-[11px] text-slate-700 leading-relaxed pt-1 border-t border-emerald-200/60 whitespace-pre-line">
-                                        💡 <strong>Tiêu chí đánh giá bài viết:</strong>\n{cQ.explanation || pItem.explanation}
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          }
-                        })}
-                      </div>
+                          {pIdx < sectionParts.length - 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActivePartTab(prev => Math.min(sectionParts.length - 1, prev + 1));
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className="px-4 py-2 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition flex items-center space-x-1 cursor-pointer"
+                            >
+                              <span>Part tiếp theo</span>
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          ) : !submitted ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSubmitQuiz(false)}
+                              disabled={isAiGradingLoading}
+                              className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition flex items-center space-x-1 cursor-pointer animate-pulse"
+                            >
+                              <span>🚀 Nộp Bài Thi Ngay</span>
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
