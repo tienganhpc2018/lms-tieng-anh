@@ -1812,11 +1812,112 @@ export default function QuizBuilder({ activityId, onSaved }) {
                           </div>
                         ) : ['reading_section', 'cloze_test', 'reading_tf'].includes(selectedType?.toLowerCase()) || pItem.part_type === 'reading_section' || pItem.part_type === 'cloze_test' || Boolean(pItem.passage) ? (
                           /* 2. CHỈ CÓ READING VÀ KNOWLEDGE OF LANGUAGE (CLOZE TEST) MỚI CÓ KHUNG ĐOẠN VĂN CHUNG */
-                          <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-1">
-                            <label className="block text-[11px] font-extrabold text-sky-950 uppercase flex items-center space-x-1">
-                              <BookOpen className="w-3.5 h-3.5 text-sky-600" />
-                              <span>📖 NỘI DUNG BÀI ĐỌC HIỂU (READING PASSAGE) CHO PART #{pIdx + 1}:</span>
-                            </label>
+                          <div className="p-4 bg-sky-50/70 border border-sky-200 rounded-2xl space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <label className="text-[11px] font-extrabold text-sky-950 uppercase flex items-center space-x-1">
+                                <BookOpen className="w-3.5 h-3.5 text-sky-600" />
+                                <span>📖 NỘI DUNG BÀI ĐỌC HIỂU (READING PASSAGE) CHO PART #{pIdx + 1}:</span>
+                              </label>
+
+                              {/* CÔNG CỤ AI SINH ẢNH MINH HỌA & UPLOAD ẢNH BÀI ĐỌC */}
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const snippet = (pItem.passage || pItem.part_title || 'English reading comprehension educational story').slice(0, 160);
+                                    const cleanPrompt = encodeURIComponent(`educational textbook illustration, high quality, clean background, vivid: ${snippet}`);
+                                    const genUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=800&height=450&nologo=true`;
+                                    
+                                    const newParts = [...sectionParts];
+                                    newParts[pIdx].image_url = genUrl;
+                                    newParts[pIdx].imageUrl = genUrl;
+                                    setSectionParts(newParts);
+                                    alert('🪄 AI đã tự động sinh ảnh minh họa chất lượng cao cho bài đọc!');
+                                  }}
+                                  className="px-2.5 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-[10px] font-black flex items-center space-x-1 shadow-xs cursor-pointer"
+                                  title="AI tự động phân tích đoạn văn và vẽ tranh minh họa sinh động"
+                                >
+                                  <Sparkles className="w-3 h-3 text-amber-300" />
+                                  <span>🪄 AI Tạo Ảnh Minh Họa</span>
+                                </button>
+
+                                <label className="px-2.5 py-1 bg-white hover:bg-sky-100 text-sky-900 border border-sky-300 rounded-lg text-[10px] font-bold flex items-center space-x-1 cursor-pointer transition shadow-2xs">
+                                  <Camera className="w-3 h-3 text-sky-600" />
+                                  <span>Tải ảnh từ máy</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      try {
+                                        const localBlobUrl = URL.createObjectURL(file);
+                                        const newParts = [...sectionParts];
+                                        newParts[pIdx].image_url = localBlobUrl;
+                                        newParts[pIdx].imageUrl = localBlobUrl;
+                                        setSectionParts([...newParts]);
+
+                                        const fileExt = file.name.split('.').pop();
+                                        const fileName = `images/reading_${Date.now()}.${fileExt}`;
+                                        let targetBucket = 'media';
+                                        let { data: stData, error: stErr } = await supabase.storage
+                                          .from(targetBucket)
+                                          .upload(fileName, file, { upsert: true });
+
+                                        if (stErr) {
+                                          targetBucket = 'lms-files';
+                                          const res = await supabase.storage.from(targetBucket).upload(fileName, file, { upsert: true });
+                                          stData = res.data;
+                                        }
+
+                                        if (stData) {
+                                          const { data: pubData } = supabase.storage.from(targetBucket).getPublicUrl(fileName);
+                                          if (pubData?.publicUrl) {
+                                            const updatedParts = [...sectionParts];
+                                            updatedParts[pIdx].image_url = pubData.publicUrl;
+                                            updatedParts[pIdx].imageUrl = pubData.publicUrl;
+                                            setSectionParts([...updatedParts]);
+                                          }
+                                        }
+                                      } catch (err) {
+                                        console.error('Lỗi tải ảnh:', err);
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                </label>
+
+                                {(pItem.image_url || pItem.imageUrl) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newParts = [...sectionParts];
+                                      delete newParts[pIdx].image_url;
+                                      delete newParts[pIdx].imageUrl;
+                                      setSectionParts(newParts);
+                                    }}
+                                    className="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg text-[10px] font-bold border border-rose-300 cursor-pointer"
+                                  >
+                                    ✕ Xóa ảnh
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* XEM TRƯỚC HÌNH ẢNH MINH HỌA BÀI ĐỌC */}
+                            {(pItem.image_url || pItem.imageUrl) && (
+                              <div className="relative rounded-xl overflow-hidden border border-sky-300 max-w-sm max-h-48 group">
+                                <img
+                                  src={pItem.image_url || pItem.imageUrl}
+                                  alt="Passage Illustration"
+                                  className="w-full h-full object-cover"
+                                />
+                                <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">
+                                  🖼️ Ảnh minh họa bài đọc
+                                </span>
+                              </div>
+                            )}
+
                             <textarea
                               rows={4}
                               value={pItem.passage || ''}

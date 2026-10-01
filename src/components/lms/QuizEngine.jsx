@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, RotateCcw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked, Mic, MicOff, Shuffle, Trophy, Compass, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Layers, Check } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, RotateCcw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked, Mic, MicOff, Shuffle, Trophy, Compass, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Layers, Check, CheckSquare, ZoomIn, Highlighter, Eraser } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { compressImage } from '../../utils/imageCompressor';
 import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
@@ -97,7 +97,65 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
   // TAB ĐIỀU HƯỚNG CÁC PART & CỠ CHỮ BÀI ĐỌC READING (SPLIT-SCREEN)
   const [activePartTab, setActivePartTab] = useState(0);
   const [showAllParts, setShowAllParts] = useState(false);
-  const [passageFontSize, setPassageFontSize] = useState('text-xs sm:text-sm');
+  const [passageFontSize, setPassageFontSize] = useState('text-sm sm:text-base');
+
+  // TÍNH NĂNG HIGHLIGHT DẪN CHỨNG BÀI ĐỌC & PHÓNG TO ẢNH LIGHTBOX
+  const [highlightedPhrases, setHighlightedPhrases] = useState({});
+  const [lightboxImage, setLightboxImage] = useState(null);
+
+  const handleHighlightSelection = (pIdx) => {
+    const sel = window.getSelection();
+    if (!sel) return;
+    const text = sel.toString().trim();
+    if (!text || text.length < 2) {
+      alert('💡 Học sinh / Thầy vui lòng dùng chuột quét chọn một câu hoặc cụm từ trong bài đọc rồi bấm "Tô Vàng Đoạn Chọn" nhé!');
+      return;
+    }
+    setHighlightedPhrases((prev) => {
+      const cur = prev[pIdx] || [];
+      if (!cur.includes(text)) {
+        return { ...prev, [pIdx]: [...cur, text] };
+      }
+      return prev;
+    });
+    sel.removeAllRanges();
+  };
+
+  const handleClearHighlights = (pIdx) => {
+    setHighlightedPhrases((prev) => ({ ...prev, [pIdx]: [] }));
+  };
+
+  const renderHighlightedPassage = (rawText, pIdx) => {
+    if (!rawText) return '';
+    const phrases = highlightedPhrases[pIdx] || [];
+    if (!phrases.length) return rawText;
+
+    try {
+      const escapedPhrases = phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(Boolean);
+      if (!escapedPhrases.length) return rawText;
+
+      const regex = new RegExp(`(${escapedPhrases.join('|')})`, 'gi');
+      const chunks = rawText.split(regex);
+
+      return chunks.map((chunk, idx) => {
+        const isMatched = phrases.some((p) => p.toLowerCase() === chunk.toLowerCase());
+        if (isMatched) {
+          return (
+            <mark
+              key={idx}
+              className="bg-amber-300 text-amber-950 font-bold px-1 py-0.5 rounded shadow-2xs border-b border-amber-500"
+              title="Đoạn văn bản đã đánh dấu dẫn chứng"
+            >
+              {chunk}
+            </mark>
+          );
+        }
+        return chunk;
+      });
+    } catch (e) {
+      return rawText;
+    }
+  };
 
   const toggleTeacherTranscript = (pIdx) => {
     setOpenTranscripts((prev) => ({ ...prev, [pIdx]: !prev[pIdx] }));
@@ -877,8 +935,105 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
   const secsElapsed = secondsElapsed % 60;
   const isTimeWarning = isCountdownMode && secondsRemaining < 120;
 
+  // TÍNH TOÁN BẢNG MA TRẬN CÂU HỎI (QUESTION PALETTE 1 - 36...) VÀ TIẾN ĐỘ THỜI GIAN THỰC
+  const flattenedQuestions = [];
+  let globalCounter = 1;
+
+  questions.forEach((q, qIdx) => {
+    const sParts = Array.isArray(q.content?.parts) ? q.content.parts : [];
+    if (sParts.length > 0) {
+      sParts.forEach((pItem, pIdx) => {
+        const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
+        pQs.forEach((cQ, cIdx) => {
+          const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
+          const ans = userAnswers[childKey];
+          const isAnswered = ans !== undefined && ans !== null && String(ans).trim() !== '';
+
+          let isCorrect = false;
+          let isWrong = false;
+          if (submitted) {
+            const isTrueFalse = pItem.part_type === 'true_false' || (pItem.part_title && (pItem.part_title.includes('True') || pItem.part_title.includes('False')));
+            const isGapFill = pItem.part_type === 'gap_fill' || pItem.part_type === 'fill_in_blank' || pItem.part_type === 'short_answer';
+            const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+
+            if (isTrueFalse) {
+              const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.correctAnswer === 'T' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
+              const target = isCorrectTrue ? 'True' : 'False';
+              const userChoice = (ans === 'True' || ans === 'T') ? 'True' : (ans === 'False' || ans === 'F') ? 'False' : '';
+              if (userChoice && userChoice === target) isCorrect = true;
+              else if (userChoice) isWrong = true;
+            } else if (isGapFill) {
+              const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer || '';
+              if (isGapFillAnswer(ans, targetAns)) isCorrect = true;
+              else if (isAnswered) isWrong = true;
+            } else if (cOpts.length > 0) {
+              const correctOptIdx = cOpts.findIndex(o => typeof o === 'object' ? o.isCorrect : false);
+              const userOptIdx = typeof ans === 'number' ? ans : (!isNaN(Number(ans)) ? Number(ans) : -1);
+              if (userOptIdx !== -1 && userOptIdx === correctOptIdx) isCorrect = true;
+              else if (isAnswered) isWrong = true;
+            }
+          }
+
+          flattenedQuestions.push({
+            globalNumber: globalCounter++,
+            qId: q.id,
+            qIndex: qIdx,
+            partIndex: pIdx,
+            childIndex: cIdx,
+            childKey,
+            domId: `question-item-${pIdx}-${cIdx}`,
+            isAnswered,
+            isCorrect,
+            isWrong,
+            partTitle: pItem.part_title || `Part ${pIdx + 1}`,
+            partType: pItem.part_type,
+          });
+        });
+      });
+    } else {
+      const childKey = `${q.id}_c0`;
+      const ans = userAnswers[childKey];
+      const isAnswered = ans !== undefined && ans !== null && String(ans).trim() !== '';
+      flattenedQuestions.push({
+        globalNumber: globalCounter++,
+        qId: q.id,
+        qIndex: qIdx,
+        partIndex: 0,
+        childIndex: 0,
+        childKey,
+        domId: `question-item-single-${qIdx}`,
+        isAnswered,
+        isCorrect: false,
+        isWrong: false,
+        partTitle: q.content?.title || `Câu ${qIdx + 1}`,
+        partType: q.type,
+      });
+    }
+  });
+
+  const totalQuizQuestions = flattenedQuestions.length;
+  const totalAnsweredCount = flattenedQuestions.filter(f => f.isAnswered).length;
+  const completionPercent = totalQuizQuestions > 0 ? Math.round((totalAnsweredCount / totalQuizQuestions) * 100) : 0;
+
+  const handleJumpToQuestion = (fq) => {
+    if (fq.partIndex !== undefined) {
+      setActivePartTab(fq.partIndex);
+      setShowAllParts(false);
+    }
+    setTimeout(() => {
+      const el = document.getElementById(fq.domId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-4', 'ring-amber-400');
+        setTimeout(() => {
+          el.classList.remove('ring-4', 'ring-amber-400');
+        }, 1500);
+      }
+    }, 120);
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 font-['Arial',sans-serif]">
       {/* MODAL CHATBOT AI TUTOR TRỢ LÝ HỌC TẬP */}
       <AiOmrScannerModal
         isOpen={omrScannerOpen}
@@ -921,8 +1076,8 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
         </div>
       )}
 
-      {/* THÔNG BÁO TỔNG KẾT BÀI THI SAU KHU NỘP */}
-      {submitted ? (
+      {/* THÔNG BÁO TỔNG KẾT BÀI THI SAU KHI NỘP */}
+      {submitted && (
         <div className="p-5 bg-gradient-to-br from-slate-900 to-navy-900 text-white rounded-3xl shadow-xl space-y-5 border border-slate-700 animate-scale-up">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-3 gap-3">
             <div className="flex items-center space-x-3">
@@ -979,36 +1134,36 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
               <button
                 onClick={() =>
                   exportStudentPdfReport({
-                  studentName: resultData.studentName,
-                  activityTitle: activity?.title || 'Bài Thi Quiz Online',
-                  score: resultData.score,
-                  totalMarks: resultData.totalMarks,
-                  correctCount: resultData.correctCount,
-                  totalQuestions: resultData.totalQuestions,
-                  timeTakenStr: resultData.timeTakenStr,
-                  submittedAt: resultData.submittedAt,
-                  aiGradingFeedback: aiGradingResult?.detailedFeedback,
-                })
-              }
-              className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
-            >
-              <Printer className="w-4 h-4 text-sky-200" />
-              <span>🖨️ Tải Báo Cáo PDF</span>
-            </button>
-
-            {isTeacher && (
-              <button
-                onClick={() => exportQuizToWord(questions, activity?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                    studentName: resultData.studentName,
+                    activityTitle: activity?.title || 'Bài Thi Quiz Online',
+                    score: resultData.score,
+                    totalMarks: resultData.totalMarks,
+                    correctCount: resultData.correctCount,
+                    totalQuestions: resultData.totalQuestions,
+                    timeTakenStr: resultData.timeTakenStr,
+                    submittedAt: resultData.submittedAt,
+                    aiGradingFeedback: aiGradingResult?.detailedFeedback,
+                  })
+                }
+                className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
               >
-                <FileText className="w-4 h-4 text-emerald-200" />
-                <span>🖨️ In Đề Thi Ra Giấy (Word)</span>
+                <Printer className="w-4 h-4 text-sky-200" />
+                <span>🖨️ Tải Báo Cáo PDF</span>
               </button>
-            )}
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              {isTeacher && (
+                <button
+                  onClick={() => exportQuizToWord(questions, activity?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                >
+                  <FileText className="w-4 h-4 text-emerald-200" />
+                  <span>🖨️ In Đề Thi Ra Giấy (Word)</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
             <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 space-y-0.5">
               <span className="text-[10px] font-bold text-slate-400 uppercase block">Thời Gian Làm</span>
               <span className="text-xs font-extrabold text-white flex items-center justify-center space-x-1">
@@ -1043,7 +1198,6 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
             </div>
           </div>
 
-          {/* KHỐI HUY HIỆU GAMIFICATION BADGES / ĐÁNH GIÁ THỰC TẾ TRỰC QUAN NHƯ CHỈ ĐẠO CỦA THẦY HẢI */}
           {earnedBadges.length > 0 && (
             <div className={`p-4 rounded-2xl space-y-2.5 border shadow-xl ${
               resultData.isPassed 
@@ -1068,1119 +1222,1045 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
             </div>
           )}
         </div>
-      ) : (
-        /* THANH ĐỒNG HỒ THỜI GIAN LÀM BÀI */
-        <div className="bg-slate-900 text-white p-3 rounded-2xl flex justify-between items-center shadow-md">
-          <div className="flex items-center space-x-2">
-            <User className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-bold">Học sinh: {profile?.full_name || 'Học Viên'}</span>
-          </div>
-          <div
-            className={`flex items-center space-x-2 text-xs font-extrabold px-3 py-1 rounded-xl border transition ${
-              isTimeWarning ? 'bg-rose-950 text-rose-300 border-rose-600 animate-pulse' : 'bg-slate-800 text-emerald-400 border-slate-700'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
-            {isCountdownMode ? (
-              <span>
-                ⏱️ Tổng thời gian làm bài ({Math.floor(timeLimitSeconds / 60)} phút): {minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}
-              </span>
-            ) : (
-              <span>
-                ⏱️ Thời gian làm bài: {minsElapsed < 10 ? `0${minsElapsed}` : minsElapsed}:{secsElapsed < 10 ? `0${secsElapsed}` : secsElapsed}
-              </span>
-            )}
-          </div>
-        </div>
       )}
 
-      {/* DANH SÁCH CÂU HỎI */}
-      <div className="space-y-3">
-        {questions.map((q, qIdx) => {
-          const sectionType = String(activity?.type || activity?.content?.type || 'quiz').toLowerCase();
-          const sectionParts = Array.isArray(q.content?.parts) ? q.content.parts : [];
+      {/* BỐ CỤC 2 KHUNG (TWO-PANE LAYOUT): KHUNG CHÍNH (TRÁI) & SIDEBOX BẢNG CÂU HỎI (PHẢI) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* KHUNG CHÍNH (MAIN CONTENT - CHIẾM 75% BÊN TRÁI) */}
+        <div className="lg:col-span-8 xl:col-span-9 space-y-4">
+          {questions.map((q, qIdx) => {
+            const sectionType = String(activity?.type || activity?.content?.type || 'quiz').toLowerCase();
+            const sectionParts = Array.isArray(q.content?.parts) ? q.content.parts : [];
 
-          // TRÍCH XUẤT MẢNG PARTS SOẠN TỪ BỘ SOẠN ĐỀ ADMIN (ẢNH 1 & ẢNH 2)
-          if (sectionParts.length > 0) {
-            return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-emerald-600 rounded-3xl p-4 sm:p-5 shadow-xs border-y border-r border-slate-200 space-y-4">
-                {/* TIÊU ĐỀ ĐỀ THI TỔNG & NÚT XEM TẤT CẢ */}
-                <div className="bg-emerald-50/70 rounded-2xl p-3 flex flex-wrap justify-between items-center gap-2">
-                  <h3 className="font-extrabold text-xs text-emerald-950 tracking-wide uppercase flex items-center space-x-2">
-                    <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">
-                      {qIdx + 1}
-                    </span>
-                    <span>{q.content?.title || q.content?.question || 'ĐỀ THI TRẮC NGHIỆM TIẾNG ANH'}</span>
-                  </h3>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAllParts(!showAllParts)}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition flex items-center space-x-1 border cursor-pointer ${
-                        showAllParts
-                          ? 'bg-amber-100 text-amber-900 border-amber-300'
-                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                      }`}
-                      title="Chuyển đổi giữa chế độ từng Part hoặc xem toàn bộ đề"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>{showAllParts ? '📑 Chế độ từng Part' : '👁️ Xem tất cả các Part'}</span>
-                    </button>
-                    <span className="text-[10px] font-extrabold bg-emerald-200/80 text-emerald-900 px-2.5 py-0.5 rounded-md uppercase">
-                      📝 {sectionParts.length} PARTS
-                    </span>
-                  </div>
-                </div>
-
-                {/* THANH TAB ĐIỀU HƯỚNG CÁC PART (SIDETAB / TOP TABS) */}
-                <div className="flex items-center space-x-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin border-b border-slate-100">
-                  {sectionParts.map((pTab, ptIdx) => {
-                    const pTabQs = Array.isArray(pTab.questions) ? pTab.questions : [];
-                    const totalQInThis = pTabQs.length;
-                    const answeredInThis = pTabQs.filter((_, cI) => {
-                      const k = `${q.id}_p${ptIdx}_q${cI}`;
-                      const v = userAnswers[k];
-                      return v !== undefined && v !== null && String(v).trim() !== '';
-                    }).length;
-                    const isAllDone = totalQInThis > 0 && answeredInThis === totalQInThis;
-                    const isPartial = answeredInThis > 0 && !isAllDone;
-
-                    // Xác định icon / badge loại Part
-                    const isListeningPart = pTab.part_type === 'listening_section' || Boolean(pTab.audio_url || pTab.audioUrl || pTab.audio_data);
-                    const isReadingPart = pTab.part_type === 'reading_section' || pTab.part_type === 'cloze_test' || Boolean(pTab.passage);
-                    const isWritingPart = pTab.part_type === 'short_essay' || pTab.part_type === 'full_essay' || pTab.part_type === 'writing_section';
-                    const isTFPart = pTab.part_type === 'true_false' || (pTab.part_title && (pTab.part_title.includes('True') || pTab.part_title.includes('False')));
-                    const isGapPart = pTab.part_type === 'gap_fill' || pTab.part_type === 'fill_in_blank';
-
-                    const partTypeIcon = isListeningPart ? '🎧 Nghe' : isReadingPart ? '📖 Đọc' : isWritingPart ? '✍️ Viết' : isTFPart ? '⚖️ T/F' : isGapPart ? '✏️ Điền' : '🎯 Trắc nghiệm';
-
-                    const isActive = (!showAllParts && activePartTab === ptIdx) || (showAllParts && activePartTab === ptIdx);
-
-                    return (
+            if (sectionParts.length > 0) {
+              return (
+                <div key={q.id || qIdx} className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm space-y-5">
+                  {/* TIÊU ĐỀ ĐỀ THI TỔNG & NÚT XEM TẤT CẢ */}
+                  <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 flex flex-wrap justify-between items-center gap-2">
+                    <h3 className="font-black text-sm sm:text-base text-emerald-950 tracking-wide uppercase flex items-center space-x-2">
+                      <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">
+                        {qIdx + 1}
+                      </span>
+                      <span>{q.content?.title || q.content?.question || 'ĐỀ THI TRẮC NGHIỆM TIẾNG ANH'}</span>
+                    </h3>
+                    <div className="flex items-center space-x-2">
                       <button
-                        key={ptIdx}
                         type="button"
-                        onClick={() => {
-                          setActivePartTab(ptIdx);
-                          setShowAllParts(false);
-                        }}
-                        className={`px-3.5 py-2 rounded-2xl font-black text-xs transition flex items-center space-x-2 shrink-0 cursor-pointer shadow-xs border ${
-                          isActive
-                            ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300'
-                            : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/40'
+                        onClick={() => setShowAllParts(!showAllParts)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 border cursor-pointer ${
+                          showAllParts
+                            ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
                         }`}
+                        title="Chuyển đổi giữa chế độ từng Part hoặc xem toàn bộ đề"
                       >
-                        <span className="uppercase">PART {ptIdx + 1}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-                          isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {partTypeIcon}
-                        </span>
-                        {totalQInThis > 0 && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black font-mono border ${
-                            isAllDone
-                              ? isActive ? 'bg-white text-emerald-800 border-white' : 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                              : isPartial
-                              ? isActive ? 'bg-amber-400 text-amber-950 border-amber-300' : 'bg-amber-100 text-amber-900 border-amber-300'
-                              : isActive ? 'bg-white/20 text-white border-white/40' : 'bg-slate-100 text-slate-500 border-slate-200'
-                          }`}>
-                            {answeredInThis}/{totalQInThis}
-                          </span>
-                        )}
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>{showAllParts ? '📑 Chế độ từng Part' : '👁️ Xem tất cả Part'}</span>
                       </button>
-                    );
-                  })}
-                </div>
+                      <span className="text-xs font-black bg-emerald-200 text-emerald-950 px-2.5 py-1 rounded-xl uppercase">
+                        📝 {sectionParts.length} PARTS
+                      </span>
+                    </div>
+                  </div>
 
-                {sectionParts.map((pItem, pIdx) => {
-                  if (!showAllParts && activePartTab !== pIdx) return null;
+                  {/* THANH TAB NGANG PHÍA TRÊN CHO PHÉP CHUYỂN PART NHANH */}
+                  <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-thin border-b border-slate-100">
+                    {sectionParts.map((pTab, ptIdx) => {
+                      const pTabQs = Array.isArray(pTab.questions) ? pTab.questions : [];
+                      const totalQInThis = pTabQs.length;
+                      const answeredInThis = pTabQs.filter((_, cI) => {
+                        const k = `${q.id}_p${ptIdx}_q${cI}`;
+                        const v = userAnswers[k];
+                        return v !== undefined && v !== null && String(v).trim() !== '';
+                      }).length;
+                      const isAllDone = totalQInThis > 0 && answeredInThis === totalQInThis;
+                      const isPartial = answeredInThis > 0 && !isAllDone;
 
-                  const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
-                  const hasOptions = pQs.some((cq) => Array.isArray(cq.options) && cq.options.length > 0);
-                  const isTrueFalse = pItem.part_type === 'true_false' || (pItem.part_title && (pItem.part_title.includes('True') || pItem.part_title.includes('False')));
-                  const isGapFill = pItem.part_type === 'gap_fill' ||
-                                    pItem.part_type === 'fill_in_blank' ||
-                                    pItem.part_type === 'short_answer' ||
-                                    (pItem.part_type === 'cloze_test' && !hasOptions) ||
-                                    (!hasOptions && pQs.some((cq) => (cq.correctAnswer || cq.correct_answer)));
-                  const isPart1MC = (pItem.part_type === 'multiple_choice' || (pItem.part_type === 'cloze_test' && hasOptions) || (!pItem.part_type && hasOptions)) && !isTrueFalse && !isGapFill;
-                  const isPart2Short = pItem.part_type === 'short_essay';
-                  const hasPassage = Boolean(pItem.passage && pItem.passage.trim() !== '');
+                      const isListeningPart = pTab.part_type === 'listening_section' || Boolean(pTab.audio_url || pTab.audioUrl || pTab.audio_data);
+                      const isReadingPart = pTab.part_type === 'reading_section' || pTab.part_type === 'cloze_test' || Boolean(pTab.passage);
+                      const isWritingPart = pTab.part_type === 'short_essay' || pTab.part_type === 'full_essay' || pTab.part_type === 'writing_section';
+                      const isTFPart = pTab.part_type === 'true_false' || (pTab.part_title && (pTab.part_title.includes('True') || pTab.part_title.includes('False')));
+                      const isGapPart = pTab.part_type === 'gap_fill' || pTab.part_type === 'fill_in_blank';
 
-                  const extractAudioForPart = () => {
-                    const candidates = [
-                      pItem?.audio_url,
-                      pItem?.audioUrl,
-                      pItem?.audio_data,
-                      pItem?.audio,
-                      pItem?.audio_blob,
-                      q?.content?.parts?.[pIdx]?.audio_url,
-                      q?.content?.parts?.[pIdx]?.audioUrl,
-                      q?.content?.parts?.[pIdx]?.audio_data,
-                      q?.content?.sectionParts?.[pIdx]?.audio_url,
-                      q?.content?.sectionParts?.[pIdx]?.audioUrl,
-                      activity?.content?.parts?.[pIdx]?.audio_url,
-                      activity?.content?.sectionParts?.[pIdx]?.audio_url,
-                      activity?.audio_url,
-                      activity?.content_url,
-                    ];
+                      const partTypeIcon = isListeningPart ? '🎧 Nghe' : isReadingPart ? '📖 Đọc' : isWritingPart ? '✍️ Viết' : isTFPart ? '⚖️ T/F' : isGapPart ? '✏️ Điền' : '🎯 Trắc nghiệm';
+                      const isActive = (!showAllParts && activePartTab === ptIdx) || (showAllParts && activePartTab === ptIdx);
 
-                    try {
-                      const cachedAudio = localStorage.getItem(`lms_audio_cache_${activityId || activity?.id}`);
-                      if (cachedAudio && typeof cachedAudio === 'string' && cachedAudio.trim() !== '') {
-                        candidates.unshift(cachedAudio.trim());
-                      }
-                    } catch (cErr) {}
+                      return (
+                        <button
+                          key={ptIdx}
+                          type="button"
+                          onClick={() => {
+                            setActivePartTab(ptIdx);
+                            setShowAllParts(false);
+                          }}
+                          className={`px-3.5 py-2 rounded-2xl font-black text-xs transition flex items-center space-x-2 shrink-0 cursor-pointer shadow-xs border ${
+                            isActive
+                              ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/40'
+                          }`}
+                        >
+                          <span className="uppercase">PART {ptIdx + 1}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                            isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {partTypeIcon}
+                          </span>
+                          {totalQInThis > 0 && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black font-mono border ${
+                              isAllDone
+                                ? isActive ? 'bg-white text-emerald-800 border-white' : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : isPartial
+                                ? isActive ? 'bg-amber-400 text-amber-950 border-amber-300' : 'bg-amber-100 text-amber-900 border-amber-300'
+                                : isActive ? 'bg-white/20 text-white border-white/40' : 'bg-slate-100 text-slate-500 border-slate-200'
+                            }`}>
+                              {answeredInThis}/{totalQInThis}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                    const rawSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
-                    return rawSrc ? rawSrc.trim() : null;
-                  };
+                  {sectionParts.map((pItem, pIdx) => {
+                    if (!showAllParts && activePartTab !== pIdx) return null;
 
-                  const activeAudioSource = extractAudioForPart();
+                    const pQs = Array.isArray(pItem.questions) ? pItem.questions : [];
+                    const hasOptions = pQs.some((cq) => Array.isArray(cq.options) && cq.options.length > 0);
+                    const isTrueFalse = pItem.part_type === 'true_false' || (pItem.part_title && (pItem.part_title.includes('True') || pItem.part_title.includes('False')));
+                    const isGapFill = pItem.part_type === 'gap_fill' ||
+                                      pItem.part_type === 'fill_in_blank' ||
+                                      pItem.part_type === 'short_answer' ||
+                                      (pItem.part_type === 'cloze_test' && !hasOptions) ||
+                                      (!hasOptions && pQs.some((cq) => (cq.correctAnswer || cq.correct_answer)));
+                    const isPart1MC = (pItem.part_type === 'multiple_choice' || (pItem.part_type === 'cloze_test' && hasOptions) || (!pItem.part_type && hasOptions)) && !isTrueFalse && !isGapFill;
+                    const isPart2Short = pItem.part_type === 'short_essay';
+                    const hasPassage = Boolean(pItem.passage && pItem.passage.trim() !== '');
 
-                  const renderChildQuestions = () => (
-                    <div className="space-y-3 pt-1">
-                      {pQs.map((cQ, cIdx) => {
-                        const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
-                        const selectedVal = userAnswers[childKey];
+                    const extractAudioForPart = () => {
+                      const candidates = [
+                        pItem?.audio_url,
+                        pItem?.audioUrl,
+                        pItem?.audio_data,
+                        pItem?.audio,
+                        pItem?.audio_blob,
+                        q?.content?.parts?.[pIdx]?.audio_url,
+                        q?.content?.parts?.[pIdx]?.audioUrl,
+                        q?.content?.parts?.[pIdx]?.audio_data,
+                        q?.content?.sectionParts?.[pIdx]?.audio_url,
+                        q?.content?.sectionParts?.[pIdx]?.audioUrl,
+                        activity?.content?.parts?.[pIdx]?.audio_url,
+                        activity?.content?.sectionParts?.[pIdx]?.audio_url,
+                        activity?.audio_url,
+                        activity?.content_url,
+                      ];
 
-                        // 1. DẠNG TRUE / FALSE KHÍT DÒNG HẸP
-                        if (isTrueFalse) {
-                          const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.correctAnswer === 'T' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
-                          const isCorrectFalse = cQ.correctAnswer === 'False' || cQ.correctAnswer === 'F' || cQ.options?.find(o => o.text === 'False')?.isCorrect;
-                          const isSelectedTrue = selectedVal === 'True' || selectedVal === 'T';
-                          const isSelectedFalse = selectedVal === 'False' || selectedVal === 'F';
-                          const correctText = isCorrectTrue ? 'True (Đúng)' : 'False (Sai)';
+                      try {
+                        const cachedAudio = localStorage.getItem(`lms_audio_cache_${activityId || activity?.id}`);
+                        if (cachedAudio && typeof cachedAudio === 'string' && cachedAudio.trim() !== '') {
+                          candidates.unshift(cachedAudio.trim());
+                        }
+                      } catch (cErr) {}
 
-                          // Lọc số thứ tự nếu câu hỏi đã chứa số
-                          let qText = cQ.question || 'Statement question';
+                      const rawSrc = candidates.find(c => typeof c === 'string' && c.trim() !== '' && !c.includes('soundhelix'));
+                      return rawSrc ? rawSrc.trim() : null;
+                    };
 
-                          return (
-                            <div key={cIdx} className="p-3.5 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-2">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                <span className="font-extrabold text-xs text-slate-900 leading-relaxed flex-1">
-                                  {cIdx + 1}. {qText}
-                                </span>
+                    const activeAudioSource = extractAudioForPart();
 
-                                {/* ĐÁP ÁN NÚT TRUE / FALSE COMPACT */}
-                                <div className="flex items-center space-x-1.5 self-end sm:self-center">
-                                  <button
-                                    disabled={submitted}
-                                    onClick={() => handleSelectAnswer(childKey, 'True')}
-                                    className={`px-3 py-1 rounded-xl text-xs font-extrabold border transition ${
-                                      isSelectedTrue
-                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-1 ring-emerald-300'
-                                        : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-500 hover:text-emerald-700'
-                                    }`}
-                                  >
-                                    <span>T</span>
-                                  </button>
+                    const renderChildQuestions = () => (
+                      <div className="space-y-4 pt-1">
+                        {pQs.map((cQ, cIdx) => {
+                          const childKey = `${q.id}_p${pIdx}_q${cIdx}`;
+                          const selectedVal = userAnswers[childKey];
+                          const questionDomId = `question-item-${pIdx}-${cIdx}`;
 
-                                  <button
-                                    disabled={submitted}
-                                    onClick={() => handleSelectAnswer(childKey, 'False')}
-                                    className={`px-3 py-1 rounded-xl text-xs font-extrabold border transition ${
-                                      isSelectedFalse
-                                        ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-1 ring-rose-300'
-                                        : 'bg-white text-slate-600 border-slate-300 hover:border-rose-500 hover:text-rose-700'
-                                    }`}
-                                  >
-                                    <span>F</span>
-                                  </button>
-                                </div>
-                              </div>
+                          // 1. DẠNG TRUE / FALSE
+                          if (isTrueFalse) {
+                            const isCorrectTrue = cQ.correctAnswer === 'True' || cQ.correctAnswer === 'T' || cQ.options?.find(o => o.text === 'True')?.isCorrect;
+                            const isCorrectFalse = cQ.correctAnswer === 'False' || cQ.correctAnswer === 'F' || cQ.options?.find(o => o.text === 'False')?.isCorrect;
+                            const isSelectedTrue = selectedVal === 'True' || selectedVal === 'T';
+                            const isSelectedFalse = selectedVal === 'False' || selectedVal === 'F';
+                            const correctText = isCorrectTrue ? 'True (Đúng)' : 'False (Sai)';
 
-                              {/* CHỈ HIỂN THỊ LỜI GIẢI THÍCH CHI TIẾT KHI ĐÃ NỘP BÀI (SUBMITTED) */}
-                              {submitted && renderCompactExplanation(
-                                cQ.explanation || pItem.explanation || `Dẫn chứng phân tích: Dựa vào nội dung bài đọc, câu phát biểu này là ${correctText}.`,
-                                correctText,
-                                cQ,
-                                selectedVal
-                              )}
-                            </div>
-                          );
-                        } else if (isPart1MC) {
-                          const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
-                          const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' ? o?.isCorrect : false);
-                          const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || (cOpts[correctOptIndex]?.text) || 'Đáp án đúng';
+                            let qText = cQ.question || 'Statement question';
 
-                          // LỌC SỐ THỨ TỰ THỪA & LỌC CHỮ "Câu 1:", "Câu 2:" TRÁNH LẶP
-                          let qDisplay = (cQ.question || '').trim();
-                          qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
-                          qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
-                          const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
-
-                          const selectedText = selectedVal;
-
-                          return (
-                            <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3">
-                              <h4 className="font-extrabold text-sm text-slate-900 leading-relaxed whitespace-pre-line">
-                                {finalQuestionTitle}
-                              </h4>
-
-                              {/* 4 LỰA CHỌN A, B, C, D */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full my-1">
-                                {cOpts.map((opt, oIdx) => {
-                                  const optPrefix = String.fromCharCode(65 + oIdx);
-                                  let rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
-                                  
-                                  const cleanRegex = new RegExp(`^(${optPrefix}[\\.\\):]\\s*|\\([A-D]\\)\\s*|[A-D][\\.\\)]\\s*)`, 'i');
-                                  rawOptText = rawOptText.trim().replace(cleanRegex, '').trim();
-
-                                  const isCorrectOpt = (typeof opt === 'object' && opt?.isCorrect) || oIdx === correctOptIndex;
-
-                                  const isSelected = selectedText === rawOptText ||
-                                                     selectedText === optPrefix ||
-                                                     selectedText === oIdx ||
-                                                     selectedText === String(oIdx) ||
-                                                     selectedText === `${optPrefix}. ${rawOptText}`;
-
-                                  let buttonStyle = 'bg-white text-slate-800 border-slate-300 hover:bg-purple-50 hover:border-purple-400 opacity-100 shadow-xs';
-
-                                  if (submitted) {
-                                    if (isSelected && !isCorrectOpt) {
-                                      buttonStyle = 'bg-rose-600 text-white border-rose-700 ring-2 ring-rose-300 font-extrabold shadow-md opacity-100';
-                                    } else if (isCorrectOpt) {
-                                      buttonStyle = 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-300 font-extrabold shadow-md opacity-100';
-                                    } else {
-                                      buttonStyle = 'bg-slate-100 text-slate-800 border-slate-300 opacity-100 font-semibold';
-                                    }
-                                  } else if (isSelected) {
-                                    buttonStyle = 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300 font-extrabold shadow-md opacity-100';
-                                  }
-
-                                  return (
-                                    <button
-                                      key={oIdx}
-                                      disabled={submitted}
-                                      onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                      className={`flex items-center justify-start px-3.5 py-2.5 rounded-xl text-xs border font-bold transition w-full text-left cursor-pointer ${buttonStyle}`}
-                                    >
-                                      <span className={`mr-2 font-extrabold text-xs ${submitted && (isSelected || isCorrectOpt) ? 'text-white' : 'text-amber-700'}`}>
-                                        {optPrefix}.
-                                      </span>
-                                      <span className="font-extrabold text-xs truncate flex-1">{rawOptText}</span>
-
-                                      {submitted && isSelected && !isCorrectOpt && (
-                                        <span className="ml-1 text-[10px] bg-rose-900/60 px-1.5 py-0.5 rounded-md text-white font-extrabold shrink-0">✕ SAI</span>
-                                      )}
-                                      {submitted && isCorrectOpt && (
-                                        <span className="ml-1 text-[10px] bg-emerald-900/60 px-1.5 py-0.5 rounded-md text-white font-extrabold shrink-0">✓ ĐÚNG</span>
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {/* KHUNG GIẢI THÍCH CHI TIẾT */}
-                              {submitted && renderCompactExplanation(
-                                cQ.explanation || pItem.explanation || `Dẫn chứng & Phân tích: Đáp án đúng chính xác là "${correctText}".`,
-                                correctText,
-                                cQ,
-                                selectedText
-                              )}
-                            </div>
-                          );
-                        } else if (isGapFill) {
-                          const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer || '';
-                          const isCorrect = isGapFillAnswer(selectedVal, targetAns);
-                          const displayCorrectAnswer = targetAns ? String(targetAns).trim() : '';
-
-                          let qDisplay = (cQ.question || '').trim();
-                          qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
-                          qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
-                          const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
-
-                          const blankRegex = /(_{2,}|\[blank\]|\[chỗ trống\]|\[___+\]|\[\.\.\.+\]|\(\.\.\.+\)|\.\.\.+)/i;
-                          const hasInlineBlank = blankRegex.test(finalQuestionTitle);
-
-                          let textBefore = '';
-                          let textAfter = '';
-                          if (hasInlineBlank) {
-                            const match = finalQuestionTitle.match(blankRegex);
-                            if (match) {
-                              const idx = finalQuestionTitle.indexOf(match[0]);
-                              textBefore = finalQuestionTitle.slice(0, idx);
-                              textAfter = finalQuestionTitle.slice(idx + match[0].length);
-                            }
-                          }
-
-                          return (
-                            <div key={cIdx} className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3 shadow-xs transition-all">
-                              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                                {hasInlineBlank ? (
-                                  /* DẠNG 1: INLINE BLANK FILLING */
-                                  <div className="text-xs sm:text-sm font-extrabold text-slate-900 leading-relaxed sm:leading-loose flex-1">
-                                    <span>{textBefore}</span>
-                                    <span className="inline-flex items-center mx-1.5 align-middle">
-                                      <input
-                                        type="text"
-                                        disabled={submitted}
-                                        value={selectedVal || ''}
-                                        onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                        placeholder="điền từ..."
-                                        className={`min-w-[130px] max-w-[220px] w-36 sm:w-48 px-3 py-1 text-xs sm:text-sm font-black text-center rounded-xl border-2 transition-all outline-none ${
-                                          submitted
-                                            ? isCorrect
-                                              ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black shadow-xs ring-1 ring-emerald-300'
-                                              : 'bg-rose-50 border-rose-400 text-rose-950 font-bold line-through shadow-xs ring-1 ring-rose-200'
-                                            : 'bg-white border-indigo-300 text-slate-800 hover:border-indigo-500 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
-                                        }`}
-                                      />
-                                      {submitted && (
-                                        <span className="ml-1 text-xs font-black">
-                                          {isCorrect ? (
-                                            <span className="text-emerald-600 font-extrabold">✓</span>
-                                          ) : (
-                                            <span className="text-rose-600 font-extrabold">✕</span>
-                                          )}
-                                        </span>
-                                      )}
-                                    </span>
-                                    <span>{textAfter}</span>
-                                  </div>
-                                ) : (
-                                  /* DẠNG 2: NẾU CÂU HỎI KHÔNG CHỨA DẤU CHỖ TRỐNG */
-                                  <div className="flex-1 space-y-2">
-                                    <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-relaxed whitespace-pre-line">
-                                      {finalQuestionTitle}
-                                    </h4>
-                                    <div className="relative w-full max-w-sm sm:max-w-md pt-1">
-                                      <input
-                                        type="text"
-                                        disabled={submitted}
-                                        value={selectedVal || ''}
-                                        onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                        placeholder="Nhập 1 - 3 từ cần điền..."
-                                        className={`w-full px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl border-2 transition-all outline-none ${
-                                          submitted
-                                            ? isCorrect
-                                              ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
-                                              : 'bg-rose-50 border-rose-400 text-rose-950 font-semibold line-through shadow-xs'
-                                            : 'bg-white border-slate-300 text-slate-800 hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
-                                        }`}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-
-                                {submitted && (
-                                  <span className={`px-2.5 py-0.5 rounded-lg text-[11px] font-black shrink-0 flex items-center space-x-1 ${
-                                    isCorrect
-                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                      : 'bg-rose-100 text-rose-800 border border-rose-300'
-                                  }`}>
-                                    <span>{isCorrect ? '✓ ĐÚNG' : '✕ SAI'}</span>
+                            return (
+                              <div
+                                key={cIdx}
+                                id={questionDomId}
+                                className="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3 transition-all duration-300"
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                  <span className="font-extrabold text-[15px] text-slate-900 leading-relaxed flex-1">
+                                    {cIdx + 1}. {qText}
                                   </span>
+
+                                  <div className="flex items-center space-x-2 self-end sm:self-center">
+                                    <button
+                                      disabled={submitted}
+                                      onClick={() => handleSelectAnswer(childKey, 'True')}
+                                      className={`px-4 py-2 rounded-xl text-sm font-black border transition cursor-pointer ${
+                                        isSelectedTrue
+                                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300'
+                                          : 'bg-white text-slate-700 border-slate-300 hover:border-emerald-500 hover:bg-emerald-50'
+                                      }`}
+                                    >
+                                      <span>True (T)</span>
+                                    </button>
+
+                                    <button
+                                      disabled={submitted}
+                                      onClick={() => handleSelectAnswer(childKey, 'False')}
+                                      className={`px-4 py-2 rounded-xl text-sm font-black border transition cursor-pointer ${
+                                        isSelectedFalse
+                                          ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
+                                          : 'bg-white text-slate-700 border-slate-300 hover:border-rose-500 hover:bg-rose-50'
+                                      }`}
+                                    >
+                                      <span>False (F)</span>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {submitted && renderCompactExplanation(
+                                  cQ.explanation || pItem.explanation || `Dẫn chứng phân tích: Dựa vào nội dung bài đọc, câu phát biểu này là ${correctText}.`,
+                                  correctText,
+                                  cQ,
+                                  selectedVal
                                 )}
                               </div>
+                            );
+                          } else if (isPart1MC) {
+                            const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
+                            const correctOptIndex = cOpts.findIndex((o) => typeof o === 'object' ? o?.isCorrect : false);
+                            const correctText = (cOpts.find((o) => typeof o === 'object' && o?.isCorrect)?.text) || (cOpts[correctOptIndex]?.text) || 'Đáp án đúng';
 
-                              {/* HIỂN THỊ ĐÁP ÁN ĐÚNG VÀ GIẢI THÍCH CHI TIẾT */}
-                              {submitted && (
-                                <div className="p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1.5 animate-fadeIn">
-                                  <div className="flex items-center space-x-2">
-                                    <span className="font-extrabold text-emerald-950">➔ Đáp án đúng:</span>
-                                    <span className="font-black font-mono text-emerald-800 bg-white px-2.5 py-0.5 rounded-md border border-emerald-300 shadow-2xs">
-                                      {displayCorrectAnswer || 'Chưa thiết lập đáp án'}
-                                    </span>
-                                  </div>
+                            let qDisplay = (cQ.question || '').trim();
+                            qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
+                            qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
+                            const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
 
-                                  {(cQ.explanation || pItem.explanation) && (
-                                    <p className="text-[11px] text-slate-800 font-medium pt-1 border-t border-emerald-200/60 leading-relaxed">
-                                      💡 <strong>Giải thích chi tiết:</strong> {cQ.explanation || pItem.explanation}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        } else if (isPart2Short) {
-                          return (
-                            <div key={cIdx} className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-2 shadow-xs">
-                              <h4 className="font-extrabold text-xs text-slate-900 whitespace-pre-line leading-relaxed">{cQ.question}</h4>
-                              <input
-                                type="text"
-                                disabled={submitted}
-                                value={selectedVal || ''}
-                                onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                placeholder="Gõ câu hoàn chỉnh của bạn tại đây..."
-                                className="w-full p-3 border border-slate-300 rounded-xl text-xs bg-white font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
-                              />
-                              {submitted && (
-                                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1.5 animate-fadeIn">
-                                  <span className="font-black text-emerald-950 block">➔ GỢI Ý ĐÁP ÁN MẪU: {cQ.sample_answer || 'Đáp án mẫu chuẩn'}</span>
-                                  {renderFormattedParagraphs(cQ.explanation || pItem.explanation)}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        } else {
-                          // DẠNG WRITING ESSAY / VIẾT ĐOẠN VĂN (PART 3) - CÓ BỘ ĐẾM SỐ TỪ TRỰC TIẾP
-                          const textVal = selectedVal || '';
-                          const trimmedText = textVal.trim();
-                          const wordCount = trimmedText === '' ? 0 : trimmedText.split(/\s+/).filter(Boolean).length;
-                          const isWordCountGood = wordCount >= 60 && wordCount <= 80;
-                          const isWordCountUnder = wordCount > 0 && wordCount < 60;
-                          const isWordCountOver = wordCount > 80;
+                            const selectedText = selectedVal;
 
-                          return (
-                            <div key={cIdx} className="p-4 bg-white border border-indigo-200 rounded-2xl space-y-3 shadow-xs">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-2">
-                                <h4 className="font-extrabold text-xs text-indigo-950 whitespace-pre-line leading-relaxed flex-1">
-                                  {cIdx + 1}. {cQ.question}
+                            return (
+                              <div
+                                key={cIdx}
+                                id={questionDomId}
+                                className="p-4 sm:p-5 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3 transition-all duration-300"
+                              >
+                                <h4 className="font-extrabold text-[15px] sm:text-base text-slate-900 leading-relaxed whitespace-pre-line">
+                                  {finalQuestionTitle}
                                 </h4>
 
-                                {/* LIVE WORD COUNTER */}
-                                <div className={`px-3 py-1 rounded-xl text-[11px] font-black border flex items-center space-x-1.5 shrink-0 self-start sm:self-auto ${
-                                  isWordCountGood
-                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300 ring-1 ring-emerald-200'
-                                    : isWordCountUnder
-                                    ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                    : isWordCountOver
-                                    ? 'bg-purple-100 text-purple-900 border-purple-300'
-                                    : 'bg-slate-100 text-slate-700 border-slate-200'
-                                }`}>
-                                  <span>✍️ Số từ:</span>
-                                  <strong className="font-mono text-xs">{wordCount} từ</strong>
-                                  <span className="text-[10px] font-normal text-slate-500">
-                                    {isWordCountGood ? '✓ Đạt chuẩn 60-80 từ' : isWordCountUnder ? `(Thiếu ${60 - wordCount} từ)` : isWordCountOver ? '(Vượt 80 từ)' : '(Mục tiêu: 60-80 từ)'}
-                                  </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full my-1">
+                                  {cOpts.map((opt, oIdx) => {
+                                    const optPrefix = String.fromCharCode(65 + oIdx);
+                                    let rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
+                                    
+                                    const cleanRegex = new RegExp(`^(${optPrefix}[\\.\\):]\\s*|\\([A-D]\\)\\s*|[A-D][\\.\\)]\\s*)`, 'i');
+                                    rawOptText = rawOptText.trim().replace(cleanRegex, '').trim();
+
+                                    const isCorrectOpt = (typeof opt === 'object' && opt?.isCorrect) || oIdx === correctOptIndex;
+
+                                    const isSelected = selectedText === rawOptText ||
+                                                       selectedText === optPrefix ||
+                                                       selectedText === oIdx ||
+                                                       selectedText === String(oIdx) ||
+                                                       selectedText === `${optPrefix}. ${rawOptText}`;
+
+                                    let buttonStyle = 'bg-white text-slate-800 border-slate-300 hover:bg-emerald-50 hover:border-emerald-400 opacity-100 shadow-2xs';
+
+                                    if (submitted) {
+                                      if (isSelected && !isCorrectOpt) {
+                                        buttonStyle = 'bg-rose-600 text-white border-rose-700 ring-2 ring-rose-300 font-extrabold shadow-md opacity-100';
+                                      } else if (isCorrectOpt) {
+                                        buttonStyle = 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-300 font-extrabold shadow-md opacity-100';
+                                      } else {
+                                        buttonStyle = 'bg-slate-100 text-slate-800 border-slate-300 opacity-100 font-semibold';
+                                      }
+                                    } else if (isSelected) {
+                                      buttonStyle = 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-300 font-black shadow-md opacity-100';
+                                    }
+
+                                    return (
+                                      <button
+                                        key={oIdx}
+                                        disabled={submitted}
+                                        onClick={() => handleSelectAnswer(childKey, oIdx)}
+                                        className={`flex items-center justify-start px-4 py-3 rounded-xl text-sm border font-bold transition w-full text-left cursor-pointer ${buttonStyle}`}
+                                      >
+                                        <span className={`mr-2.5 font-black text-sm ${submitted && (isSelected || isCorrectOpt) ? 'text-white' : 'text-emerald-700'}`}>
+                                          {optPrefix}.
+                                        </span>
+                                        <span className="font-bold text-sm truncate flex-1">{rawOptText}</span>
+
+                                        {submitted && isSelected && !isCorrectOpt && (
+                                          <span className="ml-1 text-[10px] bg-rose-900/60 px-1.5 py-0.5 rounded-md text-white font-black shrink-0">✕ SAI</span>
+                                        )}
+                                        {submitted && isCorrectOpt && (
+                                          <span className="ml-1 text-[10px] bg-emerald-900/60 px-1.5 py-0.5 rounded-md text-white font-black shrink-0">✓ ĐÚNG</span>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
                                 </div>
+
+                                {submitted && renderCompactExplanation(
+                                  cQ.explanation || pItem.explanation || `Dẫn chứng & Phân tích: Đáp án đúng chính xác là "${correctText}".`,
+                                  correctText,
+                                  cQ,
+                                  selectedText
+                                )}
                               </div>
+                            );
+                          } else if (isGapFill) {
+                            const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer || '';
+                            const isCorrect = isGapFillAnswer(selectedVal, targetAns);
+                            const displayCorrectAnswer = targetAns ? String(targetAns).trim() : '';
 
-                              <textarea
-                                rows={7}
-                                disabled={submitted}
-                                value={textVal}
-                                onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                placeholder="Học sinh gõ/dán đoạn văn hoàn chỉnh tại đây (Ví dụ: My favourite film is 'The Lion King'...)..."
-                                className="w-full p-3.5 border border-indigo-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 rounded-xl text-xs sm:text-sm bg-white font-serif leading-relaxed outline-none shadow-inner"
-                              />
+                            let qDisplay = (cQ.question || '').trim();
+                            qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
+                            qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
+                            const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
 
-                              {submitted && (
-                                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-2 animate-fadeIn">
-                                  <div className="flex items-center space-x-2 text-emerald-950 font-black">
-                                    <span>📝 BÀI VĂN MẪU & DÀN Ý THAM KHẢO (SAMPLE PARAGRAPH):</span>
-                                  </div>
-                                  <p className="font-serif leading-relaxed text-slate-800 italic bg-white p-3 rounded-lg border border-emerald-200/80 whitespace-pre-line">
-                                    {cQ.sample_answer || 'Giáo viên chưa cung cấp bài văn mẫu.'}
-                                  </p>
-                                  {(cQ.explanation || pItem.explanation) && (
-                                    <p className="text-[11px] text-slate-700 leading-relaxed pt-1 border-t border-emerald-200/60 whitespace-pre-line">
-                                      💡 <strong>Tiêu chí đánh giá bài viết:</strong>\n{cQ.explanation || pItem.explanation}
-                                    </p>
+                            const blankRegex = /(_{2,}|\[blank\]|\[chỗ trống\]|\[___+\]|\[\.\.\.+\]|\(\.\.\.+\)|\.\.\.+)/i;
+                            const hasInlineBlank = blankRegex.test(finalQuestionTitle);
+
+                            let textBefore = '';
+                            let textAfter = '';
+                            if (hasInlineBlank) {
+                              const match = finalQuestionTitle.match(blankRegex);
+                              if (match) {
+                                const idx = finalQuestionTitle.indexOf(match[0]);
+                                textBefore = finalQuestionTitle.slice(0, idx);
+                                textAfter = finalQuestionTitle.slice(idx + match[0].length);
+                              }
+                            }
+
+                            return (
+                              <div
+                                key={cIdx}
+                                id={questionDomId}
+                                className="p-4 sm:p-5 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3 shadow-2xs transition-all duration-300"
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                  {hasInlineBlank ? (
+                                    <div className="text-[15px] sm:text-base font-extrabold text-slate-900 leading-relaxed sm:leading-loose flex-1">
+                                      <span>{textBefore}</span>
+                                      <span className="inline-flex items-center mx-2 align-middle">
+                                        <input
+                                          type="text"
+                                          disabled={submitted}
+                                          value={selectedVal || ''}
+                                          onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                          placeholder="điền từ..."
+                                          className={`min-w-[140px] max-w-[240px] w-40 sm:w-52 px-3.5 py-1.5 text-sm font-black text-center rounded-xl border-2 transition-all outline-none ${
+                                            submitted
+                                              ? isCorrect
+                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black shadow-xs ring-1 ring-emerald-300'
+                                                : 'bg-rose-50 border-rose-400 text-rose-950 font-bold line-through shadow-xs ring-1 ring-rose-200'
+                                              : 'bg-white border-emerald-300 text-slate-800 hover:border-emerald-500 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 shadow-inner'
+                                          }`}
+                                        />
+                                        {submitted && (
+                                          <span className="ml-1.5 text-sm font-black">
+                                            {isCorrect ? (
+                                              <span className="text-emerald-600 font-extrabold">✓</span>
+                                            ) : (
+                                              <span className="text-rose-600 font-extrabold">✕</span>
+                                            )}
+                                          </span>
+                                        )}
+                                      </span>
+                                      <span>{textAfter}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex-1 space-y-2">
+                                      <h4 className="font-extrabold text-[15px] sm:text-base text-slate-900 leading-relaxed whitespace-pre-line">
+                                        {finalQuestionTitle}
+                                      </h4>
+                                      <div className="relative w-full max-w-sm sm:max-w-md pt-1">
+                                        <input
+                                          type="text"
+                                          disabled={submitted}
+                                          value={selectedVal || ''}
+                                          onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                          placeholder="Nhập 1 - 3 từ cần điền..."
+                                          className={`w-full px-4 py-2.5 text-sm font-bold rounded-xl border-2 transition-all outline-none ${
+                                            submitted
+                                              ? isCorrect
+                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
+                                                : 'bg-rose-50 border-rose-400 text-rose-950 font-semibold line-through shadow-xs'
+                                              : 'bg-white border-slate-300 text-slate-800 hover:border-emerald-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 shadow-inner'
+                                          }`}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {submitted && (
+                                    <span className={`px-3 py-1 rounded-xl text-xs font-black shrink-0 flex items-center space-x-1 ${
+                                      isCorrect
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                        : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                    }`}>
+                                      <span>{isCorrect ? '✓ ĐÚNG' : '✕ SAI'}</span>
+                                    </span>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        }
-                      })}
-                    </div>
-                  );
 
-                  return (
-                    <div key={pIdx} className="space-y-3 border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
-                      {/* TIÊU ĐỀ HƯỚNG DẪN YÊU CẦU ĐỀ PART */}
-                      <div className="p-3 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-xs sm:text-sm leading-relaxed shadow-2xs flex items-center justify-between">
-                        <span>{pItem.part_title || `PART ${pIdx + 1}: Instructions`}</span>
-                        <span className="text-[10px] font-bold text-purple-700 bg-white px-2 py-0.5 rounded-lg border border-purple-200">
-                          {pQs.length} câu hỏi
-                        </span>
+                                {submitted && (
+                                  <div className="p-3 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1.5 animate-fadeIn">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-extrabold text-emerald-950">➔ Đáp án đúng:</span>
+                                      <span className="font-black font-mono text-emerald-800 bg-white px-2.5 py-0.5 rounded-md border border-emerald-300 shadow-2xs">
+                                        {displayCorrectAnswer || 'Chưa thiết lập đáp án'}
+                                      </span>
+                                    </div>
+
+                                    {(cQ.explanation || pItem.explanation) && (
+                                      <p className="text-xs text-slate-800 font-medium pt-1 border-t border-emerald-200/60 leading-relaxed">
+                                        💡 <strong>Giải thích chi tiết:</strong> {cQ.explanation || pItem.explanation}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          } else if (isPart2Short) {
+                            return (
+                              <div
+                                key={cIdx}
+                                id={questionDomId}
+                                className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-2.5 shadow-2xs transition-all duration-300"
+                              >
+                                <h4 className="font-extrabold text-[15px] text-slate-900 whitespace-pre-line leading-relaxed">{cQ.question}</h4>
+                                <input
+                                  type="text"
+                                  disabled={submitted}
+                                  value={selectedVal || ''}
+                                  onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                  placeholder="Gõ câu hoàn chỉnh của bạn tại đây..."
+                                  className="w-full p-3.5 border border-slate-300 rounded-xl text-sm bg-white font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
+                                />
+                                {submitted && (
+                                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1.5 animate-fadeIn">
+                                    <span className="font-black text-emerald-950 block">➔ GỢI Ý ĐÁP ÁN MẪU: {cQ.sample_answer || 'Đáp án mẫu chuẩn'}</span>
+                                    {renderFormattedParagraphs(cQ.explanation || pItem.explanation)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          } else {
+                            // DẠNG WRITING ESSAY / VIẾT ĐOẠN VĂN (PART 3) - CÓ BỘ ĐẾM SỐ TỪ TRỰC TIẾP
+                            const textVal = selectedVal || '';
+                            const trimmedText = textVal.trim();
+                            const wordCount = trimmedText === '' ? 0 : trimmedText.split(/\s+/).filter(Boolean).length;
+                            const isWordCountGood = wordCount >= 60 && wordCount <= 80;
+                            const isWordCountUnder = wordCount > 0 && wordCount < 60;
+                            const isWordCountOver = wordCount > 80;
+
+                            return (
+                              <div
+                                key={cIdx}
+                                id={questionDomId}
+                                className="p-5 bg-white border border-indigo-200 rounded-2xl space-y-3 shadow-2xs transition-all duration-300"
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-2">
+                                  <h4 className="font-extrabold text-[15px] text-indigo-950 whitespace-pre-line leading-relaxed flex-1">
+                                    {cIdx + 1}. {cQ.question}
+                                  </h4>
+
+                                  <div className={`px-3 py-1 rounded-xl text-xs font-black border flex items-center space-x-1.5 shrink-0 self-start sm:self-auto ${
+                                    isWordCountGood
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300 ring-1 ring-emerald-200'
+                                      : isWordCountUnder
+                                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                      : isWordCountOver
+                                      ? 'bg-purple-100 text-purple-900 border-purple-300'
+                                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}>
+                                    <span>✍️ Số từ:</span>
+                                    <strong className="font-mono text-xs">{wordCount} từ</strong>
+                                    <span className="text-[10px] font-normal text-slate-500">
+                                      {isWordCountGood ? '✓ Đạt chuẩn 60-80 từ' : isWordCountUnder ? `(Thiếu ${60 - wordCount} từ)` : isWordCountOver ? '(Vượt 80 từ)' : '(Mục tiêu: 60-80 từ)'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <textarea
+                                  rows={7}
+                                  disabled={submitted}
+                                  value={textVal}
+                                  onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
+                                  placeholder="Học sinh gõ/dán đoạn văn hoàn chỉnh tại đây (Ví dụ: My favourite film is 'The Lion King'...)..."
+                                  className="w-full p-4 border border-indigo-300 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 rounded-xl text-sm bg-white font-['Arial',sans-serif] leading-relaxed outline-none shadow-inner"
+                                />
+
+                                {submitted && (
+                                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-2 animate-fadeIn">
+                                    <div className="flex items-center space-x-2 text-emerald-950 font-black">
+                                      <span>📝 BÀI VĂN MẪU & DÀN Ý THAM KHẢO (SAMPLE PARAGRAPH):</span>
+                                    </div>
+                                    <p className="font-serif leading-relaxed text-slate-800 italic bg-white p-3.5 rounded-lg border border-emerald-200/80 whitespace-pre-line">
+                                      {cQ.sample_answer || 'Giáo viên chưa cung cấp bài văn mẫu.'}
+                                    </p>
+                                    {(cQ.explanation || pItem.explanation) && (
+                                      <p className="text-xs text-slate-700 leading-relaxed pt-1 border-t border-emerald-200/60 whitespace-pre-line">
+                                        💡 <strong>Tiêu chí đánh giá bài viết:</strong>\n{cQ.explanation || pItem.explanation}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                        })}
                       </div>
+                    );
 
-                      {/* BÀI NGHE AUDIO MP3 */}
-                      {activeAudioSource && (() => {
-                        const maxPlays = pItem?.max_plays || 2;
-                        const currentCount = audioPlayCounts[pIdx] || 0;
-                        const isAudioDisabled = (currentCount >= maxPlays && !isTeacher) || submitted;
-                        const transcriptText = pItem.transcript || pItem.audio_transcript || (pItem.passage && activity?.type === 'listening_section' ? pItem.passage : '');
+                    return (
+                      <div key={pIdx} className="space-y-4 border-b border-slate-100 pb-5 last:border-b-0 last:pb-0">
+                        {/* TIÊU ĐỀ HƯỚNG DẪN YÊU CẦU ĐỀ PART */}
+                        <div className="p-3.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-2xl text-purple-950 font-extrabold text-sm leading-relaxed shadow-2xs flex items-center justify-between">
+                          <span>{pItem.part_title || `PART ${pIdx + 1}: Instructions`}</span>
+                          <span className="text-xs font-black text-purple-700 bg-white px-2.5 py-1 rounded-xl border border-purple-200">
+                            {pQs.length} câu hỏi
+                          </span>
+                        </div>
 
-                        return (
-                          <div className="my-3 space-y-2 max-w-md">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              {/* BADGE HIỂN THỊ SỐ LẦN NGHE ĐƯỢC PHÉP 1/2 */}
-                              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black border flex items-center space-x-1 shadow-2xs ${
-                                submitted
-                                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                                  : isAudioDisabled
-                                  ? 'bg-rose-100 text-rose-800 border-rose-300'
-                                  : 'bg-amber-100 text-amber-900 border-amber-300'
-                              }`}>
-                                <span>{submitted ? '✅ Đã nộp bài (Đã ngắt nhạc)' : isAudioDisabled ? '🔒 Đã hết lượt' : '🎧 Lần nghe:'}</span>
-                                <strong className="font-mono">{currentCount}/{maxPlays}</strong>
-                              </span>
+                        {/* BÀI NGHE AUDIO MP3 */}
+                        {activeAudioSource && (() => {
+                          const maxPlays = pItem?.max_plays || 2;
+                          const currentCount = audioPlayCounts[pIdx] || 0;
+                          const isAudioDisabled = (currentCount >= maxPlays && !isTeacher) || submitted;
+                          const transcriptText = pItem.transcript || pItem.audio_transcript || (pItem.passage && activity?.type === 'listening_section' ? pItem.passage : '');
 
-                              {/* CẢNH BÁO KHI KHÓA AUDIO HOẶC ĐÃ NỘP BÀI */}
-                              {isAudioDisabled && !submitted && (
-                                <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
-                                  ⚠️ Đã khóa lượt nghe
+                          return (
+                            <div className="my-3 space-y-2 max-w-md">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className={`px-3 py-1 rounded-full text-xs font-black border flex items-center space-x-1.5 shadow-2xs ${
+                                  submitted
+                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                    : isAudioDisabled
+                                    ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                    : 'bg-amber-100 text-amber-900 border-amber-300'
+                                }`}>
+                                  <span>{submitted ? '✅ Đã nộp bài (Đã ngắt nhạc)' : isAudioDisabled ? '🔒 Đã hết lượt' : '🎧 Lần nghe:'}</span>
+                                  <strong className="font-mono">{currentCount}/{maxPlays}</strong>
                                 </span>
-                              )}
 
-                              {/* NÚT XEM LỜI BÀI NGHE (TRANSCRIPT) CHỈ HIỂN THỊ CHO GIÁO VIÊN */}
-                              {isTeacher && (
-                                <button
-                                  type="button"
-                                  onClick={() => toggleTeacherTranscript(pIdx)}
-                                  className="px-2.5 py-0.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 rounded-lg text-[10px] font-extrabold transition flex items-center space-x-1 border border-indigo-300 shadow-2xs cursor-pointer ml-auto"
-                                  title="Xem lời bài nghe (Chỉ Giáo viên mới xem được)"
-                                >
-                                  <span>📝 Lời bài nghe (GV)</span>
-                                </button>
-                              )}
-                            </div>
-
-                            {/* THANH PHÁT AUDIO CONTROL NATIVE HTML5 */}
-                            <div className={`relative ${isAudioDisabled ? 'opacity-50 pointer-events-none' : ''}`}>
-                              <audio
-                                controls
-                                controlsList="nodownload noplaybackrate"
-                                preload="auto"
-                                src={getGoogleDriveStreamUrl(activeAudioSource)}
-                                onPlay={(e) => {
-                                  if (isAudioDisabled) {
-                                    e.target.pause();
-                                    return;
-                                  }
-                                  setAudioPlayCounts((prev) => {
-                                    const prevVal = prev[pIdx] || 0;
-                                    if (prevVal < maxPlays) {
-                                      return { ...prev, [pIdx]: prevVal + 1 };
-                                    }
-                                    return prev;
-                                  });
-                                }}
-                                className="w-full h-10 outline-none rounded-full"
-                              />
-                            </div>
-
-                            {/* POPUP / BOARD TRANSCRIPT CHỈ DÀNH CHO GIÁO VIÊN */}
-                            {isTeacher && openTranscripts[pIdx] && (
-                              <div className="p-3 bg-indigo-50/90 border border-indigo-300 rounded-xl text-xs text-indigo-950 space-y-1 animate-scale-up shadow-sm">
-                                <div className="flex items-center justify-between border-b border-indigo-200 pb-1 font-black text-[11px] text-indigo-900">
-                                  <span className="flex items-center space-x-1">
-                                    <span>📝 LỜI BÀI NGHE (TRANSCRIPT) - CHỈ DÀNH CHO GIÁO VIÊN:</span>
-                                  </span>
+                                {isTeacher && (
                                   <button
                                     type="button"
                                     onClick={() => toggleTeacherTranscript(pIdx)}
-                                    className="text-indigo-600 hover:text-indigo-900 font-bold px-1 cursor-pointer"
+                                    className="px-2.5 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-900 rounded-lg text-xs font-black transition flex items-center space-x-1 border border-indigo-300 shadow-2xs cursor-pointer ml-auto"
+                                    title="Xem lời bài nghe (Chỉ Giáo viên mới xem được)"
                                   >
-                                    ✕
+                                    <span>📝 Lời bài nghe (GV)</span>
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className={`relative ${isAudioDisabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                                <audio
+                                  controls
+                                  controlsList="nodownload noplaybackrate"
+                                  preload="auto"
+                                  src={getGoogleDriveStreamUrl(activeAudioSource)}
+                                  onPlay={(e) => {
+                                    if (isAudioDisabled) {
+                                      e.target.pause();
+                                      return;
+                                    }
+                                    setAudioPlayCounts((prev) => {
+                                      const prevVal = prev[pIdx] || 0;
+                                      if (prevVal < maxPlays) {
+                                        return { ...prev, [pIdx]: prevVal + 1 };
+                                      }
+                                      return prev;
+                                    });
+                                  }}
+                                  className="w-full h-10 outline-none rounded-full"
+                                />
+                              </div>
+
+                              {isTeacher && openTranscripts[pIdx] && (
+                                <div className="p-3.5 bg-indigo-50/90 border border-indigo-300 rounded-xl text-xs text-indigo-950 space-y-1.5 animate-scale-up shadow-sm">
+                                  <div className="flex items-center justify-between border-b border-indigo-200 pb-1 font-black text-xs text-indigo-900">
+                                    <span>📝 LỜI BÀI NGHE (TRANSCRIPT) - CHỈ DÀNH CHO GIÁO VIÊN:</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleTeacherTranscript(pIdx)}
+                                      className="text-indigo-600 hover:text-indigo-900 font-bold px-1 cursor-pointer"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                  <p className="font-['Arial',sans-serif] leading-relaxed text-slate-800 pt-1 whitespace-pre-line">
+                                    {transcriptText || 'Thầy chưa nhập Lời bài nghe (Transcript) trong Studio. Bấm "Sửa bài thi" để bổ sung transcript!'}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* BỐ CỤC ĐOẠN VĂN: NẾU CÓ BÀI ĐỌC (READING) -> CHUYỂN SANG DẠNG 2 CỘT SPLIT SCREEN */}
+                        {hasPassage ? (
+                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start my-2">
+                            {/* CỘT 1 (BÊN TRÁI): ĐOẠN VĂN READING PASSAGE VỚI THANH CUỘN, CÔNG CỤ HIGHLIGHT VÀ PHÓNG TO ẢNH */}
+                            <div className="lg:col-span-5 bg-gradient-to-br from-amber-50/90 to-orange-50/40 border-2 border-amber-300/80 rounded-3xl p-4 shadow-sm lg:sticky lg:top-4 max-h-[75vh] flex flex-col space-y-2.5">
+                              {/* THANH CÔNG CỤ TRÊN ĐẦU ĐOẠN VĂN */}
+                              <div className="flex flex-wrap items-center justify-between border-b border-amber-200 pb-2 gap-2">
+                                <div className="flex items-center space-x-1.5">
+                                  <BookOpen className="w-4 h-4 text-amber-800" />
+                                  <span className="text-xs font-black text-amber-950 uppercase tracking-wide">
+                                    📖 ĐOẠN VĂN BÀI ĐỌC
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center space-x-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleHighlightSelection(pIdx)}
+                                    className="px-2 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 border border-amber-400 rounded-lg text-xs font-black transition flex items-center space-x-1 cursor-pointer shadow-2xs"
+                                    title="Quét chọn văn bản rồi bấm để tô vàng làm dẫn chứng"
+                                  >
+                                    <Highlighter className="w-3.5 h-3.5 text-amber-900" />
+                                    <span>Tô Vàng</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleClearHighlights(pIdx)}
+                                    className="p-1.5 bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
+                                    title="Xóa tất cả các đoạn đã đánh dấu vàng"
+                                  >
+                                    <Eraser className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const el = document.getElementById(`reading-passage-${pIdx}`);
+                                      if (el) el.scrollBy({ top: -140, behavior: 'smooth' });
+                                    }}
+                                    className="p-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
+                                    title="Cuộn bài đọc lên trên"
+                                  >
+                                    <ArrowUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const el = document.getElementById(`reading-passage-${pIdx}`);
+                                      if (el) el.scrollBy({ top: 140, behavior: 'smooth' });
+                                    }}
+                                    className="p-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
+                                    title="Cuộn bài đọc xuống dưới"
+                                  >
+                                    <ArrowDown className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setPassageFontSize(prev => prev.includes('text-xs') ? 'text-sm sm:text-base' : prev.includes('text-sm') ? 'text-base sm:text-lg' : 'text-xs sm:text-sm');
+                                    }}
+                                    className="px-2 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[10px] font-black transition shadow-2xs cursor-pointer"
+                                    title="Thay đổi cỡ chữ đoạn văn"
+                                  >
+                                    A±
                                   </button>
                                 </div>
-                                <p className="font-serif leading-relaxed text-slate-800 pt-1 whitespace-pre-line">
-                                  {transcriptText || 'Thầy chưa nhập Lời bài nghe (Transcript) trong Studio. Bấm "Sửa bài thi" để bổ sung transcript!'}
-                                </p>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })()}
 
-                      {/* BỐ CỤC ĐOẠN VĂN: NẾU CÓ BÀI ĐỌC (READING) -> CHUYỂN SANG DẠNG 2 CỘT SPLIT SCREEN */}
-                      {hasPassage ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start my-2">
-                          {/* CỘT 1 (BÊN TRÁI): ĐOẠN VĂN READING PASSAGE VỚI THANH CUỘN VÀ NÚT ĐIỀU CHỈNH CỠ CHỮ */}
-                          <div className="lg:col-span-5 bg-gradient-to-br from-amber-50/90 to-orange-50/40 border-2 border-amber-300/80 rounded-3xl p-4 shadow-sm lg:sticky lg:top-4 max-h-[70vh] flex flex-col space-y-2">
-                            <div className="flex items-center justify-between border-b border-amber-200 pb-2">
-                              <div className="flex items-center space-x-2">
-                                <BookOpen className="w-4 h-4 text-amber-800" />
-                                <span className="text-xs font-black text-amber-950 uppercase tracking-wide">
-                                  📖 ĐOẠN VĂN BÀI ĐỌC (PASSAGE)
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const el = document.getElementById(`reading-passage-${pIdx}`);
-                                    if (el) el.scrollBy({ top: -140, behavior: 'smooth' });
-                                  }}
-                                  className="p-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
-                                  title="Cuộn bài đọc lên trên"
-                                >
-                                  <ArrowUp className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const el = document.getElementById(`reading-passage-${pIdx}`);
-                                    if (el) el.scrollBy({ top: 140, behavior: 'smooth' });
-                                  }}
-                                  className="p-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
-                                  title="Cuộn bài đọc xuống dưới"
-                                >
-                                  <ArrowDown className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setPassageFontSize(prev => prev.includes('text-xs') ? 'text-sm sm:text-base' : prev.includes('text-sm') ? 'text-base sm:text-lg' : 'text-xs sm:text-sm');
-                                  }}
-                                  className="px-2 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-[10px] font-black transition shadow-2xs cursor-pointer"
-                                  title="Thay đổi cỡ chữ đoạn văn"
-                                >
-                                  A±
-                                </button>
+                              {/* HÌNH ẢNH MINH HỌA BÀI ĐỌC NẾU CÓ */}
+                              {(pItem.image_url || pItem.imageUrl) && (
+                                <div className="relative rounded-2xl overflow-hidden border border-amber-300 shadow-xs group">
+                                  <img
+                                    src={pItem.image_url || pItem.imageUrl}
+                                    alt="Passage Illustration"
+                                    className="w-full max-h-52 object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
+                                    onClick={() => setLightboxImage(pItem.image_url || pItem.imageUrl)}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setLightboxImage(pItem.image_url || pItem.imageUrl)}
+                                    className="absolute bottom-2 right-2 px-2.5 py-1 bg-black/75 hover:bg-black/90 text-white rounded-lg text-xs font-black flex items-center space-x-1 backdrop-blur-xs transition shadow-md cursor-pointer"
+                                  >
+                                    <ZoomIn className="w-3.5 h-3.5 text-amber-300" />
+                                    <span>Phóng to ảnh</span>
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* VĂN BẢN ĐOẠN ĐỌC */}
+                              <div
+                                id={`reading-passage-${pIdx}`}
+                                className={`overflow-y-auto pr-2 text-slate-900 leading-relaxed font-['Arial',sans-serif] ${passageFontSize} whitespace-pre-line select-text`}
+                              >
+                                {renderHighlightedPassage(pItem.passage, pIdx)}
                               </div>
                             </div>
-                            <div
-                              id={`reading-passage-${pIdx}`}
-                              className={`overflow-y-auto pr-2 font-serif text-slate-900 leading-relaxed ${passageFontSize} whitespace-pre-line select-text`}
-                            >
-                              {pItem.passage}
+
+                            {/* CỘT 2 (BÊN PHẢI): DANH SÁCH CÂU HỎI CON VÀ LỰA CHỌN */}
+                            <div className="lg:col-span-7 space-y-3">
+                              {renderChildQuestions()}
                             </div>
                           </div>
+                        ) : (
+                          renderChildQuestions()
+                        )}
 
-                          {/* CỘT 2 (BÊN PHẢI): DANH SÁCH CÂU HỎI CON VÀ LỰA CHỌN */}
-                          <div className="lg:col-span-7 space-y-3">
-                            {renderChildQuestions()}
-                          </div>
-                        </div>
-                      ) : (
-                        renderChildQuestions()
-                      )}
-
-                      {/* THANH ĐIỀU HƯỚNG CHÂN TRANG CỦA PART */}
-                      {!showAllParts && (
-                        <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
-                          <button
-                            type="button"
-                            disabled={pIdx === 0}
-                            onClick={() => {
-                              setActivePartTab(prev => Math.max(0, prev - 1));
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            className="px-4 py-2 rounded-xl text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center space-x-1 cursor-pointer"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                            <span>Part trước</span>
-                          </button>
-
-                          <span className="text-xs font-bold text-slate-500">
-                            Part {pIdx + 1} / {sectionParts.length}
-                          </span>
-
-                          {pIdx < sectionParts.length - 1 ? (
+                        {/* THANH ĐIỀU HƯỚNG CHÂN TRANG CỦA PART */}
+                        {!showAllParts && (
+                          <div className="flex items-center justify-between pt-4 border-t border-slate-200 mt-4">
                             <button
                               type="button"
+                              disabled={pIdx === 0}
                               onClick={() => {
-                                setActivePartTab(prev => Math.min(sectionParts.length - 1, prev + 1));
+                                setActivePartTab(prev => Math.max(0, prev - 1));
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
-                              className="px-4 py-2 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition flex items-center space-x-1 cursor-pointer"
+                              className="px-4 py-2 rounded-xl text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center space-x-1 cursor-pointer"
                             >
-                              <span>Part tiếp theo</span>
-                              <ChevronRight className="w-4 h-4" />
+                              <ChevronLeft className="w-4 h-4" />
+                              <span>Part trước</span>
                             </button>
-                          ) : !submitted ? (
-                            <button
-                              type="button"
-                              onClick={() => handleSubmitQuiz(false)}
-                              disabled={isAiGradingLoading}
-                              className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition flex items-center space-x-1 cursor-pointer animate-pulse"
-                            >
-                              <span>🚀 Nộp Bài Thi Ngay</span>
-                            </button>
-                          ) : null}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          }
 
-          // DẠNG SPEAKING TEST (WEB SPEECH API RECOGNITION)
-          if (sectionType === 'speaking_test' || q.type === 'speaking_test') {
-            const childKey = `${q.id}_speaking`;
-            const isRecordingThis = recordingKey === childKey;
-            const transcript = speechTranscripts[childKey] || userAnswers[childKey] || '';
+                            <span className="text-xs font-bold text-slate-500">
+                              Part {pIdx + 1} / {sectionParts.length}
+                            </span>
 
-            return (
-              <div key={q.id || qIdx} className="bg-white border-l-4 border-amber-500 rounded-3xl p-4 shadow-xs border-y border-r border-slate-200 space-y-3">
-                <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
-                  <span className="w-6 h-6 rounded-lg bg-amber-600 text-white flex items-center justify-center font-extrabold text-xs">
-                    {qIdx + 1}
-                  </span>
-                  <span className="uppercase text-amber-900 tracking-tight text-xs font-extrabold">
-                    SPEAKING TEST (LUYỆN PHÁT ÂM VỚI AI)
-                  </span>
+                            {pIdx < sectionParts.length - 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActivePartTab(prev => Math.min(sectionParts.length - 1, prev + 1));
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="px-4 py-2 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition flex items-center space-x-1 cursor-pointer"
+                              >
+                                <span>Part tiếp theo</span>
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            ) : !submitted ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSubmitQuiz(false)}
+                                disabled={isAiGradingLoading}
+                                className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition flex items-center space-x-1 cursor-pointer animate-pulse"
+                              >
+                                <span>🚀 Nộp Bài Thi Ngay</span>
+                              </button>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
+              );
+            }
 
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 leading-relaxed font-serif">
-                  {q.content?.question || 'Read the sentence out loud into your microphone.'}
-                </div>
+            // DẠNG SPEAKING TEST (WEB SPEECH API RECOGNITION)
+            if (sectionType === 'speaking_test' || q.type === 'speaking_test') {
+              const childKey = `${q.id}_speaking`;
+              const isRecordingThis = recordingKey === childKey;
+              const transcript = speechTranscripts[childKey] || userAnswers[childKey] || '';
 
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700">🎙️ Bài nói ghi âm của bạn:</span>
-                    <button
-                      disabled={submitted}
-                      onClick={() => handleStartSpeechRecognition(childKey)}
-                      className={`px-3 py-1.5 rounded-xl font-extrabold text-xs transition flex items-center space-x-1.5 ${
-                        isRecordingThis
-                          ? 'bg-rose-600 text-white animate-pulse'
-                          : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
-                      }`}
-                    >
-                      {isRecordingThis ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                      <span>{isRecordingThis ? 'Đang thu âm...' : 'Bấm Để Thu Âm Giọng Nói'}</span>
-                    </button>
+              return (
+                <div key={q.id || qIdx} className="bg-white border-l-4 border-amber-500 rounded-3xl p-5 shadow-xs border-y border-r border-slate-200 space-y-3">
+                  <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
+                    <span className="w-6 h-6 rounded-lg bg-amber-600 text-white flex items-center justify-center font-extrabold text-xs">
+                      {qIdx + 1}
+                    </span>
+                    <span className="uppercase text-amber-900 tracking-tight text-xs font-extrabold">
+                      SPEAKING TEST (LUYỆN PHÁT ÂM VỚI AI)
+                    </span>
                   </div>
 
-                  <input
-                    type="text"
-                    disabled={submitted}
-                    value={transcript}
-                    onChange={(e) => {
-                      setSpeechTranscripts((prev) => ({ ...prev, [childKey]: e.target.value }));
-                      handleSelectAnswer(childKey, e.target.value);
-                    }}
-                    placeholder="Văn bản nhận diện giọng nói sẽ tự động xuất hiện ở đây..."
-                    className="w-full p-2.5 border border-slate-300 rounded-xl text-xs bg-white"
-                  />
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-950 leading-relaxed font-['Arial',sans-serif]">
+                    {q.content?.question || 'Read the sentence out loud into your microphone.'}
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">🎙️ Bài nói ghi âm của bạn:</span>
+                      <button
+                        disabled={submitted}
+                        onClick={() => handleStartSpeechRecognition(childKey)}
+                        className={`px-3.5 py-1.5 rounded-xl font-extrabold text-xs transition flex items-center space-x-1.5 ${
+                          isRecordingThis
+                            ? 'bg-rose-600 text-white animate-pulse'
+                            : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer'
+                        }`}
+                      >
+                        {isRecordingThis ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        <span>{isRecordingThis ? 'Đang thu âm...' : 'Bấm Để Thu Âm Giọng Nói'}</span>
+                      </button>
+                    </div>
+
+                    <input
+                      type="text"
+                      disabled={submitted}
+                      value={transcript}
+                      onChange={(e) => {
+                        setSpeechTranscripts((prev) => ({ ...prev, [childKey]: e.target.value }));
+                        handleSelectAnswer(childKey, e.target.value);
+                      }}
+                      placeholder="Văn bản nhận diện giọng nói sẽ tự động xuất hiện ở đây..."
+                      className="w-full p-3 border border-slate-300 rounded-xl text-sm bg-white"
+                    />
+                  </div>
                 </div>
-              </div>
-            );
-          }
+              );
+            }
 
-          // DẠNG TRẮC NGHIỆM ĐƠN LẺ KHÁC
-          const isListening = sectionType === 'listening' || q.type === 'listening' || Boolean(q.content?.audio_url) || Boolean(q.content?.audio_data);
-          const isReading = sectionType === 'reading' || q.type === 'reading' || Boolean(q.content?.passage);
-
-          return (
-            <div key={q.id || qIdx} className="p-3.5 bg-slate-50 border border-slate-200 rounded-3xl space-y-2 shadow-xs">
-              <div className="flex items-center justify-between">
+            // CÁC DẠNG KHÁC
+            return (
+              <div key={q.id || qIdx} className="p-4 bg-white border border-slate-200 rounded-3xl space-y-3 shadow-xs">
                 <div className="flex items-center space-x-2 text-slate-900 font-extrabold text-base">
                   <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-extrabold text-xs">
                     {qIdx + 1}
                   </span>
                   <span className="uppercase text-emerald-900 tracking-tight text-xs font-extrabold">
-                    {isListening ? 'LISTENING SECTION' : isReading ? 'READING SECTION' : 'MULTIPLE CHOICE'}
+                    {q.content?.title || q.content?.question || 'CÂU HỎI KIỂM TRA'}
                   </span>
                 </div>
               </div>
+            );
+          })}
+        </div>
 
-              {(q.content?.question || q.content?.title) && (
-                <div className="p-2.5 bg-purple-50/80 border-l-4 border-purple-600 rounded-r-xl text-purple-950 font-extrabold text-xs leading-relaxed shadow-2xs">
-                  {q.content.question || q.content.title}
-                </div>
-              )}
-
-              {/* TRÌNH PHÁT AUDIO PLAYER CHO DẠNG LISTENING ĐƠN LẺ */}
-              {(() => {
-                const singleAudio = q.audio_data || q.audio_url || q.audio || q.audioUrl || q.content?.audio_data || q.content?.audio_url || q.content?.audio;
-                if (!singleAudio || singleAudio.includes('soundhelix.com')) return null;
-
-                return (
-                  <div className="p-3 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-2xl space-y-2 my-2 shadow-md border border-purple-500/30">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="w-6 h-6 rounded-xl bg-purple-500/30 text-purple-300 flex items-center justify-center font-extrabold text-xs">
-                          🎧
-                        </span>
-                        <span className="text-xs font-extrabold text-purple-200 uppercase">
-                          BÀI NGHE AUDIO MP3 - THI THỬ TRỰC TUYẾN
-                        </span>
-                      </div>
-                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-bold rounded">✓ PHÁT MP3 MƯỢT MÀ</span>
-                    </div>
-                    <audio
-                      controls
-                      src={singleAudio}
-                      className="w-full h-9 rounded-xl outline-none"
-                    />
-                  </div>
-                );
-              })()}
-
-              <div className="space-y-1.5 pt-0.5">
-                {(() => {
-                  const rawChildQuestions = (Array.isArray(q.content?.childQuestions) && q.content.childQuestions.length > 0)
-                    ? q.content.childQuestions
-                    : (Array.isArray(q.childQuestions) && q.childQuestions.length > 0)
-                    ? q.childQuestions
-                    : [
-                        {
-                          question: q.content?.question || '1. Choose the correct answer A, B, C, or D.',
-                          options: q.content?.options || [
-                            { text: 'Option A', isCorrect: true },
-                            { text: 'Option B', isCorrect: false },
-                            { text: 'Option C', isCorrect: false },
-                            { text: 'Option D', isCorrect: false },
-                          ],
-                          explanation: q.content?.explanation,
-                        },
-                      ];
-
-                  return rawChildQuestions.map((cQ, cIdx) => {
-                    const childKey = `${q.id}_c${cIdx}`;
-                    const cOpts = Array.isArray(cQ.options) ? cQ.options : [];
-                    const isGapFillChild = cQ.type === 'gap_fill' || sectionType === 'gap_fill' || (cOpts.length === 0 && (cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer));
-
-                    // DẠNG ĐIỀN KHUYẾT (GAP-FILL / INLINE BLANK) CHO CÂU HỎI CON
-                    if (isGapFillChild) {
-                      const targetAns = cQ.correctAnswer || cQ.correct_answer || cQ.answer || cQ.sample_answer || '';
-                      const userVal = userAnswers[childKey] || '';
-                      const isCorrect = isGapFillAnswer(userVal, targetAns);
-                      const displayCorrectAnswer = targetAns ? String(targetAns).trim() : '';
-
-                      let qDisplay = (cQ.question || '').trim();
-                      qDisplay = qDisplay.replace(/^(\d+[\.\)]\s*)?(Câu|Question)\s*\d+[\:\.\s]*/i, '');
-                      qDisplay = qDisplay.replace(/^\d+[\.\)]\s*/, '');
-                      const finalQuestionTitle = `${cIdx + 1}. ${qDisplay}`;
-
-                      const blankRegex = /(_{2,}|\[blank\]|\[chỗ trống\]|\[___+\]|\[\.\.\.+\]|\(\.\.\.+\)|\.\.\.+)/i;
-                      const hasInlineBlank = blankRegex.test(finalQuestionTitle);
-
-                      let textBefore = '';
-                      let textAfter = '';
-                      if (hasInlineBlank) {
-                        const match = finalQuestionTitle.match(blankRegex);
-                        if (match) {
-                          const idx = finalQuestionTitle.indexOf(match[0]);
-                          textBefore = finalQuestionTitle.slice(0, idx);
-                          textAfter = finalQuestionTitle.slice(idx + match[0].length);
-                        }
-                      }
-
-                      return (
-                        <div key={cIdx} className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 shadow-xs transition">
-                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                            {hasInlineBlank ? (
-                              <div className="text-xs sm:text-sm font-extrabold text-slate-900 leading-relaxed sm:leading-loose flex-1">
-                                <span>{textBefore}</span>
-                                <span className="inline-flex items-center mx-1.5 align-middle">
-                                  <input
-                                    type="text"
-                                    disabled={submitted}
-                                    value={userVal}
-                                    onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                    placeholder="điền từ..."
-                                    className={`min-w-[120px] max-w-[200px] w-32 sm:w-44 px-3 py-1 text-xs sm:text-sm font-black text-center rounded-xl border-2 transition-all outline-none ${
-                                      submitted
-                                        ? isCorrect
-                                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black shadow-xs ring-1 ring-emerald-300'
-                                          : 'bg-rose-50 border-rose-400 text-rose-950 font-bold line-through shadow-xs ring-1 ring-rose-200'
-                                        : 'bg-white border-indigo-300 text-slate-800 hover:border-indigo-500 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
-                                    }`}
-                                  />
-                                  {submitted && (
-                                    <span className="ml-1 text-xs font-black">
-                                      {isCorrect ? <span className="text-emerald-600 font-extrabold">✓</span> : <span className="text-rose-600 font-extrabold">✕</span>}
-                                    </span>
-                                  )}
-                                </span>
-                                <span>{textAfter}</span>
-                              </div>
-                            ) : (
-                              <div className="flex-1 space-y-1.5">
-                                <h4 className="font-extrabold text-xs text-slate-900 leading-relaxed">{finalQuestionTitle}</h4>
-                                <div className="relative w-full max-w-sm pt-1">
-                                  <input
-                                    type="text"
-                                    disabled={submitted}
-                                    value={userVal}
-                                    onChange={(e) => handleSelectAnswer(childKey, e.target.value)}
-                                    placeholder="Nhập từ cần điền..."
-                                    className={`w-full px-3 py-1.5 text-xs font-semibold rounded-xl border-2 transition-all outline-none ${
-                                      submitted
-                                        ? isCorrect
-                                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-xs'
-                                          : 'bg-rose-50 border-rose-400 text-rose-950 font-semibold line-through shadow-xs'
-                                        : 'bg-white border-slate-300 text-slate-800 hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 shadow-inner'
-                                    }`}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            {submitted && (
-                              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black shrink-0 ${
-                                isCorrect ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
-                              }`}>
-                                {isCorrect ? '✓ ĐÚNG' : '✕ SAI'}
-                              </span>
-                            )}
-                          </div>
-
-                          {submitted && (
-                            <div className="p-2.5 bg-emerald-50/90 border border-emerald-200 rounded-xl text-xs text-emerald-950 space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <span className="font-extrabold text-emerald-950">➔ Đáp án đúng:</span>
-                                <span className="font-black font-mono text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300 shadow-2xs">
-                                  {displayCorrectAnswer || 'Chưa thiết lập đáp án'}
-                                </span>
-                              </div>
-                              {(cQ.explanation || q.content?.explanation) && (
-                                <p className="text-[11px] text-slate-800 font-medium pt-1 border-t border-emerald-200/60 leading-relaxed">
-                                  💡 <strong>Giải thích:</strong> {cQ.explanation || q.content?.explanation}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-
-                    // HÀM BẮT CHÍNH XÁC ĐÁP ÁN ĐÚNG CỦA CÂU HỎI
-                    const getCorrectOptionIndex = () => {
-                      if (!Array.isArray(cOpts) || cOpts.length === 0) return -1;
-                      const foundIdx = cOpts.findIndex(
-                        (o) => o?.isCorrect || o?.is_correct || o?.correct || o?.status === 'correct'
-                      );
-                      if (foundIdx !== -1) return foundIdx;
-                      const rawAns = cQ?.correct_answer || cQ?.answer || q?.content?.answer || q?.content?.correct_answer;
-                      if (rawAns !== undefined && rawAns !== null) {
-                        const strAns = String(rawAns).trim().toUpperCase();
-                        if (['A', 'B', 'C', 'D'].includes(strAns)) {
-                          return strAns.charCodeAt(0) - 65;
-                        }
-                        const idxByText = cOpts.findIndex((o) => {
-                          const t = typeof o === 'string' ? o : (o.text || o.label || '');
-                          return t.toLowerCase().includes(String(rawAns).toLowerCase());
-                        });
-                        if (idxByText !== -1) return idxByText;
-                      }
-                      return 0;
-                    };
-
-                    // HÀM BẮT CHÍNH XÁC VÀ LƯU VỊ TRÍ HỌC SINH ĐÃ CHỌN
-                    const getStudentSelectedIndex = () => {
-                      const userAns = userAnswers[childKey];
-                      if (userAns === undefined || userAns === null || userAns === '') return -1;
-                      if (typeof userAns === 'number') return userAns;
-                      if (typeof userAns === 'string') {
-                        const trimmed = userAns.trim();
-                        if (!isNaN(trimmed) && trimmed !== '') return Number(trimmed);
-                        const upper = trimmed.toUpperCase();
-                        if (['A', 'B', 'C', 'D'].includes(upper)) {
-                          return upper.charCodeAt(0) - 65;
-                        }
-                        const idxByText = cOpts.findIndex((o) => {
-                          const t = typeof o === 'string' ? o : (o.text || o.label || '');
-                          return t.toLowerCase().includes(trimmed.toLowerCase()) || trimmed.toLowerCase().includes(t.toLowerCase());
-                        });
-                        if (idxByText !== -1) return idxByText;
-                      }
-                      if (typeof userAns === 'object' && userAns.index !== undefined) {
-                        return Number(userAns.index);
-                      }
-                      return -1;
-                    };
-
-                    const correctOptIdx = getCorrectOptionIndex();
-                    const studentSelectedIdx = getStudentSelectedIndex();
-                    const isStudentCorrect = (studentSelectedIdx !== -1 && studentSelectedIdx === correctOptIdx);
-                    const isStudentWrong = (studentSelectedIdx !== -1 && studentSelectedIdx !== correctOptIdx);
-                    const correctText = cOpts[correctOptIdx]?.text || cOpts[correctOptIdx]?.label || 'Đáp án đúng';
-
-                    const maxOptLen = Math.max(...cOpts.map(o => (typeof o === 'string' ? o : (o.text || o.label || '')).length));
-
-                    let btnFontSize = 'text-xs px-2.5 py-1.5';
-                    if (maxOptLen > 30) {
-                      btnFontSize = 'text-[10px] px-1.5 py-1 leading-tight';
-                    } else if (maxOptLen > 18) {
-                      btnFontSize = 'text-[11px] px-2 py-1 leading-snug';
-                    }
-
-                    return (
-                      <div
-                        key={cIdx}
-                        className={`p-2.5 bg-white border rounded-xl space-y-1.5 transition ${
-                          submitted
-                            ? isStudentCorrect
-                              ? 'border-emerald-400 bg-emerald-50/20'
-                              : 'border-rose-400 bg-rose-50/20'
-                            : 'border-slate-200'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-extrabold text-xs text-slate-900">
-                            {cQ.question}
-                          </h4>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full items-stretch pt-0.5">
-                          {cOpts.map((opt, oIdx) => {
-                            const label = String.fromCharCode(65 + oIdx);
-                            const isSelected = (studentSelectedIdx === oIdx);
-                            const isThisCorrectOpt = (correctOptIdx === oIdx);
-
-                            let btnStyle = 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700';
-                            let resultBadge = null;
-
-                            if (submitted) {
-                              if (isSelected && isThisCorrectOpt) {
-                                // HỌC SINH CHỌN ĐÚNG
-                                btnStyle = 'bg-emerald-600 text-white font-black border-emerald-600 shadow-md ring-2 ring-emerald-400';
-                                resultBadge = <span className="text-[9px] font-black bg-emerald-800 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">✓ Đúng</span>;
-                              } else if (isSelected && !isThisCorrectOpt) {
-                                // HỌC SINH CHỌN SAI -> HIGHLIGHT MÀU ĐỎ GẠCH NGANG CÂU SAI
-                                btnStyle = 'bg-rose-600 text-white font-black border-rose-600 line-through shadow-md ring-2 ring-rose-400';
-                                resultBadge = <span className="text-[9px] font-black bg-rose-950 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">✕ HS Chọn (Sai)</span>;
-                              } else if (isThisCorrectOpt && isStudentWrong) {
-                                // HIGHLIGHT ĐÁP ÁN ĐÚNG BẰNG MÀU ĐỎ CHÓI LỌI KHI HỌC SINH LÀM SAI
-                                btnStyle = 'bg-rose-50 border-2 border-rose-500 text-rose-950 font-black shadow-xs';
-                                resultBadge = <span className="text-[9px] font-black bg-rose-600 text-white px-1.5 py-0.5 rounded ml-auto flex-shrink-0">★ Đáp án đúng</span>;
-                              }
-                            } else if (isSelected) {
-                              btnStyle = 'bg-emerald-600 text-white font-bold border-transparent shadow-xs';
-                            }
-
-                            return (
-                              <button
-                                key={oIdx}
-                                disabled={submitted}
-                                onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                className={`w-full text-left rounded-xl ${btnFontSize} font-semibold border transition flex items-center justify-between space-x-1 whitespace-normal break-words ${btnStyle}`}
-                              >
-                                <div className="flex items-center space-x-1 min-w-0">
-                                  <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-extrabold text-[9px] flex-shrink-0 ${
-                                    isSelected ? 'bg-white text-slate-900' : 'bg-slate-200 text-slate-600'
-                                  }`}>
-                                    {label}
-                                  </span>
-                                  <span className="leading-snug truncate">{typeof opt === 'string' ? opt : (opt.text || opt.label || '')}</span>
-                                </div>
-                                {resultBadge}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {submitted && renderCompactExplanation(
-                          cQ.explanation || (cQ.question ? null : q.content?.explanation),
-                          correctText,
-                          cQ,
-                          cOpts[studentSelectedIdx]?.text || cOpts[studentSelectedIdx]?.label
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
+        {/* SIDEBOX BÊN PHẢI (RIGHT SIDEBAR - CHIẾM 25% BỀ NGANG, CỐ ĐỊNH KHI CUỘN) */}
+        <div className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-4 space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto pr-1">
+          {/* THẺ 1: ĐỒNG HỒ THỜI GIAN & TIẾN ĐỘ LÀM BÀI */}
+          <div className="bg-slate-900 text-white p-4 rounded-3xl shadow-md border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex items-center space-x-1.5 min-w-0">
+                <User className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="text-xs font-bold truncate text-slate-200">{profile?.full_name || 'Học Viên'}</span>
+              </div>
+              <div
+                className={`flex items-center space-x-1.5 text-xs font-black px-2.5 py-1 rounded-xl border shrink-0 ${
+                  isTimeWarning ? 'bg-rose-950 text-rose-300 border-rose-600 animate-pulse' : 'bg-slate-800 text-emerald-400 border-slate-700'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                {isCountdownMode ? (
+                  <span>{minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}</span>
+                ) : (
+                  <span>{minsElapsed < 10 ? `0${minsElapsed}` : minsElapsed}:{secsElapsed < 10 ? `0${secsElapsed}` : secsElapsed}</span>
+                )}
               </div>
             </div>
-          );
-        })}
+
+            {/* THANH TIẾN ĐỘ TIẾN TRÌNH */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs font-extrabold">
+                <span className="text-slate-400">Tiến độ làm bài:</span>
+                <span className="text-emerald-400 font-mono font-black">{totalAnsweredCount} / {totalQuizQuestions} câu ({completionPercent}%)</span>
+              </div>
+              <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
+                <div
+                  className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-300"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* THẺ 2: DANH SÁCH CÁC PART TRONG ĐỀ THI (SIDE TABS) */}
+          {questions[0]?.content?.parts && questions[0].content.parts.length > 0 && (
+            <div className="bg-white border border-slate-200 p-4 rounded-3xl shadow-xs space-y-2.5">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <span className="text-xs font-black text-slate-800 uppercase flex items-center space-x-1.5">
+                  <Layers className="w-4 h-4 text-emerald-600" />
+                  <span>CÁC PART CỦA BÀI THI</span>
+                </span>
+                <span className="text-[10px] font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                  {questions[0].content.parts.length} Parts
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                {questions[0].content.parts.map((p, pIdx) => {
+                  const pQs = Array.isArray(p.questions) ? p.questions : [];
+                  const totalQ = pQs.length;
+                  const answeredInPart = pQs.filter((_, cI) => {
+                    const k = `${questions[0].id}_p${pIdx}_q${cI}`;
+                    const v = userAnswers[k];
+                    return v !== undefined && v !== null && String(v).trim() !== '';
+                  }).length;
+                  const isPartDone = totalQ > 0 && answeredInPart === totalQ;
+                  const isSelectedPart = activePartTab === pIdx && !showAllParts;
+
+                  const isListeningPart = p.part_type === 'listening_section' || Boolean(p.audio_url || p.audioUrl || p.audio_data);
+                  const isReadingPart = p.part_type === 'reading_section' || p.part_type === 'cloze_test' || Boolean(p.passage);
+                  const isWritingPart = p.part_type === 'short_essay' || p.part_type === 'full_essay' || p.part_type === 'writing_section';
+                  const partIcon = isListeningPart ? '🎧' : isReadingPart ? '📖' : isWritingPart ? '✍️' : '🎯';
+
+                  return (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => {
+                        setActivePartTab(pIdx);
+                        setShowAllParts(false);
+                      }}
+                      className={`w-full text-left p-2.5 rounded-2xl border transition flex items-center justify-between cursor-pointer ${
+                        isSelectedPart
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm font-black'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 font-bold'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <span className="text-sm">{partIcon}</span>
+                        <span className="text-xs truncate">Part {pIdx + 1}: {p.part_title || 'Nội dung'}</span>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-black shrink-0 ${
+                        isPartDone
+                          ? isSelectedPart ? 'bg-white text-emerald-800' : 'bg-emerald-100 text-emerald-800'
+                          : isSelectedPart ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {answeredInPart}/{totalQ}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* THẺ 3: BẢNG MA TRẬN CÂU HỎI TỪ 1 ĐẾN N (TÔ MÀU XANH LÁ REALTIME KHI LÀM) */}
+          <div className="bg-white border border-slate-200 p-4 rounded-3xl shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span className="text-xs font-black text-slate-900 uppercase flex items-center space-x-1.5">
+                <CheckSquare className="w-4 h-4 text-emerald-600" />
+                <span>BẢNG CÂU HỎI ({totalQuizQuestions} CÂU)</span>
+              </span>
+              <span className="text-[10px] font-bold text-slate-500">
+                Nhấp để chuyển câu
+              </span>
+            </div>
+
+            {/* LƯỚI MA TRẬN CÁC Ô SỐ CÂU HỎI */}
+            <div className="grid grid-cols-5 sm:grid-cols-6 gap-2">
+              {flattenedQuestions.map((fq) => {
+                let btnClass = 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200';
+
+                if (submitted) {
+                  if (fq.isCorrect) {
+                    btnClass = 'bg-emerald-600 text-white border-emerald-700 font-black shadow-2xs';
+                  } else if (fq.isWrong) {
+                    btnClass = 'bg-rose-600 text-white border-rose-700 font-black shadow-2xs';
+                  } else if (fq.isAnswered) {
+                    btnClass = 'bg-emerald-600 text-white border-emerald-700 font-black shadow-2xs';
+                  } else {
+                    btnClass = 'bg-slate-200 text-slate-500 border-slate-300';
+                  }
+                } else if (fq.isAnswered) {
+                  // ĐÃ TRẢ LỜI -> TÔ MÀU XANH LÁ NỔI BẬT THEO ĐÚNG Ý THẦY
+                  btnClass = 'bg-emerald-600 text-white border-emerald-600 font-black shadow-md ring-2 ring-emerald-300 scale-105';
+                }
+
+                return (
+                  <button
+                    key={fq.globalNumber}
+                    type="button"
+                    onClick={() => handleJumpToQuestion(fq)}
+                    className={`h-9 rounded-xl text-xs font-black border transition flex items-center justify-center cursor-pointer ${btnClass}`}
+                    title={`Câu số ${fq.globalNumber} - ${fq.partTitle} (${fq.isAnswered ? 'Đã làm' : 'Chưa làm'})`}
+                  >
+                    {fq.globalNumber}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* CHÚ THÍCH TRẠNG THÁI (LEGEND) */}
+            <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-600">
+              <div className="flex items-center space-x-1.5">
+                <span className="w-3.5 h-3.5 rounded-md bg-emerald-600 inline-block border border-emerald-700" />
+                <span>Đã làm</span>
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <span className="w-3.5 h-3.5 rounded-md bg-slate-100 inline-block border border-slate-300" />
+                <span>Chưa làm</span>
+              </div>
+              {submitted && (
+                <div className="flex items-center space-x-1.5">
+                  <span className="w-3.5 h-3.5 rounded-md bg-rose-600 inline-block border border-rose-700" />
+                  <span>Câu sai</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* THẺ 4: NÚT NỘP BÀI THI NHANH */}
+          {!submitted ? (
+            <button
+              type="button"
+              onClick={() => handleSubmitQuiz(false)}
+              disabled={isAiGradingLoading}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer animate-pulse"
+            >
+              {isAiGradingLoading ? (
+                <span>🤖 AI đang chấm bài tự luận...</span>
+              ) : (
+                <span>🚀 NỘP BÀI THI NGAY</span>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setUserAnswers({});
+                setUploadedStudentImages({});
+                setSubmitted(false);
+                setResultData(null);
+                setAudioPlayCounts({});
+                setSecondsRemaining(timeLimitSeconds || 900);
+              }}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-2xl shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>🔄 Làm Lại Bài Thi Mới</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {!submitted && (
-        <button
-          onClick={() => handleSubmitQuiz(false)}
-          disabled={isAiGradingLoading}
-          className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-lg transition flex items-center justify-center space-x-2"
+      {/* LIGHTBOX MODAL PHÓNG TO ẢNH MINH HỌA BÀI ĐỌC */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fadeIn"
+          onClick={() => setLightboxImage(null)}
         >
-          {isAiGradingLoading ? (
-            <span>🤖 AI đang chấm bài tự luận & tổng hợp kết quả...</span>
-          ) : (
-            <span>Nộp Bài Thi Quiz Ngay</span>
-          )}
-        </button>
+          <div
+            className="relative max-w-5xl max-h-[90vh] bg-slate-900 rounded-3xl p-3 border border-slate-700 shadow-2xl overflow-hidden flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setLightboxImage(null)}
+              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/70 hover:bg-rose-600 text-white flex items-center justify-center font-bold text-base transition shadow-lg cursor-pointer"
+            >
+              ✕
+            </button>
+            <img
+              src={lightboxImage}
+              alt="Lightbox Preview"
+              className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-lg"
+            />
+            <div className="py-2 text-center text-xs font-bold text-slate-300">
+              🔍 Nhấp vào nền tối bên ngoài hoặc bấm nút ✕ để đóng ảnh
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
