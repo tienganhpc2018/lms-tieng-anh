@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, RotateCcw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked, Mic, MicOff, Shuffle, Trophy, Compass, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Layers, Check, CheckSquare, ZoomIn, Highlighter, Eraser } from 'lucide-react';
+import { HelpCircle, CheckCircle, Volume2, Eye, EyeOff, FileText, Clock, Award, User, AlertCircle, RefreshCw, RotateCcw, XCircle, Lightbulb, Headphones, BookOpen, Search, MessageSquareText, Tag, Camera, UploadCloud, Image as ImageIcon, Printer, Download, Sparkles, Bot, ShieldAlert, BookMarked, Mic, MicOff, Shuffle, Trophy, Compass, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Layers, Check, CheckSquare, ZoomIn, Highlighter, Eraser, Maximize, Minimize, Shield, Save, GripVertical, CheckCheck, Palette, Flag } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { compressImage } from '../../utils/imageCompressor';
 import { gradeWritingSubmissionWithAI } from '../../services/writingAiGrader';
@@ -16,6 +16,37 @@ import { exportQuizToWord } from '../../utils/exportQuizWord';
 import AdaptiveLearningModal from './AdaptiveLearningModal';
 import AiOmrScannerModal from './AiOmrScannerModal';
 import { exportOmrSheet } from '../../utils/exportOmrSheet';
+
+const HIGHLIGHT_COLOR_CONFIG = {
+  yellow: {
+    id: 'yellow',
+    label: 'Vàng',
+    btnClass: 'bg-amber-300 text-amber-950 border-amber-500 hover:bg-amber-400',
+    dotBg: 'bg-amber-400 ring-1 ring-amber-500',
+    markClass: 'bg-amber-300 text-amber-950 font-bold px-1 py-0.5 rounded shadow-2xs border-b-2 border-amber-500',
+  },
+  green: {
+    id: 'green',
+    label: 'Xanh lá',
+    btnClass: 'bg-emerald-300 text-emerald-950 border-emerald-500 hover:bg-emerald-400',
+    dotBg: 'bg-emerald-400 ring-1 ring-emerald-500',
+    markClass: 'bg-emerald-300 text-emerald-950 font-bold px-1 py-0.5 rounded shadow-2xs border-b-2 border-emerald-500',
+  },
+  pink: {
+    id: 'pink',
+    label: 'Hồng',
+    btnClass: 'bg-pink-300 text-pink-950 border-pink-500 hover:bg-pink-400',
+    dotBg: 'bg-pink-400 ring-1 ring-pink-500',
+    markClass: 'bg-pink-300 text-pink-950 font-bold px-1 py-0.5 rounded shadow-2xs border-b-2 border-pink-500',
+  },
+  blue: {
+    id: 'blue',
+    label: 'Xanh dương',
+    btnClass: 'bg-sky-300 text-sky-950 border-sky-500 hover:bg-sky-400',
+    dotBg: 'bg-sky-400 ring-1 ring-sky-500',
+    markClass: 'bg-sky-300 text-sky-950 font-bold px-1 py-0.5 rounded shadow-2xs border-b-2 border-sky-500',
+  },
+};
 
 const extractGoogleFileId = (url) => {
   if (!url || typeof url !== 'string') return null;
@@ -99,24 +130,39 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
   const [showAllParts, setShowAllParts] = useState(false);
   const [passageFontSize, setPassageFontSize] = useState('text-sm sm:text-base');
 
-  // TÍNH NĂNG HIGHLIGHT DẪN CHỨNG BÀI ĐỌC & PHÓNG TO ẢNH LIGHTBOX
+  // RESIZABLE SPLIT PANE CHO BÀI ĐỌC READING (MẶC ĐỊNH 45% ĐOẠN VĂN, 55% CÂU HỎI)
+  const [passageColPercent, setPassageColPercent] = useState(45);
+  const [isDraggingSplit, setIsDraggingSplit] = useState(false);
+
+  // TÍNH NĂNG HIGHLIGHT NHIỀU MÀU (VÀNG, XANH LÁ, HỒNG, XANH DƯƠNG) & LIGHTBOX ẢNH
+  const [selectedHighlightColor, setSelectedHighlightColor] = useState('yellow');
   const [highlightedPhrases, setHighlightedPhrases] = useState({});
   const [lightboxImage, setLightboxImage] = useState(null);
 
-  const handleHighlightSelection = (pIdx) => {
+  // TÍNH NĂNG TỰ ĐỘNG LƯU BÀI VÀO LOCALSTORAGE (AUTO-SAVE DRAFT)
+  const [autoSaveToast, setAutoSaveToast] = useState(false);
+  const autoSaveKey = `lms_quiz_draft_${activityId || activity?.id}_${user?.id || profile?.id || 'guest'}`;
+
+  // TÍNH NĂNG CHẾ ĐỘ THI TOÀN MÀN HÌNH (KIOSK MODE) & GIÁM THỊ AI
+  const [isKioskMode, setIsKioskMode] = useState(false);
+  const [kioskViolationModal, setKioskViolationModal] = useState(false);
+
+  const handleHighlightSelection = (pIdx, colorOverride = null) => {
+    const color = colorOverride || selectedHighlightColor || 'yellow';
     const sel = window.getSelection();
     if (!sel) return;
     const text = sel.toString().trim();
     if (!text || text.length < 2) {
-      alert('💡 Học sinh / Thầy vui lòng dùng chuột quét chọn một câu hoặc cụm từ trong bài đọc rồi bấm "Tô Vàng Đoạn Chọn" nhé!');
+      alert('💡 Học sinh / Thầy vui lòng dùng chuột quét chọn một câu hoặc cụm từ trong bài đọc rồi chọn màu bút highlight nhé!');
       return;
     }
     setHighlightedPhrases((prev) => {
       const cur = prev[pIdx] || [];
-      if (!cur.includes(text)) {
-        return { ...prev, [pIdx]: [...cur, text] };
-      }
-      return prev;
+      const filtered = cur.filter((item) => {
+        const itemText = typeof item === 'string' ? item : item.text;
+        return itemText.toLowerCase() !== text.toLowerCase();
+      });
+      return { ...prev, [pIdx]: [...filtered, { text, color }] };
     });
     sel.removeAllRanges();
   };
@@ -127,24 +173,28 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
   const renderHighlightedPassage = (rawText, pIdx) => {
     if (!rawText) return '';
-    const phrases = highlightedPhrases[pIdx] || [];
-    if (!phrases.length) return rawText;
+    const rawPhrases = highlightedPhrases[pIdx] || [];
+    if (!rawPhrases.length) return rawText;
+
+    const phrases = rawPhrases.map((item) => (typeof item === 'string' ? { text: item, color: 'yellow' } : item));
 
     try {
-      const escapedPhrases = phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(Boolean);
+      const textList = phrases.map((p) => p.text).filter(Boolean);
+      const escapedPhrases = textList.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(Boolean);
       if (!escapedPhrases.length) return rawText;
 
       const regex = new RegExp(`(${escapedPhrases.join('|')})`, 'gi');
       const chunks = rawText.split(regex);
 
       return chunks.map((chunk, idx) => {
-        const isMatched = phrases.some((p) => p.toLowerCase() === chunk.toLowerCase());
-        if (isMatched) {
+        const matchedPhrase = phrases.find((p) => p.text.toLowerCase() === chunk.toLowerCase());
+        if (matchedPhrase) {
+          const colorConfig = HIGHLIGHT_COLOR_CONFIG[matchedPhrase.color] || HIGHLIGHT_COLOR_CONFIG.yellow;
           return (
             <mark
               key={idx}
-              className="bg-amber-300 text-amber-950 font-bold px-1 py-0.5 rounded shadow-2xs border-b border-amber-500"
-              title="Đoạn văn bản đã đánh dấu dẫn chứng"
+              className={colorConfig.markClass}
+              title={`Dẫn chứng màu: ${colorConfig.label}`}
             >
               {chunk}
             </mark>
@@ -159,6 +209,55 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
   const toggleTeacherTranscript = (pIdx) => {
     setOpenTranscripts((prev) => ({ ...prev, [pIdx]: !prev[pIdx] }));
+  };
+
+  // KÉO THẢ CHIA TỶ LỆ 2 CỘT READING (RESIZABLE SPLIT PANE)
+  const handleSplitMouseDown = (e) => {
+    e.preventDefault();
+    setIsDraggingSplit(true);
+    const container = document.getElementById('reading-split-container');
+    if (!container) return;
+
+    const onMouseMove = (moveEvent) => {
+      const rect = container.getBoundingClientRect();
+      const newPercent = ((moveEvent.clientX - rect.left) / rect.width) * 100;
+      if (newPercent >= 25 && newPercent <= 75) {
+        setPassageColPercent(Math.round(newPercent));
+      }
+    };
+
+    const onMouseUp = () => {
+      setIsDraggingSplit(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  // CHẾ ĐỘ THI TOÀN MÀN HÌNH (KIOSK MODE)
+  const handleToggleKioskMode = async () => {
+    if (!isKioskMode) {
+      try {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          await document.documentElement.webkitRequestFullscreen();
+        }
+        setIsKioskMode(true);
+      } catch (err) {
+        alert('💡 Trình duyệt chưa cho phép tự động toàn màn hình. Học sinh có thể nhấn phím F11 trên bàn phím nhé!');
+        setIsKioskMode(true);
+      }
+    } else {
+      try {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      } catch (err) {}
+      setIsKioskMode(false);
+    }
   };
 
   // TỰ ĐỘNG NẮT TOÀN BỘ BÀI NGHE AUDIO KHI BẤM NỘP BÀI HOẶC SUBMITTED === TRUE
@@ -183,16 +282,41 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
   const [enteredPasscode, setEnteredPasscode] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [omrScannerOpen, setOmrScannerOpen] = useState(false);
-  const [scheduledOpenTime, setScheduledOpenTime] = useState(null); // Giới hạn 3 lần rời tab mặc định
+  const [scheduledOpenTime, setScheduledOpenTime] = useState(null);
 
-  // Bộ đếm thời gian
+  // THEO DÕI THOÁT TOÀN MÀN HÌNH TRONG KIOSK MODE
+  useEffect(() => {
+    const onFsChange = () => {
+      const isCurrentlyFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      if (isKioskMode && !isCurrentlyFs && !submitted) {
+        setTabSwitchCount((prev) => {
+          const next = prev + 1;
+          setKioskViolationModal(true);
+          if (next >= maxTabSwitchesAllowed) {
+            alert(`🚫 BÀI THI BỊ TỰ ĐỘNG THU BÀI DO RỜI KHỎI TOÀN MÀN HÌNH ${next}/${maxTabSwitchesAllowed} LẦN!`);
+            handleSubmitQuiz(true);
+          }
+          return next;
+        });
+      }
+    };
+
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+    };
+  }, [isKioskMode, submitted, maxTabSwitchesAllowed]);
+
+  // BỘ ĐẾM THỜI GIAN
   const [isCountdownMode, setIsCountdownMode] = useState(false);
   const [timeLimitSeconds, setTimeLimitSeconds] = useState(0);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [timerActive, setTimerActive] = useState(true);
 
-  // Kết quả tổng kết
+  // KẾT QUẢ TỔNG KẾT
   const [resultData, setResultData] = useState({
     studentName: '',
     timeTakenStr: '',
@@ -935,6 +1059,48 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
   const secsElapsed = secondsElapsed % 60;
   const isTimeWarning = isCountdownMode && secondsRemaining < 120;
 
+  // TỰ ĐỘNG KHÔI PHỤC BÀI LÀM TỪ LOCALSTORAGE KHI VÀO LẠI TRANG
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isReview = searchParams.get('mode') === 'review' || searchParams.get('review') === 'true' || searchParams.get('submissionId');
+    if (!isReview && !submitted) {
+      try {
+        const rawDraft = localStorage.getItem(autoSaveKey);
+        if (rawDraft) {
+          const draft = JSON.parse(rawDraft);
+          if (draft && draft.userAnswers && Object.keys(draft.userAnswers).length > 0) {
+            setUserAnswers(draft.userAnswers || {});
+            if (draft.uploadedStudentImages) setUploadedStudentImages(draft.uploadedStudentImages);
+            if (draft.speechTranscripts) setSpeechTranscripts(draft.speechTranscripts);
+            if (draft.activePartTab !== undefined) setActivePartTab(draft.activePartTab);
+            if (draft.highlightedPhrases) setHighlightedPhrases(draft.highlightedPhrases);
+            if (draft.secondsElapsed && !isCountdownMode) setSecondsElapsed(draft.secondsElapsed);
+            setAutoSaveToast(true);
+            setTimeout(() => setAutoSaveToast(false), 6000);
+          }
+        }
+      } catch (eDraft) {}
+    }
+  }, [activityId, activity, autoSaveKey, submitted]);
+
+  // TỰ ĐỘNG LƯU BÀI LÀM VÀO LOCALSTORAGE REALTIME KHI HỌC SINH CHỌN ĐÁP ÁN
+  useEffect(() => {
+    if (!submitted && Object.keys(userAnswers).length > 0) {
+      try {
+        const draftObj = {
+          userAnswers,
+          uploadedStudentImages,
+          speechTranscripts,
+          activePartTab,
+          highlightedPhrases,
+          secondsElapsed,
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(autoSaveKey, JSON.stringify(draftObj));
+      } catch (eSave) {}
+    }
+  }, [userAnswers, uploadedStudentImages, speechTranscripts, activePartTab, highlightedPhrases, secondsElapsed, submitted, autoSaveKey]);
+
   // TÍNH TOÁN BẢNG MA TRẬN CÂU HỎI (QUESTION PALETTE 1 - 36...) VÀ TIẾN ĐỘ THỜI GIAN THỰC
   const flattenedQuestions = [];
   let globalCounter = 1;
@@ -1034,6 +1200,55 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
   return (
     <div className="space-y-4 font-['Arial',sans-serif]">
+      {/* TOAST THÔNG BÁO TỰ ĐỘNG KHÔI PHỤC BÀI LÀM TỪ LOCALSTORAGE */}
+      {autoSaveToast && !submitted && (
+        <div className="p-3 bg-emerald-950 text-emerald-200 border-2 border-emerald-500 rounded-2xl flex items-center justify-between shadow-xl animate-fadeIn">
+          <div className="flex items-center space-x-2 text-xs font-black">
+            <Save className="w-5 h-5 text-emerald-400 animate-bounce" />
+            <span>💾 ĐÃ TỰ ĐỘNG KHÔI PHỤC BÀI LÀM: Hệ thống đã nạp lại các câu trả lời bạn đang làm dở từ phiên trước!</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAutoSaveToast(false)}
+            className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg cursor-pointer"
+          >
+            Đã hiểu ✕
+          </button>
+        </div>
+      )}
+
+      {/* MODAL CẢNH BÁO VI PHẠM KIOSK MODE (THOÁT TOÀN MÀN HÌNH) */}
+      {kioskViolationModal && !submitted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-scale-up">
+          <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-3xl max-w-lg w-full text-center space-y-4 border-2 border-rose-500 shadow-2xl">
+            <div className="w-16 h-16 rounded-3xl bg-rose-600/20 border border-rose-500 flex items-center justify-center mx-auto text-rose-400">
+              <ShieldAlert className="w-10 h-10 animate-pulse" />
+            </div>
+            <h3 className="text-lg font-black text-rose-400 uppercase tracking-wide">
+              ⚠️ CẢNH BÁO VI PHẠM CHẾ ĐỘ THI (KIOSK MODE)
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed font-bold">
+              Bạn vừa thoát khỏi chế độ Toàn Màn Hình hoặc chuyển sang cửa sổ ứng dụng khác (<span className="text-amber-400 font-mono text-sm">{tabSwitchCount}/{maxTabSwitchesAllowed} lần</span>). Vui lòng quay lại làm bài thi ngay!
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                setKioskViolationModal(false);
+                try {
+                  if (document.documentElement.requestFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                  }
+                } catch (e) {}
+              }}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              <Maximize className="w-4 h-4" />
+              <span>Vào Lại Toàn Màn Hình Ngay</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* MODAL CHATBOT AI TUTOR TRỢ LÝ HỌC TẬP */}
       <AiOmrScannerModal
         isOpen={omrScannerOpen}
@@ -1069,7 +1284,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
           </div>
           <button
             onClick={() => setShowCheatingWarning(false)}
-            className="px-2.5 py-1 bg-rose-800 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg"
+            className="px-2.5 py-1 bg-rose-800 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg cursor-pointer"
           >
             Tôi đã hiểu
           </button>
@@ -1095,7 +1310,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                 <>
                   <button
                     onClick={() => setFlashcardModalOpen(true)}
-                    className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                    className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5 cursor-pointer"
                   >
                     <BookOpen className="w-4 h-4 text-amber-300" />
                     <span>🗂️ Ôn Tập {wrongQuestionsList.length} Câu Sai (Flashcards)</span>
@@ -1103,7 +1318,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
                   <button
                     onClick={() => setAdaptiveModalOpen(true)}
-                    className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                    className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5 cursor-pointer"
                   >
                     <Compass className="w-4 h-4 text-sky-200" />
                     <span>🧭 Lộ Trình Ôn Tập Lỗ Hổng Kiến Thức</span>
@@ -1112,6 +1327,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
               )}
               <button
                 onClick={() => {
+                  try { localStorage.removeItem(autoSaveKey); } catch (e) {}
                   setUserAnswers({});
                   setUploadedStudentImages({});
                   setSubmitted(false);
@@ -1145,7 +1361,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                     aiGradingFeedback: aiGradingResult?.detailedFeedback,
                   })
                 }
-                className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5 cursor-pointer"
               >
                 <Printer className="w-4 h-4 text-sky-200" />
                 <span>🖨️ Tải Báo Cáo PDF</span>
@@ -1154,7 +1370,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
               {isTeacher && (
                 <button
                   onClick={() => exportQuizToWord(questions, activity?.title || 'BÀI KIỂM TRA TIẾNG ANH')}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5"
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center space-x-1.5 cursor-pointer"
                 >
                   <FileText className="w-4 h-4 text-emerald-200" />
                   <span>🖨️ In Đề Thi Ra Giấy (Word)</span>
@@ -1806,13 +2022,16 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                           );
                         })()}
 
-                        {/* BỐ CỤC ĐOẠN VĂN: NẾU CÓ BÀI ĐỌC (READING) -> CHUYỂN SANG DẠNG 2 CỘT SPLIT SCREEN */}
+                        {/* BỐ CỤC ĐOẠN VĂN: NẾU CÓ BÀI ĐỌC (READING) -> CHUYỂN SANG DẠNG 2 CỘT RESIZABLE SPLIT PANE */}
                         {hasPassage ? (
-                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start my-2">
-                            {/* CỘT 1 (BÊN TRÁI): ĐOẠN VĂN READING PASSAGE VỚI THANH CUỘN, CÔNG CỤ HIGHLIGHT VÀ PHÓNG TO ẢNH */}
-                            <div className="lg:col-span-5 bg-gradient-to-br from-amber-50/90 to-orange-50/40 border-2 border-amber-300/80 rounded-3xl p-4 shadow-sm lg:sticky lg:top-4 max-h-[75vh] flex flex-col space-y-2.5">
-                              {/* THANH CÔNG CỤ TRÊN ĐẦU ĐOẠN VĂN */}
-                              <div className="flex flex-wrap items-center justify-between border-b border-amber-200 pb-2 gap-2">
+                          <div id="reading-split-container" className="flex flex-col lg:flex-row items-start gap-4 my-2 w-full relative select-none">
+                            {/* CỘT 1 (BÊN TRÁI): ĐOẠN VĂN READING PASSAGE VỚI RESIZE PERCENT, BẢNG MÀU HIGHLIGHT & ZOOM ẢNH */}
+                            <div
+                              style={{ width: typeof window !== 'undefined' && window.innerWidth >= 1024 ? `${passageColPercent}%` : '100%' }}
+                              className="w-full bg-gradient-to-br from-amber-50/90 to-orange-50/40 border-2 border-amber-300/80 rounded-3xl p-4 shadow-sm lg:sticky lg:top-4 max-h-[78vh] flex flex-col space-y-2.5 shrink-0 transition-all duration-75"
+                            >
+                              {/* THANH CÔNG CỤ TRÊN ĐẦU ĐOẠN VĂN: BỘ BÚT ĐA MÀU, NÚT XÓA, CUỘN, CỠ CHỮ, CHIA TỶ LỆ */}
+                              <div className="flex flex-wrap items-center justify-between border-b border-amber-200 pb-2.5 gap-2">
                                 <div className="flex items-center space-x-1.5">
                                   <BookOpen className="w-4 h-4 text-amber-800" />
                                   <span className="text-xs font-black text-amber-950 uppercase tracking-wide">
@@ -1820,26 +2039,39 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                   </span>
                                 </div>
 
-                                <div className="flex items-center space-x-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleHighlightSelection(pIdx)}
-                                    className="px-2 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 border border-amber-400 rounded-lg text-xs font-black transition flex items-center space-x-1 cursor-pointer shadow-2xs"
-                                    title="Quét chọn văn bản rồi bấm để tô vàng làm dẫn chứng"
-                                  >
-                                    <Highlighter className="w-3.5 h-3.5 text-amber-900" />
-                                    <span>Tô Vàng</span>
-                                  </button>
+                                {/* BỘ CHỌN 4 MÀU BÚT HIGHLIGHT: VÀNG, XANH LÁ, HỒNG, XANH DƯƠNG */}
+                                <div className="flex items-center space-x-1 bg-white/90 p-1 rounded-xl border border-amber-300 shadow-2xs">
+                                  {Object.values(HIGHLIGHT_COLOR_CONFIG).map((c) => (
+                                    <button
+                                      key={c.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedHighlightColor(c.id);
+                                        handleHighlightSelection(pIdx, c.id);
+                                      }}
+                                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                                        selectedHighlightColor === c.id
+                                          ? 'ring-2 ring-slate-800 scale-110 shadow-xs'
+                                          : 'opacity-70 hover:opacity-100 hover:scale-105'
+                                      } ${c.dotBg}`}
+                                      title={`Tô màu ${c.label} đoạn văn đã quét chọn`}
+                                    >
+                                      {selectedHighlightColor === c.id && <span className="text-[10px] text-slate-950 font-black">✓</span>}
+                                    </button>
+                                  ))}
 
                                   <button
                                     type="button"
                                     onClick={() => handleClearHighlights(pIdx)}
-                                    className="p-1.5 bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
-                                    title="Xóa tất cả các đoạn đã đánh dấu vàng"
+                                    className="p-1 hover:bg-rose-50 text-rose-700 rounded-lg text-xs font-bold transition cursor-pointer ml-1"
+                                    title="Xóa tất cả các đoạn đã đánh dấu"
                                   >
                                     <Eraser className="w-3.5 h-3.5" />
                                   </button>
+                                </div>
 
+                                {/* CÁC NÚT ĐIỀU KHIỂN: CUỘN, CỠ CHỮ, CHỌN TỶ LỆ CỘT NHANH */}
+                                <div className="flex items-center space-x-1">
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1873,6 +2105,42 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                   >
                                     A±
                                   </button>
+
+                                  {/* CÁC NÚT TỶ LỆ KÍCH THƯỚC NHANH CHO BÀI ĐỌC */}
+                                  <div className="hidden sm:flex items-center space-x-0.5 bg-amber-100/80 p-0.5 rounded-lg border border-amber-300 text-[9px] font-black">
+                                    <button
+                                      type="button"
+                                      onClick={() => setPassageColPercent(35)}
+                                      className={`px-1.5 py-0.5 rounded ${passageColPercent === 35 ? 'bg-amber-700 text-white' : 'text-amber-900 hover:bg-amber-200'}`}
+                                      title="Thu nhỏ bài đọc 35%"
+                                    >
+                                      35%
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPassageColPercent(45)}
+                                      className={`px-1.5 py-0.5 rounded ${passageColPercent === 45 ? 'bg-amber-700 text-white' : 'text-amber-900 hover:bg-amber-200'}`}
+                                      title="Tỷ lệ chuẩn 45%"
+                                    >
+                                      45%
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPassageColPercent(55)}
+                                      className={`px-1.5 py-0.5 rounded ${passageColPercent === 55 ? 'bg-amber-700 text-white' : 'text-amber-900 hover:bg-amber-200'}`}
+                                      title="Mở rộng bài đọc 55%"
+                                    >
+                                      55%
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPassageColPercent(65)}
+                                      className={`px-1.5 py-0.5 rounded ${passageColPercent === 65 ? 'bg-amber-700 text-white' : 'text-amber-900 hover:bg-amber-200'}`}
+                                      title="Mở rộng bài đọc 65%"
+                                    >
+                                      65%
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
 
@@ -1905,8 +2173,17 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                               </div>
                             </div>
 
+                            {/* THANH KÉO RESIZE DIVIDER (DESKTOP) */}
+                            <div
+                              onMouseDown={handleSplitMouseDown}
+                              className="hidden lg:flex items-center justify-center w-2.5 hover:w-3.5 bg-amber-200/90 hover:bg-amber-500 cursor-col-resize rounded-full self-stretch transition-all select-none group shrink-0 shadow-2xs"
+                              title="Kéo chuột sang trái hoặc phải để điều chỉnh độ rộng cột Bài Đọc & Câu Hỏi"
+                            >
+                              <GripVertical className="w-4 h-4 text-amber-800 opacity-60 group-hover:opacity-100 group-hover:text-white" />
+                            </div>
+
                             {/* CỘT 2 (BÊN PHẢI): DANH SÁCH CÂU HỎI CON VÀ LỰA CHỌN */}
-                            <div className="lg:col-span-7 space-y-3">
+                            <div className="flex-1 space-y-3 min-w-0 w-full select-text">
                               {renderChildQuestions()}
                             </div>
                           </div>
@@ -2037,31 +2314,52 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
         {/* SIDEBOX BÊN PHẢI (RIGHT SIDEBAR - CHIẾM 25% BỀ NGANG, CỐ ĐỊNH KHI CUỘN) */}
         <div className="lg:col-span-4 xl:col-span-3 lg:sticky lg:top-4 space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto pr-1">
-          {/* THẺ 1: ĐỒNG HỒ THỜI GIAN & TIẾN ĐỘ LÀM BÀI */}
+          {/* THẺ 1: ĐỒNG HỒ THỜI GIAN, TIẾN ĐỘ & NÚT FULLSCREEN KIOSK MODE */}
           <div className="bg-slate-900 text-white p-4 rounded-3xl shadow-md border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
               <div className="flex items-center space-x-1.5 min-w-0">
                 <User className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="text-xs font-bold truncate text-slate-200">{profile?.full_name || 'Học Viên'}</span>
               </div>
-              <div
-                className={`flex items-center space-x-1.5 text-xs font-black px-2.5 py-1 rounded-xl border shrink-0 ${
-                  isTimeWarning ? 'bg-rose-950 text-rose-300 border-rose-600 animate-pulse' : 'bg-slate-800 text-emerald-400 border-slate-700'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
-                {isCountdownMode ? (
-                  <span>{minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}</span>
-                ) : (
-                  <span>{minsElapsed < 10 ? `0${minsElapsed}` : minsElapsed}:{secsElapsed < 10 ? `0${secsElapsed}` : secsElapsed}</span>
-                )}
+
+              <div className="flex items-center space-x-1.5">
+                {/* NÚT BẬT TẮT CHẾ ĐỘ THI TOÀN MÀN HÌNH (KIOSK MODE) */}
+                <button
+                  type="button"
+                  onClick={handleToggleKioskMode}
+                  className={`p-1.5 rounded-xl border text-xs font-extrabold transition flex items-center space-x-1 cursor-pointer ${
+                    isKioskMode
+                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-xs'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                  }`}
+                  title={isKioskMode ? 'Đang bật Chế độ thi Toàn Màn Hình (Kiosk Mode)' : 'Bấm để bật Chế độ thi Toàn Màn Hình (Kiosk Mode)'}
+                >
+                  {isKioskMode ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+                  <span className="text-[10px] hidden sm:inline">{isKioskMode ? 'Kiosk On' : 'Toàn màn hình'}</span>
+                </button>
+
+                <div
+                  className={`flex items-center space-x-1 text-xs font-black px-2.5 py-1 rounded-xl border shrink-0 ${
+                    isTimeWarning ? 'bg-rose-950 text-rose-300 border-rose-600 animate-pulse' : 'bg-slate-800 text-emerald-400 border-slate-700'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  {isCountdownMode ? (
+                    <span>{minsLeft < 10 ? `0${minsLeft}` : minsLeft}:{secsLeft < 10 ? `0${secsLeft}` : secsLeft}</span>
+                  ) : (
+                    <span>{minsElapsed < 10 ? `0${minsElapsed}` : minsElapsed}:{secsElapsed < 10 ? `0${secsElapsed}` : secsElapsed}</span>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* THANH TIẾN ĐỘ TIẾN TRÌNH */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs font-extrabold">
-                <span className="text-slate-400">Tiến độ làm bài:</span>
+                <span className="text-slate-400 flex items-center space-x-1">
+                  <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Tiến độ:</span>
+                </span>
                 <span className="text-emerald-400 font-mono font-black">{totalAnsweredCount} / {totalQuizQuestions} câu ({completionPercent}%)</span>
               </div>
               <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
@@ -2218,6 +2516,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
             <button
               type="button"
               onClick={() => {
+                try { localStorage.removeItem(autoSaveKey); } catch (e) {}
                 setUserAnswers({});
                 setUploadedStudentImages({});
                 setSubmitted(false);
