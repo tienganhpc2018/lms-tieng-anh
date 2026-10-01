@@ -1655,6 +1655,21 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
 
                             const selectedText = selectedVal;
 
+                            // Tính độ dài đáp án để tự động căn chỉnh bố cục
+                            const maxOptLength = Math.max(
+                              ...cOpts.map((opt) => {
+                                const t = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
+                                return t.trim().length;
+                              }),
+                              0
+                            );
+
+                            // Bố cục lưới đáp án: Nếu có bài đọc chia 2 cột (hasPassage) hoặc đáp án dài (>15 ký tự) -> Mỗi hàng 1 lựa chọn (grid-cols-1)
+                            // Nếu không có bài đọc và đáp án siêu ngắn -> 2 cột (grid-cols-1 sm:grid-cols-2)
+                            const gridLayoutClass = (hasPassage || maxOptLength > 15)
+                              ? 'grid-cols-1'
+                              : 'grid-cols-1 sm:grid-cols-2';
+
                             return (
                               <div
                                 key={cIdx}
@@ -1665,7 +1680,7 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                   {finalQuestionTitle}
                                 </h4>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full my-1">
+                                <div className={`grid ${gridLayoutClass} gap-2.5 w-full my-1`}>
                                   {cOpts.map((opt, oIdx) => {
                                     const optPrefix = String.fromCharCode(65 + oIdx);
                                     let rawOptText = typeof opt === 'object' ? (opt?.text || '') : String(opt || '');
@@ -1700,18 +1715,18 @@ export default function QuizEngine({ activity, activityId, onComplete }) {
                                         key={oIdx}
                                         disabled={submitted}
                                         onClick={() => handleSelectAnswer(childKey, oIdx)}
-                                        className={`flex items-center justify-start px-4 py-3 rounded-xl text-sm border font-bold transition w-full text-left cursor-pointer ${buttonStyle}`}
+                                        className={`flex items-start justify-start p-3 sm:px-4 sm:py-3 rounded-xl text-sm border font-bold transition w-full text-left cursor-pointer ${buttonStyle}`}
                                       >
-                                        <span className={`mr-2.5 font-black text-sm ${submitted && (isSelected || isCorrectOpt) ? 'text-white' : 'text-emerald-700'}`}>
+                                        <span className={`mr-2.5 font-black text-sm shrink-0 leading-snug ${submitted && (isSelected || isCorrectOpt) ? 'text-white' : 'text-emerald-700'}`}>
                                           {optPrefix}.
                                         </span>
-                                        <span className="font-bold text-sm truncate flex-1">{rawOptText}</span>
+                                        <span className="font-bold text-sm flex-1 break-words leading-snug text-left">{rawOptText}</span>
 
                                         {submitted && isSelected && !isCorrectOpt && (
-                                          <span className="ml-1 text-[10px] bg-rose-900/60 px-1.5 py-0.5 rounded-md text-white font-black shrink-0">✕ SAI</span>
+                                          <span className="ml-2 text-[10px] bg-rose-900/60 px-1.5 py-0.5 rounded-md text-white font-black shrink-0 self-center">✕ SAI</span>
                                         )}
                                         {submitted && isCorrectOpt && (
-                                          <span className="ml-1 text-[10px] bg-emerald-900/60 px-1.5 py-0.5 rounded-md text-white font-black shrink-0">✓ ĐÚNG</span>
+                                          <span className="ml-2 text-[10px] bg-emerald-900/60 px-1.5 py-0.5 rounded-md text-white font-black shrink-0 self-center">✓ ĐÚNG</span>
                                         )}
                                       </button>
                                     );
