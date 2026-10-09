@@ -8,6 +8,7 @@ import {
   checkMarbleCollision,
   MARBLE_COLORS,
   getStudentInitials,
+  formatRaceTime,
 } from './marblePhysics';
 import { playClick, playFunnelClack } from '../../../../utils/soundEffects';
 
@@ -22,6 +23,7 @@ export default function MarbleRaceCanvas({
   onMarbleFinish,
   onUpdateMarbles,
   onCameraUpdate,
+  onLogEvent,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -38,6 +40,9 @@ export default function MarbleRaceCanvas({
 
   const nextReleaseIdxRef = useRef(0);
   const lastReleaseTimeRef = useRef(0);
+
+  const lastLeaderIdRef = useRef(null);
+  const lastLogTimeRef = useRef(0);
 
   // Dùng Ref đồng bộ tức thì cho gateLocked & isPaused
   const gateLockedRef = useRef(gateLocked);
@@ -101,6 +106,8 @@ export default function MarbleRaceCanvas({
     startTimeRef.current = null;
     nextReleaseIdxRef.current = 0;
     lastReleaseTimeRef.current = 0;
+    lastLeaderIdRef.current = null;
+    lastLogTimeRef.current = 0;
     return marbles;
   };
 
@@ -163,7 +170,7 @@ export default function MarbleRaceCanvas({
 
       const marbles = marblesRef.current;
 
-      // XỔ DỐC LẦN LƯỢT (THẢ MỖI 90ms MỘT VIÊN BI XUẤT PHÁT CHẬM RÃI ĐỌC TÊN THÂN THIỆN)
+      // XỔ DỐC NHANH DỒN DẬP (THẢ MỖI 85ms MỘT VIÊN BI XUẤT PHÁT)
       if (!isLocked) {
         if (!startTimeRef.current) {
           startTimeRef.current = currentTime;
@@ -171,7 +178,7 @@ export default function MarbleRaceCanvas({
           lastReleaseTimeRef.current = currentTime - 100;
         }
 
-        const releaseIntervalMs = 90;
+        const releaseIntervalMs = 85;
         if (
           nextReleaseIdxRef.current < marbles.length &&
           currentTime - lastReleaseTimeRef.current >= releaseIntervalMs
@@ -179,10 +186,10 @@ export default function MarbleRaceCanvas({
           const mToRelease = marbles[nextReleaseIdxRef.current];
           if (mToRelease && !mToRelease.isReleased) {
             mToRelease.isReleased = true;
-            mToRelease.x = width / 2 + (Math.random() - 0.5) * (width * 0.28);
+            mToRelease.x = width / 2 + (Math.random() - 0.5) * (width * 0.32);
             mToRelease.y = gateY + 5;
-            mToRelease.vy = 220 + Math.random() * 60; // Tốc độ ban đầu chậm rãi dễ quan sát
-            mToRelease.vx = (Math.random() - 0.5) * 120;
+            mToRelease.vy = 240 + Math.random() * 60;
+            mToRelease.vx = (Math.random() - 0.5) * 140;
             if (soundEnabled && Math.random() < 0.4) playClick();
           }
           nextReleaseIdxRef.current += 1;
@@ -200,6 +207,33 @@ export default function MarbleRaceCanvas({
           leaderId = m.id;
         }
       });
+
+      // GHI LOG DIỄN BIẾN SỰ THAY ĐỔI THỨ HẠNG NỔI BẬT (LIVE RACE LOGS CHUẨN THẦY YÊU CẦU)
+      if (
+        leaderId &&
+        leaderId !== lastLeaderIdRef.current &&
+        currentTime - lastLogTimeRef.current > 1400
+      ) {
+        const leaderObj = marbles.find((m) => m.id === leaderId);
+        if (leaderObj && leaderObj.y > gateY + 140 && !leaderObj.isFinished) {
+          lastLeaderIdRef.current = leaderId;
+          lastLogTimeRef.current = currentTime;
+
+          const remainingMs = Math.max(0, 20000 - (currentTime - (startTimeRef.current || currentTime)));
+          const timeStr = formatRaceTime(remainingMs);
+
+          let logText = '';
+          if (leaderObj.y >= finishY - 350) {
+            logText = `🌀 [${leaderObj.studentName}] kẹt phễu Stage 7, bất ngờ vươn lên dẫn đầu!`;
+          } else if (leaderObj.y >= finishY - 750) {
+            logText = `⚡ [${leaderObj.studentName}] bứt phá rượt đuổi cực nhanh tại Chặng 5-6!`;
+          } else {
+            logText = `🔥 [${leaderObj.studentName}] bứt phá vươn lên Hạng 1!`;
+          }
+
+          if (onLogEvent) onLogEvent({ time: timeStr, text: logText });
+        }
+      }
 
       // Camera cuộn mượt theo viên bi dẫn đầu
       const targetCamY = Math.max(
@@ -228,6 +262,16 @@ export default function MarbleRaceCanvas({
         m.vy *= 0.998;
 
         if (m.vy < 50) m.vy = 50;
+
+        // Xoáy hỗn loạn phễu cổ chai Stage 7 (Vortex Swirl Chaos - Chuẩn kịch tính 100%)
+        if (m.y >= finishY - 320 && m.y < finishY - 50) {
+          const centerDx = width / 2 - m.x;
+          m.vx += centerDx * 2.8 * dt; // Hút bi xoáy vào giữa phễu
+
+          // Xoáy chao đảo ngẫu nhiên khiến thứ hạng đảo lộn liên tục
+          m.vx += (Math.random() - 0.5) * 160 * dt;
+          m.vy += (Math.random() - 0.5) * 120 * dt;
+        }
 
         m.x += m.vx * dt;
         m.y += m.vy * dt;

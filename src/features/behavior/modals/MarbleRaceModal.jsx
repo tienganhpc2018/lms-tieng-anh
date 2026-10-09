@@ -209,6 +209,10 @@ export default function MarbleRaceModal({
     }
   };
 
+  const handleLogEvent = (eventItem) => {
+    setLogs((prev) => [...prev, eventItem]);
+  };
+
   const racerStudents = activeStudents.filter((s) => !excludedIds.includes(s.id));
   const remainingTimeMs = Math.max(0, raceDurationSec * 1000 - elapsedTimeMs);
 
@@ -384,6 +388,7 @@ export default function MarbleRaceModal({
             onMarbleFinish={handleMarbleFinish}
             onUpdateMarbles={setMarbles}
             onCameraUpdate={setCameraState}
+            onLogEvent={handleLogEvent}
           />
         </div>
 
