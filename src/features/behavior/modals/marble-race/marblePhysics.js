@@ -16,7 +16,6 @@ export const MARBLE_COLORS = [
   { main: '#84CC16', light: '#D9F99D', dark: '#3F6212', text: '#FFFFFF', name: 'Xanh Cốm' },
 ];
 
-// LẤY CHỮ CÁI ĐẦU TÊN (TÊN & HỌ) - VÍ DỤ: "Ngọc Hoà" -> "NH"
 export function getStudentInitials(fullName = '') {
   if (!fullName) return 'HS';
   const parts = fullName.trim().split(/\s+/);
@@ -26,7 +25,6 @@ export function getStudentInitials(fullName = '') {
   return (first + last).toUpperCase();
 }
 
-// FORMAT THỜI GIAN THEO CHUẨN ẢNH (00:47,1 hoặc 00:02,5)
 export function formatRaceTime(totalMs = 0) {
   const totalSec = Math.max(0, totalMs / 1000);
   const mins = Math.floor(totalSec / 60);
@@ -35,71 +33,75 @@ export function formatRaceTime(totalMs = 0) {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${tenths}`;
 }
 
-// KHỞI TẠO CẤU TRÚC ĐƯỜNG ĐUA DỌC 7 CHẶNG (TOTAL HEIGHT = 2600px)
+// KHỞI TẠO CẤU TRÚC ĐƯỜNG ĐUA DỌC 7 CHẶNG
 export function generateFullStageTrack(width = 800) {
-  const trackHeight = 2600;
-  const startY = 120;
-  const finishY = 2450;
+  const trackHeight = 2700;
+  const startY = 140;
+  const gateY = startY + 40;
+  const finishY = 2500;
   const margin = Math.min(width * 0.08, 45);
 
   const walls = [];
-  const bumpers = []; // Đệm nảy Pinball rực rỡ
+  const bumpers = [];
   const pegs = [];
   const stages = [];
 
   // Tường biên trái & phải chạy suốt chiều dài
-  walls.push({ x1: margin, y1: startY, x2: margin, y2: finishY });
-  walls.push({ x1: width - margin, y1: startY, x2: width - margin, y2: finishY });
+  walls.push({ x1: margin, y1: startY - 100, x2: margin, y2: finishY });
+  walls.push({ x1: width - margin, y1: startY - 100, x2: width - margin, y2: finishY });
 
-  // --- CHẶNG 1: TẤM PHỄU XUẤT PHÁT ---
-  stages.push({ y: startY + 40, title: 'Chặng 1 • Đệm nảy Pinball & Phễu Xuất Phát' });
-  walls.push({ x1: margin, y1: startY, x2: width * 0.35, y2: startY + 120 });
-  walls.push({ x1: width - margin, y1: startY, x2: width * 0.65, y2: startY + 120 });
+  // --- CHẶNG 1: PHỄU XUẤT PHÁT (ĐẶT DƯỚI CỔNG ĐỂ KHÔNG BỊ KẸT BI) ---
+  stages.push({ y: startY + 20, title: 'Chặng 1 • Phễu Xuất Phát & Đệm nảy Pinball' });
 
-  // CHẶNG 2: 7 BÁNH ĐỆM NẢY PINBALL MÀU ĐỎ (CHUẨN ẢNH 2, 3)
-  const bCenterY = startY + 320;
-  bumpers.push({ x: width * 0.22, y: bCenterY - 60, radius: 36, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.5, y: bCenterY - 90, radius: 42, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.78, y: bCenterY - 60, radius: 36, color: '#F43F5E' });
+  // Phễu nghiêng nằm bên dưới cổng gạt (gateY + 30)
+  const funnelTopY = gateY + 30;
+  walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.36, y2: funnelTopY + 120 });
+  walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.64, y2: funnelTopY + 120 });
 
-  bumpers.push({ x: width * 0.32, y: bCenterY + 70, radius: 38, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.68, y: bCenterY + 70, radius: 38, color: '#F43F5E' });
+  // CHẶNG 2: 8 BÁNH ĐỆM NẢY PINBALL MÀU ĐỎ (CHUẨN ẢNH 2, 3)
+  const bCenterY = funnelTopY + 280;
+  bumpers.push({ x: width * 0.22, y: bCenterY - 40, radius: 36, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.5, y: bCenterY - 70, radius: 42, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.78, y: bCenterY - 40, radius: 36, color: '#F43F5E' });
 
-  bumpers.push({ x: width * 0.2, y: bCenterY + 200, radius: 35, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.5, y: bCenterY + 220, radius: 42, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.8, y: bCenterY + 200, radius: 35, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.32, y: bCenterY + 90, radius: 38, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.68, y: bCenterY + 90, radius: 38, color: '#F43F5E' });
 
-  // --- CHẶNG 3: NGÃ BA NẠP KÊNH & ĐẢO HƯỚNG ---
-  stages.push({ y: startY + 650, title: 'Chặng 2 • Ngã ba phân nhánh & Đảo hướng' });
-  walls.push({ x1: margin, y1: startY + 600, x2: width * 0.38, y2: startY + 720 });
-  walls.push({ x1: width - margin, y1: startY + 600, x2: width * 0.62, y2: startY + 720 });
+  bumpers.push({ x: width * 0.2, y: bCenterY + 220, radius: 35, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.5, y: bCenterY + 240, radius: 42, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.8, y: bCenterY + 220, radius: 35, color: '#F43F5E' });
+
+  // --- CHẶNG 3: NGÃ BA PHÂN NHÁNH & ĐẢO HƯỚNG ---
+  stages.push({ y: startY + 700, title: 'Chặng 2 • Ngã ba phân nhánh & Đảo hướng' });
+  walls.push({ x1: margin, y1: startY + 680, x2: width * 0.38, y2: startY + 800 });
+  walls.push({ x1: width - margin, y1: startY + 680, x2: width * 0.62, y2: startY + 800 });
 
   // Vạc dẫn hướng trung tâm
-  walls.push({ x1: width * 0.5, y1: startY + 740, x2: width * 0.3, y2: startY + 860 });
-  walls.push({ x1: width * 0.5, y1: startY + 740, x2: width * 0.7, y2: startY + 860 });
+  walls.push({ x1: width * 0.5, y1: startY + 830, x2: width * 0.3, y2: startY + 950 });
+  walls.push({ x1: width * 0.5, y1: startY + 830, x2: width * 0.7, y2: startY + 950 });
 
   // --- CHẶNG 4 & 5: CÁC TẦNG DỐC ZICZAC NGHIÊNG ---
-  stages.push({ y: startY + 980, title: 'Chặng 3 • Đường dốc Ziczac tăng tốc' });
-  const rampY1 = startY + 950;
-  const rampY2 = startY + 1120;
-  const rampY3 = startY + 1290;
-  const rampY4 = startY + 1460;
+  stages.push({ y: startY + 1050, title: 'Chặng 3 • Đường dốc Ziczac tăng tốc' });
+  const rampY1 = startY + 1020;
+  const rampY2 = startY + 1200;
+  const rampY3 = startY + 1380;
+  const rampY4 = startY + 1560;
 
   walls.push({ x1: margin, y1: rampY1, x2: width - margin - 90, y2: rampY1 + 75 });
   walls.push({ x1: margin + 90, y1: rampY2, x2: width - margin, y2: rampY2 + 75 });
   walls.push({ x1: margin, y1: rampY3, x2: width - margin - 90, y2: rampY3 + 75 });
   walls.push({ x1: margin + 90, y1: rampY4, x2: width - margin, y2: rampY4 + 75 });
 
-  // Chốt cản trên các dốc
+  // Chốt cản trên dốc
   for (let py = rampY1 + 100; py <= rampY4 + 100; py += 120) {
     pegs.push({ x: width * 0.3, y: py, radius: 10, color: '#0284C7' });
     pegs.push({ x: width * 0.7, y: py, radius: 10, color: '#0284C7' });
   }
 
   // --- CHẶNG 6: KHU VỰC THỬ THÁCH BỨT PHÁ ---
-  stages.push({ y: startY + 1700, title: 'Chặng 6 • Khu vực bứt phá & Vượt mặt' });
-  bumpers.push({ x: width * 0.35, y: startY + 1750, radius: 36, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.65, y: startY + 1750, radius: 36, color: '#F43F5E' });
+  stages.push({ y: startY + 1780, title: 'Chặng 6 • Khu vực bứt phá & Vượt mặt' });
+  bumpers.push({ x: width * 0.35, y: startY + 1820, radius: 36, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.65, y: startY + 1820, radius: 36, color: '#F43F5E' });
 
   // --- CHẶNG 7: PHỄU CỔ CHAI & VẠCH ĐÍCH (CHUẨN ẢNH 4) ---
   stages.push({ y: finishY - 320, title: 'Chặng 7 • Phễu cổ chai & Chốt chặn' });
@@ -110,6 +112,7 @@ export function generateFullStageTrack(width = 800) {
     width,
     trackHeight,
     startY,
+    gateY,
     finishY,
     margin,
     walls,
@@ -119,7 +122,6 @@ export function generateFullStageTrack(width = 800) {
   };
 }
 
-// XỬ LÝ VA CHẠM VỚI BÁNH ĐỆM NẢY PINBALL (BUMPER COLLISION)
 export function checkBumperCollision(marble, bumper) {
   const dx = marble.x - bumper.x;
   const dy = marble.y - bumper.y;
@@ -131,12 +133,10 @@ export function checkBumperCollision(marble, bumper) {
     const nx = dx / dist;
     const ny = dy / dist;
 
-    // Đẩy viên bi ra ngoài đệm
     const overlap = minDist - dist;
     marble.x += nx * overlap;
     marble.y += ny * overlap;
 
-    // Bật nảy cực mạnh (Xung lực nảy pinball!)
     const bounceForce = 340;
     marble.vx = nx * bounceForce + (Math.random() - 0.5) * 60;
     marble.vy = ny * bounceForce + (Math.random() - 0.5) * 60;
@@ -146,7 +146,6 @@ export function checkBumperCollision(marble, bumper) {
   return false;
 }
 
-// XỬ LÝ VA CHẠM VỚI TƯỜNG (CIRCLE - LINE SEGMENT)
 export function checkWallCollision(marble, wall) {
   const { x1, y1, x2, y2 } = wall;
   const dx = x2 - x1;
@@ -185,7 +184,6 @@ export function checkWallCollision(marble, wall) {
   return false;
 }
 
-// VA CHẠM GIỮA 2 VIÊN BI (MARBLE VS MARBLE)
 export function checkMarbleCollision(m1, m2) {
   const dx = m2.x - m1.x;
   const dy = m2.y - m1.y;

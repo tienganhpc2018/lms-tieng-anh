@@ -31,25 +31,26 @@ export default function MarbleRaceCanvas({
   const finishCounterRef = useRef(0);
   const lastReactUpdateRef = useRef(0);
   const startTimeRef = useRef(null);
+  const hasPushedOnGateOpenRef = useRef(false);
 
-  // Khởi tạo danh sách viên bi từ học sinh
+  // Khởi tạo vị trí 30 viên bi gọn gàng trong vạch xuất phát
   const initMarbles = (trackLayout, canvasWidth) => {
     if (!trackLayout) return [];
 
     const count = racerStudents.length;
     const radius = Math.max(12, Math.min(16, Math.floor(canvasWidth / 25)));
-    const startY = trackLayout.startY + 20;
-    const margin = trackLayout.margin + 30;
+    const gateY = trackLayout.gateY || 180;
+    const margin = trackLayout.margin + 25;
     const usableWidth = canvasWidth - margin * 2;
     const colCount = Math.min(8, count);
-    const rowGap = radius * 2.4;
+    const rowGap = radius * 2.3;
     const colGap = usableWidth / (colCount || 1);
 
     const marbles = racerStudents.map((st, idx) => {
       const row = Math.floor(idx / colCount);
       const col = idx % colCount;
-      const x = margin + col * colGap + colGap / 2 + (Math.random() - 0.5) * 4;
-      const y = startY - row * rowGap;
+      const x = margin + col * colGap + colGap / 2 + (Math.random() - 0.5) * 6;
+      const y = gateY - radius - 10 - row * rowGap;
       const colorObj = MARBLE_COLORS[idx % MARBLE_COLORS.length];
 
       return {
@@ -59,7 +60,7 @@ export default function MarbleRaceCanvas({
         initials: getStudentInitials(st.full_name),
         x,
         y,
-        vx: (Math.random() - 0.5) * 30,
+        vx: (Math.random() - 0.5) * 40,
         vy: 0,
         radius,
         color: colorObj,
@@ -74,10 +75,11 @@ export default function MarbleRaceCanvas({
     winnerDeclaredRef.current = false;
     finishCounterRef.current = 0;
     startTimeRef.current = null;
+    hasPushedOnGateOpenRef.current = false;
     return marbles;
   };
 
-  // Resize canvas & khởi tạo track
+  // Resize canvas & nạp track
   useEffect(() => {
     const updateCanvasSize = () => {
       if (!containerRef.current || !canvasRef.current) return;
@@ -126,7 +128,7 @@ export default function MarbleRaceCanvas({
       const layout = trackRef.current;
       if (!layout) return;
 
-      const { width, trackHeight, startY, finishY, margin, walls, bumpers, pegs, stages } = layout;
+      const { width, trackHeight, gateY, finishY, margin, walls, bumpers, pegs, stages } = layout;
       const viewportH = canvas.height;
 
       if (!gateLocked && !startTimeRef.current) {
@@ -135,10 +137,19 @@ export default function MarbleRaceCanvas({
 
       const marbles = marblesRef.current;
 
-      // 1. CẬP NHẬT MÔ PHỎNG VẬT LÝ
-      const gravity = 820;
+      // XUNG LỰC BAN ĐẦU KHI MỞ CỔNG (GỬI LỰC ĐẢY BI TRÁNH ĐỨNG IM)
+      if (!gateLocked && !hasPushedOnGateOpenRef.current) {
+        hasPushedOnGateOpenRef.current = true;
+        marbles.forEach((m) => {
+          m.vy = Math.random() * 60 + 90;
+          m.vx = (Math.random() - 0.5) * 80;
+        });
+      }
 
-      // Tìm viên bi dẫn đầu để Camera cuộn theo
+      // 1. CẬP NHẬT VẬT LÝ CÁC VIÊN BI
+      const gravity = 860;
+
+      // Tìm vị trí viên bi dẫn đầu chưa về đích
       let maxUnfinishedY = 0;
       marbles.forEach((m) => {
         if (!m.isFinished && m.y > maxUnfinishedY) {
@@ -146,8 +157,8 @@ export default function MarbleRaceCanvas({
         }
       });
 
-      // Target camera Y mượt mà
-      const targetCamY = Math.max(0, Math.min(trackHeight - viewportH, maxUnfinishedY - viewportH * 0.38));
+      // Camera cuộn mượt theo đoàn bi
+      const targetCamY = Math.max(0, Math.min(trackHeight - viewportH, maxUnfinishedY - viewportH * 0.35));
       cameraYRef.current += (targetCamY - cameraYRef.current) * 0.08;
       const camY = cameraYRef.current;
 
@@ -161,12 +172,15 @@ export default function MarbleRaceCanvas({
 
           m.x += m.vx * dt;
           m.y += m.vy * dt;
-        } else if (m.y + m.radius > startY + 50) {
-          m.y = startY + 50 - m.radius;
-          m.vy = 0;
+        } else {
+          // Khóa trên cổng gạt khi gateLocked = true
+          if (m.y + m.radius > gateY) {
+            m.y = gateY - m.radius;
+            m.vy = 0;
+          }
         }
 
-        // Va chạm với đệm nảy pinball màu đỏ rực
+        // Va chạm với đệm nảy pinball màu đỏ
         bumpers.forEach((b) => {
           if (checkBumperCollision(m, b)) {
             if (soundEnabled && Math.random() < 0.2) playClick();
@@ -192,19 +206,18 @@ export default function MarbleRaceCanvas({
         }
       });
 
-      // Va chạm giữa các viên bi
+      // Va chạm giữa các viên bi với nhau
       for (let i = 0; i < marbles.length; i++) {
         for (let j = i + 1; j < marbles.length; j++) {
           checkMarbleCollision(marbles[i], marbles[j]);
         }
       }
 
-      // 2. VẼ GIAO DIỆN NỀN GIẤY KẺ Ô TẬP HỌC SINH (CHUẨN ẢNH 2, 3, 4)
+      // 2. VẼ NỀN GIẤY KẺ Ô TẬP HỌC SINH (CHUẨN ẢNH 2, 3, 4)
       ctx.save();
       ctx.fillStyle = '#F8FAFC';
       ctx.fillRect(0, 0, width, viewportH);
 
-      // Kẻ ô vuông tập vở nhẹ
       ctx.strokeStyle = '#E2E8F0';
       ctx.lineWidth = 1;
       const gridGap = 28;
@@ -223,10 +236,10 @@ export default function MarbleRaceCanvas({
         ctx.stroke();
       }
 
-      // DỊCH CHUYỂN CỌ VẼ THEO CAMERA Y
+      // DỊCH CHUYỂN TOÀN BỘ CỌ VẼ THEO CAMERA Y
       ctx.translate(0, -camY);
 
-      // Tường biên Navy Blue đậm (Chuẩn Ảnh 2, 3)
+      // Tường biên Navy Blue (Chuẩn ẢNH 2, 3)
       walls.forEach((w) => {
         ctx.beginPath();
         ctx.moveTo(w.x1, w.y1);
@@ -237,7 +250,7 @@ export default function MarbleRaceCanvas({
         ctx.stroke();
       });
 
-      // Đệm nảy Pinball đỏ với vòng tròn trắng bên trong (Chuẩn Ảnh 2, 3)
+      // Bánh đệm nảy Pinball màu đỏ rực (Chuẩn ẢNH 2, 3)
       bumpers.forEach((b) => {
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
@@ -247,7 +260,7 @@ export default function MarbleRaceCanvas({
         ctx.strokeStyle = '#9F1239';
         ctx.stroke();
 
-        // Vòng tròn trắng giữa đệm
+        // Vòng tròn trắng ở giữa đệm
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.radius * 0.5, 0, Math.PI * 2);
         ctx.lineWidth = 4;
@@ -255,13 +268,13 @@ export default function MarbleRaceCanvas({
         ctx.stroke();
       });
 
-      // Tiêu đề các chặng (Chặng 1, Chặng 2...)
+      // Tiêu đề các chặng
       stages.forEach((stg) => {
-        ctx.fillStyle = 'rgba(241, 245, 249, 0.9)';
-        ctx.fillRect(width / 2 - 120, stg.y - 12, 240, 24);
+        ctx.fillStyle = 'rgba(241, 245, 249, 0.92)';
+        ctx.fillRect(width / 2 - 130, stg.y - 12, 260, 24);
         ctx.strokeStyle = '#CBD5E1';
         ctx.lineWidth = 1;
-        ctx.strokeRect(width / 2 - 120, stg.y - 12, 240, 24);
+        ctx.strokeRect(width / 2 - 130, stg.y - 12, 260, 24);
 
         ctx.fillStyle = '#334155';
         ctx.font = 'bold 11px sans-serif';
@@ -269,13 +282,14 @@ export default function MarbleRaceCanvas({
         ctx.fillText(stg.title, width / 2, stg.y + 4);
       });
 
-      // VẠCH XUẤT PHÁT VÀ MỞ THANH GẠT
+      // VẠCH THANH GẠT XUẤT PHÁT MÀU ĐỎ (KHI KHÓA CỔNG)
       if (gateLocked) {
         ctx.lineWidth = 10;
         ctx.strokeStyle = '#EF4444';
+        ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(margin, startY + 45);
-        ctx.lineTo(width - margin, startY + 45);
+        ctx.moveTo(margin, gateY);
+        ctx.lineTo(width - margin, gateY);
         ctx.stroke();
       }
 
@@ -293,7 +307,6 @@ export default function MarbleRaceCanvas({
       ctx.lineWidth = 2;
       ctx.strokeRect(startBarX, finishY - 8, finishBarW, 16);
 
-      // Chữ "ĐÍCH" màu đỏ rực hai bên vạch đích
       ctx.fillStyle = '#EF4444';
       ctx.font = 'black 20px sans-serif';
       ctx.textAlign = 'right';
@@ -301,9 +314,9 @@ export default function MarbleRaceCanvas({
       ctx.textAlign = 'left';
       ctx.fillText('ĐÍCH', startBarX + finishBarW + 15, finishY + 6);
 
-      // VẼ CÁC VIÊN BI (MARBLES) VỚI BADGE VIẾT TẮT & TÊN NỔI (CHUẨN ẢNH 2, 3, 4)
+      // VẼ 30 VIÊN BI VỚI NHÃN TÊN TRẮNG NỔI TRÊN ĐẦU
       marbles.forEach((m) => {
-        const { x, y, radius, color, number, initials, studentName } = m;
+        const { x, y, radius, color, number, studentName } = m;
 
         // Thân viên bi
         ctx.beginPath();
@@ -314,14 +327,14 @@ export default function MarbleRaceCanvas({
         ctx.strokeStyle = '#FFFFFF';
         ctx.stroke();
 
-        // Chữ initials hoặc số áo giữa viên bi
+        // Số áo giữa viên bi
         ctx.fillStyle = color.text || '#FFFFFF';
         ctx.font = `bold ${Math.round(radius * 0.9)}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(number), x, y);
 
-        // Nhãn tên nổi trên đầu viên bi (Background trắng bo tròn)
+        // Nhãn tên nổi phía trên viên bi
         if (studentName) {
           ctx.font = 'bold 11px sans-serif';
           const tW = ctx.measureText(studentName).width;
@@ -344,7 +357,7 @@ export default function MarbleRaceCanvas({
 
       ctx.restore();
 
-      // THROTTLE REACT UPDATE CHO LEADERBOARD & MINIMAP (~5 FPS ĐỂ KHÔNG GIẬT)
+      // CẬP NHẬT DỮ LIỆU ĐẾN LEADERBOARD & MINIMAP (~5 FPS)
       if (currentTime - lastReactUpdateRef.current > 180) {
         lastReactUpdateRef.current = currentTime;
         if (onUpdateMarbles) onUpdateMarbles([...marbles]);
