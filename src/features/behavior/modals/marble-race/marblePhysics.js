@@ -1,6 +1,5 @@
 // BỘ NGUYÊN LÝ VẬT LÝ VÀ CẤU TRÚC ĐƯỜNG ĐUA CHUẨN 7 CHẶNG (ẢNH 2, 3, 4)
 
-// 24 MÀU VIÊN BI CHUẨN TRỰC QUAN
 export const MARBLE_COLORS = [
   { main: '#EF4444', light: '#FCA5A5', dark: '#991B1B', text: '#FFFFFF', name: 'Đỏ' },
   { main: '#3B82F6', light: '#93C5FD', dark: '#1E40AF', text: '#FFFFFF', name: 'Xanh Lam' },
@@ -33,7 +32,6 @@ export function formatRaceTime(totalMs = 0) {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${tenths}`;
 }
 
-// KHỞI TẠO CẤU TRÚC ĐƯỜNG ĐUA DỌC 7 CHẶNG
 export function generateFullStageTrack(width = 800) {
   const trackHeight = 2700;
   const startY = 140;
@@ -46,14 +44,13 @@ export function generateFullStageTrack(width = 800) {
   const pegs = [];
   const stages = [];
 
-  // Tường biên trái & phải chạy suốt chiều dài
+  // Tường biên trái & phải
   walls.push({ x1: margin, y1: startY - 100, x2: margin, y2: finishY });
   walls.push({ x1: width - margin, y1: startY - 100, x2: width - margin, y2: finishY });
 
-  // --- CHẶNG 1: PHỄU XUẤT PHÁT (ĐẶT DƯỚI CỔNG ĐỂ KHÔNG BỊ KẸT BI) ---
+  // --- CHẶNG 1: PHỄU XUẤT PHÁT (ĐẶT DƯỚI VẠCH CỔNG GẠT) ---
   stages.push({ y: startY + 20, title: 'Chặng 1 • Phễu Xuất Phát & Đệm nảy Pinball' });
 
-  // Phễu nghiêng nằm bên dưới cổng gạt (gateY + 30)
   const funnelTopY = gateY + 30;
   walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.36, y2: funnelTopY + 120 });
   walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.64, y2: funnelTopY + 120 });
@@ -76,7 +73,6 @@ export function generateFullStageTrack(width = 800) {
   walls.push({ x1: margin, y1: startY + 680, x2: width * 0.38, y2: startY + 800 });
   walls.push({ x1: width - margin, y1: startY + 680, x2: width * 0.62, y2: startY + 800 });
 
-  // Vạc dẫn hướng trung tâm
   walls.push({ x1: width * 0.5, y1: startY + 830, x2: width * 0.3, y2: startY + 950 });
   walls.push({ x1: width * 0.5, y1: startY + 830, x2: width * 0.7, y2: startY + 950 });
 
@@ -92,7 +88,6 @@ export function generateFullStageTrack(width = 800) {
   walls.push({ x1: margin, y1: rampY3, x2: width - margin - 90, y2: rampY3 + 75 });
   walls.push({ x1: margin + 90, y1: rampY4, x2: width - margin, y2: rampY4 + 75 });
 
-  // Chốt cản trên dốc
   for (let py = rampY1 + 100; py <= rampY4 + 100; py += 120) {
     pegs.push({ x: width * 0.3, y: py, radius: 10, color: '#0284C7' });
     pegs.push({ x: width * 0.7, y: py, radius: 10, color: '#0284C7' });
@@ -137,9 +132,9 @@ export function checkBumperCollision(marble, bumper) {
     marble.x += nx * overlap;
     marble.y += ny * overlap;
 
-    const bounceForce = 340;
-    marble.vx = nx * bounceForce + (Math.random() - 0.5) * 60;
-    marble.vy = ny * bounceForce + (Math.random() - 0.5) * 60;
+    const bounceForce = 360;
+    marble.vx = nx * bounceForce + (Math.random() - 0.5) * 80;
+    marble.vy = Math.abs(ny * bounceForce) + 60; // Luôn nảy hướng xuống dưới!
 
     return true;
   }
@@ -175,7 +170,7 @@ export function checkWallCollision(marble, wall) {
 
     const dot = marble.vx * nx + marble.vy * ny;
     if (dot < 0) {
-      const restitution = 0.75;
+      const restitution = 0.7;
       marble.vx -= (1 + restitution) * dot * nx;
       marble.vy -= (1 + restitution) * dot * ny;
     }
@@ -184,6 +179,7 @@ export function checkWallCollision(marble, wall) {
   return false;
 }
 
+// XỬ LÝ VA CHẠM GIỮA CÁC VIÊN BI (GIẢM ĐỒNG THỜI ĐẨY ĐỀU TRÁNH KẸT)
 export function checkMarbleCollision(m1, m2) {
   const dx = m2.x - m1.x;
   const dy = m2.y - m1.y;
@@ -195,7 +191,8 @@ export function checkMarbleCollision(m1, m2) {
     const nx = dx / dist;
     const ny = dy / dist;
 
-    const overlap = 0.5 * (minDist - dist);
+    // Giảm tỷ lệ đẩy vị trí xuống 0.25 để không bị đẩy ngược lên trên
+    const overlap = 0.25 * (minDist - dist);
     m1.x -= nx * overlap;
     m1.y -= ny * overlap;
     m2.x += nx * overlap;
@@ -206,10 +203,10 @@ export function checkMarbleCollision(m1, m2) {
     const p = nx * kx + ny * ky;
 
     if (p > 0) {
-      m1.vx -= p * nx * 0.85;
-      m1.vy -= p * ny * 0.85;
-      m2.vx += p * nx * 0.85;
-      m2.vy += p * ny * 0.85;
+      m1.vx -= p * nx * 0.65;
+      m1.vy -= p * ny * 0.65;
+      m2.vx += p * nx * 0.65;
+      m2.vy += p * ny * 0.65;
     }
     return true;
   }
