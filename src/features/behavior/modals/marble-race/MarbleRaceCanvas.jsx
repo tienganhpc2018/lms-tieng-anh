@@ -38,8 +38,8 @@ export default function MarbleRaceCanvas({
     if (!trackLayout) return [];
 
     const count = racerStudents.length;
-    const radius = 12;
-    const gateY = trackLayout.gateY || 180;
+    const radius = 13;
+    const gateY = trackLayout.gateY || 160;
     const margin = trackLayout.margin + 30;
     const usableWidth = canvasWidth - margin * 2;
     const colCount = Math.min(8, count);
@@ -52,7 +52,7 @@ export default function MarbleRaceCanvas({
 
       const xOffset = row % 2 === 1 ? colGap * 0.25 : 0;
       const x = margin + col * colGap + colGap / 2 + xOffset;
-      const y = gateY - radius - 20 - row * rowGap;
+      const y = gateY - radius - 15 - row * rowGap;
       const colorObj = MARBLE_COLORS[idx % MARBLE_COLORS.length];
 
       return {
@@ -140,29 +140,32 @@ export default function MarbleRaceCanvas({
 
       const marbles = marblesRef.current;
 
-      // XUNG LỰC ĐỔ DỐC BẬC THÁC KHI MỞ CỔNG (PHÓNG THÁC TỰ DO RƠI XUỐNG)
+      // XUNG LỰC BÙNG NỔ KHI MỞ CỔNG (PHÓNG BI ĐỔ DỐC THẦN TỐC 20S)
       if (!gateLocked && !hasPushedOnGateOpenRef.current) {
         hasPushedOnGateOpenRef.current = true;
         marbles.forEach((m) => {
-          m.vy = 280 + (3 - (m.row || 0)) * 50 + Math.random() * 40;
-          m.vx = (Math.random() - 0.5) * 60;
+          m.vy = 360 + (3 - (m.row || 0)) * 60 + Math.random() * 50;
+          m.vx = (Math.random() - 0.5) * 80;
         });
       }
 
-      // 1. CẬP NHẬT VẬT LÝ CÁC VIÊN BI (TRỌNG TRƯỜNG 980 px/s^2)
-      const gravity = 980;
+      // 1. CẬP NHẬT VẬT LÝ CÁC VIÊN BI (TRỌNG TRƯỜNG 1350 px/s^2 RƠI MẠNH MẼ)
+      const gravity = 1350;
 
       // Tìm vị trí viên bi dẫn đầu chưa về đích
       let maxUnfinishedY = 0;
+      let leaderId = null;
+
       marbles.forEach((m) => {
         if (!m.isFinished && m.y > maxUnfinishedY) {
           maxUnfinishedY = m.y;
+          leaderId = m.id;
         }
       });
 
       // Camera cuộn mượt theo đoàn bi từ trên xuống dưới
       const targetCamY = Math.max(0, Math.min(trackHeight - viewportH, maxUnfinishedY - viewportH * 0.35));
-      cameraYRef.current += (targetCamY - cameraYRef.current) * 0.08;
+      cameraYRef.current += (targetCamY - cameraYRef.current) * 0.09;
       const camY = cameraYRef.current;
 
       marbles.forEach((m) => {
@@ -173,13 +176,12 @@ export default function MarbleRaceCanvas({
           m.vx *= 0.992;
           m.vy *= 0.998;
 
-          // Vận tốc dọc tối thiểu > 30px/s để bi cuộn cuồn cuộn xuống vạch đích
-          if (m.vy < 30) m.vy = 30;
+          // Vận tốc dọc tối thiểu > 50px/s để bi lao dồn dập xuống vạch đích
+          if (m.vy < 50) m.vy = 50;
 
           m.x += m.vx * dt;
           m.y += m.vy * dt;
         } else {
-          // Khóa trên cổng gạt khi gateLocked = true
           if (m.y + m.radius > gateY) {
             m.y = gateY - m.radius;
             m.vy = 0;
@@ -193,7 +195,7 @@ export default function MarbleRaceCanvas({
           }
         });
 
-        // Va chạm với tường nghiêng & tường biên (Slide slope physics)
+        // Va chạm tường & dốc trượt
         walls.forEach((w) => checkWallCollision(m, w));
 
         // KIỂM TRA VỀ ĐÍCH
@@ -212,14 +214,14 @@ export default function MarbleRaceCanvas({
         }
       });
 
-      // Va chạm giữa các viên bi với nhau
+      // Va chạm bi - bi
       for (let i = 0; i < marbles.length; i++) {
         for (let j = i + 1; j < marbles.length; j++) {
           checkMarbleCollision(marbles[i], marbles[j]);
         }
       }
 
-      // 2. VẼ NỀN GIẤY KẺ Ô TẬP HỌC SINH (CHUẨN ẢNH 2, 3, 4)
+      // 2. VẼ NỀN GIẤY KẺ Ô TẬP HỌC SINH (CHUẨN ẢNH 2, 3, 4, 6)
       ctx.save();
       ctx.fillStyle = '#F8FAFC';
       ctx.fillRect(0, 0, width, viewportH);
@@ -245,7 +247,7 @@ export default function MarbleRaceCanvas({
       // DỊCH CHUYỂN TOÀN BỘ CỌ VẼ THEO CAMERA Y
       ctx.translate(0, -camY);
 
-      // Tường biên Navy Blue (Chuẩn ẢNH 2, 3)
+      // Tường biên Navy Blue (Chuẩn ẢNH 2, 3, 6)
       walls.forEach((w) => {
         ctx.beginPath();
         ctx.moveTo(w.x1, w.y1);
@@ -256,7 +258,7 @@ export default function MarbleRaceCanvas({
         ctx.stroke();
       });
 
-      // Bánh đệm nảy Pinball màu đỏ rực (Chuẩn ẢNH 2, 3)
+      // Bánh đệm nảy Pinball màu đỏ rực
       bumpers.forEach((b) => {
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
@@ -298,7 +300,7 @@ export default function MarbleRaceCanvas({
         ctx.stroke();
       }
 
-      // VẠCH ĐÍCH CỜ CA-RÔ ĐEN TRẮNG & CHỮ "ĐÍCH" ĐỎ (CHUẨN ẢNH 4)
+      // VẠCH ĐÍCH CỜ CA-RÔ ĐEN TRẮNG & CHỮ "ĐÍCH" ĐỎ
       const squareSize = 16;
       const finishBarW = width - margin * 2;
       const startBarX = margin;
@@ -319,9 +321,21 @@ export default function MarbleRaceCanvas({
       ctx.textAlign = 'left';
       ctx.fillText('ĐÍCH', startBarX + finishBarW + 15, finishY + 6);
 
-      // VẼ 30 VIÊN BI VỚI NHÃN TÊN TRẮNG NỔI TRÊN ĐẦU
+      // VẼ 30 VIÊN BI (HÀO QUANG VÀNG HIGHLIGHT NỔI BẬT CHO VIÊN BI DẪN ĐẦU #1 - CHUẨN ẢNH 6)
       marbles.forEach((m) => {
-        const { x, y, radius, color, number, studentName } = m;
+        const { x, y, radius, color, number, studentName, id } = m;
+        const isLeader = id === leaderId;
+
+        // Vòng hào quang phát sáng vàng nổi bật cho viên bi dẫn đầu (Chuẩn viên bi Quốc Cường #8 trong Ảnh 6!)
+        if (isLeader && !gateLocked) {
+          ctx.beginPath();
+          ctx.arc(x, y, radius + 8, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(250, 204, 21, 0.45)';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#FACC15';
+          ctx.stroke();
+        }
 
         // Thân viên bi
         ctx.beginPath();
@@ -329,7 +343,7 @@ export default function MarbleRaceCanvas({
         ctx.fillStyle = color.main || '#3B82F6';
         ctx.fill();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = '#FFFFFF';
+        ctx.strokeStyle = isLeader ? '#FACC15' : '#FFFFFF';
         ctx.stroke();
 
         // Số áo giữa viên bi
@@ -346,16 +360,16 @@ export default function MarbleRaceCanvas({
           const bgW = tW + 10;
           const bgH = 18;
 
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+          ctx.fillStyle = isLeader ? '#FEF08A' : 'rgba(255, 255, 255, 0.92)';
           ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(x - bgW / 2, y - radius - 22, bgW, bgH, 6);
           else ctx.rect(x - bgW / 2, y - radius - 22, bgW, bgH);
           ctx.fill();
-          ctx.strokeStyle = '#CBD5E1';
+          ctx.strokeStyle = isLeader ? '#EAB308' : '#CBD5E1';
           ctx.lineWidth = 1;
           ctx.stroke();
 
-          ctx.fillStyle = '#0F172A';
+          ctx.fillStyle = isLeader ? '#854D0E' : '#0F172A';
           ctx.fillText(studentName, x, y - radius - 13);
         }
       });

@@ -1,4 +1,4 @@
-// BỘ NGUYÊN LÝ VẬT LÝ VÀ CẤU TRÚC ĐƯỜNG ĐUA CHUẨN CÁC THANH DỐC TRƯỢT ZICZAC (ẢNH 5)
+// BỘ NGUYÊN LÝ VẬT LÝ VÀ ĐƯỜNG ĐUA TỐC ĐỘ 20 GIÂY VỀ ĐÍCH (ẢNH 6)
 
 export const MARBLE_COLORS = [
   { main: '#EF4444', light: '#FCA5A5', dark: '#991B1B', text: '#FFFFFF', name: 'Đỏ' },
@@ -24,6 +24,7 @@ export function getStudentInitials(fullName = '') {
   return (first + last).toUpperCase();
 }
 
+// FORMAT THỜI GIAN ĐẾM NGƯỢC GIÂY/PHẦN MƯỜI GIÂY (CHUẨN ẢNH 00:20,0 -> 00:00,0)
 export function formatRaceTime(totalMs = 0) {
   const totalSec = Math.max(0, totalMs / 1000);
   const mins = Math.floor(totalSec / 60);
@@ -32,12 +33,12 @@ export function formatRaceTime(totalMs = 0) {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${tenths}`;
 }
 
-// CẤU TRÚC ĐƯỜNG ĐUA CHUẨN CÁC THANH DỐC NGHIÊNG ĐAN XEN TRÁI - PHẢI (CHUẨN ẢNH 5)
+// CẤU TRÚC ĐƯỜNG ĐUA TỐC ĐỘ 20 GIÂY CHUẨN 8 TẦNG DỐC (CHUẨN ẢNH 6)
 export function generateFullStageTrack(width = 800) {
-  const trackHeight = 3100;
-  const startY = 140;
+  const trackHeight = 2300;
+  const startY = 120;
   const gateY = startY + 40;
-  const finishY = 2900;
+  const finishY = 2080;
   const margin = Math.min(width * 0.08, 45);
 
   const walls = [];
@@ -45,7 +46,7 @@ export function generateFullStageTrack(width = 800) {
   const pegs = [];
   const stages = [];
 
-  // Tường biên đứng hai bên trái & phải
+  // Tường biên đứng hai bên
   walls.push({ x1: margin, y1: startY - 100, x2: margin, y2: finishY, type: 'vertical' });
   walls.push({ x1: width - margin, y1: startY - 100, x2: width - margin, y2: finishY, type: 'vertical' });
 
@@ -53,38 +54,40 @@ export function generateFullStageTrack(width = 800) {
   stages.push({ y: startY + 20, title: 'Vạch Xuất Phát & Phễu gom bi' });
 
   const funnelTopY = gateY + 30;
-  walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.35, y2: funnelTopY + 110, type: 'slanted' });
-  walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.65, y2: funnelTopY + 110, type: 'slanted' });
+  walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.35, y2: funnelTopY + 100, type: 'slanted' });
+  walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.65, y2: funnelTopY + 100, type: 'slanted' });
 
-  // --- CHUỖI 14 THANH DỐC NGHIÊNG ĐAN XEN CẤP NĂNG NƯỢNG (CHUẨN ẢNH 5) ---
-  let currY = funnelTopY + 160;
-  const rampGap = 165; // Khoảng cách giữa các tầng dốc
-  const dropGapWidth = 100; // Khe hở ở đầu dốc để bi rơi xuống dốc bên dưới
+  // CHẶNG 2: 6 BÁNH ĐỆM NẢY PINBALL MÀU ĐỎ
+  const bCenterY = funnelTopY + 230;
+  bumpers.push({ x: width * 0.25, y: bCenterY - 30, radius: 34, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.5, y: bCenterY - 50, radius: 38, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.75, y: bCenterY - 30, radius: 34, color: '#F43F5E' });
+
+  bumpers.push({ x: width * 0.35, y: bCenterY + 80, radius: 36, color: '#F43F5E' });
+  bumpers.push({ x: width * 0.65, y: bCenterY + 80, radius: 36, color: '#F43F5E' });
+
+  // --- CHUỖI 8 THANH DỐC NGHIÊNG TỐC ĐỘ (CHUẨN ẢNH 6) ---
+  let currY = funnelTopY + 420;
+  const rampGap = 160;
+  const dropGapWidth = 95;
 
   const rampTitles = [
-    'Chặng 1 • Dốc tăng tốc số 1',
-    'Chặng 2 • Dốc lượn sóng số 2',
+    'Chặng 1 • Dốc zíc-zắc thác trượt',
+    'Chặng 2 • Dốc tốc độ bứt phá',
     'Chặng 3 • Đệm nảy Pinball & Dốc số 3',
-    'Chặng 4 • Cánh quạt tử thần & Dốc số 4',
+    'Chặng 4 • Cánh quạt tử thần',
     'Chặng 5 • Dốc xoắn ốc số 5',
-    'Chặng 6 • Thách thức bứt phá số 6',
-    'Chặng 7 • Dốc tốc độ số 7',
-    'Chặng 8 • Dốc đảo hướng số 8',
-    'Chặng 9 • Dốc vượt mặt số 9',
-    'Chặng 10 • Dốc về đích số 10',
+    'Chặng 6 • Dốc về đích thần tốc',
   ];
 
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 8; i++) {
     const isLeftToRight = i % 2 === 0;
     const y1 = currY;
-    const y2 = currY + 80;
+    const y2 = currY + 70;
 
-    if (i % 2 === 0 && i < rampTitles.length * 2) {
-      stages.push({ y: currY - 15, title: rampTitles[Math.floor(i / 2)] || `Chặng ${i + 1}` });
-    }
+    stages.push({ y: currY - 12, title: rampTitles[i] || `Chặng ${i + 1}` });
 
     if (isLeftToRight) {
-      // Dốc nghiêng từ TRÁI sang PHẢI (để hở góc phải 100px)
       walls.push({
         x1: margin,
         y1: y1,
@@ -92,16 +95,14 @@ export function generateFullStageTrack(width = 800) {
         y2: y2,
         type: 'slanted',
       });
-      // Gờ chặn nhẹ ở mép dốc để bi lộn rơi đẹp mắt
       walls.push({
         x1: width - margin - dropGapWidth - 20,
-        y1: y2 - 25,
+        y1: y2 - 20,
         x2: width - margin - dropGapWidth,
         y2: y2,
         type: 'slanted',
       });
     } else {
-      // Dốc nghiêng từ PHẢI sang TRÁI (để hở góc trái 100px)
       walls.push({
         x1: margin + dropGapWidth,
         y1: y2,
@@ -113,24 +114,23 @@ export function generateFullStageTrack(width = 800) {
         x1: margin + dropGapWidth,
         y1: y2,
         x2: margin + dropGapWidth + 20,
-        y2: y2 - 25,
+        y2: y2 - 20,
         type: 'slanted',
       });
     }
 
-    // Đặt vài đệm nảy pinball hoặc chốt pin trên các tầng dốc ngẫu nhiên
-    if (i === 2 || i === 5 || i === 8) {
-      const bX = isLeftToRight ? width * 0.4 : width * 0.6;
-      bumpers.push({ x: bX, y: (y1 + y2) / 2 - 40, radius: 32, color: '#F43F5E' });
+    if (i === 2 || i === 5) {
+      const bX = isLeftToRight ? width * 0.45 : width * 0.55;
+      bumpers.push({ x: bX, y: (y1 + y2) / 2 - 35, radius: 30, color: '#F43F5E' });
     }
 
     currY += rampGap;
   }
 
-  // --- CHẶNG CUỐI: PHỄU CỔ CHAI & VẠCH ĐÍCH (CHUẨN ẢNH 4 & 5) ---
-  stages.push({ y: finishY - 300, title: 'Chặng Cuối • Phễu cổ chai & Vạch Đích' });
-  walls.push({ x1: margin, y1: finishY - 360, x2: width * 0.42, y2: finishY - 140, type: 'slanted' });
-  walls.push({ x1: width - margin, y1: finishY - 360, x2: width * 0.58, y2: finishY - 140, type: 'slanted' });
+  // --- CHẶNG CUỐI: PHỄU CỔ CHAI & VẠCH ĐÍCH (CHUẨN ẢNH 4, 6) ---
+  stages.push({ y: finishY - 250, title: 'Chặng Cuối • Vạch Đích' });
+  walls.push({ x1: margin, y1: finishY - 300, x2: width * 0.42, y2: finishY - 110, type: 'slanted' });
+  walls.push({ x1: width - margin, y1: finishY - 300, x2: width * 0.58, y2: finishY - 110, type: 'slanted' });
 
   return {
     width,
@@ -161,20 +161,18 @@ export function checkBumperCollision(marble, bumper) {
     marble.x += nx * overlap;
     marble.y += ny * overlap;
 
-    const bounceForce = 360;
+    const bounceForce = 420;
     marble.vx = nx * bounceForce + (Math.random() - 0.5) * 80;
-    marble.vy = Math.abs(ny * bounceForce) + 140;
+    marble.vy = Math.abs(ny * bounceForce) + 160;
 
     return true;
   }
   return false;
 }
 
-// THUẬT TOÁN XỬ LÝ VA CHẠM CÁC THANH DỐC NGHIÊNG (SLOPE RAMP PHYSICS - CHUẨN ẢNH 5)
 export function checkWallCollision(marble, wall) {
   let { x1, y1, x2, y2, type } = wall;
 
-  // Đặt hướng slope vector d luôn theo chiều dốc rơi (từ điểm cao hơn -> điểm thấp hơn)
   if (y1 > y2) {
     [x1, x2] = [x2, x1];
     [y1, y2] = [y2, y1];
@@ -201,25 +199,23 @@ export function checkWallCollision(marble, wall) {
     let nx = distX / dist;
     let ny = distY / dist;
 
-    // Đẩy viên bi ra ngoài mặt dốc thanh chắn
     const overlap = marble.radius - dist;
     marble.x += nx * overlap;
     marble.y += ny * overlap;
 
     if (type === 'vertical') {
-      // Tường đứng hai bên biên
       marble.vx = -marble.vx * 0.75 + (Math.random() - 0.5) * 20;
     } else {
-      // Thanh dốc nghiêng (Slanted Ramp) -> Trượt cuồn cuộn dọc thanh chắn (Chuẩn Ảnh 5)
+      // Vận tốc trượt dốc thần tốc (vSlope >= 380px/s) giúp bi cán đích chuẩn trong 20s
       const len = Math.sqrt(lenSq) || 1;
       const tx = dx / len;
       const ty = dy / len;
 
       let vSlope = marble.vx * tx + marble.vy * ty;
-      if (vSlope < 180) vSlope = 180; // Vận tốc trượt dọc thanh dốc luôn > 180px/s!
+      if (vSlope < 380) vSlope = 380;
 
-      marble.vx = vSlope * tx + (Math.random() - 0.5) * 20;
-      marble.vy = Math.max(120, vSlope * ty);
+      marble.vx = vSlope * tx + (Math.random() - 0.5) * 30;
+      marble.vy = Math.max(160, vSlope * ty);
     }
     return true;
   }

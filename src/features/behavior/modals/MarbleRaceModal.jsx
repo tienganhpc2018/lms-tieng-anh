@@ -7,6 +7,7 @@ import {
   Maximize2,
   Minimize2,
   Settings,
+  Timer,
 } from 'lucide-react';
 import MarbleRaceLeaderboard from './marble-race/MarbleRaceLeaderboard';
 import MarbleRaceLogs from './marble-race/MarbleRaceLogs';
@@ -30,6 +31,7 @@ export default function MarbleRaceModal({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const [raceDurationSec, setRaceDurationSec] = useState(20); // Mặc định 20 giây chuẩn theo Thầy yêu cầu!
   const [countdownStep, setCountdownStep] = useState(0);
   const [isAutoCounting, setIsAutoCounting] = useState(false);
 
@@ -39,7 +41,7 @@ export default function MarbleRaceModal({
 
   const [marbles, setMarbles] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [cameraState, setCameraState] = useState({ cameraY: 0, viewportHeight: 600, trackHeight: 2600 });
+  const [cameraState, setCameraState] = useState({ cameraY: 0, viewportHeight: 600, trackHeight: 2300 });
   const [elapsedTimeMs, setElapsedTimeMs] = useState(0);
 
   const [winnerMarble, setWinnerMarble] = useState(null);
@@ -89,18 +91,19 @@ export default function MarbleRaceModal({
 
     setLogs([
       {
-        time: '00:00,0',
+        time: formatRaceTime(raceDurationSec * 1000),
         text: 'Thanh gạt chắn đang đóng. Bấm 1-2-3-4 hoặc MỞ THANH GẠT để đua!',
       },
     ]);
   };
 
-  // TÍN HIỆU ĐẾM NGƯỢC 1-2-3-4
+  // TÍN HIỆU ĐẾM NGƯỜC 1-2-3-4
   const handleTriggerStep = (step) => {
     if (soundEnabled) playClick();
     setCountdownStep(step);
 
-    const timeStr = formatRaceTime(elapsedTimeMs);
+    const remainingMs = Math.max(0, raceDurationSec * 1000 - elapsedTimeMs);
+    const timeStr = formatRaceTime(remainingMs);
     if (step === 4) {
       setGateLocked(false);
       setLogs((prev) => [
@@ -115,7 +118,7 @@ export default function MarbleRaceModal({
     }
   };
 
-  // ĐẾM NGƯỢC TỰ ĐỘNG
+  // ĐẾM NGƯỜC TỰ ĐỘNG
   const handleStartAutoCountdown = () => {
     if (isAutoCounting || !gateLocked) return;
     if (soundEnabled) playClick();
@@ -137,7 +140,8 @@ export default function MarbleRaceModal({
           setGateLocked(false);
           setIsAutoCounting(false);
           clearInterval(timer);
-          const timeStr = formatRaceTime(elapsedTimeMs);
+          const remainingMs = Math.max(0, raceDurationSec * 1000 - elapsedTimeMs);
+          const timeStr = formatRaceTime(remainingMs);
           setLogs((prev) => [
             ...prev,
             { time: timeStr, text: 'Thanh gạt chắn mở! Cuộc đua bắt đầu.' },
@@ -155,7 +159,8 @@ export default function MarbleRaceModal({
     if (soundEnabled) playClick();
     setCountdownStep(4);
     setGateLocked(false);
-    const timeStr = formatRaceTime(elapsedTimeMs);
+    const remainingMs = Math.max(0, raceDurationSec * 1000 - elapsedTimeMs);
+    const timeStr = formatRaceTime(remainingMs);
     setLogs((prev) => [
       ...prev,
       { time: timeStr, text: 'Thanh gạt chắn mở ngay! Cuộc đua bùng nổ.' },
@@ -170,7 +175,7 @@ export default function MarbleRaceModal({
     handleResetRace();
   };
 
-  // LỜI GỌI KHI CÓ HỌC SINH VƯỢT MẶT NỔI BẬT
+  // LỜI GỌI KHI CÓ HỌC SINH VỀ ĐÍCH
   const handleMarbleFinish = (marble, rank) => {
     const timeStr = formatRaceTime(marble.finishTime || elapsedTimeMs);
     setLogs((prev) => [
@@ -197,6 +202,7 @@ export default function MarbleRaceModal({
   };
 
   const racerStudents = activeStudents.filter((s) => !excludedIds.includes(s.id));
+  const remainingTimeMs = Math.max(0, raceDurationSec * 1000 - elapsedTimeMs);
 
   if (!isOpen) return null;
 
@@ -205,7 +211,7 @@ export default function MarbleRaceModal({
       ref={modalRef}
       className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-slate-900 select-none animate-fade-in font-sans overflow-hidden"
     >
-      {/* 1. TOP MINI TOOLBAR (XEM TOÀN MÀN HÌNH & THAO TÁC NHANH) */}
+      {/* 1. TOP TOOLBAR VỚI CHỌN THỜI GIAN ĐUA 20S */}
       <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between gap-3 shadow-2xs">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center text-lg font-black">
@@ -216,12 +222,35 @@ export default function MarbleRaceModal({
               GỌI TÊN HỌC SINH – GAME BI LĂN
             </h2>
             <p className="text-[10px] font-bold text-slate-500">
-              {racerStudents.length} học sinh tham gia • Nhấn phím 1, 2, 3, 4 trên bàn phím
+              {racerStudents.length} học sinh tham gia • Thời gian đua: {raceDurationSec}s
             </p>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* NÚT CHỌN THỜI GIAN ĐUA: 20S (MẶC ĐỊNH), 30S, 45S */}
+          <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-black">
+            <Timer className="w-3.5 h-3.5 text-purple-600 ml-1" />
+            {[20, 30, 45].map((sec) => (
+              <button
+                key={sec}
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setRaceDurationSec(sec);
+                  handleResetRace();
+                }}
+                className={`px-2 py-1 rounded-lg transition cursor-pointer ${
+                  raceDurationSec === sec
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {sec}s
+              </button>
+            ))}
+          </div>
+
           <button
             type="button"
             onClick={() => {
@@ -265,8 +294,8 @@ export default function MarbleRaceModal({
 
       {/* 2. BỐ CỤC CHÍNH 3 CỘT (LEADERBOARD | CANVAS & POPUP OVERLAY | LOGS & MINIMAP) */}
       <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden relative">
-        {/* CỘT TRÁI: LEADERBOARD TRẮNG SÁNG & ĐỒNG HỒ (CHUẨN ẢNH 2, 3, 4) */}
-        <MarbleRaceLeaderboard marbles={marbles} elapsedTimeMs={elapsedTimeMs} />
+        {/* CỘT TRÁI: LEADERBOARD TRẮNG SÁNG & ĐỒNG HỒ ĐẾM NGƯỜC 20S (CHUẨN ẢNH 2, 3, 4, 6) */}
+        <MarbleRaceLeaderboard marbles={marbles} remainingTimeMs={remainingTimeMs} />
 
         {/* KHU VỰC GIỮA: CANVAS ĐƯỜNG ĐUA & POPUP ĐIỀU KHIỂN NỔI (CHUẨN ẢNH 2) */}
         <div className="flex-1 relative bg-slate-100 flex flex-col min-h-0 overflow-hidden">
@@ -295,7 +324,7 @@ export default function MarbleRaceModal({
           />
         </div>
 
-        {/* CỘT PHẢI: TOÀN ĐƯỜNG ĐUA MINIMAP & DIỄN BIẾN (CHUẨN ẢNH 2, 3, 4) */}
+        {/* CỘT PHẢI: TOÀN ĐƯỜNG ĐUA MINIMAP & DIỄN BIẾN (CHUẨN ẢNH 2, 3, 4, 6) */}
         <MarbleRaceLogs marbles={marbles} logs={logs} cameraState={cameraState} />
       </div>
 
