@@ -33,7 +33,7 @@ export default function MarbleRaceCanvas({
   const startTimeRef = useRef(null);
   const hasPushedOnGateOpenRef = useRef(false);
 
-  // Khởi tạo 30 viên bi giãn khoảng cách thoáng mát, không đè lên nhau
+  // Khởi tạo 30 viên bi trên vạch xuất phát
   const initMarbles = (trackLayout, canvasWidth) => {
     if (!trackLayout) return [];
 
@@ -43,17 +43,16 @@ export default function MarbleRaceCanvas({
     const margin = trackLayout.margin + 30;
     const usableWidth = canvasWidth - margin * 2;
     const colCount = Math.min(8, count);
-    const rowGap = radius * 3.0; // Giãn khoảng cách hàng để bi không nén ép nhau
+    const rowGap = radius * 3.2;
     const colGap = usableWidth / (colCount || 1);
 
     const marbles = racerStudents.map((st, idx) => {
       const row = Math.floor(idx / colCount);
       const col = idx % colCount;
 
-      // So le hàng lẻ để bi rơi lọt khe mượt mà
       const xOffset = row % 2 === 1 ? colGap * 0.25 : 0;
       const x = margin + col * colGap + colGap / 2 + xOffset;
-      const y = gateY - radius - 15 - row * rowGap;
+      const y = gateY - radius - 20 - row * rowGap;
       const colorObj = MARBLE_COLORS[idx % MARBLE_COLORS.length];
 
       return {
@@ -141,20 +140,19 @@ export default function MarbleRaceCanvas({
 
       const marbles = marblesRef.current;
 
-      // XUNG LỰC ĐỔ DỐC BẬC THÁC KHI MỞ CỔNG (CÁC HÀNG BẢO ĐẢM TỰ DO RƠI XUỐNG)
+      // XUNG LỰC ĐỔ DỐC BẬC THÁC KHI MỞ CỔNG (PHÓNG THÁC TỰ DO RƠI XUỐNG)
       if (!gateLocked && !hasPushedOnGateOpenRef.current) {
         hasPushedOnGateOpenRef.current = true;
         marbles.forEach((m) => {
-          // Hàng sát cổng phóng xuống trước, các hàng trên phóng xuống sau
-          m.vy = 260 + (3 - (m.row || 0)) * 50 + Math.random() * 40;
+          m.vy = 280 + (3 - (m.row || 0)) * 50 + Math.random() * 40;
           m.vx = (Math.random() - 0.5) * 60;
         });
       }
 
-      // 1. CẬP NHẬT VẬT LÝ CÁC VIÊN BI (TRỌNG TRƯỜNG 980 px/s^2 RƠI MẠNH MẼ)
+      // 1. CẬP NHẬT VẬT LÝ CÁC VIÊN BI (TRỌNG TRƯỜNG 980 px/s^2)
       const gravity = 980;
 
-      // Tìm viên bi dẫn đầu chưa về đích
+      // Tìm vị trí viên bi dẫn đầu chưa về đích
       let maxUnfinishedY = 0;
       marbles.forEach((m) => {
         if (!m.isFinished && m.y > maxUnfinishedY) {
@@ -175,8 +173,8 @@ export default function MarbleRaceCanvas({
           m.vx *= 0.992;
           m.vy *= 0.998;
 
-          // Bảo đảm vận tốc dọc luôn > 15px/s để bi không bao giờ bị dừng lại ở giữa chặng
-          if (m.vy < 15) m.vy = 15;
+          // Vận tốc dọc tối thiểu > 30px/s để bi cuộn cuồn cuộn xuống vạch đích
+          if (m.vy < 30) m.vy = 30;
 
           m.x += m.vx * dt;
           m.y += m.vy * dt;
@@ -195,7 +193,7 @@ export default function MarbleRaceCanvas({
           }
         });
 
-        // Va chạm với tường
+        // Va chạm với tường nghiêng & tường biên (Slide slope physics)
         walls.forEach((w) => checkWallCollision(m, w));
 
         // KIỂM TRA VỀ ĐÍCH
