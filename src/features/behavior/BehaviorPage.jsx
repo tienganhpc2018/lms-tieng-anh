@@ -60,6 +60,7 @@ import ClassWidePointModal from './modals/ClassWidePointModal';
 import BehaviorReportModal from './modals/BehaviorReportModal';
 import ArchiveSnapshotsModal from './modals/ArchiveSnapshotsModal';
 import GradebookBonusModal from './modals/GradebookBonusModal';
+import MarbleRaceModal from './modals/MarbleRaceModal';
 
 export default function BehaviorPage() {
   // 1. Dữ liệu lớp học & học sinh (KHÔNG MOCK DATA - CLEAN SLATE)
@@ -94,6 +95,7 @@ export default function BehaviorPage() {
   const [suspenseMode, setSuspenseMode] = useState('single');
   const [isBlindPouchOpen, setIsBlindPouchOpen] = useState(false);
   const [isBeeRaceOpen, setIsBeeRaceOpen] = useState(false);
+  const [isMarbleRaceOpen, setIsMarbleRaceOpen] = useState(false);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [isGroupTeamsOpen, setIsGroupTeamsOpen] = useState(false);
   const [isSeatingChartOpen, setIsSeatingChartOpen] = useState(false);
@@ -713,6 +715,19 @@ export default function BehaviorPage() {
                 <span>Đua Vịt Vàng Sông Nước</span>
               </button>
 
+              {/* 10b. Game Bi Lăn (Gọi Tên HS) 🔮 */}
+              <button
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setIsMarbleRaceOpen(true);
+                }}
+                className="px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 text-white font-black text-xs shadow-md transition cursor-pointer flex items-center space-x-1.5 flex-shrink-0 hover:scale-102"
+              >
+                <span className="text-base">🔮</span>
+                <span>Game Bi Lăn (Gọi Tên HS)</span>
+              </button>
+
               {/* 11. Bấm Giờ ⏱️ */}
               <button
                 type="button"
@@ -1152,6 +1167,16 @@ export default function BehaviorPage() {
         classNameTitle={activeClass?.name ? `Lớp ${activeClass.name}` : ''}
         students={students}
         onUpdateStudents={handleUpdateStudents}
+      />
+
+      {/* 17. Modal Game Bi Lăn (Gọi Tên Học Sinh) */}
+      <MarbleRaceModal
+        isOpen={isMarbleRaceOpen}
+        onClose={() => setIsMarbleRaceOpen(false)}
+        classes={classes}
+        currentClassId={selectedClassId}
+        students={students}
+        onSelectClass={handleSelectClass}
       />
     </div>
   );
