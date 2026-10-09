@@ -1,4 +1,4 @@
-// BỘ NGUYÊN LÝ VẬT LÝ VÀ ĐƯỜNG ĐUA BẮT MẮT 7 CHẶNG KỊCH TÍNH (CHUẨN ẢNH THẦY GỬI)
+// BỘ NGUYÊN LÝ VẬT LÝ VÀ ĐƯỜNG ĐUA 3 MẪU BẢN ĐỒ KỊCH TÍNH (CHUẨN THẦY YÊU CẦU)
 
 export const MARBLE_COLORS = [
   { main: '#EF4444', light: '#FCA5A5', dark: '#991B1B', text: '#FFFFFF', name: 'Đỏ' },
@@ -24,7 +24,7 @@ export function getStudentInitials(fullName = '') {
   return (first + last).toUpperCase();
 }
 
-// FORMAT THỜI GIAN ĐẾM NGƯỢC GIÂY/PHẦN MƯỜI GIÂY (CHUẨN ẢNH 00:20,0 -> 00:00,0)
+// FORMAT THỜI GIAN ĐẾM NGƯỢC GIÂY/PHẦN MƯỜI GIÂY
 export function formatRaceTime(totalMs = 0) {
   const totalSec = Math.max(0, totalMs / 1000);
   const mins = Math.floor(totalSec / 60);
@@ -33,8 +33,8 @@ export function formatRaceTime(totalMs = 0) {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${tenths}`;
 }
 
-// CẤU TRÚC ĐƯỜNG ĐUA TẤT CẢ 7 CHẶNG (BAO GỒM PHỄU CỔ CHAI & CÁNH QUẠT XOAY + CHUẨN ẢNH THẦY GỬI)
-export function generateFullStageTrack(width = 800) {
+// CẤU TRÚC ĐƯỜNG ĐUA VỚI 3 MẪU BẢN ĐỒ (bottleneck: PHỄU CỔ CHAI, pinball: THÁP PINBALL, zigzag: THÁC TRƯỢT ZÍCZẮC)
+export function generateFullStageTrack(width = 800, trackType = 'bottleneck') {
   const trackHeight = 2400;
   const startY = 120;
   const gateY = startY + 40;
@@ -51,123 +51,180 @@ export function generateFullStageTrack(width = 800) {
   walls.push({ x1: margin, y1: startY - 100, x2: margin, y2: finishY, type: 'vertical' });
   walls.push({ x1: width - margin, y1: startY - 100, x2: width - margin, y2: finishY, type: 'vertical' });
 
-  // --- CỔNG XUẤT PHÁT VÀ PHỄU ĐỔ BAN ĐẦU ---
   stages.push({ y: startY + 20, title: 'Vạch Xuất Phát & Phễu gom bi' });
-
   const funnelTopY = gateY + 30;
-  walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.35, y2: funnelTopY + 90, type: 'slanted' });
-  walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.65, y2: funnelTopY + 90, type: 'slanted' });
 
-  // CHẶNG 1: 6 BÁNH ĐỆM NẢY PINBALL MÀU ĐỎ TRÒN (NẢY TẠO PHÂN NHÁNH QUAN TRỌNG)
-  const bCenterY = funnelTopY + 220;
-  stages.push({ y: bCenterY - 60, title: 'Chặng 1 • Đệm nảy Pinball & Phân nhánh' });
-  bumpers.push({ x: width * 0.25, y: bCenterY - 30, radius: 34, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.5, y: bCenterY - 50, radius: 38, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.75, y: bCenterY - 30, radius: 34, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.35, y: bCenterY + 80, radius: 36, color: '#F43F5E' });
-  bumpers.push({ x: width * 0.65, y: bCenterY + 80, radius: 36, color: '#F43F5E' });
+  if (trackType === 'pinball') {
+    // --- MẪU 2: THÁP ĐỆM PINBALL NỔI BẬT (15+ BÁNH ĐỆM ĐỎ) ---
+    walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.35, y2: funnelTopY + 90, type: 'slanted' });
+    walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.65, y2: funnelTopY + 90, type: 'slanted' });
 
-  // --- CHUỖI CÁC CHẶNG DỐC ZÍC-ZẮC & ĐẢO VỊ TRÍ KỊCH TÍNH ---
-  let currY = funnelTopY + 410;
-  const rampGap = 160;
-  const dropGapWidth = 100;
+    let pY = funnelTopY + 180;
 
-  const rampTitles = [
-    'Chặng 2 • Dốc tốc độ bứt phá',
-    'Chặng 3 • Tháp đệm nảy đảo chiều',
-    'Chặng 4 • Cánh quạt tử thần',
-    'Chặng 5 • Dốc xoắn ốc bứt tốc',
-    'Chặng 6 • Rừng chốt cản Plinko',
-  ];
-
-  for (let i = 0; i < 5; i++) {
-    const isLeftToRight = i % 2 === 0;
-    const y1 = currY;
-    const y2 = currY + 75;
-
-    stages.push({ y: currY - 12, title: rampTitles[i] || `Chặng ${i + 2}` });
-
-    if (isLeftToRight) {
-      walls.push({
-        x1: margin,
-        y1: y1,
-        x2: width - margin - dropGapWidth,
-        y2: y2,
-        type: 'slanted',
-      });
-      walls.push({
-        x1: width - margin - dropGapWidth - 20,
-        y1: y2 - 20,
-        x2: width - margin - dropGapWidth,
-        y2: y2,
-        type: 'slanted',
-      });
-    } else {
-      walls.push({
-        x1: margin + dropGapWidth,
-        y1: y2,
-        x2: width - margin,
-        y2: y1,
-        type: 'slanted',
-      });
-      walls.push({
-        x1: margin + dropGapWidth,
-        y1: y2,
-        x2: margin + dropGapWidth + 20,
-        y2: y2 - 20,
-        type: 'slanted',
-      });
-    }
-
-    if (i === 1 || i === 3) {
-      const bX = isLeftToRight ? width * 0.45 : width * 0.55;
-      bumpers.push({ x: bX, y: (y1 + y2) / 2 - 35, radius: 30, color: '#F43F5E' });
-    }
-
-    // Chốt cản Plinko tại Chặng 6
-    if (i === 4) {
-      for (let px = margin + 40; px < width - margin - 40; px += 45) {
-        pegs.push({ x: px, y: y1 + 30, radius: 8 });
-        pegs.push({ x: px + 22, y: y1 + 65, radius: 8 });
+    for (let r = 0; r < 5; r++) {
+      stages.push({ y: pY + r * 280 - 30, title: `Chặng ${r + 1} • Tầng Pinball Đa Hướng ${r + 1}` });
+      if (r % 2 === 0) {
+        bumpers.push({ x: width * 0.22, y: pY + r * 280, radius: 36, color: '#F43F5E' });
+        bumpers.push({ x: width * 0.50, y: pY + r * 280 - 20, radius: 40, color: '#F43F5E' });
+        bumpers.push({ x: width * 0.78, y: pY + r * 280, radius: 36, color: '#F43F5E' });
+      } else {
+        bumpers.push({ x: width * 0.35, y: pY + r * 280, radius: 38, color: '#F43F5E' });
+        bumpers.push({ x: width * 0.65, y: pY + r * 280, radius: 38, color: '#F43F5E' });
+      }
+      const isLeft = r % 2 === 0;
+      if (isLeft) {
+        walls.push({ x1: margin, y1: pY + r * 280 + 90, x2: width * 0.7, y2: pY + r * 280 + 170, type: 'slanted' });
+      } else {
+        walls.push({ x1: width * 0.3, y1: pY + r * 280 + 170, x2: width - margin, y2: pY + r * 280 + 90, type: 'slanted' });
       }
     }
 
-    currY += rampGap;
+    const bottleneckY = finishY - 145;
+    stages.push({ y: finishY - 320, title: 'Chặng 7 • Phễu cổ chai & Chốt chặn' });
+    walls.push({ x1: margin, y1: finishY - 320, x2: width * 0.40, y2: bottleneckY, type: 'slanted' });
+    walls.push({ x1: width - margin, y1: finishY - 320, x2: width * 0.60, y2: bottleneckY, type: 'slanted' });
+    walls.push({ x1: width * 0.40, y1: bottleneckY, x2: width * 0.43, y2: finishY - 40, type: 'slanted' });
+    walls.push({ x1: width * 0.60, y1: bottleneckY, x2: width * 0.57, y2: finishY - 40, type: 'slanted' });
+
+    spinners.push({
+      x: width * 0.5,
+      y: bottleneckY + 10,
+      radius: 42,
+      angle: 0,
+      speed: 2.8,
+      numBlades: 4,
+      color: '#F97316',
+    });
+  } else if (trackType === 'zigzag') {
+    // --- MẪU 3: THÁC TRƯỢT ZÍC ZẮC THẦN TỐC (7 TẦNG DỐC LIÊN HOÀN) ---
+    walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.35, y2: funnelTopY + 90, type: 'slanted' });
+    walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.65, y2: funnelTopY + 90, type: 'slanted' });
+
+    let currY = funnelTopY + 170;
+    const rampGap = 200;
+    const dropGapWidth = 110;
+
+    for (let i = 0; i < 6; i++) {
+      const isLeftToRight = i % 2 === 0;
+      const y1 = currY;
+      const y2 = currY + 85;
+
+      stages.push({ y: currY - 12, title: `Chặng ${i + 1} • Dốc Zíc Zắc Thác Trượt ${i + 1}` });
+
+      if (isLeftToRight) {
+        walls.push({ x1: margin, y1: y1, x2: width - margin - dropGapWidth, y2: y2, type: 'slanted' });
+        walls.push({ x1: width - margin - dropGapWidth - 20, y1: y2 - 20, x2: width - margin - dropGapWidth, y2: y2, type: 'slanted' });
+      } else {
+        walls.push({ x1: margin + dropGapWidth, y1: y2, x2: width - margin, y2: y1, type: 'slanted' });
+        walls.push({ x1: margin + dropGapWidth, y1: y2, x2: margin + dropGapWidth + 20, y2: y2 - 20, type: 'slanted' });
+      }
+
+      if (i % 2 === 1) {
+        const bX = isLeftToRight ? width * 0.45 : width * 0.55;
+        bumpers.push({ x: bX, y: (y1 + y2) / 2 - 35, radius: 32, color: '#F43F5E' });
+      }
+
+      currY += rampGap;
+    }
+
+    const bottleneckY = finishY - 145;
+    stages.push({ y: finishY - 320, title: 'Chặng 7 • Phễu cổ chai & Chốt chặn' });
+    walls.push({ x1: margin, y1: finishY - 320, x2: width * 0.40, y2: bottleneckY, type: 'slanted' });
+    walls.push({ x1: width - margin, y1: finishY - 320, x2: width * 0.60, y2: bottleneckY, type: 'slanted' });
+    walls.push({ x1: width * 0.40, y1: bottleneckY, x2: width * 0.43, y2: finishY - 40, type: 'slanted' });
+    walls.push({ x1: width * 0.60, y1: bottleneckY, x2: width * 0.57, y2: finishY - 40, type: 'slanted' });
+
+    spinners.push({
+      x: width * 0.5,
+      y: bottleneckY + 10,
+      radius: 42,
+      angle: 0,
+      speed: 2.8,
+      numBlades: 4,
+      color: '#F97316',
+    });
+  } else {
+    // --- MẪU 1: PHỄU CỔ CHAI & CÁNH QUẠT (CHUẨN 100% ẢNH THẦY GỬI) ---
+    walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.35, y2: funnelTopY + 90, type: 'slanted' });
+    walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.65, y2: funnelTopY + 90, type: 'slanted' });
+
+    const bCenterY = funnelTopY + 220;
+    stages.push({ y: bCenterY - 60, title: 'Chặng 1 • Đệm nảy Pinball & Phân nhánh' });
+    bumpers.push({ x: width * 0.25, y: bCenterY - 30, radius: 34, color: '#F43F5E' });
+    bumpers.push({ x: width * 0.5, y: bCenterY - 50, radius: 38, color: '#F43F5E' });
+    bumpers.push({ x: width * 0.75, y: bCenterY - 30, radius: 34, color: '#F43F5E' });
+    bumpers.push({ x: width * 0.35, y: bCenterY + 80, radius: 36, color: '#F43F5E' });
+    bumpers.push({ x: width * 0.65, y: bCenterY + 80, radius: 36, color: '#F43F5E' });
+
+    let currY = funnelTopY + 410;
+    const rampGap = 160;
+    const dropGapWidth = 100;
+
+    const rampTitles = [
+      'Chặng 2 • Dốc tốc độ bứt phá',
+      'Chặng 3 • Tháp đệm nảy đảo chiều',
+      'Chặng 4 • Cánh quạt tử thần',
+      'Chặng 5 • Dốc xoắn ốc bứt tốc',
+      'Chặng 6 • Rừng chốt cản Plinko',
+    ];
+
+    for (let i = 0; i < 5; i++) {
+      const isLeftToRight = i % 2 === 0;
+      const y1 = currY;
+      const y2 = currY + 75;
+
+      stages.push({ y: currY - 12, title: rampTitles[i] || `Chặng ${i + 2}` });
+
+      if (isLeftToRight) {
+        walls.push({ x1: margin, y1: y1, x2: width - margin - dropGapWidth, y2: y2, type: 'slanted' });
+        walls.push({ x1: width - margin - dropGapWidth - 20, y1: y2 - 20, x2: width - margin - dropGapWidth, y2: y2, type: 'slanted' });
+      } else {
+        walls.push({ x1: margin + dropGapWidth, y1: y2, x2: width - margin, y2: y1, type: 'slanted' });
+        walls.push({ x1: margin + dropGapWidth, y1: y2, x2: margin + dropGapWidth + 20, y2: y2 - 20, type: 'slanted' });
+      }
+
+      if (i === 1 || i === 3) {
+        const bX = isLeftToRight ? width * 0.45 : width * 0.55;
+        bumpers.push({ x: bX, y: (y1 + y2) / 2 - 35, radius: 30, color: '#F43F5E' });
+      }
+
+      if (i === 4) {
+        for (let px = margin + 40; px < width - margin - 40; px += 45) {
+          pegs.push({ x: px, y: y1 + 30, radius: 8 });
+          pegs.push({ x: px + 22, y: y1 + 65, radius: 8 });
+        }
+      }
+
+      currY += rampGap;
+    }
+
+    spinners.push({
+      x: width * 0.5,
+      y: funnelTopY + 730,
+      radius: 36,
+      angle: 0,
+      speed: 2.2,
+      numBlades: 4,
+      color: '#F97316',
+    });
+
+    const bottleneckY = finishY - 145;
+    stages.push({ y: finishY - 320, title: 'Chặng 7 • Phễu cổ chai & Chốt chặn' });
+    walls.push({ x1: margin, y1: finishY - 320, x2: width * 0.40, y2: bottleneckY, type: 'slanted' });
+    walls.push({ x1: width - margin, y1: finishY - 320, x2: width * 0.60, y2: bottleneckY, type: 'slanted' });
+    walls.push({ x1: width * 0.40, y1: bottleneckY, x2: width * 0.43, y2: finishY - 40, type: 'slanted' });
+    walls.push({ x1: width * 0.60, y1: bottleneckY, x2: width * 0.57, y2: finishY - 40, type: 'slanted' });
+
+    spinners.push({
+      x: width * 0.5,
+      y: bottleneckY + 10,
+      radius: 42,
+      angle: 0,
+      speed: 2.8,
+      numBlades: 4,
+      color: '#F97316',
+    });
   }
-
-  // CÁNH QUẠT XOAY TRUNG GIAN TẠI CHẶNG 4 (Y = funnelTopY + 730)
-  spinners.push({
-    x: width * 0.5,
-    y: funnelTopY + 730,
-    radius: 36,
-    angle: 0,
-    speed: 2.2,
-    numBlades: 4,
-    color: '#F97316',
-  });
-
-  // --- CHẶNG 7: PHỄU CỔ CHAI & CÁNH QUẠT XOAY 4 CÁNH (CHUẨN 100% ẢNH THẦY GỬI!) ---
-  const bottleneckY = finishY - 145;
-  stages.push({ y: finishY - 320, title: 'Chặng 7 • Phễu cổ chai & Chốt chặn' });
-
-  // Tường dốc hình V phễu cổ chai gom tất cả viên bi chui xuống
-  walls.push({ x1: margin, y1: finishY - 320, x2: width * 0.40, y2: bottleneckY, type: 'slanted' });
-  walls.push({ x1: width - margin, y1: finishY - 320, x2: width * 0.60, y2: bottleneckY, type: 'slanted' });
-
-  // Ống cổ chai bên dưới phễu dẫn xuống vạch đích
-  walls.push({ x1: width * 0.40, y1: bottleneckY, x2: width * 0.43, y2: finishY - 40, type: 'slanted' });
-  walls.push({ x1: width * 0.60, y1: bottleneckY, x2: width * 0.57, y2: finishY - 40, type: 'slanted' });
-
-  // Cánh quạt xoay 4 cánh (+) ngay trung tâm cổ phễu Stage 7 (Chuẩn Ảnh Thầy gửi!)
-  spinners.push({
-    x: width * 0.5,
-    y: bottleneckY + 10,
-    radius: 42,
-    angle: 0,
-    speed: 2.8,
-    numBlades: 4,
-    color: '#F97316',
-  });
 
   return {
     width,
@@ -318,10 +375,10 @@ export function checkWallCollision(marble, wall) {
       const ty = dy / len;
 
       let vSlope = marble.vx * tx + marble.vy * ty;
-      if (vSlope < 360) vSlope = 360;
+      if (vSlope < 300) vSlope = 300;
 
       marble.vx = vSlope * tx + (Math.random() - 0.5) * 40;
-      marble.vy = Math.max(150, vSlope * ty);
+      marble.vy = Math.max(140, vSlope * ty);
     }
     return true;
   }

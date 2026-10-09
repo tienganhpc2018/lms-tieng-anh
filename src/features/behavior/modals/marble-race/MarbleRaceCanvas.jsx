@@ -9,10 +9,12 @@ import {
   MARBLE_COLORS,
   getStudentInitials,
 } from './marblePhysics';
-import { playClick } from '../../../../utils/soundEffects';
+import { playClick, playFunnelClack } from '../../../../utils/soundEffects';
 
 export default function MarbleRaceCanvas({
   racerStudents = [],
+  trackType = 'bottleneck',
+  spinnerSpeedMode = 'normal',
   gateLocked = true,
   isPaused = false,
   soundEnabled = true,
@@ -37,7 +39,7 @@ export default function MarbleRaceCanvas({
   const nextReleaseIdxRef = useRef(0);
   const lastReleaseTimeRef = useRef(0);
 
-  // Dùng Ref đồng bộ tức thì cho gateLocked & isPaused để không bị lệch closure state trong 60 FPS loop
+  // Dùng Ref đồng bộ tức thì cho gateLocked & isPaused
   const gateLockedRef = useRef(gateLocked);
   const isPausedRef = useRef(isPaused);
 
@@ -102,7 +104,7 @@ export default function MarbleRaceCanvas({
     return marbles;
   };
 
-  const studentIdsKey = racerStudents.map((s) => s.id).join(',');
+  const studentIdsKey = racerStudents.map((s) => s.id).join(',') + `_${trackType}`;
 
   // Resize canvas & nạp track (chỉ reset marbles nếu cổng đang khóa hoặc chưa khởi tạo)
   useEffect(() => {
@@ -115,7 +117,7 @@ export default function MarbleRaceCanvas({
       canvas.width = width;
       canvas.height = height;
 
-      const layout = generateFullStageTrack(width);
+      const layout = generateFullStageTrack(width, trackType);
       trackRef.current = layout;
       if (gateLockedRef.current || !marblesRef.current || marblesRef.current.length === 0) {
         initMarbles(layout, width);
@@ -125,7 +127,7 @@ export default function MarbleRaceCanvas({
     updateCanvasSize();
     window.addEventListener('resize', updateCanvasSize);
     return () => window.removeEventListener('resize', updateCanvasSize);
-  }, [studentIdsKey]);
+  }, [studentIdsKey, trackType]);
 
   // Reset khi khóa cổng lại
   useEffect(() => {
@@ -134,7 +136,7 @@ export default function MarbleRaceCanvas({
     }
   }, [gateLocked]);
 
-  // VÒNG LẶP MÔ PHỎNG VẬT LÝ NỘI BỘ 60 FPS XỔ DỐC KỊCH TÍNH QUA 7 CHẶNG (CÓ CÁNH QUẠT XOAY +)
+  // VÒNG LẶP MÔ PHỎNG VẬT LÝ NỘI BỘ 60 FPS
   useEffect(() => {
     lastTimeRef.current = performance.now();
 
@@ -161,7 +163,7 @@ export default function MarbleRaceCanvas({
 
       const marbles = marblesRef.current;
 
-      // XỔ DỐC NHANH DỒN DẬP (THẢ MỖI 75ms MỘT VIÊN BI XUẤT PHÁT VỚI VẬN TỐC TỎA ĐA HƯỚNG)
+      // XỔ DỐC LẦN LƯỢT (THẢ MỖI 90ms MỘT VIÊN BI XUẤT PHÁT CHẬM RÃI ĐỌC TÊN THÂN THIỆN)
       if (!isLocked) {
         if (!startTimeRef.current) {
           startTimeRef.current = currentTime;
@@ -169,7 +171,7 @@ export default function MarbleRaceCanvas({
           lastReleaseTimeRef.current = currentTime - 100;
         }
 
-        const releaseIntervalMs = 75;
+        const releaseIntervalMs = 90;
         if (
           nextReleaseIdxRef.current < marbles.length &&
           currentTime - lastReleaseTimeRef.current >= releaseIntervalMs
@@ -179,8 +181,8 @@ export default function MarbleRaceCanvas({
             mToRelease.isReleased = true;
             mToRelease.x = width / 2 + (Math.random() - 0.5) * (width * 0.28);
             mToRelease.y = gateY + 5;
-            mToRelease.vy = 260 + Math.random() * 90;
-            mToRelease.vx = (Math.random() - 0.5) * 140;
+            mToRelease.vy = 220 + Math.random() * 60; // Tốc độ ban đầu chậm rãi dễ quan sát
+            mToRelease.vx = (Math.random() - 0.5) * 120;
             if (soundEnabled && Math.random() < 0.4) playClick();
           }
           nextReleaseIdxRef.current += 1;
@@ -188,10 +190,7 @@ export default function MarbleRaceCanvas({
         }
       }
 
-      // 1. CẬP NHẬT VẬT LÝ CÁC VIÊN BI ĐÃ THẢ (TRỌNG TRƯỜNG 1400 px/s^2)
-      const gravity = 1400;
-
-      // Tìm vị trí viên bi dẫn đầu trong số các viên đã được thả & chưa về đích
+      // 1. CẬP NHẬT VẬT LÝ CÁC VIÊN BI (CHẶNG ĐẦU CHẬM RÃI - CHẶNG 5,6,7 TĂNG TỐC BỨT PHÁ)
       let maxReleasedY = 0;
       let leaderId = null;
 
@@ -202,7 +201,7 @@ export default function MarbleRaceCanvas({
         }
       });
 
-      // Camera cuộn mượt theo viên bi dẫn đầu trên các tầng dốc
+      // Camera cuộn mượt theo viên bi dẫn đầu
       const targetCamY = Math.max(
         0,
         Math.min(trackHeight - viewportH, (maxReleasedY || gateY) - viewportH * 0.35)
@@ -210,14 +209,25 @@ export default function MarbleRaceCanvas({
       cameraYRef.current += (targetCamY - cameraYRef.current) * 0.1;
       const camY = cameraYRef.current;
 
+      // Hệ số tốc độ cánh quạt
+      let spMult = 1.0;
+      if (spinnerSpeedMode === 'slow') spMult = 0.45;
+      if (spinnerSpeedMode === 'fast') spMult = 1.85;
+
       marbles.forEach((m) => {
         if (!m.isReleased || m.isFinished) return;
 
-        m.vy += gravity * dt;
+        // Chặng 1-4: Trọng trường 850 px/s^2 (Trượt chậm dễ đọc tên). Chặng 5-7 (y >= finishY - 750): Trọng trường 1850 px/s^2 (Tăng tốc thần tốc!)
+        const isLowerStage = m.y >= finishY - 750;
+        const currentGravity = isLowerStage ? 1850 : 850;
+
+        m.vy += currentGravity * dt;
+        if (isLowerStage) m.vy += 420 * dt; // Bứt tốc thần tốc ở chặng 5,6,7!
+
         m.vx *= 0.992;
         m.vy *= 0.998;
 
-        if (m.vy < 60) m.vy = 60;
+        if (m.vy < 50) m.vy = 50;
 
         m.x += m.vx * dt;
         m.y += m.vy * dt;
@@ -225,21 +235,22 @@ export default function MarbleRaceCanvas({
         // Va chạm đệm nảy Pinball
         bumpers.forEach((b) => {
           if (checkBumperCollision(m, b)) {
-            if (soundEnabled && Math.random() < 0.25) playClick();
+            if (soundEnabled && Math.random() < 0.3) playClick();
           }
         });
 
         // Va chạm chốt Plinko
         pegs.forEach((p) => {
           if (checkPegCollision(m, p)) {
-            if (soundEnabled && Math.random() < 0.2) playClick();
+            if (soundEnabled && Math.random() < 0.25) playClick();
           }
         });
 
-        // Va chạm Cánh quạt xoay 4 cánh (+) tại Stage 4 & Stage 7 cổ chai
+        // Va chạm Cánh quạt xoay 4 cánh (+) tại Stage 4 & Stage 7 phễu cổ chai
         spinners.forEach((sp) => {
-          if (checkSpinnerCollision(m, sp)) {
-            if (soundEnabled && Math.random() < 0.3) playClick();
+          const effectiveSpinner = { ...sp, speed: (sp.speed || 2.5) * spMult };
+          if (checkSpinnerCollision(m, effectiveSpinner)) {
+            if (soundEnabled) playFunnelClack();
           }
         });
 
@@ -267,7 +278,11 @@ export default function MarbleRaceCanvas({
         if (!marbles[i].isReleased || marbles[i].isFinished) continue;
         for (let j = i + 1; j < marbles.length; j++) {
           if (!marbles[j].isReleased || marbles[j].isFinished) continue;
-          checkMarbleCollision(marbles[i], marbles[j]);
+          if (checkMarbleCollision(marbles[i], marbles[j])) {
+            if (soundEnabled && marbles[i].y >= finishY - 400 && Math.random() < 0.15) {
+              playFunnelClack(); // Tiếng lốc cốc giòn giã khi bi dồn cục kẹt phễu Stage 7!
+            }
+          }
         }
       }
 
@@ -338,7 +353,8 @@ export default function MarbleRaceCanvas({
 
       // Cánh quạt xoay 4 cánh (+) tại Stage 4 & Stage 7 Phễu cổ chai (Chuẩn 100% Ảnh Thầy gửi!)
       spinners.forEach((sp) => {
-        sp.angle = (sp.angle || 0) + (sp.speed || 2.5) * dt;
+        const effectiveSpeed = (sp.speed || 2.5) * spMult;
+        sp.angle = (sp.angle || 0) + effectiveSpeed * dt;
 
         ctx.save();
         ctx.translate(sp.x, sp.y);
@@ -493,7 +509,7 @@ export default function MarbleRaceCanvas({
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, []);
+  }, [spinnerSpeedMode]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-slate-100">

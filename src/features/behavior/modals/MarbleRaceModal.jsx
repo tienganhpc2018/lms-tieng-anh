@@ -8,6 +8,8 @@ import {
   Minimize2,
   Settings,
   Timer,
+  MapPin,
+  Zap,
 } from 'lucide-react';
 import MarbleRaceLeaderboard from './marble-race/MarbleRaceLeaderboard';
 import MarbleRaceLogs from './marble-race/MarbleRaceLogs';
@@ -31,9 +33,15 @@ export default function MarbleRaceModal({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const [raceDurationSec, setRaceDurationSec] = useState(20); // Mặc định 20 giây chuẩn theo Thầy yêu cầu!
+  const [raceDurationSec, setRaceDurationSec] = useState(20);
   const [countdownStep, setCountdownStep] = useState(0);
   const [isAutoCounting, setIsAutoCounting] = useState(false);
+
+  // 3 MẪU BẢN ĐỒ: bottleneck (Phễu cổ chai), pinball (Tháp Pinball), zigzag (Thác Zíc Zắc)
+  const [trackType, setTrackType] = useState('bottleneck');
+
+  // TỐC ĐỘ CÁNH QUẠT XOAY PHỄU CỔ CHAI: slow (Chậm), normal (Vừa), fast (Nhanh)
+  const [spinnerSpeedMode, setSpinnerSpeedMode] = useState('normal');
 
   const [activeStudents, setActiveStudents] = useState([]);
   const [excludedIds, setExcludedIds] = useState([]);
@@ -41,7 +49,7 @@ export default function MarbleRaceModal({
 
   const [marbles, setMarbles] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [cameraState, setCameraState] = useState({ cameraY: 0, viewportHeight: 600, trackHeight: 2300 });
+  const [cameraState, setCameraState] = useState({ cameraY: 0, viewportHeight: 600, trackHeight: 2400 });
   const [elapsedTimeMs, setElapsedTimeMs] = useState(0);
 
   const [winnerMarble, setWinnerMarble] = useState(null);
@@ -211,7 +219,7 @@ export default function MarbleRaceModal({
       ref={modalRef}
       className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-slate-900 select-none animate-fade-in font-sans overflow-hidden"
     >
-      {/* 1. TOP TOOLBAR VỚI CHỌN THỜI GIAN ĐUA 20S */}
+      {/* 1. TOP TOOLBAR VỚI CHỌN MẪU BẢN ĐỒ & TỐC ĐỘ QUẠT XOAY */}
       <div className="bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between gap-3 shadow-2xs">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center text-lg font-black">
@@ -227,8 +235,61 @@ export default function MarbleRaceModal({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {/* NÚT CHỌN THỜI GIAN ĐUA: 20S (MẶC ĐỊNH), 30S, 45S */}
+        <div className="flex items-center space-x-2 flex-wrap">
+          {/* BỘ CHỌN 3 MẪU BẢN ĐỒ ĐƯỜNG ĐUA (CHUẨN THẦY YÊU CẦU) */}
+          <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-black">
+            <MapPin className="w-3.5 h-3.5 text-purple-600 ml-1" />
+            {[
+              { id: 'bottleneck', name: 'Phễu Cổ Chai' },
+              { id: 'pinball', name: 'Tháp Pinball' },
+              { id: 'zigzag', name: 'Thác Zíc Zắc' },
+            ].map((map) => (
+              <button
+                key={map.id}
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setTrackType(map.id);
+                  handleResetRace();
+                }}
+                className={`px-2 py-1 rounded-lg transition cursor-pointer ${
+                  trackType === map.id
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {map.name}
+              </button>
+            ))}
+          </div>
+
+          {/* BỘ CHỌN TỐC ĐỘ CÁNH QUẠT XOAY: CHẬM / VỪA / NHANH (CHUẨN THẦY YÊU CẦU) */}
+          <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-black">
+            <Zap className="w-3.5 h-3.5 text-amber-500 ml-1" />
+            {[
+              { mode: 'slow', name: 'Quạt Chậm' },
+              { mode: 'normal', name: 'Quạt Vừa' },
+              { mode: 'fast', name: 'Quạt Nhanh' },
+            ].map((sp) => (
+              <button
+                key={sp.mode}
+                type="button"
+                onClick={() => {
+                  playClick();
+                  setSpinnerSpeedMode(sp.mode);
+                }}
+                className={`px-2 py-1 rounded-lg transition cursor-pointer ${
+                  spinnerSpeedMode === sp.mode
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {sp.name}
+              </button>
+            ))}
+          </div>
+
+          {/* CHỌN THỜI GIAN ĐUA 20S */}
           <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-black">
             <Timer className="w-3.5 h-3.5 text-purple-600 ml-1" />
             {[20, 30, 45].map((sec) => (
@@ -314,6 +375,8 @@ export default function MarbleRaceModal({
           {/* CANVAS 2D MÔ PHỎNG MƯỢT MÀ 60 FPS */}
           <MarbleRaceCanvas
             racerStudents={racerStudents}
+            trackType={trackType}
+            spinnerSpeedMode={spinnerSpeedMode}
             gateLocked={gateLocked}
             isPaused={isPaused}
             soundEnabled={soundEnabled}

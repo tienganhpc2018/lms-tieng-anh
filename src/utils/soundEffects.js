@@ -228,6 +228,29 @@ export const playUndoRestore = () => {
   } catch (e) {}
 };
 
+// 10. Âm lốc cốc giòn giã khi bi kẹt phễu Stage 7 hoặc va vào cánh quạt xoay
+export const playFunnelClack = () => {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    const baseFreq = 480 + Math.random() * 260;
+    osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.4, ctx.currentTime + 0.035);
+
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.035);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.035);
+  } catch (e) {}
+};
+
 // 10. Âm thanh nhịp cơ học máy in mini kết hợp chuông hoàn tất
 export const playPrintVoucher = () => {
   try {
