@@ -100,7 +100,9 @@ export default function MarbleRaceCanvas({
     return marbles;
   };
 
-  // Resize canvas & nạp track
+  const studentIdsKey = racerStudents.map((s) => s.id).join(',');
+
+  // Resize canvas & nạp track (chỉ reset marbles nếu cổng đang khóa hoặc chưa khởi tạo)
   useEffect(() => {
     const updateCanvasSize = () => {
       if (!containerRef.current || !canvasRef.current) return;
@@ -113,13 +115,15 @@ export default function MarbleRaceCanvas({
 
       const layout = generateFullStageTrack(width);
       trackRef.current = layout;
-      initMarbles(layout, width);
+      if (gateLockedRef.current || !marblesRef.current || marblesRef.current.length === 0) {
+        initMarbles(layout, width);
+      }
     };
 
     updateCanvasSize();
     window.addEventListener('resize', updateCanvasSize);
     return () => window.removeEventListener('resize', updateCanvasSize);
-  }, [racerStudents]);
+  }, [studentIdsKey]);
 
   // Reset khi khóa cổng lại
   useEffect(() => {
