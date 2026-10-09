@@ -1,4 +1,4 @@
-// BỘ NGUYÊN LÝ VẬT LÝ VÀ ĐƯỜNG ĐUA TỐC ĐỘ 20 GIÂY VỀ ĐÍCH (ẢNH 6)
+// BỘ NGUYÊN LÝ VẬT LÝ VÀ ĐƯỜNG ĐUA BẮT MẮT 7 CHẶNG KỊCH TÍNH (CHUẨN ẢNH THẦY GỬI)
 
 export const MARBLE_COLORS = [
   { main: '#EF4444', light: '#FCA5A5', dark: '#991B1B', text: '#FFFFFF', name: 'Đỏ' },
@@ -33,17 +33,18 @@ export function formatRaceTime(totalMs = 0) {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')},${tenths}`;
 }
 
-// CẤU TRÚC ĐƯỜNG ĐUA TỐC ĐỘ 20 GIÂY CHUẨN 8 TẦNG DỐC (CHUẨN ẢNH 6)
+// CẤU TRÚC ĐƯỜNG ĐUA TẤT CẢ 7 CHẶNG (BAO GỒM PHỄU CỔ CHAI & CÁNH QUẠT XOAY + CHUẨN ẢNH THẦY GỬI)
 export function generateFullStageTrack(width = 800) {
-  const trackHeight = 2300;
+  const trackHeight = 2400;
   const startY = 120;
   const gateY = startY + 40;
-  const finishY = 2080;
+  const finishY = 2180;
   const margin = Math.min(width * 0.08, 45);
 
   const walls = [];
   const bumpers = [];
   const pegs = [];
+  const spinners = [];
   const stages = [];
 
   // Tường biên đứng hai bên
@@ -54,38 +55,37 @@ export function generateFullStageTrack(width = 800) {
   stages.push({ y: startY + 20, title: 'Vạch Xuất Phát & Phễu gom bi' });
 
   const funnelTopY = gateY + 30;
-  walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.35, y2: funnelTopY + 100, type: 'slanted' });
-  walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.65, y2: funnelTopY + 100, type: 'slanted' });
+  walls.push({ x1: margin, y1: funnelTopY, x2: width * 0.35, y2: funnelTopY + 90, type: 'slanted' });
+  walls.push({ x1: width - margin, y1: funnelTopY, x2: width * 0.65, y2: funnelTopY + 90, type: 'slanted' });
 
-  // CHẶNG 2: 6 BÁNH ĐỆM NẢY PINBALL MÀU ĐỎ
-  const bCenterY = funnelTopY + 230;
+  // CHẶNG 1: 6 BÁNH ĐỆM NẢY PINBALL MÀU ĐỎ TRÒN (NẢY TẠO PHÂN NHÁNH QUAN TRỌNG)
+  const bCenterY = funnelTopY + 220;
+  stages.push({ y: bCenterY - 60, title: 'Chặng 1 • Đệm nảy Pinball & Phân nhánh' });
   bumpers.push({ x: width * 0.25, y: bCenterY - 30, radius: 34, color: '#F43F5E' });
   bumpers.push({ x: width * 0.5, y: bCenterY - 50, radius: 38, color: '#F43F5E' });
   bumpers.push({ x: width * 0.75, y: bCenterY - 30, radius: 34, color: '#F43F5E' });
-
   bumpers.push({ x: width * 0.35, y: bCenterY + 80, radius: 36, color: '#F43F5E' });
   bumpers.push({ x: width * 0.65, y: bCenterY + 80, radius: 36, color: '#F43F5E' });
 
-  // --- CHUỖI 8 THANH DỐC NGHIÊNG TỐC ĐỘ (CHUẨN ẢNH 6) ---
-  let currY = funnelTopY + 420;
+  // --- CHUỖI CÁC CHẶNG DỐC ZÍC-ZẮC & ĐẢO VỊ TRÍ KỊCH TÍNH ---
+  let currY = funnelTopY + 410;
   const rampGap = 160;
-  const dropGapWidth = 95;
+  const dropGapWidth = 100;
 
   const rampTitles = [
-    'Chặng 1 • Dốc zíc-zắc thác trượt',
     'Chặng 2 • Dốc tốc độ bứt phá',
-    'Chặng 3 • Đệm nảy Pinball & Dốc số 3',
+    'Chặng 3 • Tháp đệm nảy đảo chiều',
     'Chặng 4 • Cánh quạt tử thần',
-    'Chặng 5 • Dốc xoắn ốc số 5',
-    'Chặng 6 • Dốc về đích thần tốc',
+    'Chặng 5 • Dốc xoắn ốc bứt tốc',
+    'Chặng 6 • Rừng chốt cản Plinko',
   ];
 
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 5; i++) {
     const isLeftToRight = i % 2 === 0;
     const y1 = currY;
-    const y2 = currY + 70;
+    const y2 = currY + 75;
 
-    stages.push({ y: currY - 12, title: rampTitles[i] || `Chặng ${i + 1}` });
+    stages.push({ y: currY - 12, title: rampTitles[i] || `Chặng ${i + 2}` });
 
     if (isLeftToRight) {
       walls.push({
@@ -119,18 +119,55 @@ export function generateFullStageTrack(width = 800) {
       });
     }
 
-    if (i === 2 || i === 5) {
+    if (i === 1 || i === 3) {
       const bX = isLeftToRight ? width * 0.45 : width * 0.55;
       bumpers.push({ x: bX, y: (y1 + y2) / 2 - 35, radius: 30, color: '#F43F5E' });
+    }
+
+    // Chốt cản Plinko tại Chặng 6
+    if (i === 4) {
+      for (let px = margin + 40; px < width - margin - 40; px += 45) {
+        pegs.push({ x: px, y: y1 + 30, radius: 8 });
+        pegs.push({ x: px + 22, y: y1 + 65, radius: 8 });
+      }
     }
 
     currY += rampGap;
   }
 
-  // --- CHẶNG CUỐI: PHỄU CỔ CHAI & VẠCH ĐÍCH (CHUẨN ẢNH 4, 6) ---
-  stages.push({ y: finishY - 250, title: 'Chặng Cuối • Vạch Đích' });
-  walls.push({ x1: margin, y1: finishY - 300, x2: width * 0.42, y2: finishY - 110, type: 'slanted' });
-  walls.push({ x1: width - margin, y1: finishY - 300, x2: width * 0.58, y2: finishY - 110, type: 'slanted' });
+  // CÁNH QUẠT XOAY TRUNG GIAN TẠI CHẶNG 4 (Y = funnelTopY + 730)
+  spinners.push({
+    x: width * 0.5,
+    y: funnelTopY + 730,
+    radius: 36,
+    angle: 0,
+    speed: 2.2,
+    numBlades: 4,
+    color: '#F97316',
+  });
+
+  // --- CHẶNG 7: PHỄU CỔ CHAI & CÁNH QUẠT XOAY 4 CÁNH (CHUẨN 100% ẢNH THẦY GỬI!) ---
+  const bottleneckY = finishY - 145;
+  stages.push({ y: finishY - 320, title: 'Chặng 7 • Phễu cổ chai & Chốt chặn' });
+
+  // Tường dốc hình V phễu cổ chai gom tất cả viên bi chui xuống
+  walls.push({ x1: margin, y1: finishY - 320, x2: width * 0.40, y2: bottleneckY, type: 'slanted' });
+  walls.push({ x1: width - margin, y1: finishY - 320, x2: width * 0.60, y2: bottleneckY, type: 'slanted' });
+
+  // Ống cổ chai bên dưới phễu dẫn xuống vạch đích
+  walls.push({ x1: width * 0.40, y1: bottleneckY, x2: width * 0.43, y2: finishY - 40, type: 'slanted' });
+  walls.push({ x1: width * 0.60, y1: bottleneckY, x2: width * 0.57, y2: finishY - 40, type: 'slanted' });
+
+  // Cánh quạt xoay 4 cánh (+) ngay trung tâm cổ phễu Stage 7 (Chuẩn Ảnh Thầy gửi!)
+  spinners.push({
+    x: width * 0.5,
+    y: bottleneckY + 10,
+    radius: 42,
+    angle: 0,
+    speed: 2.8,
+    numBlades: 4,
+    color: '#F97316',
+  });
 
   return {
     width,
@@ -142,6 +179,7 @@ export function generateFullStageTrack(width = 800) {
     walls,
     bumpers,
     pegs,
+    spinners,
     stages,
   };
 }
@@ -161,11 +199,80 @@ export function checkBumperCollision(marble, bumper) {
     marble.x += nx * overlap;
     marble.y += ny * overlap;
 
-    const bounceForce = 420;
-    marble.vx = nx * bounceForce + (Math.random() - 0.5) * 80;
+    const bounceForce = 440;
+    marble.vx = nx * bounceForce + (Math.random() - 0.5) * 120;
     marble.vy = Math.abs(ny * bounceForce) + 160;
 
     return true;
+  }
+  return false;
+}
+
+export function checkPegCollision(marble, peg) {
+  const dx = marble.x - peg.x;
+  const dy = marble.y - peg.y;
+  const distSq = dx * dx + dy * dy;
+  const minDist = marble.radius + peg.radius;
+
+  if (distSq < minDist * minDist) {
+    const dist = Math.sqrt(distSq) || 1;
+    const nx = dx / dist;
+    const ny = dy / dist;
+
+    const overlap = minDist - dist;
+    marble.x += nx * overlap;
+    marble.y += ny * overlap;
+
+    const bounce = 300;
+    marble.vx = nx * bounce + (Math.random() - 0.5) * 120;
+    marble.vy = Math.abs(ny * bounce) + 120;
+    return true;
+  }
+  return false;
+}
+
+export function checkSpinnerCollision(marble, spinner) {
+  const { x: cx, y: cy, radius, angle, speed = 2.8, numBlades = 4 } = spinner;
+  const vSpin = speed * radius;
+
+  for (let i = 0; i < numBlades; i++) {
+    const bladeAngle = angle + (i * Math.PI * 2) / numBlades;
+    const bx = cx + Math.cos(bladeAngle) * radius;
+    const by = cy + Math.sin(bladeAngle) * radius;
+
+    const dx = bx - cx;
+    const dy = by - cy;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) continue;
+
+    let t = ((marble.x - cx) * dx + (marble.y - cy) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+
+    const closestX = cx + t * dx;
+    const closestY = cy + t * dy;
+
+    const distX = marble.x - closestX;
+    const distY = marble.y - closestY;
+    const distSq = distX * distX + distY * distY;
+
+    if (distSq < marble.radius * marble.radius) {
+      const dist = Math.sqrt(distSq) || 1;
+      const nx = distX / dist;
+      const ny = distY / dist;
+
+      const overlap = marble.radius - dist;
+      marble.x += nx * overlap;
+      marble.y += ny * overlap;
+
+      const tangX = -Math.sin(bladeAngle);
+      const tangY = Math.cos(bladeAngle);
+
+      const bounce = 260;
+      marble.vx = nx * bounce + tangX * vSpin * 0.8 + (Math.random() - 0.5) * 90;
+      marble.vy = Math.abs(ny * bounce) + Math.max(100, tangY * vSpin * 0.8);
+
+      return true;
+    }
   }
   return false;
 }
@@ -204,18 +311,17 @@ export function checkWallCollision(marble, wall) {
     marble.y += ny * overlap;
 
     if (type === 'vertical') {
-      marble.vx = -marble.vx * 0.75 + (Math.random() - 0.5) * 20;
+      marble.vx = -marble.vx * 0.75 + (Math.random() - 0.5) * 30;
     } else {
-      // Vận tốc trượt dốc thần tốc (vSlope >= 380px/s) giúp bi cán đích chuẩn trong 20s
       const len = Math.sqrt(lenSq) || 1;
       const tx = dx / len;
       const ty = dy / len;
 
       let vSlope = marble.vx * tx + marble.vy * ty;
-      if (vSlope < 380) vSlope = 380;
+      if (vSlope < 360) vSlope = 360;
 
-      marble.vx = vSlope * tx + (Math.random() - 0.5) * 30;
-      marble.vy = Math.max(160, vSlope * ty);
+      marble.vx = vSlope * tx + (Math.random() - 0.5) * 40;
+      marble.vy = Math.max(150, vSlope * ty);
     }
     return true;
   }
@@ -233,7 +339,7 @@ export function checkMarbleCollision(m1, m2) {
     let nx = dx / dist;
     let ny = dy / dist;
 
-    const overlap = 0.2 * (minDist - dist);
+    const overlap = 0.25 * (minDist - dist);
 
     if (m1.y < m2.y && ny < 0) ny = 0;
     if (m2.y < m1.y && ny > 0) ny = 0;

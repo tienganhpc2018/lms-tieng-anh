@@ -2,6 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import {
   generateFullStageTrack,
   checkBumperCollision,
+  checkPegCollision,
+  checkSpinnerCollision,
   checkWallCollision,
   checkMarbleCollision,
   MARBLE_COLORS,
@@ -47,7 +49,7 @@ export default function MarbleRaceCanvas({
     isPausedRef.current = isPaused;
   }, [isPaused]);
 
-  // Khởi tạo 30 viên bi trên vạch xuất phát
+  // Khởi tạo các viên bi trên vạch xuất phát
   const initMarbles = (trackLayout, canvasWidth) => {
     if (!trackLayout) return [];
 
@@ -132,7 +134,7 @@ export default function MarbleRaceCanvas({
     }
   }, [gateLocked]);
 
-  // VÒNG LẶP MÔ PHỎNG VẬT LÝ NỘI BỘ 60 FPS XỔ DỐC LẦN LƯỢT TỪNG VIÊN BI
+  // VÒNG LẶP MÔ PHỎNG VẬT LÝ NỘI BỘ 60 FPS XỔ DỐC KỊCH TÍNH QUA 7 CHẶNG (CÓ CÁNH QUẠT XOAY +)
   useEffect(() => {
     lastTimeRef.current = performance.now();
 
@@ -153,21 +155,21 @@ export default function MarbleRaceCanvas({
       const layout = trackRef.current;
       if (!layout) return;
 
-      const { width, trackHeight, gateY, finishY, margin, walls, bumpers, pegs, stages } = layout;
+      const { width, trackHeight, gateY, finishY, margin, walls, bumpers, pegs, spinners = [], stages } = layout;
       const viewportH = canvas.height;
       const isLocked = gateLockedRef.current;
 
       const marbles = marblesRef.current;
 
-      // XỔ DỐC LẦN LƯỢT TỪNG VIÊN BI (THẢ MỖI 160ms MỘT VIÊN BI XUẤT PHÁT)
+      // XỔ DỐC NHANH DỒN DẬP (THẢ MỖI 75ms MỘT VIÊN BI XUẤT PHÁT VỚI VẬN TỐC TỎA ĐA HƯỚNG)
       if (!isLocked) {
         if (!startTimeRef.current) {
           startTimeRef.current = currentTime;
           nextReleaseIdxRef.current = 0;
-          lastReleaseTimeRef.current = currentTime - 200;
+          lastReleaseTimeRef.current = currentTime - 100;
         }
 
-        const releaseIntervalMs = 160;
+        const releaseIntervalMs = 75;
         if (
           nextReleaseIdxRef.current < marbles.length &&
           currentTime - lastReleaseTimeRef.current >= releaseIntervalMs
@@ -175,10 +177,10 @@ export default function MarbleRaceCanvas({
           const mToRelease = marbles[nextReleaseIdxRef.current];
           if (mToRelease && !mToRelease.isReleased) {
             mToRelease.isReleased = true;
-            mToRelease.x = width / 2 + (Math.random() - 0.5) * (width * 0.2);
+            mToRelease.x = width / 2 + (Math.random() - 0.5) * (width * 0.28);
             mToRelease.y = gateY + 5;
-            mToRelease.vy = 280 + Math.random() * 80;
-            mToRelease.vx = (Math.random() - 0.5) * 80;
+            mToRelease.vy = 260 + Math.random() * 90;
+            mToRelease.vx = (Math.random() - 0.5) * 140;
             if (soundEnabled && Math.random() < 0.4) playClick();
           }
           nextReleaseIdxRef.current += 1;
@@ -186,7 +188,7 @@ export default function MarbleRaceCanvas({
         }
       }
 
-      // 1. CẬP NHẬT VẬT LÝ CÁC VIÊN BI ĐÃ THẢ (TRỌNG TRƯỜNG 1400 px/s^2 RƠI DỒN DẬP)
+      // 1. CẬP NHẬT VẬT LÝ CÁC VIÊN BI ĐÃ THẢ (TRỌNG TRƯỜNG 1400 px/s^2)
       const gravity = 1400;
 
       // Tìm vị trí viên bi dẫn đầu trong số các viên đã được thả & chưa về đích
@@ -220,10 +222,24 @@ export default function MarbleRaceCanvas({
         m.x += m.vx * dt;
         m.y += m.vy * dt;
 
-        // Va chạm đệm nảy pinball
+        // Va chạm đệm nảy Pinball
         bumpers.forEach((b) => {
           if (checkBumperCollision(m, b)) {
             if (soundEnabled && Math.random() < 0.25) playClick();
+          }
+        });
+
+        // Va chạm chốt Plinko
+        pegs.forEach((p) => {
+          if (checkPegCollision(m, p)) {
+            if (soundEnabled && Math.random() < 0.2) playClick();
+          }
+        });
+
+        // Va chạm Cánh quạt xoay 4 cánh (+) tại Stage 4 & Stage 7 cổ chai
+        spinners.forEach((sp) => {
+          if (checkSpinnerCollision(m, sp)) {
+            if (soundEnabled && Math.random() < 0.3) playClick();
           }
         });
 
@@ -255,7 +271,7 @@ export default function MarbleRaceCanvas({
         }
       }
 
-      // 2. VẼ NỀN GIẤY KẺ Ô TẬP HỌC SINH (CHUẨN ẢNH 2, 3, 4, 6)
+      // 2. VẼ NỀN GIẤY KẺ Ô TẬP HỌC SINH (CHUẨN ẢNH THẦY GỬI)
       ctx.save();
       ctx.fillStyle = '#F8FAFC';
       ctx.fillRect(0, 0, width, viewportH);
@@ -281,7 +297,7 @@ export default function MarbleRaceCanvas({
       // DỊCH CHUYỂN TOÀN BỘ CỌ VẼ THEO CAMERA Y
       ctx.translate(0, -camY);
 
-      // Tường biên Navy Blue (Chuẩn ẢNH 2, 3, 6)
+      // Tường biên Navy Blue (Chuẩn ẢNH THẦY GỬI)
       walls.forEach((w) => {
         ctx.beginPath();
         ctx.moveTo(w.x1, w.y1);
@@ -309,13 +325,62 @@ export default function MarbleRaceCanvas({
         ctx.stroke();
       });
 
+      // Chốt cản Plinko
+      pegs.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#64748B';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#334155';
+        ctx.stroke();
+      });
+
+      // Cánh quạt xoay 4 cánh (+) tại Stage 4 & Stage 7 Phễu cổ chai (Chuẩn 100% Ảnh Thầy gửi!)
+      spinners.forEach((sp) => {
+        sp.angle = (sp.angle || 0) + (sp.speed || 2.5) * dt;
+
+        ctx.save();
+        ctx.translate(sp.x, sp.y);
+
+        // 4 cánh quạt (+)
+        for (let i = 0; i < (sp.numBlades || 4); i++) {
+          const bAngle = sp.angle + (i * Math.PI * 2) / (sp.numBlades || 4);
+          const bx = Math.cos(bAngle) * sp.radius;
+          const by = Math.sin(bAngle) * sp.radius;
+
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(bx, by);
+          ctx.lineWidth = 14;
+          ctx.strokeStyle = sp.color || '#F97316';
+          ctx.lineCap = 'round';
+          ctx.stroke();
+
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.stroke();
+        }
+
+        // Tâm trục quay tròn
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.fillStyle = '#0F172A';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#F97316';
+        ctx.stroke();
+
+        ctx.restore();
+      });
+
       // Tiêu đề các chặng
       stages.forEach((stg) => {
         ctx.fillStyle = 'rgba(241, 245, 249, 0.92)';
-        ctx.fillRect(width / 2 - 130, stg.y - 12, 260, 24);
+        ctx.fillRect(width / 2 - 140, stg.y - 12, 280, 24);
         ctx.strokeStyle = '#CBD5E1';
         ctx.lineWidth = 1;
-        ctx.strokeRect(width / 2 - 130, stg.y - 12, 260, 24);
+        ctx.strokeRect(width / 2 - 140, stg.y - 12, 280, 24);
 
         ctx.fillStyle = '#334155';
         ctx.font = 'bold 11px sans-serif';
