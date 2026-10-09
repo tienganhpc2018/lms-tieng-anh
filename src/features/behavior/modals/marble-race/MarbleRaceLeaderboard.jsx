@@ -2,13 +2,16 @@ import React from 'react';
 import { formatRaceTime } from './marblePhysics';
 
 export default function MarbleRaceLeaderboard({ marbles = [], remainingTimeMs = 20000 }) {
-  // Sắp xếp học sinh theo thứ tự về đích hoặc theo vị trí Y hiện tại
+  // Sắp xếp học sinh: Về đích trước -> Đang trên dốc -> Chưa xuất phát
   const sortedMarbles = [...marbles].sort((a, b) => {
     if (a.isFinished && b.isFinished) {
       return (a.finishTime || 0) - (b.finishTime || 0);
     }
     if (a.isFinished) return -1;
     if (b.isFinished) return 1;
+    if (a.isReleased && !b.isReleased) return -1;
+    if (!a.isReleased && b.isReleased) return 1;
+    if (!a.isReleased && !b.isReleased) return a.number - b.number;
     return b.y - a.y;
   });
 
@@ -16,7 +19,7 @@ export default function MarbleRaceLeaderboard({ marbles = [], remainingTimeMs = 
 
   return (
     <div className="w-full lg:w-72 bg-white border-r border-slate-200 p-4 flex flex-col h-full shadow-sm text-slate-900 select-none">
-      {/* 1. HEADER TRỰC TIẾP & BỘ ĐỒNG HỒ ĐẾM NGƯỢC 20 GIÂY (CHUẨN ẢNH 2, 3, 4, 6) */}
+      {/* 1. HEADER TRỰC TIẾP & BỘ ĐỒNG HỒ ĐẾM NGƯỜC 20 GIÂY (CHUẨN ẢNH 2, 3, 4, 6) */}
       <div className="space-y-1 pb-3 mb-2 border-b border-slate-100">
         <div className="flex items-center space-x-1.5 text-xs font-black text-rose-500">
           <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
@@ -86,9 +89,13 @@ export default function MarbleRaceLeaderboard({ marbles = [], remainingTimeMs = 
                   </span>
                 </div>
 
-                {/* THỜI GIAN VỀ ĐÍCH */}
+                {/* THỜI GIAN VỀ ĐÍCH HOẶC TRẠNG THÁI XỔ DỐC */}
                 <div className="flex-shrink-0 text-[10px] font-mono font-bold text-slate-500">
-                  {m.isFinished ? formatRaceTime(m.finishTime) : ''}
+                  {m.isFinished
+                    ? formatRaceTime(m.finishTime)
+                    : m.isReleased
+                    ? 'Đang trên dốc'
+                    : 'Chờ...'}
                 </div>
               </div>
             );
