@@ -1,10 +1,14 @@
 import React, { useRef, useEffect } from 'react';
-import { Map, Activity, Flag, ShieldCheck } from 'lucide-react';
 
-export default function MarbleRaceLogs({ marbles = [], logs = [], trackHeight = 600 }) {
+export default function MarbleRaceLogs({ marbles = [], logs = [], cameraState = {} }) {
   const logContainerRef = useRef(null);
 
-  // Tự động cuộn xuống log mới nhất khi có sự kiện mới
+  const { cameraY = 0, viewportHeight = 600, trackHeight = 2600 } = cameraState;
+
+  // Tỷ lệ camera viewport trên Minimap
+  const viewTopPct = Math.min(100, Math.max(0, (cameraY / (trackHeight || 1)) * 100));
+  const viewHeightPct = Math.min(100, Math.max(10, (viewportHeight / (trackHeight || 1)) * 100));
+
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
@@ -12,107 +16,73 @@ export default function MarbleRaceLogs({ marbles = [], logs = [], trackHeight = 
   }, [logs]);
 
   return (
-    <div className="w-full lg:w-72 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-700/60 p-4 flex flex-col h-full shadow-2xl text-white space-y-4">
-      {/* 1. BẢN ĐỒ THU NHỎ TOÀN ĐƯỜNG ĐUA (MINIMAP) */}
-      <div className="bg-slate-800/80 rounded-xl border border-slate-700 p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1.5 text-xs font-black text-slate-200">
-            <Map className="w-3.5 h-3.5 text-cyan-400" />
-            <span>TOÀN ĐƯỜNG ĐUA</span>
-          </div>
-          <span className="text-[10px] font-bold text-slate-400 bg-slate-700/60 px-2 py-0.5 rounded-full">
-            Minimap
-          </span>
-        </div>
+    <div className="w-full lg:w-72 bg-white border-l border-slate-200 p-4 flex flex-col h-full shadow-sm text-slate-900 select-none space-y-4">
+      {/* 1. BẢN ĐỒ THU NHỎ TOÀN ĐƯỜNG ĐUA VỚI KHUNG ĐỎ CAMERA (CHUẨN ẢNH 2, 3, 4) */}
+      <div className="space-y-1.5">
+        <h4 className="font-black text-xs text-slate-900 uppercase tracking-wider">
+          TOÀN ĐƯỜNG ĐUA
+        </h4>
 
-        {/* KHUNG THỂ HIỆN TOÀN BỘ TIẾN ĐỘ ĐƯỜNG ĐUA */}
-        <div className="relative w-full h-28 bg-slate-950/80 rounded-lg border border-slate-700/60 overflow-hidden px-2 py-1 flex flex-col justify-between">
-          {/* VẠCH XUẤT PHÁT */}
-          <div className="border-b border-dashed border-emerald-500/60 text-[9px] font-black text-emerald-400 pb-0.5 flex items-center justify-between">
-            <span>🏁 XUẤT PHÁT</span>
-            <span className="text-[8px] text-slate-500">START</span>
-          </div>
+        <div className="relative w-full h-48 bg-slate-50 rounded-2xl border border-slate-300 overflow-hidden p-2 flex flex-col justify-between">
+          {/* SƠ ĐỒ ĐƯỜNG ĐUA KẺ ZICZAC TRÊN MINIMAP */}
+          <svg className="absolute inset-0 w-full h-full stroke-slate-400 fill-none opacity-40 pointer-events-none">
+            <line x1="10%" y1="8%" x2="90%" y2="8%" strokeWidth="2" />
+            <line x1="10%" y1="20%" x2="70%" y2="28%" strokeWidth="2" />
+            <line x1="30%" y1="40%" x2="90%" y2="48%" strokeWidth="2" />
+            <line x1="10%" y1="60%" x2="70%" y2="68%" strokeWidth="2" />
+            <line x1="10%" y1="90%" x2="42%" y2="96%" strokeWidth="2" />
+            <line x1="90%" y1="90%" x2="58%" y2="96%" strokeWidth="2" />
+          </svg>
 
-          {/* VÙNG CHỨA CÁC CHẤM MÀU VIÊN BI */}
+          {/* KHUNG ĐỎ THEO DÕI VÙNG GIỚI HẠN MÀN HÌNH CAMERA (CHUẨN ẢNH 2, 3, 4) */}
+          <div
+            className="absolute left-1 right-1 border-2 border-rose-500 rounded-md bg-rose-500/10 transition-all duration-100 pointer-events-none"
+            style={{
+              top: `${viewTopPct}%`,
+              height: `${viewHeightPct}%`,
+            }}
+          />
+
+          {/* CHẤM MÀU CÁC VIÊN BI TRÊN MINIMAP */}
           <div className="relative flex-1">
             {marbles.map((m) => {
-              // Tính tỷ lệ % chiều dài đường đua
-              const progressPct = Math.min(100, Math.max(0, (m.y / (trackHeight || 1)) * 100));
-              const isFinished = m.isFinished;
-
+              const yPct = Math.min(100, Math.max(0, (m.y / (trackHeight || 1)) * 100));
               return (
                 <div
                   key={m.id}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
+                  className="absolute w-2 h-2 rounded-full border border-white transform -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
                   style={{
-                    top: `${progressPct}%`,
-                    left: `${10 + (m.number % 8) * 11}%`,
+                    top: `${yPct}%`,
+                    left: `${15 + (m.number % 8) * 10}%`,
+                    backgroundColor: m.color?.main || '#3B82F6',
                   }}
-                  title={`Viên bi #${m.number}: ${m.studentName}`}
-                >
-                  <div
-                    className={`w-3 h-3 rounded-full border border-white/60 shadow-sm flex items-center justify-center text-[7px] font-black ${
-                      isFinished ? 'ring-2 ring-emerald-400 animate-ping' : ''
-                    }`}
-                    style={{
-                      backgroundColor: m.color?.main || '#3B82F6',
-                      color: m.color?.text || '#FFF',
-                    }}
-                  >
-                    {m.number}
-                  </div>
-                </div>
+                  title={m.studentName}
+                />
               );
             })}
-          </div>
-
-          {/* VẠCH ĐÍCH */}
-          <div className="border-t border-dashed border-amber-500/60 text-[9px] font-black text-amber-400 pt-0.5 flex items-center justify-between">
-            <span>🏆 VẠCH ĐÍCH</span>
-            <span className="text-[8px] text-slate-500">FINISH</span>
           </div>
         </div>
       </div>
 
-      {/* 2. DIỄN BIẾN CUỘC ĐUA (RACE LOGS) */}
-      <div className="flex-1 flex flex-col min-h-0 bg-slate-800/60 rounded-xl border border-slate-700/70 p-3">
-        <div className="flex items-center space-x-1.5 border-b border-slate-700/60 pb-2 mb-2">
-          <Activity className="w-3.5 h-3.5 text-amber-400" />
-          <h4 className="font-black text-xs text-white uppercase tracking-wider">
-            DIỄN BIẾN CUỘC ĐUA
-          </h4>
-        </div>
+      {/* 2. DIỄN BIẾN CUỘC ĐUA (RACE LOGS - CHUẨN ẢNH 2, 3, 4) */}
+      <div className="flex-1 flex flex-col min-h-0 space-y-1.5">
+        <h4 className="font-black text-xs text-slate-900 uppercase tracking-wider">
+          DIỄN BIẾN
+        </h4>
 
-        {/* CONTAINER NHẬT KÝ SỰ KIỆN */}
         <div
           ref={logContainerRef}
-          className="flex-1 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin scrollbar-thumb-slate-700 text-xs"
+          className="flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs scrollbar-thin scrollbar-thumb-slate-200"
         >
           {logs.length === 0 ? (
-            <div className="text-center py-6 text-slate-500 text-[11px] font-medium italic">
-              Nhấn "MỞ CỔNG" hoặc nút đếm ngược để khởi chạy cuộc đua...
+            <div className="text-center py-6 text-slate-400 text-[11px] font-medium italic">
+              Nhấn MỞ THANH GẠT để xem diễn biến...
             </div>
           ) : (
-            logs.map((logItem, index) => (
-              <div
-                key={index}
-                className={`p-2 rounded-lg border leading-tight text-[11px] font-semibold transition-all ${
-                  logItem.type === 'start'
-                    ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
-                    : logItem.type === 'finish'
-                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 font-extrabold shadow-sm'
-                    : logItem.type === 'overtake'
-                    ? 'bg-purple-500/10 border-purple-500/30 text-purple-200'
-                    : 'bg-slate-800/80 border-slate-700 text-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 mb-0.5">
-                  <span>{logItem.time}</span>
-                  <span className="uppercase text-[8px] font-bold tracking-widest text-slate-500">
-                    {logItem.type}
-                  </span>
-                </div>
-                <div>{logItem.text}</div>
+            logs.map((item, idx) => (
+              <div key={idx} className="text-[11px] font-semibold text-rose-600 leading-tight">
+                <strong className="text-rose-700 font-mono mr-1.5">{item.time}</strong>
+                <span>{item.text}</span>
               </div>
             ))
           )}
