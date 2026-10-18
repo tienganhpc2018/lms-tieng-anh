@@ -747,6 +747,167 @@ export const OXFORD_VOCABULARY_MASTER_DATABASE = {
       'Heavy rain delayed our school bus by thirty minutes this morning.'
     ]
   },
+  // --- GRADE 9 UNIT 3: HEALTHY LIVING FOR TEENS (100% CAMBRIDGE/OXFORD UK IPA & PEDAGOGICAL CONTENT) ---
+  'optimistic': {
+    word: 'optimistic',
+    pos: 'adj',
+    phonetic: '/ˌɒptɪˈmɪstɪk/',
+    meaning: 'lạc quan, yêu đời, tin tưởng vào điều tốt đẹp',
+    imageUrl: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'stay optimistic (giữ tinh thần lạc quan)',
+      'optimistic about the future (lạc quan về tương lai)',
+      'an optimistic outlook (cái nhìn lạc quan)'
+    ],
+    examples: [
+      'She always stays optimistic even when facing difficult exams.',
+      'An optimistic mindset helps teenagers overcome daily study stress.'
+    ]
+  },
+  'accomplish': {
+    word: 'accomplish',
+    pos: 'v',
+    phonetic: '/əˈkʌmplɪʃ/',
+    meaning: 'hoàn thành, đạt được (mục tiêu, kế hoạch)',
+    imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'accomplish a goal (hoàn thành mục tiêu)',
+      'accomplish a task (hoàn thành nhiệm vụ)',
+      'accomplish a mission (hoàn thành sứ mệnh)'
+    ],
+    examples: [
+      'Setting daily priorities helps you accomplish your study goals faster.',
+      'Our group worked hard together to accomplish the class science project.'
+    ]
+  },
+  'achieve': {
+    word: 'achieve',
+    pos: 'v',
+    phonetic: '/əˈtʃiːv/',
+    meaning: 'đạt được, giành được (thành tích, kết quả tốt)',
+    imageUrl: 'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'achieve success (đạt được thành công)',
+      'achieve good results (đạt kết quả tốt)',
+      'achieve a balance (đạt được sự cân bằng)'
+    ],
+    examples: [
+      'Students can achieve good results by managing their time wisely.',
+      'Regular physical exercise helps students achieve a balance in life.'
+    ]
+  },
+  'assignment': {
+    word: 'assignment',
+    pos: 'n',
+    phonetic: '/əˈsaɪnmənt/',
+    meaning: 'bài tập, bài tập về nhà, nhiệm vụ được giao',
+    imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'complete an assignment (hoàn thành bài tập được giao)',
+      'hand in an assignment (nộp bài tập)',
+      'school assignment (bài tập ở trường)'
+    ],
+    examples: [
+      'Don’t delay your English assignment until the night before the due date.',
+      'Each student received a creative writing assignment about healthy living.'
+    ]
+  },
+  'attention': {
+    word: 'attention',
+    pos: 'n',
+    phonetic: '/əˈtenʃn/',
+    meaning: 'sự chú ý, sự tập trung lắng nghe',
+    imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'pay attention to (chú ý đến, lắng nghe cẩn thận)',
+      'attract attention (thu hút sự chú ý)',
+      'draw attention to (hướng sự chú ý về)'
+    ],
+    examples: [
+      'Students should pay attention to the teacher’s instructions during class.',
+      'Getting enough sleep improves your attention and memory while studying.'
+    ]
+  },
+  'divide': {
+    word: 'divide',
+    pos: 'v',
+    phonetic: '/dɪˈvaɪd/',
+    meaning: 'chia, phân chia (thời gian, công việc)',
+    imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'divide time (phân chia quỹ thời gian hợp lý)',
+      'divide into groups (chia thành các nhóm)',
+      'divide the work (phân chia khối lượng công việc)'
+    ],
+    examples: [
+      'You should divide your study time into 30-minute focused blocks.',
+      'The teacher divided the class into small groups for discussion.'
+    ]
+  },
+  'due date': {
+    word: 'due date',
+    pos: 'n',
+    phonetic: '/ˈdjuː deɪt/',
+    meaning: 'hạn chót, ngày hết hạn nộp bài',
+    imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'before the due date (trước ngày hạn chót)',
+      'meet the due date (kịp hạn nộp bài)',
+      'miss the due date (bị trễ hạn chót)'
+    ],
+    examples: [
+      'Make sure you submit your project before the due date.',
+      'Marking the due date on a wall calendar helps you stay organized.'
+    ]
+  },
+  'stressed out': {
+    word: 'stressed out',
+    pos: 'adj',
+    phonetic: '/ˌstrest ˈaʊt/',
+    meaning: 'bị căng thẳng quá mức, kiệt sức vì áp lực',
+    imageUrl: 'https://images.unsplash.com/photo-1541199249251-f713e6145474?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'feel stressed out (cảm thấy vô cùng căng thẳng)',
+      'get stressed out about exams (bị căng thẳng vì thi cử)',
+      'help stressed out teens (giúp đỡ thanh thiếu niên bị căng thẳng)'
+    ],
+    examples: [
+      'Many students feel stressed out during the final exam week.',
+      'Talking to a school counsellor can help you when you feel stressed out.'
+    ]
+  },
+  'fatigue': {
+    word: 'fatigue',
+    pos: 'n',
+    phonetic: '/fəˈtiːɡ/',
+    meaning: 'sự mệt mỏi, tình trạng kiệt sức',
+    imageUrl: 'https://images.unsplash.com/photo-1541199249251-f713e6145474?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'mental fatigue (sự mệt mỏi về tinh thần)',
+      'physical fatigue (sự mệt mỏi thể chất)',
+      'suffer from fatigue (bị kiệt sức, mệt mỏi kéo dài)'
+    ],
+    examples: [
+      'Lack of proper sleep leads to physical fatigue in teenagers.',
+      'Short breaks during long study hours prevent mental fatigue.'
+    ]
+  },
+  'counsel': {
+    word: 'counsel',
+    pos: 'v',
+    phonetic: '/ˈkaʊnsl/',
+    meaning: 'tư vấn, cho lời khuyên, tham vấn',
+    imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'counsel students (tư vấn tâm lý cho học sinh)',
+      'seek counsel (tìm kiếm sự tư vấn)',
+      'counsel on career choices (tư vấn định hướng nghề nghiệp)'
+    ],
+    examples: [
+      'The teacher counsels students who are worried about upcoming exams.',
+      'Our school has trained staff to counsel teenagers through difficult moments.'
+    ]
+  },
   // --- GRADE 9 UNIT 1: LOCAL COMMUNITY (SKILLS 1 & ALL SECTIONS) ---
   'function': {
     word: 'function',
@@ -1698,6 +1859,138 @@ const GLOBAL_SUCCESS_PRESETS = {
         phrases: ['garbage collector team', 'respect garbage collectors'],
         examples: ['Garbage collectors work hard early in the morning to keep streets clean.', 'We should pack our waste properly to help garbage collectors.']
       }
+    ],
+    'Unit 3: Healthy Living for Teens': [
+      {
+        id: 'v_9_3_1',
+        word: 'accomplish',
+        pos: 'v',
+        phonetic: '/əˈkʌmplɪʃ/',
+        meaning: 'hoàn thành, đạt được mục tiêu',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['accomplish a goal', 'accomplish a task'],
+        examples: ['Setting clear priorities helps teenagers accomplish their study goals.', 'They worked together to accomplish the science project.']
+      },
+      {
+        id: 'v_9_3_2',
+        word: 'achieve',
+        pos: 'v',
+        phonetic: '/əˈtʃiːv/',
+        meaning: 'đạt được, gặt hái thành công',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['achieve success', 'achieve a balance'],
+        examples: ['Students can achieve good results by managing time wisely.', 'Healthy habits help you achieve a well-balanced lifestyle.']
+      },
+      {
+        id: 'v_9_3_3',
+        word: 'assignment',
+        pos: 'n',
+        phonetic: '/əˈsaɪnmənt/',
+        meaning: 'bài tập, bài tập về nhà được giao',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['complete an assignment', 'hand in an assignment'],
+        examples: ['Don’t delay your English assignment until the night before the due date.', 'The teacher assigned a creative project on healthy habits.']
+      },
+      {
+        id: 'v_9_3_4',
+        word: 'attention',
+        pos: 'n',
+        phonetic: '/əˈtenʃn/',
+        meaning: 'sự chú ý, tập trung lắng nghe',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['pay attention to', 'draw attention to'],
+        examples: ['Students should pay attention to the teacher’s explanation.', 'Adequate sleep improves attention span during class.']
+      },
+      {
+        id: 'v_9_3_5',
+        word: 'delay',
+        pos: 'v',
+        phonetic: '/dɪˈleɪ/',
+        meaning: 'trì hoãn, chậm trễ',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['delay an appointment', 'without delay'],
+        examples: ['Do not delay your assignments until the last minute.', 'Avoid delays by scheduling your weekly tasks early.']
+      },
+      {
+        id: 'v_9_3_6',
+        word: 'distraction',
+        pos: 'n',
+        phonetic: '/dɪˈstrækʃn/',
+        meaning: 'sự xao nhãng, mất tập trung',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['avoid distractions', 'free from distraction'],
+        examples: ['Turn off social media to avoid distractions while studying.', 'A quiet room provides a distraction-free learning environment.']
+      },
+      {
+        id: 'v_9_3_7',
+        word: 'divide',
+        pos: 'v',
+        phonetic: '/dɪˈvaɪd/',
+        meaning: 'chia nhỏ, phân chia thời gian',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['divide time', 'divide into groups'],
+        examples: ['You should divide large tasks into manageable daily steps.', 'The class was divided into groups to discuss mental health.']
+      },
+      {
+        id: 'v_9_3_8',
+        word: 'due date',
+        pos: 'n',
+        phonetic: '/ˈdjuː deɪt/',
+        meaning: 'hạn chót nộp bài, kỳ hạn',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['before the due date', 'meet the due date'],
+        examples: ['Always submit your project before the due date.', 'Write the due date in your planner to keep track of assignments.']
+      },
+      {
+        id: 'v_9_3_9',
+        word: 'optimistic',
+        pos: 'adj',
+        phonetic: '/ˌɒptɪˈmɪstɪk/',
+        meaning: 'lạc quan, yêu đời',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['stay optimistic', 'an optimistic outlook'],
+        examples: ['She stays optimistic despite having multiple deadlines.', 'An optimistic attitude boosts teen mental wellness.']
+      },
+      {
+        id: 'v_9_3_10',
+        word: 'stressed out',
+        pos: 'adj',
+        phonetic: '/ˌstrest ˈaʊt/',
+        meaning: 'căng thẳng quá mức, bị áp lực',
+        unit: 'Unit 3',
+        section: 'A CLOSER LOOK 1',
+        imageUrl: 'https://images.unsplash.com/photo-1541199249251-f713e6145474?w=600&auto=format&fit=crop&q=80',
+        audioUrl: '',
+        phrases: ['feel stressed out', 'get stressed out about exams'],
+        examples: ['Many teens feel stressed out when exams are approaching.', 'Talk to a school counsellor if you feel stressed out.']
+      }
     ]
   },
   'Lớp 10': {
@@ -1897,6 +2190,87 @@ export const PEDAGOGICAL_IMAGE_REGISTRY = {
       'https://images.unsplash.com/photo-1508962914676-134849a727f0?w=600&auto=format&fit=crop&q=80'
     ]
   },
+  'optimistic': {
+    prompt: 'A cheerful teenage student looking ahead with a bright confident smile under morning sunlight, symbolizing an optimistic mindset',
+    viPrompt: 'Học sinh tươi cười tự tin rạng rỡ dưới ánh nắng, thể hiện tinh thần lạc quan yêu đời',
+    primaryUrl: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'accomplish': {
+    prompt: 'A student smiling with arms raised in victory having completed a difficult assignment task successfully',
+    viPrompt: 'Học sinh vui sướng khi hoàn thành xuất sắc mục tiêu học tập',
+    primaryUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'achieve': {
+    prompt: 'Secondary school student holding an academic certificate or medal representing great achievements in learning',
+    viPrompt: 'Học sinh nhận giấy khen và huy chương biểu thị thành tích học tập tốt',
+    primaryUrl: 'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'assignment': {
+    prompt: 'Neatly organized notebook and school worksheets on a study desk ready to be completed as a homework assignment',
+    viPrompt: 'Vở ghi chép và phiếu bài tập được sắp xếp ngăn nắp trên bàn học',
+    primaryUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'attention': {
+    prompt: 'Attentive students in a classroom raising hands and listening closely to their teacher during a lesson',
+    viPrompt: 'Học sinh chăm chú lắng nghe bài giảng và giơ tay phát biểu trong lớp',
+    primaryUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'divide': {
+    prompt: 'A daily time planner schedule divided cleanly into organized color-coded study blocks',
+    viPrompt: 'Thời gian biểu học tập được phân chia khoa học thành từng khung giờ rõ ràng',
+    primaryUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'due date': {
+    prompt: 'A desk calendar with an upcoming due date circled in red marker, reminding about project deadline',
+    viPrompt: 'Lịch bàn có ngày hạn chót được khoanh tròn đỏ nhắc nhở nộp bài',
+    primaryUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1508962914676-134849a727f0?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'stressed out': {
+    prompt: 'A teenager resting head in hands beside piles of textbooks, overwhelmed by school exam stress',
+    viPrompt: 'Học sinh ôm đầu mệt mỏi bên chồng sách vở do áp lực bài vở thi cử',
+    primaryUrl: 'https://images.unsplash.com/photo-1541199249251-f713e6145474?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'fatigue': {
+    prompt: 'A tired student yawning and rubbing tired eyes while trying to stay awake late at night',
+    viPrompt: 'Học sinh mệt mỏi dụi mắt vì thiếu ngủ khi học khuya',
+    primaryUrl: 'https://images.unsplash.com/photo-1541199249251-f713e6145474?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'counsel': {
+    prompt: 'A professional caring school counsellor having an encouraging one-on-one supportive talk with a teenager',
+    viPrompt: 'Chuyên viên tư vấn học đường lắng nghe và khuyên bảo học sinh tận tình',
+    primaryUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
   'function': {
     prompt: 'Precision industrial machine gear mechanism operating smoothly to demonstrate function and mechanical design',
     viPrompt: 'Cơ cấu bánh răng máy móc hoạt động chính xác minh họa chức năng và vận hành',
@@ -2083,6 +2457,12 @@ export const generateAlgorithmicIpa = (raw) => {
     .replace(/or$/g, 'ə(r)')
     .replace(/er$/g, 'ə(r)')
     .replace(/ar$/g, 'ə(r)')
+    .replace(/istic$/g, 'ɪstɪk')
+    .replace(/ism$/g, 'ɪzəm')
+    .replace(/ist$/g, 'ɪst')
+    .replace(/ize$|ise$/g, 'aɪz')
+    .replace(/ic$/g, 'ɪk')
+    .replace(/ive$/g, 'ɪv')
     .replace(/ure$/g, 'ʃə(r)')
     .replace(/age$/g, 'ɪdʒ');
 
@@ -2127,8 +2507,11 @@ export const generateAlgorithmicIpa = (raw) => {
     .replace(/x/g, 'ks')
     .replace(/j/g, 'dʒ');
 
-  // Đảm bảo có dấu trọng âm quốc tế
-  if (!ipa.includes('ˈ')) {
+  // Chuẩn hóa dấu trọng âm quốc tế: chuyển dấu nháy đơn ' thành ˈ
+  ipa = ipa.replace(/'/g, 'ˈ');
+
+  // Đảm bảo có dấu trọng âm quốc tế chuẩn IPA
+  if (!ipa.includes('ˈ') && !ipa.includes('ˌ')) {
     ipa = 'ˈ' + ipa;
   }
 
@@ -4517,8 +4900,16 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
       const masterEntry = OXFORD_VOCABULARY_MASTER_DATABASE[wLower];
 
       if (masterEntry) {
-        // 1. Chuẩn hóa phiên âm IPA Oxford chuẩn quốc tế
-        if (masterEntry.phonetic && newItem.phonetic !== masterEntry.phonetic && (!pLower || pLower === `/${wLower}/` || pLower === `/${item.word}/` || !pLower.includes('/') || pLower.length <= wLower.length + 2)) {
+        // 1. Chuẩn hóa phiên âm IPA Cambridge/Oxford chuẩn quốc tế
+        const isNonStandardIpa = !pLower || 
+          pLower === `/${wLower}/` || 
+          pLower === `/${item.word}/` || 
+          !pLower.includes('/') || 
+          pLower.includes("'") || 
+          pLower.includes("?") || 
+          pLower.length <= wLower.length + 2;
+
+        if (masterEntry.phonetic && (newItem.phonetic !== masterEntry.phonetic && isNonStandardIpa)) {
           hasChanges = true;
           newItem.phonetic = masterEntry.phonetic;
         }
@@ -4562,7 +4953,15 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
           hasChanges = true;
           newItem.meaning = STATIC_VOCAB_DICT[wLower];
         }
-        if (!newItem.phonetic || pLower === `/${wLower}/` || pLower === `/${item.word}/` || !pLower.includes('/')) {
+        const isNonMasterNonStandardIpa = !newItem.phonetic || 
+          pLower === `/${wLower}/` || 
+          pLower === `/${item.word}/` || 
+          !pLower.includes('/') || 
+          pLower.includes("'") || 
+          pLower.includes("?") || 
+          pLower.length <= wLower.length + 2;
+
+        if (isNonMasterNonStandardIpa) {
           const smartIpa = STATIC_IPA_DICT[wLower] || getSmartOxfordIpa(wLower);
           if (smartIpa && newItem.phonetic !== smartIpa) {
             hasChanges = true;
@@ -6158,12 +6557,26 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
       if (apiKey) {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         const promptText = `
-Bạn là chuyên gia Từ điển Tiếng Anh - Tiếng Việt chuẩn Oxford Advanced Learner's Dictionary và SGK Global Success cho học sinh THCS/THPT Việt Nam.
+Bạn là chuyên gia Từ điển Tiếng Anh - Tiếng Việt chuẩn Cambridge Advanced Learner's Dictionary (giọng Anh-Anh UK) và Oxford Learner's Dictionaries cho SGK Global Success THCS/THPT.
 Hãy tra cứu và trả về dữ liệu chuẩn JSON cho từ hoặc cụm từ tiếng Anh: "${rawWord}".
 
-QUY TẮC BẮT BUỘC:
-1. PHIÊN ÂM IPA (phonetic): Phiên âm IPA chuẩn từ điển Oxford quốc tế (ví dụ: "/brɪŋ əˈbaʊt/", "/ˈkaʊnsələ(r)/", "/ˈbæləns/"). NGHIÊM CẤM chép lại mặt chữ tiếng Anh vào ô phiên âm (tuyệt đối không trả về "/${rawWord}/").
-2. TỪ LOẠI (pos): Phân loại chính xác ("n", "v", "adj", "adv", "phr v", "prep", "idiom"). Các cụm động từ như "bring about", "look after", "deal with" BẮT BUỘC là "phr v" (phrasal verb), KHÔNG được phân loại là "n".
+QUY TẮC BẮT BUỘC VỀ PHIÊN ÂM IPA & TỪ LOẠI:
+1. PHIÊN ÂM IPA GIỌNG ANH-ANH (phonetic): 
+   - BẮT BUỘC dùng hệ ký tự ngữ âm quốc tế IPA chuẩn từ điển Cambridge UK (British English).
+   - Dấu trọng âm: trọng âm chính là 'ˈ' (U+02C8) và trọng âm phụ là 'ˌ' (U+02CC). TUYỆT ĐỐI KHÔNG dùng dấu nháy đơn "'" hoặc viết lại mặt chữ tiếng Anh.
+   - Ví dụ chuẩn Cambridge UK:
+     * "optimistic" -> "/ˌɒptɪˈmɪstɪk/" (chú ý âm /ɒ/, không dùng /ɑː/ hay chữ o thô)
+     * "accomplish" -> "/əˈkʌmplɪʃ/"
+     * "assignment" -> "/əˈsaɪnmənt/"
+     * "attention" -> "/əˈtenʃn/"
+     * "delay" -> "/dɪˈleɪ/"
+     * "divide" -> "/dɪˈvaɪd/"
+     * "due date" -> "/ˈdjuː deɪt/"
+     * "stressed out" -> "/ˌstrest ˈaʊt/"
+     * "bring about" -> "/brɪŋ əˈbaʊt/"
+     * "counsellor" -> "/ˈkaʊnsələ(r)/"
+   - NGHIÊM CẤM chép lại mặt chữ tiếng Anh vào ô phiên âm (tuyệt đối không trả về "/${rawWord}/").
+2. TỪ LOẠI (pos): Phân loại chính xác ("n", "v", "adj", "adv", "phr v", "prep", "idiom"). Cụm động từ ("bring about", "look after", "deal with") BẮT BUỘC là "phr v", tính từ ghép ("stressed out", "well-balanced") là "adj".
 3. CỤM TỪ KẾT HỢP (phrases - Collocations / Expressions):
    - Sinh 2 đến 3 cụm từ tự nhiên, chuẩn mực trong đời sống và giao tiếp tiếng Anh thực tế kết hợp với từ đích.
    - Kèm nghĩa tiếng Việt trong ngoặc đơn: ví dụ ["bring about change (mang lại sự thay đổi)", "bring about improvements (tạo ra những cải thiện)"] hoặc ["school counsellor (chuyên viên tư vấn học đường)", "seek advice from a counsellor (tìm lời khuyên từ chuyên viên tư vấn)"].
@@ -6206,7 +6619,15 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown c
               const resWord = aiJson.correctWord || rawWord;
               const resPos = aiJson.pos || 'n';
               let resPhonetic = aiJson.phonetic;
-              if (!resPhonetic || resPhonetic === `/${rawWord}/` || resPhonetic === `/${resWord}/` || !resPhonetic.includes('/')) {
+              if (
+                !resPhonetic || 
+                resPhonetic === `/${rawWord}/` || 
+                resPhonetic === `/${resWord}/` || 
+                !resPhonetic.includes('/') || 
+                resPhonetic.includes("'") || 
+                resPhonetic.includes("?") || 
+                resPhonetic.length <= resWord.length + 2
+              ) {
                 resPhonetic = getSmartOxfordIpa(resWord);
               }
               let resPhrases = Array.isArray(aiJson.phrases) ? aiJson.phrases : [];
@@ -6309,13 +6730,15 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown c
       if (apiKey) {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         const promptText = `
-Bạn là chuyên gia Từ điển Tiếng Anh - Tiếng Việt chuẩn Oxford và SGK Global Success cho học sinh THCS/THPT Việt Nam.
+Bạn là chuyên gia Từ điển Tiếng Anh - Tiếng Việt chuẩn Cambridge Advanced Learner's Dictionary (giọng Anh-Anh UK chuẩn) và SGK Global Success cho học sinh THCS/THPT Việt Nam.
 Hãy tra cứu và trả về mảng JSON dữ liệu từ vựng đầy đủ cho danh sách từ sau: [${wordsToProcess.join(', ')}].
 
 QUY TẮC BẮT BUỘC:
-1. PHIÊN ÂM IPA (phonetic): Phiên âm IPA chuẩn từ điển Oxford quốc tế (ví dụ: "/brɪŋ əˈbaʊt/", "/ˈkaʊnsələ(r)/"). NGHIÊM CẤM chép lại mặt chữ tiếng Anh vào ô phiên âm (tuyệt đối không trả về "/word/").
-2. TỪ LOẠI (pos): Phân loại chính xác ("n", "v", "adj", "adv", "phr v", "prep", "idiom"). Cụm động từ như "bring about", "look after", "deal with" BẮT BUỘC là "phr v", KHÔNG được là "n".
-3. CỤM TỪ KẾT HỢP (phrases): 2-3 cụm từ/collocations tự nhiên trong đời sống và giao tiếp thực tế, kèm nghĩa tiếng Việt trong ngoặc đơn (ví dụ: ["bring about change (mang lại sự thay đổi)", "bring about improvements (tạo ra sự cải thiện)"]). TUYỆT ĐỐI KHÔNG ghép mẫu cơ học "useful + từ", "learn about + từ", "important + từ".
+1. PHIÊN ÂM IPA GIỌNG ANH-ANH (phonetic): 
+   - Chuẩn quốc tế Cambridge UK (ví dụ: "optimistic" -> "/ˌɒptɪˈmɪstɪk/", "accomplish" -> "/əˈkʌmplɪʃ/", "assignment" -> "/əˈsaɪnmənt/", "attention" -> "/əˈtenʃn/", "delay" -> "/dɪˈleɪ/", "divide" -> "/dɪˈvaɪd/", "due date" -> "/ˈdjuː deɪt/", "stressed out" -> "/ˌstrest ˈaʊt/").
+   - Trọng âm chính là 'ˈ', trọng âm phụ là 'ˌ'. TUYỆT ĐỐI KHÔNG dùng dấu nháy đơn "'" và NGHIÊM CẤM chép lại mặt chữ tiếng Anh vào ô phiên âm (tuyệt đối không trả về "/word/").
+2. TỪ LOẠI (pos): Phân loại chính xác ("n", "v", "adj", "adv", "phr v", "prep", "idiom"). Cụm động từ như "bring about", "look after", "deal with" BẮT BUỘC là "phr v", tính từ ghép "stressed out" là "adj", KHÔNG được là "n".
+3. CỤM TỪ KẾT HỢP (phrases): 2-3 cụm từ/collocations tự nhiên trong đời sống và giao tiếp thực tế, kèm nghĩa tiếng Việt trong ngoặc đơn (ví dụ: ["stay optimistic (giữ tinh thần lạc quan)", "accomplish a goal (hoàn thành mục tiêu)"]). TUYỆT ĐỐI KHÔNG ghép mẫu cơ học "useful + từ", "learn about + từ", "important + từ".
 4. CÂU VÍ DỤ (examples): 2 câu ví dụ chất lượng cao, ngữ cảnh thực tế phù hợp học sinh THCS (trường học, gia đình, bạn bè, sức khỏe, môi trường, công nghệ), kèm bản dịch tiếng Việt chuẩn xác. TUYỆT ĐỐI KHÔNG dùng câu rập khuôn "Students learn about the ... during their English lesson".
 
 YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, không kèm Markdown codeblock):
@@ -6409,8 +6832,16 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
           item.imageUrl = item.imageUrl || getGuaranteedTopicImage(wLower, item.meaning, item.pos);
           item.imagePrompt = item.imagePrompt || generatePedagogicalImagePrompt(item.word, item.meaning, item.pos, bulkUnit);
           item.imageStatus = item.imageStatus || 'pending';
-          // Check phonetic: nếu bị rỗng hoặc là từ thô /word/ -> tra cứu IPA chuẩn
-          if (!item.phonetic || item.phonetic === `/${wLower}/` || item.phonetic === `/${item.word}/` || !item.phonetic.includes('/')) {
+          // Check phonetic: nếu bị rỗng hoặc là từ thô /word/ hoặc có ký tự lỗi -> tra cứu IPA chuẩn
+          if (
+            !item.phonetic || 
+            item.phonetic === `/${wLower}/` || 
+            item.phonetic === `/${item.word}/` || 
+            !item.phonetic.includes('/') || 
+            item.phonetic.includes("'") || 
+            item.phonetic.includes("?") || 
+            item.phonetic.length <= (item.word || '').length + 2
+          ) {
             item.phonetic = STATIC_IPA_DICT[wLower] || getSmartOxfordIpa(wLower);
           }
           // Check phrases: chỉ fallback nếu rỗng hoặc dính cụm từ rập khuôn máy móc
