@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Users,
   Plus,
@@ -12,7 +12,10 @@ import {
   Sparkles,
   School,
   X,
-  Award
+  Award,
+  ClipboardList,
+  Upload,
+  FileText
 } from 'lucide-react';
 import { DEFAULT_CLASSES, DEFAULT_STUDENTS_8A1 } from '../examStorage';
 
@@ -29,7 +32,6 @@ export default function ClassesTab() {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    // Chuẩn hóa danh sách lớp ban đầu
     return DEFAULT_CLASSES.map((c) => ({
       id: c.id.toLowerCase(),
       name: c.name || `Lớp ${c.id.toUpperCase()}`,
@@ -53,7 +55,6 @@ export default function ClassesTab() {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    // Chuẩn hóa học sinh mẫu ban đầu
     return DEFAULT_STUDENTS_8A1.map((s) => ({
       ...s,
       classId: (s.classId || '8a1').toLowerCase(),
@@ -72,13 +73,19 @@ export default function ClassesTab() {
   const [newClassRoom, setNewClassRoom] = useState('P. Ngoại Ngữ 2');
   const [newClassCount, setNewClassCount] = useState(35);
 
-  // Modal State: Thêm học sinh
+  // Modal State: Thêm học sinh đơn lẻ
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [studentName, setStudentName] = useState('');
   const [studentCode, setStudentCode] = useState('');
   const [studentGender, setStudentGender] = useState('Nam');
   const [studentGpa, setStudentGpa] = useState('8.5');
   const [studentAttendance, setStudentAttendance] = useState('100%');
+
+  // Modal State: Nhập hàng loạt (CSV / Dán tên)
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState('paste'); // 'paste' | 'csv'
+  const [pasteText, setPasteText] = useState('');
+  const fileInputRef = useRef(null);
 
   // Lưu classes vào localStorage khi thay đổi
   useEffect(() => {
@@ -156,7 +163,7 @@ export default function ClassesTab() {
     }
   };
 
-  // Mở modal thêm học sinh với mã học sinh tự sinh
+  // Mở modal thêm 1 học sinh
   const handleOpenAddStudent = () => {
     const nextNum = classStudents.length + 1;
     const padNum = nextNum < 10 ? `0${nextNum}` : `${nextNum}`;
@@ -169,7 +176,7 @@ export default function ClassesTab() {
     setIsAddStudentModalOpen(true);
   };
 
-  // Xử lý thêm học sinh mới vào lớp đang chọn
+  // Xử lý thêm 1 học sinh mới vào lớp
   const handleAddStudent = (e) => {
     e.preventDefault();
     if (!studentName.trim()) return;
@@ -203,7 +210,82 @@ export default function ClassesTab() {
     showNotify(`Đã thêm học sinh ${newStudent.name} (${newStudent.code}) vào ${currentClass.name}!`);
   };
 
-  // Xử lý xóa học sinh
+  // Bóc tách danh sách từ dán văn bản (Mỗi dòng 1 tên hoặc Tên, Giới tính)
+  const parsePastedNames = (text) => {
+    if (!text || !text.trim()) return [];
+    const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+    return lines.map((line, idx) => {
+      // Loại bỏ số thứ tự ở đầu dòng nếu có (vd: "1. Nguyễn Văn A" hoặc "1 - Nguyễn Văn A")
+      const cleaned = line.replace(/^\d+[\.\-\,\s]\s*/, '').trim();
+      const parts = cleaned.split(/[,;\t]/).map((p) => p.trim());
+      const name = parts[0] || cleaned;
+      const gender = parts[1] && ['Nữ', 'Nu', 'Female', 'F'].includes(parts[1]) ? 'Nữ' : 'Nam';
+      return { name, gender };
+    }).filter((item) => item.name.length > 0);
+  };
+
+  const recognizedPastedStudents = parsePastedNames(pasteText);
+
+  // Xử lý nạp hàng loạt từ Dán danh sách
+  const handleConfirmPasteBulk = () => {
+    if (recognizedPastedStudents.length === 0) {
+      alert('Vui lòng dán danh sách tên học sinh trước khi nhấn xác nhận!');
+      return;
+    }
+
+    let startNum = classStudents.length + 1;
+    const newStudentsList = recognizedPastedStudents.map((item, idx) => {
+      const num = startNum + idx;
+      const padNum = num < 10 ? `0${num}` : `${num}`;
+      return {
+        id: `hs_${selectedClassId}_${Date.now()}_${idx}`,
+        name: item.name,
+        code: `HS${selectedClassId.toUpperCase()}${padNum}`,
+        gender: item.gender,
+        gpa: Math.round((Math.random() * 2 + 7.5) * 10) / 10,
+        avg: Math.round((Math.random() * 2 + 7.5) * 10) / 10,
+        attendance: '100%',
+        progress: Math.floor(Math.random() * 20 + 80),
+        classId: selectedClassId.toLowerCase(),
+        status: 'active'
+      };
+    });
+
+    const nextStudents = [...students, ...newStudentsList];
+    setStudents(nextStudents);
+
+    // Cập nhật sĩ số lớp
+    setClasses((prev) =>
+      prev.map((c) =>
+        c.id.toLowerCase() === selectedClassId.toLowerCase()
+          ? { ...c, studentCount: (c.studentCount || 0) + newStudentsList.length }
+          : c
+      )
+    );
+
+    setIsBulkModalOpen(false);
+    setPasteText('');
+    showNotify(`Đã thêm thành công ${newStudentsList.length} học sinh vào ${currentClass.name}!`);
+  };
+
+  // Xử lý nạp từ file CSV / Text
+  const handleUploadCSV = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result;
+      if (typeof content === 'string') {
+        setPasteText(content);
+        setBulkMode('paste');
+        showNotify(`Đã đọc nội dung file ${file.name}, xem trước bên dưới và bấm xác nhận!`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Xóa 1 học sinh
   const handleDeleteStudent = (studentId, studentNameToDelete) => {
     if (window.confirm(`Thầy có chắc muốn xóa học sinh "${studentNameToDelete}" khỏi lớp ${currentClass.name}?`)) {
       setStudents((prev) => prev.filter((s) => s.id !== studentId));
@@ -216,46 +298,6 @@ export default function ClassesTab() {
       );
       showNotify(`Đã xóa học sinh ${studentNameToDelete}!`);
     }
-  };
-
-  // Import Excel nhanh giả lập
-  const handleImportExcel = () => {
-    const importList = [
-      {
-        id: `hs_${selectedClassId}_${Date.now()}_1`,
-        name: 'Đỗ Hoàng Quân',
-        code: `HS${selectedClassId.toUpperCase()}${classStudents.length + 1}`,
-        gender: 'Nam',
-        gpa: 8.4,
-        avg: 8.4,
-        attendance: '98%',
-        progress: 88,
-        classId: selectedClassId.toLowerCase(),
-        status: 'active'
-      },
-      {
-        id: `hs_${selectedClassId}_${Date.now()}_2`,
-        name: 'Vũ Thảo Vy',
-        code: `HS${selectedClassId.toUpperCase()}${classStudents.length + 2}`,
-        gender: 'Nữ',
-        gpa: 9.3,
-        avg: 9.3,
-        attendance: '100%',
-        progress: 96,
-        classId: selectedClassId.toLowerCase(),
-        status: 'active'
-      }
-    ];
-
-    setStudents([...students, ...importList]);
-    setClasses((prev) =>
-      prev.map((c) =>
-        c.id.toLowerCase() === selectedClassId.toLowerCase()
-          ? { ...c, studentCount: (c.studentCount || 0) + importList.length }
-          : c
-      )
-    );
-    showNotify(`Đã import thành công ${importList.length} học sinh mới vào ${currentClass.name}!`);
   };
 
   return (
@@ -275,13 +317,17 @@ export default function ClassesTab() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Nút Nhập Hàng Loạt (CSV / Dán tên HS) */}
           <button
-            onClick={handleImportExcel}
-            className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs"
-            title="Nhập danh sách học sinh từ file Excel hoặc CSV"
+            onClick={() => {
+              setPasteText('');
+              setIsBulkModalOpen(true);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 text-xs font-black transition flex items-center space-x-1.5 shadow-2xs"
+            title="Thêm danh sách học sinh hàng loạt từ CSV hoặc dán tên trực tiếp"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Import Excel</span>
+            <ClipboardList className="w-4 h-4 text-indigo-600" />
+            <span>📋 Nhập hàng loạt (CSV / Dán tên)</span>
           </button>
 
           <button
@@ -339,7 +385,6 @@ export default function ClassesTab() {
                 </div>
               </div>
 
-              {/* Nút xóa lớp (hiện khi hover trên thẻ không chọn) */}
               {classes.length > 1 && (
                 <button
                   type="button"
@@ -386,6 +431,18 @@ export default function ClassesTab() {
                 className="pl-9 pr-4 py-1.5 rounded-xl border border-slate-300 text-xs w-full sm:w-60 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
               />
             </div>
+
+            <button
+              onClick={() => {
+                setPasteText('');
+                setIsBulkModalOpen(true);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold transition flex items-center space-x-1 shrink-0"
+              title="Dán nhanh danh sách tên học sinh vào lớp"
+            >
+              <ClipboardList className="w-3.5 h-3.5" />
+              <span>Dán danh sách</span>
+            </button>
 
             <button
               onClick={handleOpenAddStudent}
@@ -464,7 +521,7 @@ export default function ClassesTab() {
               ) : (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-slate-400">
-                    Chưa có học sinh nào trong lớp này. Thầy hãy bấm "+ Thêm Học Sinh" để nhập học sinh vào lớp!
+                    Chưa có học sinh nào trong lớp này. Thầy hãy bấm "+ Thêm Học Sinh" hoặc "📋 Nhập hàng loạt" để nạp danh sách học sinh!
                   </td>
                 </tr>
               )}
@@ -474,7 +531,155 @@ export default function ClassesTab() {
       </div>
 
       {/* ========================================================
-          MODAL 1: THÊM LỚP HỌC MỚI
+          MODAL 1: NHẬP HÀNG LOẠT (DÁN DANH SÁCH HOẶC TẢI CSV)
+      ======================================================== */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-black text-slate-900 text-base flex items-center space-x-2">
+                  <ClipboardList className="w-5 h-5 text-indigo-600" />
+                  <span>Nhập Học Sinh Hàng Loạt Vào {currentClass.name}</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Dán nhanh danh sách từ Word, Excel, Zalo hoặc tải lên file CSV/TXT
+                </p>
+              </div>
+              <button
+                onClick={() => setIsBulkModalOpen(false)}
+                className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Chế độ chọn */}
+            <div className="flex items-center space-x-2 border-b border-slate-100 pb-2">
+              <button
+                type="button"
+                onClick={() => setBulkMode('paste')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                  bulkMode === 'paste'
+                    ? 'bg-indigo-600 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                1. Dán văn bản tên học sinh
+              </button>
+              <button
+                type="button"
+                onClick={() => setBulkMode('csv')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                  bulkMode === 'csv'
+                    ? 'bg-indigo-600 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                2. Tải lên file CSV / Excel (.csv)
+              </button>
+            </div>
+
+            {/* Nội dung dán danh sách */}
+            {bulkMode === 'paste' ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-700">
+                    Dán danh sách học sinh vào ô bên dưới (mỗi học sinh 1 dòng):
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPasteText(
+                        `Nguyễn Hoàng Long, Nam\nTrần Thị Mai Anh, Nữ\nLê Tuấn Kiệt, Nam\nPhạm Ngọc Ánh, Nữ\nĐỗ Minh Triết, Nam\nHoàng Thảo My, Nữ`
+                      );
+                    }}
+                    className="text-indigo-600 hover:underline font-bold"
+                  >
+                    Dán danh sách mẫu
+                  </button>
+                </div>
+
+                <textarea
+                  rows={7}
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  placeholder={`Ví dụ:\nNguyễn Văn An\nTrần Thị Bích, Nữ\nLê Hoàng Long, Nam\nPhạm Thu Hà`}
+                  className="w-full p-3 rounded-xl border border-slate-300 font-sans text-xs text-slate-800 leading-relaxed focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                ></textarea>
+
+                {/* Preview số lượng học sinh nhận diện */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-700">Kết quả nhận diện: </span>
+                    <span className="font-black text-indigo-700 text-sm">
+                      {recognizedPastedStudents.length} học sinh
+                    </span>
+                  </div>
+                  {recognizedPastedStudents.length > 0 && (
+                    <span className="text-[11px] text-slate-500">
+                      Mã HS tự sinh: HS{selectedClassId.toUpperCase()}{classStudents.length + 1} - HS{selectedClassId.toUpperCase()}{classStudents.length + recognizedPastedStudents.length}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Nội dung tải file CSV */
+              <div className="p-6 rounded-2xl border-2 border-dashed border-slate-300 hover:border-indigo-500 transition text-center space-y-3 bg-slate-50/50">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto text-xl">
+                  📁
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-800 text-sm">Chọn file CSV hoặc TXT danh sách lớp</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Hỗ trợ file danh sách xuất từ SMAS, VNEDU hoặc Excel lưu dưới dạng .csv
+                  </p>
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleUploadCSV}
+                  accept=".csv,.txt"
+                  className="hidden"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition"
+                >
+                  Chọn file từ máy tính
+                </button>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsBulkModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Hủy bỏ
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmPasteBulk}
+                disabled={recognizedPastedStudents.length === 0}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md hover:shadow-lg transition flex items-center space-x-1.5 disabled:opacity-50"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Xác nhận thêm {recognizedPastedStudents.length} học sinh</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODAL 2: THÊM LỚP HỌC MỚI
       ======================================================== */}
       {isAddClassModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
@@ -575,7 +780,7 @@ export default function ClassesTab() {
       )}
 
       {/* ========================================================
-          MODAL 2: THÊM HỌC SINH VÀO LỚP ĐANG CHỌN
+          MODAL 3: THÊM 1 HỌC SINH VÀO LỚP ĐANG CHỌN
       ======================================================== */}
       {isAddStudentModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">

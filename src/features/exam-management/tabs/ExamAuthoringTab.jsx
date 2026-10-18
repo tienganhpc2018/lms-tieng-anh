@@ -176,73 +176,334 @@ export default function ExamAuthoringTab({
         }
       },
 
-      // SECTION 2: LANGUAGE (10 câu • 2.5đ, Câu 15 - 24)
+      // SECTION 2: KNOWLEDGE OF LANGUAGE (10 câu • 2.5đ, Câu 11 - 20)
       language: {
-        instruction: 'Choose the best option A, B, C or D to complete each question or passage.',
+        instruction: 'Section 2: Knowledge of Language - Cloze Passages (Part 1: Leaflet & Part 2: Announcement) - 10 blanks. (2.5 điểm - 10 câu)',
         points: 2.5,
-        questions: [
-          { id: 'q15', num: 15, prompt: 'Choose the word whose underlined part is pronounced differently: leisure / ensure / measure / pleasure', options: ['A. leisure', 'B. ensure', 'C. measure', 'D. pleasure'], correct: 'B', explanation: 'Phần gạch chân "s" ở "ensure" phát âm là /ʃ/, các từ còn lại là /ʒ/.' },
-          { id: 'q16', num: 16, prompt: 'Choose the word with different stress pattern: balance / cattle / prefer / pasture', options: ['A. balance', 'B. cattle', 'C. prefer', 'D. pasture'], correct: 'C', explanation: '"prefer" có trọng âm 2, các từ còn lại trọng âm 1.' },
-          { id: 'q17', num: 17, prompt: 'First, maintain a well-balanced diet to (17) ________ your immune system.', options: ['A. boost', 'B. boosting', 'C. boosted', 'D. booster'], correct: 'A', explanation: 'Sau to là động từ nguyên mẫu (to boost).' },
-          { id: 'q18', num: 18, prompt: 'Teens should take regular exercise instead of spending hours (18) ________ games online.', options: ['A. to play', 'B. played', 'C. playing', 'D. play'], correct: 'C', explanation: 'Cấu trúc: spend time doing sth (playing).' },
-          { id: 'q19', num: 19, prompt: 'Talk to your parents or the school (19) ________ whenever you feel stressed.', options: ['A. counsellor', 'B. artisan', 'C. firefighter', 'D. driver'], correct: 'A', explanation: 'school counsellor: chuyên viên tư vấn học đường.' },
-          { id: 'q20', num: 20, prompt: 'Get at least 8 hours of sleep so you can concentrate (20) ________ your lessons next morning.', options: ['A. at', 'B. in', 'C. on', 'D. for'], correct: 'C', explanation: 'concentrate on: tập trung vào.' },
-          { id: 'q21', num: 21, prompt: 'All grade 8 students must assemble at the school gate at 6:30 AM (21) ________.', options: ['A. sharp', 'B. sharply', 'C. sharpen', 'D. sharpness'], correct: 'A', explanation: '6:30 AM sharp: đúng 6 giờ 30.' },
-          { id: 'q22', num: 22, prompt: 'Villagers produce high-quality (22) ________ crafts like conical hats and pottery.', options: ['A. handmade', 'B. electronic', 'C. digital', 'D. plastic'], correct: 'A', explanation: 'handmade crafts: hàng thủ công làm bằng tay.' },
-          { id: 'q23', num: 23, prompt: 'Nam is very keen (23) ________ playing traditional Vietnamese folk games.', options: ['A. on', 'B. in', 'C. at', 'D. with'], correct: 'A', explanation: 'keen on: yêu thích.' },
-          { id: 'q24', num: 24, prompt: 'People in rural villages live (24) ________ to nature than city dwellers.', options: ['A. close', 'B. closer', 'C. more closely', 'D. closest'], correct: 'B', explanation: 'live closer to nature: sống gần gũi với thiên nhiên hơn.' }
-        ]
-      },
-
-      // SECTION 3: READING (10 câu • 2.5đ, Câu 25 - 34)
-      reading: {
         part1: {
-          title: 'Part 1: Life in Duong Lam Ancient Village (Cloze Test)',
-          passage: 'Duong Lam Ancient Village is located in Son Tay Town, about 44 km from Hanoi centre. It is the first ancient village in Vietnam recognised as a national historical and cultural relic. What makes Duong Lam special is its preserved laterite houses that are over 300 years old. Villagers maintain a peaceful and slow-paced lifestyle.',
+          title: 'JOIN OUR SCHOOL CLUBS!',
+          badge: 'Leaflet (Tờ rơi trường học)',
+          passage: `Are you looking for an exciting way to spend your free time? Join our school clubs today! We offer a wide range of activities (11) ________ sports, arts, and science. Being part of a club helps you develop teamwork skills and make new friends. You can also learn how to (12) ________ your time effectively between studying and relaxing. Don't worry if you are shy; our friendly club leaders will always (13) ________ you warmly. Remember that participating in extracurricular activities is (14) ________ important for your personal growth. Contact Ms. Hoa in Room 204 or register online (15) ________ Friday!`,
           questions: [
-            { id: 'q25', num: 25, prompt: 'Duong Lam is located about 44 kilometres from central Hanoi.', options: ['True', 'False'], correct: 'True' },
-            { id: 'q26', num: 26, prompt: 'The historic houses here are constructed with laterite bricks.', options: ['True', 'False'], correct: 'True' },
-            { id: 'q27', num: 27, prompt: 'The lifestyle in Duong Lam is extremely noisy and hurried.', options: ['True', 'False'], correct: 'False' },
-            { id: 'q28', num: 28, prompt: 'Villagers usually ride bicycles or walk to school.', options: ['True', 'False'], correct: 'True' },
-            { id: 'q29', num: 29, prompt: 'Visiting Duong Lam offers tourists an authentic glimpse into northern rural culture.', options: ['True', 'False'], correct: 'True' }
+            {
+              id: 'lang_p1_11',
+              num: 11,
+              blankLabel: 'Câu 11 (Vị trí 11):',
+              options: ['A. such as', 'B. for example', 'C. like as', 'D. as well'],
+              correct: 'A',
+              points: 0.25,
+              explanation: '"such as" dùng để liệt kê các ví dụ cụ thể (sports, arts, and science).'
+            },
+            {
+              id: 'lang_p1_12',
+              num: 12,
+              blankLabel: 'Câu 12 (Vị trí 12):',
+              options: ['A. manage', 'B. waste', 'C. spend', 'D. lose'],
+              correct: 'A',
+              points: 0.25,
+              explanation: 'manage your time: quản lý thời gian hiệu quả.'
+            },
+            {
+              id: 'lang_p1_13',
+              num: 13,
+              blankLabel: 'Câu 13 (Vị trí 13):',
+              options: ['A. welcome', 'B. welcoming', 'C. welcomed', 'D. welcomes'],
+              correct: 'A',
+              points: 0.25,
+              explanation: 'Sau will là động từ nguyên mẫu không "to" (will welcome).'
+            },
+            {
+              id: 'lang_p1_14',
+              num: 14,
+              blankLabel: 'Câu 14 (Vị trí 14):',
+              options: ['A. extremely', 'B. extreme', 'C. extremeness', 'D. extremity'],
+              correct: 'A',
+              points: 0.25,
+              explanation: 'Cần trạng từ "extremely" để bổ nghĩa cho tính từ "important".'
+            },
+            {
+              id: 'lang_p1_15',
+              num: 15,
+              blankLabel: 'Câu 15 (Vị trí 15):',
+              options: ['A. before', 'B. after', 'C. during', 'D. since'],
+              correct: 'A',
+              points: 0.25,
+              explanation: '"before Friday": trước thứ Sáu để kịp hạn đăng ký.'
+            }
           ]
         },
         part2: {
-          title: 'Part 2: Teen Leisure Time and Balanced Life (Comprehension)',
-          passage: 'In recent years, the way teenagers spend their spare time has changed dramatically. A decade ago, young people engaged more in outdoor games like football or cycling. Today, a large number of teens prefer staying indoors, scrolling through social media feeds, or playing online games. Excessive screen time leads to physical fatigue and poor concentration. Health experts suggest teenagers should balance their leisure time: spend at least 45 minutes daily on physical activities and engage in hands-on hobbies like cooking, drawing, or DIY crafts.',
+          title: 'ANNOUNCEMENT: FIELD TRIP TO DUONG LAM ANCIENT VILLAGE',
+          badge: 'Announcement (Thông báo)',
+          passage: `The School Youth Union is pleased to announce our annual field trip for Grade 8 students.
+Details of the trip:
+- Destination: Duong Lam Ancient Village, Son Tay, Hanoi.
+- Departure: 6:30 AM sharp this Sunday from the school main gate.
+All students must (16) ________ on time so that the bus can leave as scheduled. You are required to wear your school uniform and bring a notebook to record information about traditional laterite houses. Please listen (17) ________ to the tour guide during the visit. We will also have a friendly cooking contest where you can learn to make traditional cakes (18) ________ the locals. If you have any medical conditions, please (19) ________ your homeroom teacher in advance. Let's make this trip a memorable (20) ________!`,
           questions: [
-            { id: 'q30', num: 30, prompt: 'What is the passage mainly about?', options: ['A. History of online video games', 'B. Changes in teen leisure activities and tips for a balanced life', 'C. How to shop on smartphones', 'D. Sleeping habits of children'], correct: 'B' },
-            { id: 'q31', num: 31, prompt: 'Ten years ago, teenagers used to spend more time ________.', options: ['A. playing outdoor sports and games', 'B. watching TV all day', 'C. texting on smartphones', 'D. sitting alone in their rooms'], correct: 'A' },
-            { id: 'q32', num: 32, prompt: 'What can excessive screen time cause for teenagers?', options: ['A. Better eyesight', 'B. Physical fatigue and poor concentration', 'C. Greater speed in running', 'D. Perfect exam results'], correct: 'B' },
-            { id: 'q33', num: 33, prompt: 'What do health experts recommend teens do every day?', options: ['A. Spend 45 minutes on physical activity', 'B. Play video games for 4 hours', 'C. Never talk to friends', 'D. Skip morning meals'], correct: 'A' },
-            { id: 'q34', num: 34, prompt: 'The phrase "engage in" in the passage is closest in meaning to ________.', options: ['A. give up', 'B. look down on', 'C. take part in', 'D. turn off'], correct: 'C' }
+            {
+              id: 'lang_p2_16',
+              num: 16,
+              blankLabel: 'Câu 16 (Vị trí 16):',
+              options: ['A. arrive', 'B. leave', 'C. cancel', 'D. delay'],
+              correct: 'A',
+              points: 0.25,
+              explanation: '"arrive on time": đến đúng giờ.'
+            },
+            {
+              id: 'lang_p2_17',
+              num: 17,
+              blankLabel: 'Câu 17 (Vị trí 17):',
+              options: ['A. attentively', 'B. careless', 'C. quick', 'D. slow'],
+              correct: 'A',
+              points: 0.25,
+              explanation: 'Cần trạng từ "attentively" (chăm chú) bổ nghĩa cho động từ "listen".'
+            },
+            {
+              id: 'lang_p2_18',
+              num: 18,
+              blankLabel: 'Câu 18 (Vị trí 18):',
+              options: ['A. with', 'B. by', 'C. on', 'D. at'],
+              correct: 'A',
+              points: 0.25,
+              explanation: '"make traditional cakes with the locals": cùng với người dân địa phương.'
+            },
+            {
+              id: 'lang_p2_19',
+              num: 19,
+              blankLabel: 'Câu 19 (Vị trí 19):',
+              options: ['A. inform', 'B. hide', 'C. forget', 'D. refuse'],
+              correct: 'A',
+              points: 0.25,
+              explanation: '"inform your teacher": thông báo cho giáo viên chủ nhiệm biết.'
+            },
+            {
+              id: 'lang_p2_20',
+              num: 20,
+              blankLabel: 'Câu 20 (Vị trí 20):',
+              options: ['A. experience', 'B. experiment', 'C. expert', 'D. expensive'],
+              correct: 'A',
+              points: 0.25,
+              explanation: '"a memorable experience": một trải nghiệm đáng nhớ.'
+            }
           ]
         }
       },
 
-      // SECTION 4: WRITING (7 câu • 2.0đ, Câu 35 - 41)
+      // SECTION 3: READING (10 câu • 2.5đ, Câu 21 - 30)
+      reading: {
+        instruction: 'Section 3: Reading Comprehension (Part 1: True / False • 1.25đ & Part 2: Multiple Choice • 1.25đ)',
+        points: 2.5,
+        part1: {
+          title: 'Nam and Smartphone Addiction',
+          badge: 'Part 1: Dạng Đúng / Sai (True / False • 5 câu 1.25đ)',
+          instruction: 'Read the passage about Nam and decide whether each statement (21 - 25) is TRUE or FALSE.',
+          passage: `Nam used to be an energetic boy who loved playing soccer and riding bicycles with his classmates every afternoon. However, since his parents bought him a smartphone for online learning six months ago, everything has changed. Nam now spends almost all his free time staring at the screen. He plays mobile video games, scrolls through TikTok videos, and chats with virtual friends until past midnight.\nAs a consequence, Nam often feels exhausted during morning classes and cannot concentrate on his lessons. His academic performance has dropped significantly. Furthermore, he rarely talks to his parents or goes outside to exercise. Last week, the school counsellor had a private meeting with Nam and advised him to set a strict screen limit of 1 hour per day and re-engage in outdoor sports with his friends.`,
+          questions: [
+            {
+              id: 'read_p1_21',
+              num: 21,
+              prompt: 'Nam received a smartphone from his parents six months ago.',
+              correct: 'TRUE',
+              points: 0.25,
+              explanation: 'Bài viết nêu: "since his parents bought him a smartphone for online learning six months ago".'
+            },
+            {
+              id: 'read_p1_22',
+              num: 22,
+              prompt: 'Nam still plays soccer with his classmates every afternoon.',
+              correct: 'FALSE',
+              points: 0.25,
+              explanation: 'Nam không còn chơi bóng mà dành hầu hết thời gian rảnh vào màn hình điện thoại.'
+            },
+            {
+              id: 'read_p1_23',
+              num: 23,
+              prompt: 'Staying up late playing games makes Nam feel tired in morning classes.',
+              correct: 'TRUE',
+              points: 0.25,
+              explanation: '"Nam often feels exhausted during morning classes and cannot concentrate".'
+            },
+            {
+              id: 'read_p1_24',
+              num: 24,
+              prompt: 'His exam grades and academic performance have improved recently.',
+              correct: 'FALSE',
+              points: 0.25,
+              explanation: 'Kết quả học tập giảm sút ("academic performance has dropped significantly").'
+            },
+            {
+              id: 'read_p1_25',
+              num: 25,
+              prompt: 'The school counsellor advised Nam to limit his daily screen time to 1 hour.',
+              correct: 'TRUE',
+              points: 0.25,
+              explanation: '"advised him to set a strict screen limit of 1 hour per day".'
+            }
+          ]
+        },
+        part2: {
+          title: 'Strategies to Deal with Teen Stress',
+          badge: 'Part 2: Trắc nghiệm 4 lựa chọn (A, B, C, D • 5 câu 1.25đ)',
+          instruction: 'Read the following passage and choose the best answer (A, B, C or D) for questions 26 - 30.',
+          passage: `Teenagers today face numerous pressures from schoolwork, peer expectations, and future career choices. According to recent surveys, more than 60% of secondary school students report feeling stressed before semester exams. Fortunately, psychologists suggest several practical strategies to help teens manage their emotional well-being effectively.\nFirst, time management is essential. Creating a realistic weekly study timetable allows students to balance homework deadlines and leisure activities without last-minute panic. Second, regular physical activity acts as a natural stress reliever. Just 30 minutes of jogging, swimming, or dancing releases endorphins that improve mood and boost memory. Lastly, teens should never hesitate to communicate their feelings. Talking openly with parents, close friends, or school counsellors provides valuable emotional support and practical solutions.`,
+          questions: [
+            {
+              id: 'read_p2_26',
+              num: 26,
+              prompt: 'What is the main topic of the passage?',
+              options: [
+                'A. How to pass entrance exams with high scores',
+                'B. Causes and practical strategies to manage teen stress',
+                'C. The history of psychology in secondary schools',
+                'D. Why teenagers should stop studying completely'
+              ],
+              correct: 'B',
+              points: 0.25,
+              explanation: 'Toàn bài nói về áp lực của học sinh và các biện pháp thực tế để kiểm soát căng thẳng.'
+            },
+            {
+              id: 'read_p2_27',
+              num: 27,
+              prompt: 'According to surveys, how many secondary students feel stressed before exams?',
+              options: ['A. Over 60%', 'B. Less than 20%', 'C. Exactly 50%', 'D. Nearly 100%'],
+              correct: 'A',
+              points: 0.25,
+              explanation: '"more than 60% of secondary school students report feeling stressed before semester exams".'
+            },
+            {
+              id: 'read_p2_28',
+              num: 28,
+              prompt: 'How does creating a weekly study timetable help students?',
+              options: [
+                'A. It makes them study 14 hours a day',
+                'B. It balances homework and leisure without last-minute panic',
+                'C. It eliminates the need for physical exercise',
+                'D. It costs a lot of money to set up'
+              ],
+              correct: 'B',
+              points: 0.25,
+              explanation: '"balance homework deadlines and leisure activities without last-minute panic".'
+            },
+            {
+              id: 'read_p2_29',
+              num: 29,
+              prompt: 'What happens when teenagers do 30 minutes of physical exercise?',
+              options: [
+                'A. They feel more stressed than before',
+                'B. It releases endorphins that improve mood and memory',
+                'C. They immediately fall asleep during daytime',
+                'D. Their memory becomes significantly weaker'
+              ],
+              correct: 'B',
+              points: 0.25,
+              explanation: '"releases endorphins that improve mood and boost memory".'
+            },
+            {
+              id: 'read_p2_30',
+              num: 30,
+              prompt: 'The word "essential" in paragraph 2 is closest in meaning to ________.',
+              options: ['A. extremely important', 'B. unnecessary', 'C. difficult', 'D. boring'],
+              correct: 'A',
+              points: 0.25,
+              explanation: '"essential" có nghĩa là rất quan trọng, thiết yếu (= extremely important).'
+            }
+          ]
+        }
+      },
+
+      // SECTION 4: WRITING (7 câu • 2.5đ, Câu 31 - 37)
       writing: {
-        task1: {
-          instruction: 'Task 1: Sắp xếp các từ gợi ý thành câu hoàn chỉnh',
+        points: 2.5,
+        banner: 'Cấu trúc chuẩn Phần Writing (Tổng 2.5 điểm - 3 Parts): Part 1: 0.5m • Part 2: 1.0m • Part 3: 1.0m',
+        part1: {
+          title: 'Part 1: Sắp xếp câu / đoạn hội thoại (Câu 31 - 32 • 0.5đ)',
+          instruction: 'Mark the letter A, B, C, or D to indicate the correct arrangement of the sentences to make a meaningful exchange or paragraph.',
           questions: [
-            { id: 'q35', num: 35, cues: 'Life / in / countryside / be / more / peaceful / than / in / big / cities / .', correct: 'Life in the countryside is more peaceful than in big cities.' },
-            { id: 'q36', num: 36, cues: 'Teenagers / should / balance / their / time / between / study / and / physical / exercises / .', correct: 'Teenagers should balance their time between study and physical exercises.' },
-            { id: 'q37', num: 37, cues: 'Mai / spend / two / hours / make / origami / models / every / Sunday / afternoon / .', correct: 'Mai spends two hours making origami models every Sunday afternoon.' }
+            {
+              id: 'writ_p1_31',
+              num: 31,
+              title: 'Sắp xếp đoạn hội thoại giữa Lan và Ba về kế hoạch cuối tuần:',
+              cuesList: [
+                'a. That sounds fantastic! What time should we meet at the park?',
+                'b. Would you like to go rollerblading with our team this Saturday?',
+                'c. How about 8:00 AM near the fountain?'
+              ],
+              options: ['A. b - a - c', 'B. a - b - c', 'C. c - a - b', 'D. b - c - a'],
+              correct: 'A',
+              points: 0.25,
+              explanation: 'Lời rủ rê (b) -> Nhận lời và hỏi giờ (a) -> Chốt giờ hẹn (c).'
+            },
+            {
+              id: 'writ_p1_32',
+              num: 32,
+              title: 'Sắp xếp các câu để tạo thành đoạn văn hoàn chỉnh về lợi ích của việc đọc sách:',
+              cuesList: [
+                'a. Furthermore, it helps teenagers expand vocabulary and improve concentration.',
+                'b. Reading books is one of the most beneficial leisure activities for students.',
+                'c. First of all, books provide endless knowledge about different cultures and history.'
+              ],
+              options: ['A. b - c - a', 'B. c - b - a', 'C. a - c - b', 'D. b - a - c'],
+              correct: 'A',
+              points: 0.25,
+              explanation: 'Câu chủ đề mở đoạn (b) -> Ý thứ nhất "First of all" (c) -> Ý tiếp theo "Furthermore" (a).'
+            }
           ]
         },
-        task2: {
-          instruction: 'Task 2: Viết lại câu sao cho nghĩa không đổi',
+        part2: {
+          title: 'Part 2: Viết lại câu không đổi nghĩa (Sentence Transformation • Câu 33 - 36 • 1.0đ)',
+          instruction: 'Finish each of the following sentences in such a way that it means the same as the sentence printed before it.',
           questions: [
-            { id: 'q38', num: 38, prompt: 'Mai loves creating handmade gifts for her best friends. (keen)', startWith: 'Mai is', correct: 'Mai is keen on creating handmade gifts for her best friends.' },
-            { id: 'q39', num: 39, prompt: 'He started learning to play the guitar two years ago.', startWith: 'He has', correct: 'He has learned to play the guitar for two years.' },
-            { id: 'q40', num: 40, prompt: 'No one in our class runs as fast as Minh.', startWith: 'Minh is', correct: 'Minh is the fastest runner in our class.' }
+            {
+              id: 'writ_p2_33',
+              num: 33,
+              original: 'Minh is interested in making origami models in his leisure time.',
+              startWith: 'Minh enjoys',
+              correct: 'Minh enjoys making origami models in his leisure time.',
+              points: 0.25,
+              explanation: 'Cấu trúc: be interested in V-ing = enjoy V-ing (thích làm gì).'
+            },
+            {
+              id: 'writ_p2_34',
+              num: 34,
+              original: 'Life in the countryside is more peaceful than life in the bustling city.',
+              startWith: 'Life in the bustling city is',
+              correct: 'Life in the bustling city is not as peaceful as life in the countryside.',
+              points: 0.25,
+              explanation: 'So sánh hơn -> So sánh không bằng: not as/so + adj + as.'
+            },
+            {
+              id: 'writ_p2_35',
+              num: 35,
+              original: 'They started building this community cultural centre two months ago.',
+              startWith: 'They have',
+              correct: 'They have built this community cultural centre for two months.',
+              points: 0.25,
+              explanation: 'Quá khứ đơn (started V-ing ... ago) -> Hiện tại hoàn thành (have V3/ed ... for + khoảng thời gian).'
+            },
+            {
+              id: 'writ_p2_36',
+              num: 36,
+              original: 'No one in our class can solve complicated maths problems as quickly as Lan.',
+              startWith: 'Lan is the',
+              correct: 'Lan is the fastest student to solve complicated maths problems in our class.',
+              points: 0.25,
+              explanation: 'So sánh không ai bằng -> So sánh nhất (Lan is the fastest / Lan can solve ... the most quickly).'
+            }
           ]
         },
-        paragraph: {
-          num: 41,
-          topic: 'Write a paragraph (80 - 100 words) about your favourite leisure activity or life in your neighbourhood.',
-          guidance: 'Mention: 1. What the activity/neighbourhood is; 2. Who you do it with / How often; 3. Why you love it and its benefits.',
-          sampleEssay: 'My favourite leisure activity is cycling around my neighbourhood with my best friends every Saturday afternoon. Our neighbourhood is quiet, green, and full of shade from tall trees. Cycling not only allows me to enjoy the fresh breeze, but it also keeps me healthy and energetic after long hours of studying. Moreover, chatting and laughing with friends helps me reduce school stress and feel refreshed for the new week.'
+        part3: {
+          title: 'Part 3: Viết đoạn văn tự luận (Paragraph Writing • Câu 37 • 1.0đ)',
+          instruction: 'Write a paragraph (80 - 100 words) about a topic specified below.',
+          num: 37,
+          topic: 'What kind of pressure do you face as a teenager and how do you overcome it?',
+          guidance: 'You should mention:\n- What types of pressure you face (homework, exams, parents\' expectations, or peer pressure);\n- How it affects your feelings and daily study;\n- What strategies you use to overcome or reduce this pressure (doing exercise, talking to parents/friends, managing timetable).',
+          sampleEssay: 'As a Grade 8 student, the biggest pressure I face is heavy schoolwork and preparation for upcoming exams. Sometimes, high expectations from parents make me feel anxious and exhausted. To overcome this stress, I have adopted several effective habits. First, I create a realistic study timetable so I can finish homework on time without cramming late at night. Second, I spend 30 minutes every afternoon playing badminton with my neighbours to recharge my energy. Finally, whenever I feel overwhelmed, I talk openly with my mother, who always gives me warm encouragement and practical advice.',
+          barem: [
+            { criteria: 'Task response & Content (Đúng chủ đề, đủ ý)', points: '0.4đ' },
+            { criteria: 'Organisation & Coherence (Mạch lạc, có từ nối)', points: '0.3đ' },
+            { criteria: 'Vocabulary & Grammar (Đa dạng từ vựng, đúng ngữ pháp)', points: '0.3đ' }
+          ]
         }
       }
     };
@@ -366,6 +627,241 @@ export default function ExamAuthoringTab({
     }));
   };
 
+  // ===================== CRUD HANDLERS CHO SECTION 2: LANGUAGE =====================
+  // Thêm câu hỏi vào Section 2 Part 1 (Leaflet)
+  const handleAddQuestionLanguagePart1 = () => {
+    const list = examData.language.part1.questions;
+    const nextNum = list.length > 0 ? list[list.length - 1].num + 1 : 11;
+    const newQ = {
+      id: `lang_p1_${Date.now()}`,
+      num: nextNum,
+      blankLabel: `Câu ${nextNum} (Vị trí ${nextNum}):`,
+      options: ['A. active', 'B. actively', 'C. activity', 'D. activate'],
+      correct: 'A',
+      points: 0.25,
+      explanation: 'Chọn dạng từ loại thích hợp cho vị trí trống.'
+    };
+    setExamData((prev) => ({
+      ...prev,
+      language: {
+        ...prev.language,
+        part1: {
+          ...prev.language.part1,
+          questions: [...prev.language.part1.questions, newQ]
+        }
+      }
+    }));
+  };
+
+  const handleDeleteQuestionLanguagePart1 = (qId) => {
+    setExamData((prev) => ({
+      ...prev,
+      language: {
+        ...prev.language,
+        part1: {
+          ...prev.language.part1,
+          questions: prev.language.part1.questions.filter((q) => q.id !== qId)
+        }
+      }
+    }));
+  };
+
+  // Thêm câu hỏi vào Section 2 Part 2 (Announcement)
+  const handleAddQuestionLanguagePart2 = () => {
+    const list = examData.language.part2.questions;
+    const nextNum = list.length > 0 ? list[list.length - 1].num + 1 : 16;
+    const newQ = {
+      id: `lang_p2_${Date.now()}`,
+      num: nextNum,
+      blankLabel: `Câu ${nextNum} (Vị trí ${nextNum}):`,
+      options: ['A. remember', 'B. forget', 'C. remind', 'D. remind of'],
+      correct: 'A',
+      points: 0.25,
+      explanation: 'Điền từ vựng chuẩn ngữ cảnh thông báo.'
+    };
+    setExamData((prev) => ({
+      ...prev,
+      language: {
+        ...prev.language,
+        part2: {
+          ...prev.language.part2,
+          questions: [...prev.language.part2.questions, newQ]
+        }
+      }
+    }));
+  };
+
+  const handleDeleteQuestionLanguagePart2 = (qId) => {
+    setExamData((prev) => ({
+      ...prev,
+      language: {
+        ...prev.language,
+        part2: {
+          ...prev.language.part2,
+          questions: prev.language.part2.questions.filter((q) => q.id !== qId)
+        }
+      }
+    }));
+  };
+
+  // ===================== CRUD HANDLERS CHO SECTION 3: READING =====================
+  // Thêm câu True/False Part 1
+  const handleAddQuestionReadingPart1 = () => {
+    const list = examData.reading.part1.questions;
+    const nextNum = list.length > 0 ? list[list.length - 1].num + 1 : 21;
+    const newQ = {
+      id: `read_p1_${Date.now()}`,
+      num: nextNum,
+      prompt: 'Nam and his classmates usually ride bicycles to school together.',
+      correct: 'TRUE',
+      points: 0.25,
+      explanation: 'Chi tiết được đề cập trong bài đọc hiểu.'
+    };
+    setExamData((prev) => ({
+      ...prev,
+      reading: {
+        ...prev.reading,
+        part1: {
+          ...prev.reading.part1,
+          questions: [...prev.reading.part1.questions, newQ]
+        }
+      }
+    }));
+  };
+
+  const handleDeleteQuestionReadingPart1 = (qId) => {
+    setExamData((prev) => ({
+      ...prev,
+      reading: {
+        ...prev.reading,
+        part1: {
+          ...prev.reading.part1,
+          questions: prev.reading.part1.questions.filter((q) => q.id !== qId)
+        }
+      }
+    }));
+  };
+
+  // Thêm câu MCQ Part 2
+  const handleAddQuestionReadingPart2 = () => {
+    const list = examData.reading.part2.questions;
+    const nextNum = list.length > 0 ? list[list.length - 1].num + 1 : 26;
+    const newQ = {
+      id: `read_p2_${Date.now()}`,
+      num: nextNum,
+      prompt: 'What should teenagers do whenever they feel stressed?',
+      options: ['A. Talk to counsellors or parents', 'B. Play games all night', 'C. Skip meals', 'D. Stay isolated'],
+      correct: 'A',
+      points: 0.25,
+      explanation: 'Lời khuyên từ các chuyên gia tâm lý trong đoạn văn.'
+    };
+    setExamData((prev) => ({
+      ...prev,
+      reading: {
+        ...prev.reading,
+        part2: {
+          ...prev.reading.part2,
+          questions: [...prev.reading.part2.questions, newQ]
+        }
+      }
+    }));
+  };
+
+  const handleDeleteQuestionReadingPart2 = (qId) => {
+    setExamData((prev) => ({
+      ...prev,
+      reading: {
+        ...prev.reading,
+        part2: {
+          ...prev.reading.part2,
+          questions: prev.reading.part2.questions.filter((q) => q.id !== qId)
+        }
+      }
+    }));
+  };
+
+  // ===================== CRUD HANDLERS CHO SECTION 4: WRITING =====================
+  // Thêm câu Sắp xếp Part 1
+  const handleAddQuestionWritingPart1 = () => {
+    const list = examData.writing.part1.questions;
+    const nextNum = list.length > 0 ? list[list.length - 1].num + 1 : 31;
+    const newQ = {
+      id: `writ_p1_${Date.now()}`,
+      num: nextNum,
+      title: 'Sắp xếp các câu để hoàn thành đoạn hội thoại:',
+      cuesList: [
+        'a. Yes, I would love to join.',
+        'b. Are you free this afternoon?',
+        'c. Great, see you at 3 PM!'
+      ],
+      options: ['A. b - a - c', 'B. a - b - c', 'C. c - a - b', 'D. b - c - a'],
+      correct: 'A',
+      points: 0.25,
+      explanation: 'Trình tự hợp lý của đoạn hội thoại giao tiếp.'
+    };
+    setExamData((prev) => ({
+      ...prev,
+      writing: {
+        ...prev.writing,
+        part1: {
+          ...prev.writing.part1,
+          questions: [...prev.writing.part1.questions, newQ]
+        }
+      }
+    }));
+  };
+
+  const handleDeleteQuestionWritingPart1 = (qId) => {
+    setExamData((prev) => ({
+      ...prev,
+      writing: {
+        ...prev.writing,
+        part1: {
+          ...prev.writing.part1,
+          questions: prev.writing.part1.questions.filter((q) => q.id !== qId)
+        }
+      }
+    }));
+  };
+
+  // Thêm câu Viết lại Part 2
+  const handleAddQuestionWritingPart2 = () => {
+    const list = examData.writing.part2.questions;
+    const nextNum = list.length > 0 ? list[list.length - 1].num + 1 : 33;
+    const newQ = {
+      id: `writ_p2_${Date.now()}`,
+      num: nextNum,
+      original: 'Peter loves playing football with his friends after school.',
+      startWith: 'Peter is keen on',
+      correct: 'Peter is keen on playing football with his friends after school.',
+      points: 0.25,
+      explanation: 'love V-ing = be keen on V-ing.'
+    };
+    setExamData((prev) => ({
+      ...prev,
+      writing: {
+        ...prev.writing,
+        part2: {
+          ...prev.writing.part2,
+          questions: [...prev.writing.part2.questions, newQ]
+        }
+      }
+    }));
+  };
+
+  const handleDeleteQuestionWritingPart2 = (qId) => {
+    setExamData((prev) => ({
+      ...prev,
+      writing: {
+        ...prev.writing,
+        part2: {
+          ...prev.writing.part2,
+          questions: prev.writing.part2.questions.filter((q) => q.id !== qId)
+        }
+      }
+    }));
+  };
+
   // Lưu toàn bộ đề thi vào kho đề
   const handleSaveExam = () => {
     const formattedExam = {
@@ -398,20 +894,25 @@ export default function ExamAuthoringTab({
     setActiveMenu('created');
   };
 
-  // Đếm tổng số câu hỏi
+  // Đếm tổng số câu hỏi chính xác theo ma trận chuẩn 41 câu
   const totalListeningCount =
     (examData.listening.part1?.questions?.length || 0) +
     (examData.listening.part2?.questions?.length || 0) +
     (examData.listening.part3?.questions?.length || 0);
 
-  const totalLanguageCount = examData.language.questions?.length || 0;
+  const totalLanguageCount =
+    (examData.language?.part1?.questions?.length || 0) +
+    (examData.language?.part2?.questions?.length || 0);
+
   const totalReadingCount =
-    (examData.reading.part1?.questions?.length || 0) +
-    (examData.reading.part2?.questions?.length || 0);
+    (examData.reading?.part1?.questions?.length || 0) +
+    (examData.reading?.part2?.questions?.length || 0);
+
   const totalWritingCount =
-    (examData.writing.task1?.questions?.length || 0) +
-    (examData.writing.task2?.questions?.length || 0) +
-    (examData.writing.paragraph ? 1 : 0);
+    (examData.writing?.part1?.questions?.length || 0) +
+    (examData.writing?.part2?.questions?.length || 0) +
+    (examData.writing?.part3 ? 1 : 0);
+
   const grandTotal = totalListeningCount + totalLanguageCount + totalReadingCount + totalWritingCount;
 
   return (
@@ -1327,124 +1828,1332 @@ export default function ExamAuthoringTab({
           )}
 
           {/* =================================================================
-              SECTION 2: LANGUAGE (CÂU 15 - 24)
+              SECTION 2: KNOWLEDGE OF LANGUAGE (THEO ĐÚNG ẢNH 1: 2 BÀI CLOZE • 10 CÂU 2.5Đ)
           ================================================================== */}
           {(currentSection === 'section2' || currentSection === 'all') && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-teal-100 text-teal-800">
-                    SECTION 2
-                  </span>
-                  <h3 className="text-base font-black text-slate-900 mt-1">Section 2: Language Focus</h3>
-                  <p className="text-xs text-slate-500">Ngữ âm gạch chân, trọng âm 2 âm tiết, từ vựng và ngữ pháp (Câu 15 - Câu 24)</p>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-6">
+              {/* Header Section 2 */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center text-xl font-bold shrink-0">
+                    📖
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-teal-100 text-teal-800">
+                        SECTION 2
+                      </span>
+                      <span className="text-xs font-bold text-teal-700">Câu 11 - Câu 20 • 2.5 điểm</span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+                      Section 2: Knowledge of Language - Cloze Passages
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Gồm 2 bài đọc điền khuyết: Part 1: Leaflet (Tờ rơi trường học) & Part 2: Announcement (Thông báo)
+                    </p>
+                  </div>
                 </div>
-                <span className="px-3 py-1 rounded-xl bg-teal-50 text-teal-800 font-bold text-xs">
-                  {totalLanguageCount} câu • 2.5 điểm
-                </span>
+
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1.5 rounded-xl bg-teal-50 text-teal-800 font-extrabold text-xs border border-teal-200">
+                    {totalLanguageCount} câu hỏi • 2.5 điểm
+                  </span>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                {examData.language.questions.map((q, idx) => (
-                  <div key={q.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
-                    <div className="font-bold text-slate-800">Câu {q.num}: {q.prompt}</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {q.options.map((opt, oIdx) => {
-                        const letter = String.fromCharCode(65 + oIdx);
-                        const isCorrect = q.correct === letter;
-                        return (
-                          <div
-                            key={oIdx}
-                            className={`p-2 rounded-lg border text-[11px] font-semibold ${
-                              isCorrect ? 'bg-emerald-100 border-emerald-400 text-emerald-900 font-bold' : 'bg-white border-slate-200 text-slate-700'
-                            }`}
-                          >
-                            {opt}
-                          </div>
-                        );
-                      })}
+              {/* PART 1: LEAFLET (TỜ RƠI TRƯỜNG HỌC - CÂU 11-15) */}
+              <div className="border border-teal-300 rounded-2xl p-4 bg-teal-50/20 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-200 pb-2.5">
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-teal-600 text-white">
+                        PART 1
+                      </span>
+                      <span className="text-[11px] font-bold text-teal-800">Leaflet (Câu 11 - Câu 15)</span>
                     </div>
+                    <h4 className="font-black text-slate-900 text-sm mt-0.5">
+                      {examData.language.part1.badge}: {examData.language.part1.title}
+                    </h4>
                   </div>
-                ))}
+
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-black text-teal-700">
+                      {examData.language.part1.questions.length} câu • 1.25đ
+                    </span>
+                    <button
+                      onClick={handleAddQuestionLanguagePart1}
+                      className="px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-2xs flex items-center space-x-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm câu Part 1</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tiêu đề & Nội dung đoạn văn Leaflet */}
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Tiêu đề tờ rơi (Leaflet Title):</label>
+                    <input
+                      type="text"
+                      value={examData.language.part1.title}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          language: {
+                            ...prev.language,
+                            part1: { ...prev.language.part1, title: val }
+                          }
+                        }));
+                      }}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Nội dung đoạn văn tờ rơi khuyết từ (Passage with blanks):</label>
+                    <textarea
+                      rows={4}
+                      value={examData.language.part1.passage}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          language: {
+                            ...prev.language,
+                            part1: { ...prev.language.part1, passage: val }
+                          }
+                        }));
+                      }}
+                      className="w-full p-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-800 leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                {/* Danh sách 5 câu hỏi con Part 1 (Ảnh 1) */}
+                <div className="space-y-3">
+                  {examData.language.part1.questions.map((q) => (
+                    <div key={q.id} className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2.5 text-xs shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                          {q.blankLabel || `Câu ${q.num}:`} Điền từ vào chỗ trống ({q.num})
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-bold text-[10px]">
+                            {q.points || 0.25}đ
+                          </span>
+                          <button
+                            onClick={() => handleDeleteQuestionLanguagePart1(q.id)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            title="Xóa câu hỏi này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 4 Lựa chọn ABCD */}
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-600 mb-1">
+                          Các phương án A, B, C, D (Nhấp nút tròn để chọn đáp án đúng):
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {q.options.map((opt, oIdx) => {
+                            const letter = String.fromCharCode(65 + oIdx);
+                            const isCorrect = q.correct === letter;
+                            return (
+                              <div
+                                key={oIdx}
+                                className={`p-2 rounded-lg border flex items-center space-x-2 ${
+                                  isCorrect ? 'bg-emerald-50 border-emerald-400' : 'bg-slate-50 border-slate-200'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`radio_lang_p1_${q.id}`}
+                                  checked={isCorrect}
+                                  onChange={() => {
+                                    setExamData((prev) => ({
+                                      ...prev,
+                                      language: {
+                                        ...prev.language,
+                                        part1: {
+                                          ...prev.language.part1,
+                                          questions: prev.language.part1.questions.map((item) =>
+                                            item.id === q.id ? { ...item, correct: letter } : item
+                                          )
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <span className="font-bold text-slate-700">{letter}.</span>
+                                <input
+                                  type="text"
+                                  value={opt.replace(/^[A-D]\.\s*/, '')}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setExamData((prev) => ({
+                                      ...prev,
+                                      language: {
+                                        ...prev.language,
+                                        part1: {
+                                          ...prev.language.part1,
+                                          questions: prev.language.part1.questions.map((item) => {
+                                            if (item.id === q.id) {
+                                              const nextOpts = [...item.options];
+                                              nextOpts[oIdx] = `${letter}. ${val}`;
+                                              return { ...item, options: nextOpts };
+                                            }
+                                            return item;
+                                          })
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="flex-1 bg-transparent border-none text-xs text-slate-800 focus:outline-hidden"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Giải thích đáp án */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-0.5">Lời giải thích chi tiết:</label>
+                        <input
+                          type="text"
+                          value={q.explanation || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExamData((prev) => ({
+                              ...prev,
+                              language: {
+                                ...prev.language,
+                                part1: {
+                                  ...prev.language.part1,
+                                  questions: prev.language.part1.questions.map((item) =>
+                                    item.id === q.id ? { ...item, explanation: val } : item
+                                  )
+                                }
+                              }
+                            }));
+                          }}
+                          className="w-full px-2.5 py-1 rounded-lg border border-slate-300 font-medium text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* PART 2: ANNOUNCEMENT (THÔNG BÁO - CÂU 16-20) */}
+              <div className="border border-blue-300 rounded-2xl p-4 bg-blue-50/20 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-200 pb-2.5">
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-blue-600 text-white">
+                        PART 2
+                      </span>
+                      <span className="text-[11px] font-bold text-blue-800">Announcement (Câu 16 - Câu 20)</span>
+                    </div>
+                    <h4 className="font-black text-slate-900 text-sm mt-0.5">
+                      {examData.language.part2.badge}: {examData.language.part2.title}
+                    </h4>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-black text-blue-700">
+                      {examData.language.part2.questions.length} câu • 1.25đ
+                    </span>
+                    <button
+                      onClick={handleAddQuestionLanguagePart2}
+                      className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-2xs flex items-center space-x-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm câu Part 2</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tiêu đề & Nội dung đoạn văn Announcement */}
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Tiêu đề thông báo (Announcement Title):</label>
+                    <input
+                      type="text"
+                      value={examData.language.part2.title}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          language: {
+                            ...prev.language,
+                            part2: { ...prev.language.part2, title: val }
+                          }
+                        }));
+                      }}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Nội dung văn bản thông báo khuyết từ:</label>
+                    <textarea
+                      rows={5}
+                      value={examData.language.part2.passage}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          language: {
+                            ...prev.language,
+                            part2: { ...prev.language.part2, passage: val }
+                          }
+                        }));
+                      }}
+                      className="w-full p-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-800 leading-relaxed font-mono text-[11px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Danh sách 5 câu hỏi con Part 2 */}
+                <div className="space-y-3">
+                  {examData.language.part2.questions.map((q) => (
+                    <div key={q.id} className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2.5 text-xs shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                          {q.blankLabel || `Câu ${q.num}:`} Điền từ vào chỗ trống ({q.num})
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[10px]">
+                            {q.points || 0.25}đ
+                          </span>
+                          <button
+                            onClick={() => handleDeleteQuestionLanguagePart2(q.id)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            title="Xóa câu hỏi này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 4 Lựa chọn ABCD */}
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-600 mb-1">
+                          Các phương án A, B, C, D (Nhấp nút tròn để chọn đáp án đúng):
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {q.options.map((opt, oIdx) => {
+                            const letter = String.fromCharCode(65 + oIdx);
+                            const isCorrect = q.correct === letter;
+                            return (
+                              <div
+                                key={oIdx}
+                                className={`p-2 rounded-lg border flex items-center space-x-2 ${
+                                  isCorrect ? 'bg-emerald-50 border-emerald-400' : 'bg-slate-50 border-slate-200'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`radio_lang_p2_${q.id}`}
+                                  checked={isCorrect}
+                                  onChange={() => {
+                                    setExamData((prev) => ({
+                                      ...prev,
+                                      language: {
+                                        ...prev.language,
+                                        part2: {
+                                          ...prev.language.part2,
+                                          questions: prev.language.part2.questions.map((item) =>
+                                            item.id === q.id ? { ...item, correct: letter } : item
+                                          )
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <span className="font-bold text-slate-700">{letter}.</span>
+                                <input
+                                  type="text"
+                                  value={opt.replace(/^[A-D]\.\s*/, '')}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setExamData((prev) => ({
+                                      ...prev,
+                                      language: {
+                                        ...prev.language,
+                                        part2: {
+                                          ...prev.language.part2,
+                                          questions: prev.language.part2.questions.map((item) => {
+                                            if (item.id === q.id) {
+                                              const nextOpts = [...item.options];
+                                              nextOpts[oIdx] = `${letter}. ${val}`;
+                                              return { ...item, options: nextOpts };
+                                            }
+                                            return item;
+                                          })
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="flex-1 bg-transparent border-none text-xs text-slate-800 focus:outline-hidden"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Giải thích đáp án */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-0.5">Lời giải thích chi tiết:</label>
+                        <input
+                          type="text"
+                          value={q.explanation || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExamData((prev) => ({
+                              ...prev,
+                              language: {
+                                ...prev.language,
+                                part2: {
+                                  ...prev.language.part2,
+                                  questions: prev.language.part2.questions.map((item) =>
+                                    item.id === q.id ? { ...item, explanation: val } : item
+                                  )
+                                }
+                              }
+                            }));
+                          }}
+                          className="w-full px-2.5 py-1 rounded-lg border border-slate-300 font-medium text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           {/* =================================================================
-              SECTION 3: READING (CÂU 25 - 34)
+              SECTION 3: READING (THEO ĐÚNG ẢNH 2: 2 BÀI ĐỌC • 10 CÂU 2.5Đ)
           ================================================================== */}
           {(currentSection === 'section3' || currentSection === 'all') && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-cyan-100 text-cyan-800">
-                    SECTION 3
-                  </span>
-                  <h3 className="text-base font-black text-slate-900 mt-1">Section 3: Reading</h3>
-                  <p className="text-xs text-slate-500">2 bài đọc: Làng cổ Đường Lâm (Câu 25-29) và Thời gian giải trí của tuổi Teen (Câu 30-34)</p>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-6">
+              {/* Header Section 3 */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-800 flex items-center justify-center text-xl font-bold shrink-0">
+                    📚
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-800">
+                        SECTION 3
+                      </span>
+                      <span className="text-xs font-bold text-cyan-700">Câu 21 - Câu 30 • 2.5 điểm</span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+                      Section 3: Reading Comprehension (Kỹ năng Đọc hiểu)
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Bài đọc 1: Đúng/Sai (True/False • 5 câu 1.25đ) và Bài đọc 2: Trắc nghiệm 4 lựa chọn (A, B, C, D • 5 câu 1.25đ)
+                    </p>
+                  </div>
                 </div>
-                <span className="px-3 py-1 rounded-xl bg-cyan-50 text-cyan-800 font-bold text-xs">
-                  {totalReadingCount} câu • 2.5 điểm
-                </span>
+
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1.5 rounded-xl bg-cyan-50 text-cyan-800 font-extrabold text-xs border border-cyan-200">
+                    {totalReadingCount} câu hỏi • 2.5 điểm
+                  </span>
+                </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
-                  <h4 className="font-extrabold text-slate-800">{examData.reading.part1.title}</h4>
-                  <div className="p-3 bg-white rounded-lg border border-slate-200 italic text-slate-700 leading-relaxed">
-                    {examData.reading.part1.passage}
+              {/* BÀI ĐỌC 1: TRUE / FALSE (ẢNH 2 TRÁI) */}
+              <div className="border border-cyan-300 rounded-2xl p-4 bg-cyan-50/20 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-200 pb-2.5">
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-cyan-600 text-white">
+                        PART 1
+                      </span>
+                      <span className="text-[11px] font-bold text-cyan-800">Câu 21 - Câu 25 • Đúng / Sai</span>
+                    </div>
+                    <h4 className="font-black text-slate-900 text-sm mt-0.5">
+                      Bài đọc 1: {examData.reading.part1.title}
+                    </h4>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-black text-cyan-700">
+                      {examData.reading.part1.questions.length} câu • 1.25đ
+                    </span>
+                    <button
+                      onClick={handleAddQuestionReadingPart1}
+                      className="px-3 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-2xs flex items-center space-x-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm câu Đúng/Sai</span>
+                    </button>
                   </div>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
-                  <h4 className="font-extrabold text-slate-800">{examData.reading.part2.title}</h4>
-                  <div className="p-3 bg-white rounded-lg border border-slate-200 text-slate-700 leading-relaxed">
-                    {examData.reading.part2.passage}
+                {/* Tiêu đề & Lời chỉ dẫn & Văn bản đọc hiểu */}
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Tiêu đề bài đọc 1:</label>
+                    <input
+                      type="text"
+                      value={examData.reading.part1.title}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          reading: {
+                            ...prev.reading,
+                            part1: { ...prev.reading.part1, title: val }
+                          }
+                        }));
+                      }}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-semibold"
+                    />
                   </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Lời chỉ dẫn bài thi (Instruction):</label>
+                    <input
+                      type="text"
+                      value={examData.reading.part1.instruction}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          reading: {
+                            ...prev.reading,
+                            part1: { ...prev.reading.part1, instruction: val }
+                          }
+                        }));
+                      }}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Văn bản bài đọc 1 (Reading Passage):</label>
+                    <textarea
+                      rows={5}
+                      value={examData.reading.part1.passage}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          reading: {
+                            ...prev.reading,
+                            part1: { ...prev.reading.part1, passage: val }
+                          }
+                        }));
+                      }}
+                      className="w-full p-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-800 leading-relaxed italic"
+                    />
+                  </div>
+                </div>
+
+                {/* Danh sách 5 câu hỏi Đúng / Sai */}
+                <div className="space-y-3">
+                  {examData.reading.part1.questions.map((q) => (
+                    <div key={q.id} className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2.5 text-xs shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                          Câu {q.num}: Nhận định đọc hiểu Đúng / Sai
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2 py-0.5 rounded bg-cyan-50 text-cyan-700 font-bold text-[10px]">
+                            {q.points || 0.25}đ
+                          </span>
+                          <button
+                            onClick={() => handleDeleteQuestionReadingPart1(q.id)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            title="Xóa nhận định này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                          Nội dung câu hỏi / nhận định:
+                        </label>
+                        <input
+                          type="text"
+                          value={q.prompt}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExamData((prev) => ({
+                              ...prev,
+                              reading: {
+                                ...prev.reading,
+                                part1: {
+                                  ...prev.reading.part1,
+                                  questions: prev.reading.part1.questions.map((item) =>
+                                    item.id === q.id ? { ...item, prompt: val } : item
+                                  )
+                                }
+                              }
+                            }));
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-medium"
+                        />
+                      </div>
+
+                      {/* Nút chọn TRUE / FALSE */}
+                      <div>
+                        <span className="block text-[11px] font-bold text-slate-600 mb-1.5">
+                          Đáp án đúng (Nhấn chọn TRUE hoặc FALSE):
+                        </span>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExamData((prev) => ({
+                                ...prev,
+                                reading: {
+                                  ...prev.reading,
+                                  part1: {
+                                    ...prev.reading.part1,
+                                    questions: prev.reading.part1.questions.map((item) =>
+                                      item.id === q.id ? { ...item, correct: 'TRUE' } : item
+                                    )
+                                  }
+                                }
+                              }));
+                            }}
+                            className={`px-4 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 border-2 ${
+                              q.correct === 'TRUE'
+                                ? 'bg-emerald-500 text-white border-emerald-600 shadow-xs'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>◉</span>
+                            <span>TRUE (Đúng)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExamData((prev) => ({
+                                ...prev,
+                                reading: {
+                                  ...prev.reading,
+                                  part1: {
+                                    ...prev.reading.part1,
+                                    questions: prev.reading.part1.questions.map((item) =>
+                                      item.id === q.id ? { ...item, correct: 'FALSE' } : item
+                                    )
+                                  }
+                                }
+                              }));
+                            }}
+                            className={`px-4 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 border-2 ${
+                              q.correct === 'FALSE'
+                                ? 'bg-rose-500 text-white border-rose-600 shadow-xs'
+                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            <span>○</span>
+                            <span>FALSE (Sai)</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Giải thích chi tiết */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-0.5">Lời giải thích chi tiết:</label>
+                        <input
+                          type="text"
+                          value={q.explanation || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExamData((prev) => ({
+                              ...prev,
+                              reading: {
+                                ...prev.reading,
+                                part1: {
+                                  ...prev.reading.part1,
+                                  questions: prev.reading.part1.questions.map((item) =>
+                                    item.id === q.id ? { ...item, explanation: val } : item
+                                  )
+                                }
+                              }
+                            }));
+                          }}
+                          className="w-full px-2.5 py-1 rounded-lg border border-slate-300 font-medium text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* BÀI ĐỌC 2: TRẮC NGHIỆM ABCD (ẢNH 2 PHẢI) */}
+              <div className="border border-indigo-300 rounded-2xl p-4 bg-indigo-50/20 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200 pb-2.5">
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-indigo-600 text-white">
+                        PART 2
+                      </span>
+                      <span className="text-[11px] font-bold text-indigo-800">Câu 26 - Câu 30 • Trắc nghiệm 4 lựa chọn</span>
+                    </div>
+                    <h4 className="font-black text-slate-900 text-sm mt-0.5">
+                      Bài đọc 2: {examData.reading.part2.title}
+                    </h4>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-black text-indigo-700">
+                      {examData.reading.part2.questions.length} câu • 1.25đ
+                    </span>
+                    <button
+                      onClick={handleAddQuestionReadingPart2}
+                      className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-2xs flex items-center space-x-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm câu trắc nghiệm</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tiêu đề & Lời chỉ dẫn & Văn bản đọc hiểu 2 */}
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Tiêu đề bài đọc 2:</label>
+                    <input
+                      type="text"
+                      value={examData.reading.part2.title}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          reading: {
+                            ...prev.reading,
+                            part2: { ...prev.reading.part2, title: val }
+                          }
+                        }));
+                      }}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Lời chỉ dẫn bài thi (Instruction):</label>
+                    <input
+                      type="text"
+                      value={examData.reading.part2.instruction}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          reading: {
+                            ...prev.reading,
+                            part2: { ...prev.reading.part2, instruction: val }
+                          }
+                        }));
+                      }}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Văn bản bài đọc 2 (Reading Passage):</label>
+                    <textarea
+                      rows={5}
+                      value={examData.reading.part2.passage}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          reading: {
+                            ...prev.reading,
+                            part2: { ...prev.reading.part2, passage: val }
+                          }
+                        }));
+                      }}
+                      className="w-full p-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-800 leading-relaxed text-[11px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Danh sách 5 câu hỏi trắc nghiệm ABCD */}
+                <div className="space-y-3">
+                  {examData.reading.part2.questions.map((q) => (
+                    <div key={q.id} className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2.5 text-xs shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                          Câu {q.num}: {q.prompt}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-[10px]">
+                            {q.points || 0.25}đ
+                          </span>
+                          <button
+                            onClick={() => handleDeleteQuestionReadingPart2(q.id)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            title="Xóa câu hỏi này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                          Nội dung câu hỏi:
+                        </label>
+                        <input
+                          type="text"
+                          value={q.prompt}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExamData((prev) => ({
+                              ...prev,
+                              reading: {
+                                ...prev.reading,
+                                part2: {
+                                  ...prev.reading.part2,
+                                  questions: prev.reading.part2.questions.map((item) =>
+                                    item.id === q.id ? { ...item, prompt: val } : item
+                                  )
+                                }
+                              }
+                            }));
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-medium"
+                        />
+                      </div>
+
+                      {/* 4 Lựa chọn ABCD */}
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-600 mb-1">
+                          Các phương án A, B, C, D (Nhấp nút tròn để chọn đáp án đúng):
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {q.options.map((opt, oIdx) => {
+                            const letter = String.fromCharCode(65 + oIdx);
+                            const isCorrect = q.correct === letter;
+                            return (
+                              <div
+                                key={oIdx}
+                                className={`p-2 rounded-lg border flex items-center space-x-2 ${
+                                  isCorrect ? 'bg-emerald-50 border-emerald-400' : 'bg-slate-50 border-slate-200'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`radio_read_p2_${q.id}`}
+                                  checked={isCorrect}
+                                  onChange={() => {
+                                    setExamData((prev) => ({
+                                      ...prev,
+                                      reading: {
+                                        ...prev.reading,
+                                        part2: {
+                                          ...prev.reading.part2,
+                                          questions: prev.reading.part2.questions.map((item) =>
+                                            item.id === q.id ? { ...item, correct: letter } : item
+                                          )
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <span className="font-bold text-slate-700">{letter}.</span>
+                                <input
+                                  type="text"
+                                  value={opt.replace(/^[A-D]\.\s*/, '')}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setExamData((prev) => ({
+                                      ...prev,
+                                      reading: {
+                                        ...prev.reading,
+                                        part2: {
+                                          ...prev.reading.part2,
+                                          questions: prev.reading.part2.questions.map((item) => {
+                                            if (item.id === q.id) {
+                                              const nextOpts = [...item.options];
+                                              nextOpts[oIdx] = `${letter}. ${val}`;
+                                              return { ...item, options: nextOpts };
+                                            }
+                                            return item;
+                                          })
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="flex-1 bg-transparent border-none text-xs text-slate-800 focus:outline-hidden"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Giải thích chi tiết */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-0.5">Lời giải thích chi tiết:</label>
+                        <input
+                          type="text"
+                          value={q.explanation || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExamData((prev) => ({
+                              ...prev,
+                              reading: {
+                                ...prev.reading,
+                                part2: {
+                                  ...prev.reading.part2,
+                                  questions: prev.reading.part2.questions.map((item) =>
+                                    item.id === q.id ? { ...item, explanation: val } : item
+                                  )
+                                }
+                              }
+                            }));
+                          }}
+                          className="w-full px-2.5 py-1 rounded-lg border border-slate-300 font-medium text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
 
           {/* =================================================================
-              SECTION 4: WRITING (CÂU 35 - 41)
+              SECTION 4: WRITING (THEO ĐÚNG ẢNH 3: 3 PHẦN TỔNG 2.5Đ)
           ================================================================== */}
           {(currentSection === 'section4' || currentSection === 'all') && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-rose-100 text-rose-800">
-                    SECTION 4
-                  </span>
-                  <h3 className="text-base font-black text-slate-900 mt-1">Section 4: Writing</h3>
-                  <p className="text-xs text-slate-500">Sắp xếp câu, viết lại câu không đổi nghĩa và đoạn văn 80-100 từ (Câu 35 - Câu 41)</p>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-6">
+              {/* Header Section 4 */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center text-xl font-bold shrink-0">
+                    ✍️
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-rose-100 text-rose-800">
+                        SECTION 4
+                      </span>
+                      <span className="text-xs font-bold text-rose-700">Câu 31 - Câu 37 • 2.5 điểm</span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+                      Section 4: Writing (Kỹ năng Viết - 3 Parts)
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Part 1: Sắp xếp hội thoại (0.5đ) • Part 2: Viết lại câu không đổi nghĩa (1.0đ) • Part 3: Viết đoạn văn tự luận (1.0đ)
+                    </p>
+                  </div>
                 </div>
-                <span className="px-3 py-1 rounded-xl bg-rose-50 text-rose-800 font-bold text-xs">
-                  {totalWritingCount} câu • 2.0 điểm
-                </span>
+
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-800 font-extrabold text-xs border border-rose-200">
+                    {totalWritingCount} câu • 2.5 điểm
+                  </span>
+                </div>
               </div>
 
-              <div className="space-y-3 text-xs">
-                {examData.writing.task1.questions.map((q) => (
-                  <div key={q.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="font-bold text-rose-700 mr-2">Câu {q.num}:</span>
-                    <span className="font-medium text-slate-800">{q.cues}</span>
-                    <div className="mt-1 text-emerald-700 font-bold">➔ {q.correct}</div>
-                  </div>
-                ))}
+              {/* Banner quy chuẩn Phần Writing theo Ảnh 3 */}
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-bold text-xs flex items-center space-x-2">
+                <span>📌</span>
+                <span>{examData.writing.banner}</span>
+              </div>
 
-                {examData.writing.task2.questions.map((q) => (
-                  <div key={q.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="font-bold text-rose-700 mr-2">Câu {q.num}:</span>
-                    <span className="font-medium text-slate-800">{q.prompt}</span>
-                    <div className="mt-1 text-emerald-700 font-bold">➔ {q.correct}</div>
+              {/* PART 1: SẮP XẾP HỘI THOẠI (CÂU 31, 32 • 0.5Đ) */}
+              <div className="border border-amber-300 rounded-2xl p-4 bg-amber-50/20 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-2.5">
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-600 text-white">
+                        PART 1
+                      </span>
+                      <span className="text-[11px] font-bold text-amber-800">Câu 31 - Câu 32 • 0.5 điểm</span>
+                    </div>
+                    <h4 className="font-black text-slate-900 text-sm mt-0.5">
+                      {examData.writing.part1.title}
+                    </h4>
                   </div>
-                ))}
 
-                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-                  <span className="font-bold text-rose-700 mr-2">Câu {examData.writing.paragraph.num}:</span>
-                  <span className="font-bold text-slate-900">{examData.writing.paragraph.topic}</span>
-                  <p className="mt-1 text-slate-600 italic">{examData.writing.paragraph.guidance}</p>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-black text-amber-700">
+                      {examData.writing.part1.questions.length} câu • 0.5đ
+                    </span>
+                    <button
+                      onClick={handleAddQuestionWritingPart1}
+                      className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-2xs flex items-center space-x-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm câu sắp xếp</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {examData.writing.part1.questions.map((q) => (
+                    <div key={q.id} className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2.5 text-xs shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                          Câu {q.num}: {q.title}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-bold text-[10px]">
+                            {q.points || 0.25}đ
+                          </span>
+                          <button
+                            onClick={() => handleDeleteQuestionWritingPart1(q.id)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            title="Xóa câu hỏi này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Các mệnh đề gợi ý cần sắp xếp */}
+                      <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1">
+                        <span className="font-bold text-slate-700 block text-[11px]">Các mệnh đề cần sắp xếp:</span>
+                        {q.cuesList?.map((cue, cIdx) => (
+                          <div key={cIdx} className="font-mono text-slate-800 text-[11px]">
+                            {cue}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* 4 Phương án chọn trật tự A, B, C, D */}
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-600 mb-1">
+                          Các phương án thứ tự (Nhấp nút tròn để chọn đáp án đúng):
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {q.options.map((opt, oIdx) => {
+                            const letter = String.fromCharCode(65 + oIdx);
+                            const isCorrect = q.correct === letter;
+                            return (
+                              <button
+                                key={oIdx}
+                                type="button"
+                                onClick={() => {
+                                  setExamData((prev) => ({
+                                    ...prev,
+                                    writing: {
+                                      ...prev.writing,
+                                      part1: {
+                                        ...prev.writing.part1,
+                                        questions: prev.writing.part1.questions.map((item) =>
+                                          item.id === q.id ? { ...item, correct: letter } : item
+                                        )
+                                      }
+                                    }
+                                  }));
+                                }}
+                                className={`p-2 rounded-lg border text-center font-bold text-xs transition flex items-center justify-center space-x-1.5 ${
+                                  isCorrect
+                                    ? 'bg-emerald-500 text-white border-emerald-600 shadow-xs'
+                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                <span>{isCorrect ? '◉' : '○'}</span>
+                                <span>{opt}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Lời giải thích */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-0.5">Lời giải thích chi tiết:</label>
+                        <input
+                          type="text"
+                          value={q.explanation || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExamData((prev) => ({
+                              ...prev,
+                              writing: {
+                                ...prev.writing,
+                                part1: {
+                                  ...prev.writing.part1,
+                                  questions: prev.writing.part1.questions.map((item) =>
+                                    item.id === q.id ? { ...item, explanation: val } : item
+                                  )
+                                }
+                              }
+                            }));
+                          }}
+                          className="w-full px-2.5 py-1 rounded-lg border border-slate-300 font-medium text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* PART 2: VIẾT LẠI CÂU KHÔNG ĐỔI NGHĨA (CÂU 33 - 36 • 1.0Đ) */}
+              <div className="border border-rose-300 rounded-2xl p-4 bg-rose-50/20 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-200 pb-2.5">
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-rose-600 text-white">
+                        PART 2
+                      </span>
+                      <span className="text-[11px] font-bold text-rose-800">Câu 33 - Câu 36 • 1.0 điểm</span>
+                    </div>
+                    <h4 className="font-black text-slate-900 text-sm mt-0.5">
+                      {examData.writing.part2.title}
+                    </h4>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-black text-rose-700">
+                      {examData.writing.part2.questions.length} câu • 1.0đ
+                    </span>
+                    <button
+                      onClick={handleAddQuestionWritingPart2}
+                      className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-2xs flex items-center space-x-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Thêm câu viết lại</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {examData.writing.part2.questions.map((q) => (
+                    <div key={q.id} className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-2.5 text-xs shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                          Câu {q.num}: Viết lại câu không đổi nghĩa
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 font-bold text-[10px]">
+                            {q.points || 0.25}đ
+                          </span>
+                          <button
+                            onClick={() => handleDeleteQuestionWritingPart2(q.id)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            title="Xóa câu hỏi này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Câu gốc */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-0.5">Câu gốc ban đầu (Original Sentence):</label>
+                        <input
+                          type="text"
+                          value={q.original}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExamData((prev) => ({
+                              ...prev,
+                              writing: {
+                                ...prev.writing,
+                                part2: {
+                                  ...prev.writing.part2,
+                                  questions: prev.writing.part2.questions.map((item) =>
+                                    item.id === q.id ? { ...item, original: val } : item
+                                  )
+                                }
+                              }
+                            }));
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 font-medium"
+                        />
+                      </div>
+
+                      {/* Từ bắt đầu & Đáp án chuẩn tự động chấm */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-rose-800 mb-0.5">Từ gợi ý bắt đầu (Start with):</label>
+                          <input
+                            type="text"
+                            value={q.startWith}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setExamData((prev) => ({
+                                ...prev,
+                                writing: {
+                                  ...prev.writing,
+                                  part2: {
+                                    ...prev.writing.part2,
+                                    questions: prev.writing.part2.questions.map((item) =>
+                                      item.id === q.id ? { ...item, startWith: val } : item
+                                    )
+                                  }
+                                }
+                              }));
+                            }}
+                            className="w-full px-3 py-1.5 rounded-lg border border-rose-300 bg-rose-50/40 font-bold text-rose-900"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-bold text-emerald-800 mb-0.5">
+                            Đáp án chuẩn hoàn chỉnh (Dùng tự động chấm điểm):
+                          </label>
+                          <input
+                            type="text"
+                            value={q.correct}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setExamData((prev) => ({
+                                ...prev,
+                                writing: {
+                                  ...prev.writing,
+                                  part2: {
+                                    ...prev.writing.part2,
+                                    questions: prev.writing.part2.questions.map((item) =>
+                                      item.id === q.id ? { ...item, correct: val } : item
+                                    )
+                                  }
+                                }
+                              }));
+                            }}
+                            className="w-full px-3 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50/40 font-bold text-emerald-900"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Lời giải thích */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-0.5">Giải thích cấu trúc ngữ pháp:</label>
+                        <input
+                          type="text"
+                          value={q.explanation || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExamData((prev) => ({
+                              ...prev,
+                              writing: {
+                                ...prev.writing,
+                                part2: {
+                                  ...prev.writing.part2,
+                                  questions: prev.writing.part2.questions.map((item) =>
+                                    item.id === q.id ? { ...item, explanation: val } : item
+                                  )
+                                }
+                              }
+                            }));
+                          }}
+                          className="w-full px-2.5 py-1 rounded-lg border border-slate-300 font-medium text-slate-700"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* PART 3: VIẾT ĐOẠN VĂN TỰ LUẬN (CÂU 37 • 1.0Đ) */}
+              <div className="border border-purple-300 rounded-2xl p-4 bg-purple-50/20 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-200 pb-2.5">
+                  <div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-purple-600 text-white">
+                        PART 3
+                      </span>
+                      <span className="text-[11px] font-bold text-purple-800">Câu 37 • Viết đoạn văn tự luận (80-100 từ)</span>
+                    </div>
+                    <h4 className="font-black text-slate-900 text-sm mt-0.5">
+                      {examData.writing.part3.title}
+                    </h4>
+                  </div>
+
+                  <span className="text-xs font-black text-purple-700 px-3 py-1 rounded-xl bg-purple-100 border border-purple-200">
+                    1.0 điểm (GV chấm thủ công)
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Chủ đề bài viết (Topic Prompt):</label>
+                    <input
+                      type="text"
+                      value={examData.writing.part3.topic}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          writing: {
+                            ...prev.writing,
+                            part3: { ...prev.writing.part3, topic: val }
+                          }
+                        }));
+                      }}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-extrabold text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Gợi ý dàn ý cho học sinh (Guidance / Cues):</label>
+                    <textarea
+                      rows={3}
+                      value={examData.writing.part3.guidance}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          writing: {
+                            ...prev.writing,
+                            part3: { ...prev.writing.part3, guidance: val }
+                          }
+                        }));
+                      }}
+                      className="w-full p-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-800 leading-relaxed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-0.5">Đoạn văn mẫu tham khảo (Sample Essay):</label>
+                    <textarea
+                      rows={4}
+                      value={examData.writing.part3.sampleEssay}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setExamData((prev) => ({
+                          ...prev,
+                          writing: {
+                            ...prev.writing,
+                            part3: { ...prev.writing.part3, sampleEssay: val }
+                          }
+                        }));
+                      }}
+                      className="w-full p-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-800 leading-relaxed italic"
+                    />
+                  </div>
+
+                  {/* Barem tiêu chí chấm điểm */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-1.5">
+                    <span className="font-bold text-purple-900 block text-[11px]">Barem tiêu chí chấm điểm tự luận (1.0đ):</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {examData.writing.part3.barem?.map((b, bIdx) => (
+                        <div key={bIdx} className="p-2 rounded-lg bg-purple-50/50 border border-purple-100 flex items-center justify-between">
+                          <span className="text-slate-700 font-medium text-[11px]">{b.criteria}</span>
+                          <span className="font-extrabold text-purple-800 ml-2">{b.points}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
