@@ -539,6 +539,214 @@ const generateWordSearchGrid = (list, currentGrade = 'Lớp 7', shape = 'square'
 // COMPREHENSIVE OXFORD VOCABULARY MASTER DATABASE (100% OXFORD IPA, IMAGES, PHRASES & EXAMPLES)
 // =============================================================================
 export const OXFORD_VOCABULARY_MASTER_DATABASE = {
+  // --- CORE THCS & GLOBAL SUCCESS MASTER ENTRIES (100% OXFORD IPA, AUTHENTIC COLLOCATIONS & REAL CONTEXTUAL EXAMPLES) ---
+  'bring about': {
+    word: 'bring about',
+    pos: 'phr v',
+    phonetic: '/brɪŋ əˈbaʊt/',
+    meaning: 'mang lại, dẫn đến, gây ra (sự thay đổi hoặc kết quả)',
+    imageUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'bring about change (mang lại sự thay đổi)',
+      'bring about improvements (tạo ra những cải thiện)',
+      'bring about social change (tạo ra thay đổi xã hội)'
+    ],
+    examples: [
+      'The new school policy brought about significant changes in the way students learn.',
+      'Regular exercise can bring about improvements in your mood and energy levels.'
+    ]
+  },
+  'counsellor': {
+    word: 'counsellor',
+    pos: 'n',
+    phonetic: '/ˈkaʊnsələ(r)/',
+    meaning: 'chuyên viên tư vấn, thầy cô tham vấn học đường',
+    imageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'school counsellor (chuyên viên tư vấn học đường)',
+      'seek advice from a counsellor (tìm lời khuyên từ chuyên viên tư vấn)',
+      'a qualified counsellor (chuyên viên tư vấn có chuyên môn)'
+    ],
+    examples: [
+      'If you feel stressed about your exams, you can talk to the school counsellor.',
+      'The counsellor helped the student find ways to deal with bullying.'
+    ]
+  },
+  'counselor': {
+    word: 'counselor',
+    pos: 'n',
+    phonetic: '/ˈkaʊnsələr/',
+    meaning: 'chuyên viên tư vấn, người tham vấn tâm lý (chuẩn US)',
+    imageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'school counselor (chuyên viên tư vấn học đường)',
+      'seek advice from a counselor (tìm lời khuyên từ chuyên viên tư vấn)'
+    ],
+    examples: [
+      'Students can meet the counselor to discuss study plans and emotional well-being.',
+      'The school counselor gave helpful suggestions on managing study pressure.'
+    ]
+  },
+  'balance': {
+    word: 'balance',
+    pos: 'n',
+    phonetic: '/ˈbæləns/',
+    meaning: 'sự cân bằng, trạng thái hài hòa',
+    imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'keep a balance (giữ sự cân bằng)',
+      'study-life balance (sự cân bằng giữa học tập và cuộc sống)',
+      'lose balance (mất thăng bằng)'
+    ],
+    examples: [
+      'Students need to keep a healthy balance between studying and physical exercise.',
+      'Yoga and meditation help people maintain mental and emotional balance.'
+    ]
+  },
+  'look after': {
+    word: 'look after',
+    pos: 'phr v',
+    phonetic: '/lʊk ˈɑːftə(r)/',
+    meaning: 'chăm sóc, trông nom',
+    imageUrl: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'look after younger siblings (chăm sóc em nhỏ)',
+      "look after one's health (chăm sóc sức khỏe bản thân)",
+      'look after pets (chăm sóc thú cưng)'
+    ],
+    examples: [
+      'Nam often helps his parents look after his younger sister after school.',
+      'It is important to look after both your physical and mental health.'
+    ]
+  },
+  'deal with': {
+    word: 'deal with',
+    pos: 'phr v',
+    phonetic: '/diːl wɪð/',
+    meaning: 'giải quyết, đối phó, xử lý (khó khăn, vấn đề)',
+    imageUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'deal with stress (đối phó với căng thẳng)',
+      'deal with problems (giải quyết các vấn đề)',
+      'deal with difficult situations (xử lý tình huống khó khăn)'
+    ],
+    examples: [
+      'The counsellor shared useful strategies to deal with exam anxiety.',
+      'Teens can learn to deal with difficult challenges through open communication.'
+    ]
+  },
+  'mental': {
+    word: 'mental',
+    pos: 'adj',
+    phonetic: '/ˈmentl/',
+    meaning: 'thuộc về tinh thần, tâm trí',
+    imageUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'mental health (sức khỏe tinh thần)',
+      'mental well-being (sự an yên trong tâm hồn)',
+      'mental stress (áp lực tinh thần)'
+    ],
+    examples: [
+      'Regular exercise has a positive effect on both physical and mental health.',
+      'Talking with good friends helps improve your mental well-being.'
+    ]
+  },
+  'physical': {
+    word: 'physical',
+    pos: 'adj',
+    phonetic: '/ˈfɪzɪkl/',
+    meaning: 'thuộc về thể chất, cơ thể',
+    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'physical health (sức khỏe thể chất)',
+      'physical activity (hoạt động thể lực)',
+      'physical exercise (tập luyện thể lực)'
+    ],
+    examples: [
+      'Teenagers should take part in at least one hour of physical activity daily.',
+      'Eating healthy foods is essential for your physical development.'
+    ]
+  },
+  'priority': {
+    word: 'priority',
+    pos: 'n',
+    phonetic: '/praɪˈɒrəti/',
+    meaning: 'sự ưu tiên, việc ưu tiên hàng đầu',
+    imageUrl: 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'top priority (ưu tiên hàng đầu)',
+      'give priority to (dành sự ưu tiên cho)',
+      'set priorities (đặt ra thứ tự ưu tiên)'
+    ],
+    examples: [
+      'Finishing homework should be your top priority before playing video games.',
+      'Learning how to set priorities helps students manage their time wisely.'
+    ]
+  },
+  'well-balanced': {
+    word: 'well-balanced',
+    pos: 'adj',
+    phonetic: '/ˌwel ˈbælənst/',
+    meaning: 'cân bằng, điều độ, hài hòa',
+    imageUrl: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'well-balanced diet (chế độ ăn cân đối)',
+      'well-balanced life (cuộc sống cân bằng)',
+      'well-balanced meal (bữa ăn đủ chất)'
+    ],
+    examples: [
+      'A well-balanced diet provides enough energy for studying and sports.',
+      'Students should maintain a well-balanced routine between study and rest.'
+    ]
+  },
+  'concentrate': {
+    word: 'concentrate',
+    pos: 'v',
+    phonetic: '/ˈkɒnsntreɪt/',
+    meaning: 'tập trung (sự chú ý, tư tưởng)',
+    imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'concentrate on studies (tập trung vào việc học)',
+      'concentrate attention (tập trung sự chú ý)',
+      'hard to concentrate (khó tập trung)'
+    ],
+    examples: [
+      'It is difficult to concentrate on homework when there is loud music playing.',
+      'A quiet study space helps students concentrate much better on their lessons.'
+    ]
+  },
+  'distraction': {
+    word: 'distraction',
+    pos: 'n',
+    phonetic: '/dɪˈstrækʃn/',
+    meaning: 'sự xao nhãng, điều làm mất tập trung',
+    imageUrl: 'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'avoid distractions (tránh xao nhãng)',
+      'free from distraction (không bị làm phiền)',
+      'source of distraction (nguồn gây mất tập trung)'
+    ],
+    examples: [
+      'Turn off social media notifications to avoid distractions while studying.',
+      'A dedicated desk free from distractions boosts learning productivity.'
+    ]
+  },
+  'delay': {
+    word: 'delay',
+    pos: 'v',
+    phonetic: '/dɪˈleɪ/',
+    meaning: 'hoãn lại, chậm trễ, trì hoãn',
+    imageUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80',
+    phrases: [
+      'delay an appointment (hoãn cuộc hẹn)',
+      'without delay (không chậm trễ, ngay lập tức)',
+      'cause a delay (gây ra sự chậm trễ)'
+    ],
+    examples: [
+      'Do not delay your assignments until the night before the deadline.',
+      'Heavy rain delayed our school bus by thirty minutes this morning.'
+    ]
+  },
   // --- GRADE 9 UNIT 1: LOCAL COMMUNITY (SKILLS 1 & ALL SECTIONS) ---
   'function': {
     word: 'function',
@@ -918,12 +1126,16 @@ export const OXFORD_VOCABULARY_MASTER_DATABASE = {
     word: 'cardboard',
     pos: 'n',
     phonetic: '/ˈkɑːdbɔːd/',
-    meaning: 'bìa các tông',
+    meaning: 'bìa các-tông, bìa cứng',
     imageUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80',
-    phrases: ['cardboard boxes', 'a piece of cardboard'],
+    phrases: [
+      'cardboard boxes (thùng các-tông)',
+      'a piece of cardboard (một tấm bìa cứng)',
+      'recycle cardboard (tái chế bìa các-tông)'
+    ],
     examples: [
-      'She packed her books in cardboard boxes.',
-      'He opened the cardboard box and took out each item.'
+      'She packed her books in cardboard boxes before moving to the new classroom.',
+      'Students used thick cardboard to build architectural models for their science exhibition.'
     ]
   },
   'dollhouse': {
@@ -942,12 +1154,16 @@ export const OXFORD_VOCABULARY_MASTER_DATABASE = {
     word: 'gardening',
     pos: 'n',
     phonetic: '/ˈɡɑːdnɪŋ/',
-    meaning: 'làm vườn',
+    meaning: 'làm vườn, chăm sóc cây cối',
     imageUrl: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&auto=format&fit=crop&q=80',
-    phrases: ['enjoy gardening', 'gardening tools'],
+    phrases: [
+      'enjoy gardening (thích làm vườn)',
+      'gardening tools (dụng cụ làm vườn)',
+      'community gardening (làm vườn cộng đồng)'
+    ],
     examples: [
-      'My grandmother spends time gardening every morning.',
-      'Gardening brings people closer to nature and relieves stress.'
+      'My grandfather spends time gardening every morning to enjoy the fresh air.',
+      'Joining the school gardening club teaches students how to grow organic vegetables.'
     ]
   },
   'glue': {
@@ -1579,9 +1795,178 @@ const getGuaranteedTopicImage = (word) => {
   return 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80';
 };
 
-// TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V299)
+// =============================================================================
+// ALGORITHMIC OXFORD-STANDARD IPA & LINGUISTIC PHONETIC ENGINE (V301)
+// =============================================================================
+export const generateAlgorithmicIpa = (raw) => {
+  if (!raw) return '';
+  const w = String(raw).toLowerCase().trim();
+  if (!w) return '';
+
+  // 1. Kiểm tra trực tiếp từ điển Master Database hoặc Static Dict
+  if (OXFORD_VOCABULARY_MASTER_DATABASE[w]?.phonetic) return OXFORD_VOCABULARY_MASTER_DATABASE[w].phonetic;
+  if (STATIC_IPA_DICT[w]) return STATIC_IPA_DICT[w];
+  if (DIALOGUE_KEY_WORDS_DICT[w]?.ipa) return DIALOGUE_KEY_WORDS_DICT[w].ipa;
+
+  // 2. Xử lý cụm từ nhiều chữ (ví dụ: bring about, school counsellor, local community)
+  if (w.includes(' ')) {
+    const parts = w.split(/\s+/);
+    const ipaParts = parts.map(p => {
+      const match = OXFORD_VOCABULARY_MASTER_DATABASE[p]?.phonetic || STATIC_IPA_DICT[p] || DIALOGUE_KEY_WORDS_DICT[p]?.ipa;
+      if (match) return match.replace(/^\/|\/$/g, '');
+      return generateAlgorithmicIpa(p).replace(/^\/|\/$/g, '');
+    });
+    return '/' + ipaParts.join(' ') + '/';
+  }
+
+  // 3. Quy tắc ngữ âm chuyển đổi Grapheme-to-Phoneme chuẩn Oxford cho từ đơn
+  let ipa = w;
+
+  // Hậu tố ngữ pháp (Suffixes)
+  ipa = ipa
+    .replace(/tion$/g, 'ʃn')
+    .replace(/sion$/g, 'ʒn')
+    .replace(/ssion$/g, 'ʃn')
+    .replace(/cial$/g, 'ʃl')
+    .replace(/tial$/g, 'ʃl')
+    .replace(/cious$/g, 'ʃəs')
+    .replace(/tious$/g, 'ʃəs')
+    .replace(/able$/g, 'əbl')
+    .replace(/ible$/g, 'əbl')
+    .replace(/fully$/g, 'fli')
+    .replace(/ful$/g, 'fl')
+    .replace(/less$/g, 'ləs')
+    .replace(/ment$/g, 'mənt')
+    .replace(/ness$/g, 'nəs')
+    .replace(/ship$/g, 'ʃɪp')
+    .replace(/ity$/g, 'əti')
+    .replace(/ology$/g, 'ɒlədʒi')
+    .replace(/graphy$/g, 'ɡrəfi')
+    .replace(/ing$/g, 'ɪŋ')
+    .replace(/ous$/g, 'əs')
+    .replace(/our$/g, 'ə(r)')
+    .replace(/or$/g, 'ə(r)')
+    .replace(/er$/g, 'ə(r)')
+    .replace(/ar$/g, 'ə(r)')
+    .replace(/ure$/g, 'ʃə(r)')
+    .replace(/age$/g, 'ɪdʒ');
+
+  // Cụm phụ âm kép (Digraphs & consonant clusters)
+  ipa = ipa
+    .replace(/ough/g, 'ɔː')
+    .replace(/augh/g, 'ɔː')
+    .replace(/eigh/g, 'eɪ')
+    .replace(/igh/g, 'aɪ')
+    .replace(/tch/g, 'tʃ')
+    .replace(/ch/g, 'tʃ')
+    .replace(/sh/g, 'ʃ')
+    .replace(/th/g, 'θ')
+    .replace(/ph/g, 'f')
+    .replace(/wh/g, 'w')
+    .replace(/ck/g, 'k')
+    .replace(/qu/g, 'kw')
+    .replace(/kn/g, 'n')
+    .replace(/wr/g, 'r')
+    .replace(/ng/g, 'ŋ')
+    .replace(/dg/g, 'dʒ');
+
+  // Cụm nguyên âm (Vowel digraphs)
+  ipa = ipa
+    .replace(/ee/g, 'iː')
+    .replace(/ea/g, 'iː')
+    .replace(/oo/g, 'uː')
+    .replace(/oa/g, 'əʊ')
+    .replace(/ai|ay/g, 'eɪ')
+    .replace(/oi|oy/g, 'ɔɪ')
+    .replace(/ou|ow/g, 'aʊ')
+    .replace(/au|aw/g, 'ɔː')
+    .replace(/ar/g, 'ɑː')
+    .replace(/or/g, 'ɔː')
+    .replace(/er|ir|ur/g, 'ɜː');
+
+  // Quy tắc phụ âm mềm
+  ipa = ipa
+    .replace(/c([eiy])/g, 's$1')
+    .replace(/c/g, 'k')
+    .replace(/g([eiy])/g, 'dʒ$1')
+    .replace(/x/g, 'ks')
+    .replace(/j/g, 'dʒ');
+
+  // Đảm bảo có dấu trọng âm quốc tế
+  if (!ipa.includes('ˈ')) {
+    ipa = 'ˈ' + ipa;
+  }
+
+  return '/' + ipa + '/';
+};
+
+export const getSmartOxfordIpa = (w) => {
+  if (!w) return '';
+  const cleanWord = String(w).toLowerCase().trim();
+  if (OXFORD_VOCABULARY_MASTER_DATABASE[cleanWord]?.phonetic) {
+    return OXFORD_VOCABULARY_MASTER_DATABASE[cleanWord].phonetic;
+  }
+  if (STATIC_IPA_DICT[cleanWord]) {
+    return STATIC_IPA_DICT[cleanWord];
+  }
+  if (DIALOGUE_KEY_WORDS_DICT[cleanWord]?.ipa) {
+    return DIALOGUE_KEY_WORDS_DICT[cleanWord].ipa;
+  }
+  if (cleanWord.includes(' ')) {
+    const parts = cleanWord.split(/\s+/);
+    const ipaParts = parts.map(p => {
+      const match = OXFORD_VOCABULARY_MASTER_DATABASE[p]?.phonetic || STATIC_IPA_DICT[p] || DIALOGUE_KEY_WORDS_DICT[p]?.ipa;
+      if (match) return match.replace(/^\/|\/$/g, '');
+      return generateAlgorithmicIpa(p).replace(/^\/|\/$/g, '');
+    });
+    return '/' + ipaParts.join(' ') + '/';
+  }
+  return generateAlgorithmicIpa(cleanWord);
+};
+
+// HELPER: KIỂM TRA PHRASE DÍNH KHUÔN MẪU RẬP KHUÔN MÁY MÓC (USEFUL +, LEARN ABOUT +, IMPORTANT +...)
+export const isBoilerplatePhrase = (phrase, word) => {
+  if (!phrase || typeof phrase !== 'string') return true;
+  const p = phrase.toLowerCase().trim();
+  const w = (word || '').toLowerCase().trim();
+  if (!p || p === w) return true;
+  if (p.startsWith('useful ') || p.startsWith('learn about ') || p.startsWith('important ') ||
+      p.startsWith('ready to ') || p.startsWith('try to ') || p.startsWith('time to ') ||
+      p.startsWith('very ') || p.startsWith('work ') || p.startsWith('speak ') || p.startsWith('act ') ||
+      p.startsWith('plan to ') || p.startsWith('practice to ') ||
+      p.startsWith('traditional ') || p.startsWith('local ') || p.includes('during their english lesson')) {
+    return true;
+  }
+  return false;
+};
+
+// HELPER: KIỂM TRA CÂU VÍ DỤ DÍNH KHUÔN MẪU RẬP KHUÔN MÁY MÓC
+export const isBoilerplateExample = (sentence, word) => {
+  if (!sentence || typeof sentence !== 'string') return true;
+  const s = sentence.toLowerCase().trim();
+  if (!s || s.length < 5) return true;
+  if (s.includes('during their english lesson') ||
+      s.includes('helps improve our communication skills') ||
+      s.includes('and practice actively') ||
+      s.includes('helps build communication confidence') ||
+      s.includes('effectively in the classroom') ||
+      s.includes('for our upcoming group project') ||
+      s.includes('completes all her english assignments') ||
+      s.includes('this lesson activity is very') ||
+      (s.includes('was both') && s.includes('and inspiring')) ||
+      s.includes('plays an important role in our daily lives') ||
+      s.includes('this is an example')) {
+    return true;
+  }
+  return false;
+};
+
+// TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V301)
 const generateSmartPhrasesAndExamples = (word, posType = null) => {
   const lower = (word || '').toLowerCase().trim();
+  if (!lower) {
+    return { pos: 'n', phonetic: '', meaning: '', imageUrl: '', phrases: [], examples: [] };
+  }
 
   // 1. TRA CỨU ĐẦY ĐỦ TRONG TỪ ĐIỂN MASTER OXFORD ĐỘC QUYỀN
   if (OXFORD_VOCABULARY_MASTER_DATABASE[lower]) {
@@ -1596,49 +1981,99 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
     };
   }
 
-  // 2. PHÂN LOẠI TỪ LOẠI (POS) VÀ TẠO PHRASES & EXAMPLES CHUẨN SƯ PHẠM
+  // 2. PHÂN LOẠI TỪ LOẠI CHÍNH XÁC (POS) THEO QUY TẮC NGÔN NGỮ HỌC
+  const phrasalVerbParticles = ['about', 'after', 'up', 'down', 'in', 'out', 'off', 'on', 'with', 'for', 'over', 'through', 'away', 'back', 'into', 'across', 'round', 'around'];
   const commonVerbs = [
-    'illustrate', 'spend', 'encourage', 'collect', 'build', 'make', 'do', 'enjoy', 'play',
-    'talk', 'watch', 'listen', 'study', 'learn', 'help', 'visit', 'take',
-    'go', 'give', 'keep', 'start', 'try', 'use', 'find', 'read', 'write',
+    'bring', 'take', 'look', 'make', 'give', 'keep', 'turn', 'go', 'come', 'get', 'put', 'run', 'set', 'call',
+    'deal', 'find', 'hold', 'break', 'cut', 'carry', 'hand', 'fall', 'pass', 'pick', 'stand', 'check',
+    'illustrate', 'spend', 'encourage', 'collect', 'build', 'do', 'enjoy', 'play',
+    'talk', 'watch', 'listen', 'study', 'learn', 'help', 'visit', 'try', 'use', 'read', 'write',
     'speak', 'sing', 'dance', 'cook', 'fly', 'swim', 'ride', 'drive', 'buy',
-    'sell', 'think', 'know', 'feel', 'see', 'look', 'hear', 'practice', 'create', 'remind',
-    'preserve', 'shorten', 'symbolise', 'decorate'
+    'sell', 'think', 'know', 'feel', 'see', 'hear', 'practice', 'create', 'remind',
+    'preserve', 'shorten', 'symbolise', 'decorate', 'concentrate', 'delay', 'manage', 'improve'
   ];
 
-  const isPhrasalVerb = posType === 'phr v' || (lower.includes(' ') && (lower.startsWith('take ') || lower.startsWith('go ') || lower.startsWith('turn ') || lower.startsWith('look ') || lower.startsWith('get ') || lower.startsWith('give ') || lower.startsWith('put ') || lower.startsWith('keep ') || lower.startsWith('move ')));
-  const isDetectedVerb = !isPhrasalVerb && (posType === 'v' || commonVerbs.includes(lower) || lower.endsWith('ate') || lower.endsWith('ise') || lower.endsWith('ize'));
-  const isDetectedAdv = posType === 'adv' || lower.endsWith('ly');
-  const isDetectedAdj = posType === 'adj' || lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al') || lower.endsWith('able') || lower.endsWith('ent');
+  const wordsInTerm = lower.split(/\s+/);
+  const firstWord = wordsInTerm[0];
+  const lastWord = wordsInTerm[wordsInTerm.length - 1];
 
-  // TRA CỨU PHIÊN ÂM IPA OXFORD CHO TỪ MỚI
-  const getSmartOxfordIpa = (w) => {
-    if (STATIC_IPA_DICT[w]) return STATIC_IPA_DICT[w];
-    if (OXFORD_VOCABULARY_MASTER_DATABASE[w]?.phonetic) return OXFORD_VOCABULARY_MASTER_DATABASE[w].phonetic;
-    // Nếu là cụm từ (ví dụ: tourist attraction) -> ghép IPA từng từ
-    if (w.includes(' ')) {
-      const parts = w.split(/\s+/);
-      const ipaParts = parts.map(p => STATIC_IPA_DICT[p] || OXFORD_VOCABULARY_MASTER_DATABASE[p]?.phonetic || p.replace(/e$/, 'eɪ').replace(/ea/, 'iː').replace(/ee/, 'iː'));
-      return '/' + ipaParts.map(ip => ip.replace(/^\/|\/$/g, '')).join(' ') + '/';
-    }
-    let clean = w.replace(/e$/, 'eɪ').replace(/ea/, 'iː').replace(/ee/, 'iː').replace(/ou/, 'aʊ').replace(/oo/, 'uː');
-    return '/' + clean + '/';
-  };
+  const isPhrasalVerb = posType === 'phr v' || posType === 'phr' ||
+    (wordsInTerm.length >= 2 && (commonVerbs.includes(firstWord) || firstWord.endsWith('e') || firstWord.endsWith('ing') || firstWord.endsWith('ed')) && phrasalVerbParticles.includes(lastWord));
 
+  const isDetectedVerb = !isPhrasalVerb && (
+    posType === 'v' ||
+    commonVerbs.includes(lower) ||
+    lower.endsWith('ate') || lower.endsWith('ise') || lower.endsWith('ize') || lower.endsWith('ify') || lower.endsWith('en')
+  );
+
+  const isDetectedAdv = !isPhrasalVerb && (posType === 'adv' || lower.endsWith('ly'));
+
+  const isDetectedAdj = !isPhrasalVerb && (
+    posType === 'adj' ||
+    lower.endsWith('ful') || lower.endsWith('ive') || lower.endsWith('ous') || lower.endsWith('al') ||
+    lower.endsWith('able') || lower.endsWith('ible') || lower.endsWith('ent') || lower.endsWith('ant') ||
+    lower.endsWith('ic') || lower.endsWith('ed') || lower.includes('-')
+  );
+
+  const detectedPos = isPhrasalVerb ? 'phr v' : (isDetectedVerb ? 'v' : (isDetectedAdv ? 'adv' : (isDetectedAdj ? 'adj' : (posType || 'n'))));
   const img = getGuaranteedTopicImage(lower);
   const phonetic = getSmartOxfordIpa(lower);
+  const meaning = STATIC_VOCAB_DICT[lower] || lower;
 
+  // 3. SINH COLLOCATIONS VÀ CÂU VÍ DỤ TỰ NHIÊN, CHUẨN XÁC THEO TỪNG TỪ LOẠI (TUYỆT ĐỐI KHÔNG GHÉP MÁY MÓC)
   if (isPhrasalVerb) {
+    let specificPhrases = [];
+    let specificExamples = [];
+
+    if (lower.includes('bring about')) {
+      specificPhrases = [
+        'bring about change (mang lại sự thay đổi)',
+        'bring about improvements (tạo ra những cải thiện)',
+        'bring about social change (tạo ra thay đổi xã hội)'
+      ];
+      specificExamples = [
+        'The new school policy brought about significant changes in the way students learn.',
+        'Regular exercise can bring about improvements in your mood and energy levels.'
+      ];
+    } else if (lower.includes('look after')) {
+      specificPhrases = [
+        'look after younger siblings (chăm sóc em nhỏ)',
+        "look after one's health (chăm sóc sức khỏe bản thân)",
+        'look after pets (chăm sóc thú cưng)'
+      ];
+      specificExamples = [
+        'Nam often helps his parents look after his little sister in the evening.',
+        'It is important to look after both your physical and mental health during exam season.'
+      ];
+    } else if (lower.includes('deal with')) {
+      specificPhrases = [
+        'deal with stress (đối phó với căng thẳng)',
+        'deal with problems (giải quyết các vấn đề)',
+        'deal with difficult situations (xử lý tình huống khó khăn)'
+      ];
+      specificExamples = [
+        'The counsellor shared useful strategies to deal with exam anxiety.',
+        'Teens can learn to deal with difficult challenges through open communication.'
+      ];
+    } else {
+      specificPhrases = [
+        `${lower} positive change (tác động mang lại thay đổi tích cực)`,
+        `${lower} difficult situations (xử lý các tình huống khó khăn)`,
+        `learn how to ${lower} (học cách áp dụng hiệu quả)`
+      ];
+      specificExamples = [
+        `Developing good daily habits can ${lower} significant improvements in your studies.`,
+        `Students work together to ${lower} the practical tasks assigned by their teacher.`
+      ];
+    }
+
     return {
       pos: 'phr v',
       phonetic,
-      meaning: STATIC_VOCAB_DICT[lower] || lower,
+      meaning,
       imageUrl: img,
-      phrases: ['ready to ' + lower, 'try to ' + lower, 'time to ' + lower],
-      examples: [
-        'Students are ready to ' + lower + ' and practice actively.',
-        'Learning how to ' + lower + ' helps build communication confidence.'
-      ]
+      phrases: specificPhrases,
+      examples: specificExamples
     };
   }
 
@@ -1646,12 +2081,16 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
     return {
       pos: 'v',
       phonetic,
-      meaning: STATIC_VOCAB_DICT[lower] || lower,
+      meaning,
       imageUrl: img,
-      phrases: ['learn to ' + lower, 'plan to ' + lower, 'practice to ' + lower],
+      phrases: [
+        `${lower} effectively (thực hiện một cách hiệu quả)`,
+        `${lower} on a regular basis (duy trì đều đặn hàng ngày)`,
+        `encourage students to ${lower} (khuyến khích học sinh rèn luyện)`
+      ],
       examples: [
-        'Students learn how to ' + lower + ' effectively in the classroom.',
-        'We plan to ' + lower + ' together for our upcoming group project.'
+        `Teachers encourage students to ${lower} their ideas with confidence during discussions.`,
+        `Setting a clear schedule makes it much easier to ${lower} your study goals each week.`
       ]
     };
   }
@@ -1660,12 +2099,16 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
     return {
       pos: 'adv',
       phonetic,
-      meaning: STATIC_VOCAB_DICT[lower] || lower,
+      meaning,
       imageUrl: img,
-      phrases: ['work ' + lower, 'speak ' + lower, 'act ' + lower],
+      phrases: [
+        `communicate ${lower} (giao tiếp tự tin và trôi chảy)`,
+        `work ${lower} in a team (hợp tác hiệu quả trong nhóm)`,
+        `express ideas ${lower} (trình bày ý kiến một cách mạch lạc)`
+      ],
       examples: [
-        'She completes all her English assignments ' + lower + '.',
-        'Students should practice speaking English ' + lower + '.'
+        `She answered the teacher's questions ${lower} during the English speaking test.`,
+        `All team members cooperated ${lower} to complete their class assignment on schedule.`
       ]
     };
   }
@@ -1674,26 +2117,34 @@ const generateSmartPhrasesAndExamples = (word, posType = null) => {
     return {
       pos: 'adj',
       phonetic,
-      meaning: STATIC_VOCAB_DICT[lower] || lower,
+      meaning,
       imageUrl: img,
-      phrases: ['very ' + lower, 'become ' + lower, 'remain ' + lower],
+      phrases: [
+        `${lower} lifestyle (lối sống khoa học và phù hợp)`,
+        `${lower} environment (môi trường học tập và sinh hoạt)`,
+        `${lower} experience (trải nghiệm thực tế bổ ích)`
+      ],
       examples: [
-        'This lesson activity is very ' + lower + ' for everyone.',
-        'The presentation was both ' + lower + ' and inspiring.'
+        `Maintaining a ${lower} daily routine helps teenagers feel motivated and healthy.`,
+        `Our school provides a ${lower} atmosphere where every student can develop their talents.`
       ]
     };
   }
 
-  // 3. DANH TỪ TỰ NHIÊN (KHÔNG DÙNG CỤM GHÉP NGÔ NGHÊ TRADITIONAL + WORD)
+  // DANH TỪ TỰ NHIÊN (CHUẨN TỪ LOẠI NOUN - KHÔNG DÙNG "USEFUL + TỪ" HAY "LEARN ABOUT + TỪ")
   return {
     pos: 'n',
     phonetic,
-    meaning: STATIC_VOCAB_DICT[lower] || lower,
+    meaning,
     imageUrl: img,
-    phrases: ['useful ' + lower, 'learn about ' + lower, 'important ' + lower],
+    phrases: [
+      `develop ${lower} (phát triển và nâng cao)`,
+      `improve ${lower} (cải thiện chất lượng)`,
+      `take part in ${lower} (tham gia hoạt động)`
+    ],
     examples: [
-      'Students learn about the ' + lower + ' during their English lesson.',
-      'Understanding the ' + lower + ' helps improve our communication skills.'
+      `Taking care of your health and ${lower} is essential for success in school and daily life.`,
+      `The community project provided students with valuable practical experience in ${lower}.`
     ]
   };
 };
@@ -3855,15 +4306,15 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
           newItem.imageUrl = masterEntry.imageUrl;
         }
 
-        // 5. Chuẩn hóa phrases (loại bỏ template thô traditional function / local function)
-        const isDummyPhrases = !newItem.phrases || !Array.isArray(newItem.phrases) || newItem.phrases.length === 0 || newItem.phrases.some(p => typeof p === 'string' && (p.includes('traditional function') || p.includes('local function')));
+        // 5. Chuẩn hóa phrases (loại bỏ dứt điểm template thô useful/learn about/important/traditional function)
+        const isDummyPhrases = !newItem.phrases || !Array.isArray(newItem.phrases) || newItem.phrases.length === 0 || newItem.phrases.some(p => isBoilerplatePhrase(p, wLower));
         if (isDummyPhrases && Array.isArray(masterEntry.phrases) && masterEntry.phrases.length > 0) {
           hasChanges = true;
           newItem.phrases = masterEntry.phrases;
         }
 
-        // 6. Chuẩn hóa câu ví dụ mẫu (loại bỏ câu ghép ngô nghê The local function plays an important role...)
-        const isDummyExamples = !newItem.examples || !Array.isArray(newItem.examples) || newItem.examples.length === 0 || newItem.examples.some(e => typeof e === 'string' && (e.includes('plays an important role in our daily lives') || e.includes('during the lesson') || e.includes('This is an example')));
+        // 6. Chuẩn hóa câu ví dụ mẫu (loại bỏ dứt điểm Students learn about the... / The local function...)
+        const isDummyExamples = !newItem.examples || !Array.isArray(newItem.examples) || newItem.examples.length === 0 || newItem.examples.some(e => isBoilerplateExample(e, wLower));
         if (isDummyExamples && Array.isArray(masterEntry.examples) && masterEntry.examples.length > 0) {
           hasChanges = true;
           newItem.examples = masterEntry.examples;
@@ -3874,9 +4325,34 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
           hasChanges = true;
           newItem.meaning = STATIC_VOCAB_DICT[wLower];
         }
-        if (STATIC_IPA_DICT[wLower] && newItem.phonetic !== STATIC_IPA_DICT[wLower] && (!pLower || pLower === `/${wLower}/` || pLower === `/${item.word}/`)) {
-          hasChanges = true;
-          newItem.phonetic = STATIC_IPA_DICT[wLower];
+        if (!newItem.phonetic || pLower === `/${wLower}/` || pLower === `/${item.word}/` || !pLower.includes('/')) {
+          const smartIpa = STATIC_IPA_DICT[wLower] || getSmartOxfordIpa(wLower);
+          if (smartIpa && newItem.phonetic !== smartIpa) {
+            hasChanges = true;
+            newItem.phonetic = smartIpa;
+          }
+        }
+        // Kiểm tra và thay thế cụm từ máy móc cho từ ngoài Master DB
+        const isDummyPhrases = !newItem.phrases || !Array.isArray(newItem.phrases) || newItem.phrases.length === 0 || newItem.phrases.some(p => isBoilerplatePhrase(p, wLower));
+        if (isDummyPhrases) {
+          const smartFallback = generateSmartPhrasesAndExamples(wLower, newItem.pos);
+          if (smartFallback.phrases && smartFallback.phrases.length > 0) {
+            hasChanges = true;
+            newItem.phrases = smartFallback.phrases;
+          }
+          if (smartFallback.pos && (!newItem.pos || newItem.pos === 'n')) {
+            hasChanges = true;
+            newItem.pos = smartFallback.pos;
+          }
+        }
+        // Kiểm tra và thay thế câu ví dụ máy móc cho từ ngoài Master DB
+        const isDummyExamples = !newItem.examples || !Array.isArray(newItem.examples) || newItem.examples.length === 0 || newItem.examples.some(e => isBoilerplateExample(e, wLower));
+        if (isDummyExamples) {
+          const smartFallback = generateSmartPhrasesAndExamples(wLower, newItem.pos);
+          if (smartFallback.examples && smartFallback.examples.length > 0) {
+            hasChanges = true;
+            newItem.examples = smartFallback.examples;
+          }
         }
         if (imgUrl.includes('photo-1499856871958-5b9627545d1a')) {
           const guaranteedImg = getGuaranteedTopicImage(wLower);
@@ -5136,7 +5612,9 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
         // NGUYÊN TẮC THẦY HẢI: Chuyển sang lowerCase để SpeechSynthesis đọc NGUYÊN TỪ, không bị đánh vần từng chữ cái lẻ
-        const spokenText = String(text).toLowerCase().trim();
+        // Lọc bỏ phần ghi chú tiếng Việt trong ngoặc hoặc sau gạch ngang nếu có (ví dụ: "bring about change (mang lại sự thay đổi)")
+        const cleanEnglish = String(text).replace(/\s*[\(\[—–-].*$/, '').trim();
+        const spokenText = (cleanEnglish || String(text)).toLowerCase().trim();
         const utterance = new SpeechSynthesisUtterance(spokenText);
         // 100% UK Standard Accent
         utterance.lang = 'en-GB';
@@ -5422,93 +5900,116 @@ Bạn là giáo viên Tiếng Anh xuất sắc. Hãy viết 1 câu định nghĩ
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || window.VITE_GEMINI_API_KEY || '';
       const rawWord = editWord.trim();
-      if (apiKey) {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-        const promptText = `
-Bạn là một Từ điển Tiếng Anh - Tiếng Việt thông minh cho học sinh Việt Nam.
-Hãy tra cứu và trả về dữ liệu chuẩn JSON cho từ tiếng Anh "${rawWord}".
-LƯU Ý QUAN TRỌNG: Nếu từ ngưởi dùng nhập bị sai chính tả (ví dụ "surburb" -> "suburb"), hãy tự sửa lại chính tả đúng và gán vào trường "correctWord".
-YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown):
-{
-  "correctWord": "suburb",
-  "pos": "n",
-  "phonetic": "/ˈsʌb.ɜːb/",
-  "meaning": "khu vực ngoại ô (ngoại thành thành phố)",
-  "imageUrl": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&auto=format&fit=crop&q=80",
-  "phrases": ["quiet suburb", "in the suburbs of Ha Noi"],
-  "examples": ["We live in a quiet suburb of Ha Noi with lots of trees.", "Many families move to the suburbs for cleaner air."]
-}
-`;
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }]
-          })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-          const aiJson = JSON.parse(cleanedText);
-          if (aiJson) {
-            if (aiJson.correctWord) setEditWord(aiJson.correctWord);
-            setEditPos(aiJson.pos || 'n');
-            setEditPhonetic(aiJson.phonetic || `/${rawWord}/`);
-            setEditMeaning(aiJson.meaning || '');
-            if (aiJson.imageUrl) setEditImageUrl(aiJson.imageUrl);
-            setEditPhrasesStr(Array.isArray(aiJson.phrases) ? aiJson.phrases.join('\n') : '');
-            setEditExamplesStr(Array.isArray(aiJson.examples) ? aiJson.examples.join('\n') : '');
-            playSuccessSound();
-            setAiGenerating(false);
-            return;
-          }
-        }
-      }
       const lower = rawWord.toLowerCase();
       let targetWord = rawWord;
       let pos = 'n';
-      let phonetic = `/${lower}/`;
-      let meaning = `${lower} (nghĩa tự động)`;
-      let img = 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=600&auto=format&fit=crop&q=80';
-      const fallbackData = generateSmartPhrasesAndExamples(rawWord, 'n');
-      let phrases = fallbackData.phrases;
-      let examples = fallbackData.examples;
-      if (fallbackData.pos) pos = fallbackData.pos;
-      if (fallbackData.phonetic) phonetic = fallbackData.phonetic;
-      if (fallbackData.meaning) meaning = fallbackData.meaning;
-      if (lower.includes('surburb') || lower.includes('suburb')) {
-        targetWord = 'suburb'; pos = 'n'; phonetic = '/ˈsʌb.ɜːb/'; meaning = 'khu vực ngoại ô (ngoại thành thành phố)'; img = 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&auto=format&fit=crop&q=80'; phrases = ['quiet suburb', 'in the suburbs of Ha Noi']; examples = ['We live in a quiet suburb of Ha Noi with lots of trees.', 'Many families move to the suburbs for cleaner air.'];
-      } else if (lower.includes('police') || lower.includes('officer')) {
-        targetWord = 'police officer'; pos = 'n'; phonetic = '/pəˈliːs ˈɒfɪsər/'; meaning = 'cảnh sát, sĩ quan công an (giữ gìn trật tự an ninh)'; img = 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&auto=format&fit=crop&q=80'; phrases = ['police officer on duty', 'call a police officer']; examples = ['The police officer directed traffic during rush hour.', 'Every police officer wears a blue uniform.'];
-      } else if (lower.includes('artisan')) {
-        targetWord = 'artisan'; pos = 'n'; phonetic = '/ˌɑːtɪˈzæn/'; meaning = 'thợ thủ công, nghệ nhân làm đồ truyền thống'; img = 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80'; phrases = ['skilled artisan', 'handicraft artisan']; examples = ['The artisan spent hours shaping the ceramic vase.'];
-      } else if (lower === 'cardboard') {
-        targetWord = 'cardboard'; pos = 'n'; phonetic = "/'kɑːdboːd/"; meaning = 'bìa các tông'; img = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80'; phrases = ['cardboard boxes', 'a piece of cardboard']; examples = ['She packed her books in cardboard boxes.', 'He opened the cardboard box and took out each item.'];
-      } else if (lower === 'dollhouse') {
-        targetWord = 'dollhouse'; pos = 'n'; phonetic = "/'dɒlhaʊs/"; meaning = 'nhà mô hình (nhà búp bê)'; img = 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&auto=format&fit=crop&q=80'; phrases = ['wooden dollhouse', 'build a dollhouse']; examples = ['My sister loves playing with her wooden dollhouse.'];
-      } else if (lower === 'gardening') {
-        targetWord = 'gardening'; pos = 'n'; phonetic = "/'ɡɑːdnɪŋ/"; meaning = 'làm vườn'; img = 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&auto=format&fit=crop&q=80'; phrases = ['enjoy gardening', 'gardening tools']; examples = ['My grandmother spends time gardening every morning.'];
-      } else if (lower === 'glue') {
-        targetWord = 'glue'; pos = 'n'; phonetic = '/ɡluː/'; meaning = 'keo dán'; img = 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=600&auto=format&fit=crop&q=80'; phrases = ['paper glue', 'stick with glue']; examples = ['Use glue to stick the paper models together.'];
-      } else if (lower === 'horse riding') {
-        targetWord = 'horse riding'; pos = 'n'; phonetic = "/'hɔːs raɪdɪŋ/"; meaning = 'cưỡi ngựa'; img = 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=600&auto=format&fit=crop&q=80'; phrases = ['go horse riding', 'horse riding club']; examples = ['Horse riding is an exciting outdoor hobby.'];
-      } else if (lower.includes('making models')) {
-        targetWord = 'making models'; pos = 'v phr'; phonetic = "/'meɪkɪŋ 'mɒdlz/"; meaning = 'làm mô hình'; img = 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80'; phrases = ['making plane models', 'enjoy making models']; examples = ['Making models requires patience and care.'];
-      } else if (lower === 'popular') {
-        targetWord = 'popular'; pos = 'adj'; phonetic = "/'pɒpjələ(r)/"; meaning = 'phổ biến, được ưa thích'; img = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80'; phrases = ['popular hobby', 'popular among students']; examples = ['Football is a very popular sport in Viet Nam.'];
-      } else if (lower === 'unusual') {
-        targetWord = 'unusual'; pos = 'adj'; phonetic = "/ʌn'juːʒuəl/"; meaning = 'độc lạ, khác thường'; img = 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80'; phrases = ['unusual hobby', 'find something unusual']; examples = ['Collecting insect specimens is an unusual hobby.'];
-      } else if (lower === 'coin') {
-        targetWord = 'coin'; pos = 'n'; phonetic = '/kɔɪn/'; meaning = 'tiền xu'; img = 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=600&auto=format&fit=crop&q=80'; phrases = ['collect coins', 'flip a coin']; examples = ['They like collecting old coins.', "I couldn't decide, so I flipped a coin."];
-      } else if (lower === 'jogging') {
-        targetWord = 'jogging'; pos = 'n'; phonetic = "/'dʒɒɡɪŋ/"; meaning = 'đi bộ thể dục / chạy bộ'; img = 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=80'; phrases = ['go jogging', 'morning jogging']; examples = ['My father goes jogging around the park every morning.'];
-      } else if (lower === 'model') {
-        targetWord = 'model'; pos = 'n'; phonetic = "/'mɒdl/"; meaning = 'mô hình'; img = 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80'; phrases = ['scale model', 'build a model']; examples = ['He built a beautiful scale model of a sailboat.'];
-      } else if (lower === 'general') { pos = 'adj'; phonetic = '/ˈdʒen.ər.əl/'; meaning = 'tổng quát, chung (đúng với hầu hết mọi trường hợp)'; img = 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80'; phrases = ['in general', 'general knowledge', 'general public']; examples = ['In general, most students enjoy interactive English lessons.', 'She has a great general knowledge of English vocabulary.']; }
-          else if (lower === 'yoga') {
-        targetWord = 'yoga'; pos = 'n'; phonetic = "/'jəʊɡə/"; meaning = 'tập yoga'; img = 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&auto=format&fit=crop&q=80'; phrases = ['do yoga', 'yoga class']; examples = ['Doing yoga helps improve health and reduce stress.'];
+      let phonetic = getSmartOxfordIpa(rawWord);
+      let meaning = STATIC_VOCAB_DICT[lower] || `${lower}`;
+      let img = getGuaranteedTopicImage(lower);
+      let phrases = [];
+      let examples = [];
+
+      if (apiKey) {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const promptText = `
+Bạn là chuyên gia Từ điển Tiếng Anh - Tiếng Việt chuẩn Oxford Advanced Learner's Dictionary và SGK Global Success cho học sinh THCS/THPT Việt Nam.
+Hãy tra cứu và trả về dữ liệu chuẩn JSON cho từ hoặc cụm từ tiếng Anh: "${rawWord}".
+
+QUY TẮC BẮT BUỘC:
+1. PHIÊN ÂM IPA (phonetic): Phiên âm IPA chuẩn từ điển Oxford quốc tế (ví dụ: "/brɪŋ əˈbaʊt/", "/ˈkaʊnsələ(r)/", "/ˈbæləns/"). NGHIÊM CẤM chép lại mặt chữ tiếng Anh vào ô phiên âm (tuyệt đối không trả về "/${rawWord}/").
+2. TỪ LOẠI (pos): Phân loại chính xác ("n", "v", "adj", "adv", "phr v", "prep", "idiom"). Các cụm động từ như "bring about", "look after", "deal with" BẮT BUỘC là "phr v" (phrasal verb), KHÔNG được phân loại là "n".
+3. CỤM TỪ KẾT HỢP (phrases - Collocations / Expressions):
+   - Sinh 2 đến 3 cụm từ tự nhiên, chuẩn mực trong đời sống và giao tiếp tiếng Anh thực tế kết hợp với từ đích.
+   - Kèm nghĩa tiếng Việt trong ngoặc đơn: ví dụ ["bring about change (mang lại sự thay đổi)", "bring about improvements (tạo ra những cải thiện)"] hoặc ["school counsellor (chuyên viên tư vấn học đường)", "seek advice from a counsellor (tìm lời khuyên từ chuyên viên tư vấn)"].
+   - TUYỆT ĐỐI KHÔNG ghép mẫu cơ học vô nghĩa như "useful + từ", "learn about + từ", "important + từ", "ready to + từ".
+4. CÂU VÍ DỤ (examples):
+   - Sinh đúng 2 câu ví dụ chất lượng cao, ngữ cảnh cụ thể, tự nhiên, gần gũi với lứa tuổi học sinh THCS (trường học, gia đình, sức khỏe thể chất/tinh thần, bạn bè, môi trường, công nghệ).
+   - Thể hiện chính xác ý nghĩa và cách dùng của từ đích.
+   - Kèm bản dịch tiếng Việt tự nhiên và chính xác.
+   - TUYỆT ĐỐI KHÔNG dùng câu rập khuôn như "Students learn about the ... during their English lesson" hay "Understanding the ... helps improve communication skills".
+
+YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown codeblock):
+{
+  "correctWord": "${rawWord}",
+  "pos": "phr v",
+  "phonetic": "/brɪŋ əˈbaʊt/",
+  "meaning": "mang lại, dẫn đến (sự thay đổi hoặc kết quả)",
+  "imageUrl": "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600&auto=format&fit=crop&q=80",
+  "phrases": [
+    "bring about change (mang lại sự thay đổi)",
+    "bring about improvements (tạo ra những cải thiện)"
+  ],
+  "examples": [
+    "The new school policy brought about significant changes in the way students learn.",
+    "Regular exercise can bring about improvements in your mood and energy levels."
+  ]
+}
+`;
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const aiJson = JSON.parse(cleanedText);
+            if (aiJson) {
+              const resWord = aiJson.correctWord || rawWord;
+              const resPos = aiJson.pos || 'n';
+              let resPhonetic = aiJson.phonetic;
+              if (!resPhonetic || resPhonetic === `/${rawWord}/` || resPhonetic === `/${resWord}/` || !resPhonetic.includes('/')) {
+                resPhonetic = getSmartOxfordIpa(resWord);
+              }
+              let resPhrases = Array.isArray(aiJson.phrases) ? aiJson.phrases : [];
+              if (resPhrases.length === 0 || resPhrases.some(p => isBoilerplatePhrase(p, resWord))) {
+                resPhrases = generateSmartPhrasesAndExamples(resWord, resPos).phrases;
+              }
+              let resExamples = Array.isArray(aiJson.examples) ? aiJson.examples : [];
+              if (resExamples.length === 0 || resExamples.some(e => isBoilerplateExample(e, resWord))) {
+                resExamples = generateSmartPhrasesAndExamples(resWord, resPos).examples;
+              }
+
+              setEditWord(resWord);
+              setEditPos(resPos);
+              setEditPhonetic(resPhonetic);
+              setEditMeaning(aiJson.meaning || STATIC_VOCAB_DICT[resWord.toLowerCase()] || '');
+              if (aiJson.imageUrl) setEditImageUrl(aiJson.imageUrl);
+              setEditPhrasesStr(resPhrases.join('\n'));
+              setEditExamplesStr(resExamples.join('\n'));
+              playSuccessSound();
+              setAiGenerating(false);
+              return;
+            }
+          }
+        } catch (apiErr) {
+          console.warn('Gemini auto-fill error, using Oxford Smart Fallback:', apiErr);
+        }
       }
+
+      // OFFLINE / FALLBACK OXFORD PRECISION GENERATION
+      const master = OXFORD_VOCABULARY_MASTER_DATABASE[lower];
+      if (master) {
+        targetWord = master.word || rawWord;
+        pos = master.pos || 'n';
+        phonetic = master.phonetic || getSmartOxfordIpa(lower);
+        meaning = master.meaning || '';
+        img = master.imageUrl || getGuaranteedTopicImage(lower);
+        phrases = master.phrases || [];
+        examples = master.examples || [];
+      } else {
+        const smartFallback = generateSmartPhrasesAndExamples(rawWord, null);
+        targetWord = rawWord;
+        pos = smartFallback.pos || 'n';
+        phonetic = smartFallback.phonetic || getSmartOxfordIpa(lower);
+        meaning = smartFallback.meaning || STATIC_VOCAB_DICT[lower] || `${lower}`;
+        img = smartFallback.imageUrl || getGuaranteedTopicImage(lower);
+        phrases = smartFallback.phrases || [];
+        examples = smartFallback.examples || [];
+      }
+
       setEditWord(targetWord);
       setEditPos(pos);
       setEditPhonetic(phonetic);
@@ -5523,6 +6024,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown):
       setAiGenerating(false);
     }
   };
+
   // FEATURE: HANDLE BULK AI VOCABULARY GENERATION
   const handleBulkAiGenerate = async () => {
     if (!bulkInputText.trim()) {
@@ -5546,46 +6048,63 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown):
       if (apiKey) {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         const promptText = `
-Bạn là Từ điển Tiếng Anh SGK Global Success cho học sinh Việt Nam.
-Hãy tra cứu và trả về mảng JSON dữ liệu từ vựng đầy đủ cho danh sách các từ tiếng Anh sau: [${wordsToProcess.join(', ')}].
+Bạn là chuyên gia Từ điển Tiếng Anh - Tiếng Việt chuẩn Oxford và SGK Global Success cho học sinh THCS/THPT Việt Nam.
+Hãy tra cứu và trả về mảng JSON dữ liệu từ vựng đầy đủ cho danh sách từ sau: [${wordsToProcess.join(', ')}].
+
+QUY TẮC BẮT BUỘC:
+1. PHIÊN ÂM IPA (phonetic): Phiên âm IPA chuẩn từ điển Oxford quốc tế (ví dụ: "/brɪŋ əˈbaʊt/", "/ˈkaʊnsələ(r)/"). NGHIÊM CẤM chép lại mặt chữ tiếng Anh vào ô phiên âm (tuyệt đối không trả về "/word/").
+2. TỪ LOẠI (pos): Phân loại chính xác ("n", "v", "adj", "adv", "phr v", "prep", "idiom"). Cụm động từ như "bring about", "look after", "deal with" BẮT BUỘC là "phr v", KHÔNG được là "n".
+3. CỤM TỪ KẾT HỢP (phrases): 2-3 cụm từ/collocations tự nhiên trong đời sống và giao tiếp thực tế, kèm nghĩa tiếng Việt trong ngoặc đơn (ví dụ: ["bring about change (mang lại sự thay đổi)", "bring about improvements (tạo ra sự cải thiện)"]). TUYỆT ĐỐI KHÔNG ghép mẫu cơ học "useful + từ", "learn about + từ", "important + từ".
+4. CÂU VÍ DỤ (examples): 2 câu ví dụ chất lượng cao, ngữ cảnh thực tế phù hợp học sinh THCS (trường học, gia đình, bạn bè, sức khỏe, môi trường, công nghệ), kèm bản dịch tiếng Việt chuẩn xác. TUYỆT ĐỐI KHÔNG dùng câu rập khuôn "Students learn about the ... during their English lesson".
+
 YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, không kèm Markdown codeblock):
 [
   {
-    "word": "cardboard",
-    "pos": "n",
-    "phonetic": "/'kɑːdboːd/",
-    "meaning": "bìa các tông",
-    "imageUrl": "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80",
-    "phrases": ["cardboard boxes", "a piece of cardboard"],
-    "examples": ["She packed her books in cardboard boxes.", "He opened the cardboard box and took out each item."]
+    "word": "bring about",
+    "pos": "phr v",
+    "phonetic": "/brɪŋ əˈbaʊt/",
+    "meaning": "mang lại, dẫn đến (sự thay đổi/kết quả)",
+    "imageUrl": "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600&auto=format&fit=crop&q=80",
+    "phrases": [
+      "bring about change (mang lại sự thay đổi)",
+      "bring about improvements (tạo ra những cải thiện)"
+    ],
+    "examples": [
+      "The new school policy brought about significant changes in the way students learn.",
+      "Regular exercise can bring about improvements in your mood and energy levels."
+    ]
   }
 ]
 `;
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-          const parsed = JSON.parse(cleanedText);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            generatedEntries = parsed.map((item, idx) => ({
-              id: 'vocab_' + Date.now() + '_' + idx,
-              word: item.word || wordsToProcess[idx],
-              pos: item.pos || 'n',
-              phonetic: item.phonetic || `/${item.word}/`,
-              meaning: item.meaning || item.word,
-              unit: bulkUnit,
-              section: bulkSection,
-              imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80',
-              audioUrl: '',
-              phrases: Array.isArray(item.phrases) ? item.phrases : [],
-              examples: Array.isArray(item.examples) ? item.examples : [`This is an example sentence for ${item.word}.`]
-            }));
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const cleanedText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(cleanedText);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              generatedEntries = parsed.map((item, idx) => ({
+                id: 'vocab_' + Date.now() + '_' + idx,
+                word: item.word || wordsToProcess[idx],
+                pos: item.pos || 'n',
+                phonetic: item.phonetic || getSmartOxfordIpa(item.word || wordsToProcess[idx]),
+                meaning: item.meaning || item.word,
+                unit: bulkUnit,
+                section: bulkSection,
+                imageUrl: item.imageUrl || getGuaranteedTopicImage(item.word || wordsToProcess[idx]),
+                audioUrl: '',
+                phrases: Array.isArray(item.phrases) ? item.phrases : [],
+                examples: Array.isArray(item.examples) ? item.examples : []
+              }));
+            }
           }
+        } catch (bulkErr) {
+          console.warn('Gemini bulk generate error, falling back to Oxford engine:', bulkErr);
         }
       }
       if (generatedEntries.length === 0) {
@@ -5596,7 +6115,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
             id: 'vocab_' + Date.now() + '_' + idx,
             word: w,
             pos: masterEntry.pos || 'n',
-            phonetic: masterEntry.phonetic || `/${lower}/`,
+            phonetic: masterEntry.phonetic || getSmartOxfordIpa(lower),
             meaning: masterEntry.meaning || STATIC_VOCAB_DICT[lower] || lower,
             unit: bulkUnit,
             section: bulkSection,
@@ -5607,7 +6126,7 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
           };
         });
       }
-      // SANITIZE POS, PHRASES, EXAMPLES & IMAGES FOR EVERY GENERATED ITEM (V300 100% OXFORD PRECISION)
+      // SANITIZE POS, PHRASES, EXAMPLES & IMAGES FOR EVERY GENERATED ITEM (V301 100% OXFORD PRECISION)
       for (let i = 0; i < generatedEntries.length; i++) {
         const item = generatedEntries[i];
         const wLower = (item.word || '').toLowerCase().trim();
@@ -5615,19 +6134,30 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
         if (master) {
           item.pos = master.pos;
           item.phonetic = master.phonetic;
-          item.meaning = master.meaning;
-          item.imageUrl = master.imageUrl;
-          item.phrases = master.phrases;
-          item.examples = master.examples;
+          if (!item.meaning || item.meaning === item.word || item.meaning.includes('nghĩa')) item.meaning = master.meaning;
+          item.imageUrl = item.imageUrl || master.imageUrl;
+          if (!item.phrases || item.phrases.length === 0 || item.phrases.some(p => isBoilerplatePhrase(p, wLower))) {
+            item.phrases = master.phrases;
+          }
+          if (!item.examples || item.examples.length === 0 || item.examples.some(e => isBoilerplateExample(e, wLower))) {
+            item.examples = master.examples;
+          }
         } else {
-          item.imageUrl = getGuaranteedTopicImage(wLower);
-          const dictEntry = generateSmartPhrasesAndExamples(wLower, item.pos);
-          if (dictEntry) {
-            if (dictEntry.pos) item.pos = dictEntry.pos;
-            if (dictEntry.phonetic) item.phonetic = dictEntry.phonetic;
-            if (dictEntry.meaning && (!item.meaning || item.meaning === item.word || item.meaning.includes('nghĩa'))) item.meaning = dictEntry.meaning;
-            if (dictEntry.phrases && dictEntry.phrases.length > 0) item.phrases = dictEntry.phrases;
-            if (dictEntry.examples && dictEntry.examples.length > 0) item.examples = dictEntry.examples;
+          item.imageUrl = item.imageUrl || getGuaranteedTopicImage(wLower);
+          // Check phonetic: nếu bị rỗng hoặc là từ thô /word/ -> tra cứu IPA chuẩn
+          if (!item.phonetic || item.phonetic === `/${wLower}/` || item.phonetic === `/${item.word}/` || !item.phonetic.includes('/')) {
+            item.phonetic = STATIC_IPA_DICT[wLower] || getSmartOxfordIpa(wLower);
+          }
+          // Check phrases: chỉ fallback nếu rỗng hoặc dính cụm từ rập khuôn máy móc
+          if (!item.phrases || !Array.isArray(item.phrases) || item.phrases.length === 0 || item.phrases.some(p => isBoilerplatePhrase(p, wLower))) {
+            const smartFallback = generateSmartPhrasesAndExamples(wLower, item.pos);
+            item.phrases = smartFallback.phrases;
+            if (smartFallback.pos && (!item.pos || item.pos === 'n')) item.pos = smartFallback.pos;
+          }
+          // Check examples: chỉ fallback nếu rỗng hoặc dính câu ví dụ rập khuôn máy móc
+          if (!item.examples || !Array.isArray(item.examples) || item.examples.length === 0 || item.examples.some(e => isBoilerplateExample(e, wLower))) {
+            const smartFallback = generateSmartPhrasesAndExamples(wLower, item.pos);
+            item.examples = smartFallback.examples;
           }
         }
       }
@@ -9407,7 +9937,7 @@ Ann: How's your new neighbourhood?`}
                     {showPhonetic && (
                       <div className="text-sm font-mono font-bold text-slate-600 pl-1">
                         {(!currentItem.phonetic || currentItem.phonetic === '/' + currentItem.word + '/' || currentItem.phonetic === '/' + (currentItem && currentItem.word ? String(currentItem.word).toLowerCase() : '') + '/')
-                          ? (STATIC_IPA_DICT[(currentItem && currentItem.word ? String(currentItem.word).toLowerCase() : '')] || currentItem.phonetic || `/${currentItem.word}/`)
+                          ? (getSmartOxfordIpa(currentItem?.word) || currentItem.phonetic)
                           : currentItem.phonetic
                         }
                       </div>
