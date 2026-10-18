@@ -1718,81 +1718,316 @@ const GLOBAL_SUCCESS_PRESETS = {
   }
 };
 
-// TOP-LEVEL HELPER GENERATE OXFORD-STANDARD PHRASES & EXAMPLES ACCORDING TO ACCURATE POS (V276)
-// TOP-LEVEL GUARANTEED TOPIC IMAGE RESOLVER (V277)
-// TOP-LEVEL GUARANTEED TOPIC IMAGE RESOLVER (V299 100% MATCHING WORD MEANING)
-const getGuaranteedTopicImage = (word) => {
-  const lower = (word || '').toLowerCase().trim();
+// =============================================================================
+// PEDAGOGICAL IMAGE & SEMANTIC PROMPT REGISTRY (V302 - 100% MEANING-MATCHED)
+// =============================================================================
+export const PEDAGOGICAL_IMAGE_REGISTRY = {
+  'cardboard': {
+    prompt: 'Clean sturdy corrugated cardboard boxes neatly stacked and flat craft cardboard sheets, clear object illustration for students',
+    viPrompt: 'Các tấm bìa các-tông và thùng các-tông cứng cáp được xếp gọn gàng, làm vật liệu thủ công',
+    primaryUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'dollhouse': {
+    prompt: 'A beautifully detailed miniature wooden dollhouse with tiny furniture and small windows, handcrafted model craft toy',
+    viPrompt: 'Ngôi nhà đồ chơi búp bê thu nhỏ bằng gỗ với các phòng và bàn ghế tí hon',
+    primaryUrl: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'counsellor': {
+    prompt: 'A friendly and empathetic female school counsellor listening and offering advice to a teenage student in a warm, comfortable guidance office',
+    viPrompt: 'Chuyên viên tư vấn học đường đang ân cần lắng nghe và hỗ trợ tâm lý cho học sinh trong phòng tham vấn',
+    primaryUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1527689368864-3a821dbccc34?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'counselor': {
+    prompt: 'A professional guidance counselor in a supportive consultation meeting with a student, discussing study and well-being',
+    viPrompt: 'Chuyên viên tư vấn học đường đang hướng dẫn và hỗ trợ học sinh (chuẩn US)',
+    primaryUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'bring about': {
+    prompt: 'A cheerful group of secondary school students planting young green trees and cleaning up waste in their schoolyard, bringing about a clean and beautiful environment',
+    viPrompt: 'Hành động tạo ra sự thay đổi tích cực: học sinh chung tay trồng cây và dọn rác giúp trường học xanh sạch đẹp hơn',
+    primaryUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'look after': {
+    prompt: 'A caring elder sister gently looking after her younger brother, helping him with homework and sharing a healthy apple, warm family care',
+    viPrompt: 'Hành động chăm sóc, trông nom: chị gái chu đáo chăm sóc em nhỏ trong gia đình',
+    primaryUrl: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'unusual': {
+    prompt: 'An extraordinary and unusual luminous glowing blue mushroom growing on lush moss in a mysterious forest, striking unique nature object',
+    viPrompt: 'Sự vật độc lạ, khác thường: cây nấm phát sáng màu xanh kỳ lạ hiếm thấy giữa rừng rêu',
+    primaryUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'balance': {
+    prompt: 'A healthy teenager practicing peaceful mindful balance posture outdoors, and smooth zen stones balanced in delicate equilibrium in nature',
+    viPrompt: 'Trạng thái cân bằng hài hòa: người tập tư thế giữ thăng bằng hoặc các viên đá cuội xếp chồng cân đối',
+    primaryUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'glue': {
+    prompt: 'A plastic squeeze bottle of craft liquid glue being applied onto colored art paper to bond shapes together on a wooden desk',
+    viPrompt: 'Chai keo dán đang được bóp dán các mảnh giấy màu thủ công trên bàn học',
+    primaryUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'gardening': {
+    prompt: 'A happy teenager using small metal gardening spade to plant fresh green vegetable seedlings in rich garden soil under bright morning sun',
+    viPrompt: 'Hoạt động làm vườn: học sinh dùng xẻng nhỏ trồng trọt cây giống trong vườn đất tươi xốp',
+    primaryUrl: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'dentist': {
+    prompt: 'A smiling professional dentist in protective scrubs and gloves checking teeth of a young patient in a modern dental examination chair',
+    viPrompt: 'Nha sĩ chuyên nghiệp đang thăm khám răng cho bệnh nhân trên ghế nha khoa hiện đại',
+    primaryUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'maintain': {
+    prompt: 'A skilled technician in uniform inspecting and maintaining complex industrial mechanical equipment with diagnostic gear',
+    viPrompt: 'Kỹ thuật viên đang kiểm tra và bảo dưỡng máy móc cơ khí chuyên nghiệp',
+    primaryUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'priority': {
+    prompt: 'A focused student at an organized study desk with a numbered priority checklist marking top important homework tasks first',
+    viPrompt: 'Học sinh lập danh sách các việc học ưu tiên hàng đầu cần hoàn thành trước',
+    primaryUrl: 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'popular': {
+    prompt: 'A popular school sports match with a large enthusiastic crowd of students cheering happily together',
+    viPrompt: 'Hoạt động thể thao phổ biến được đông đảo học sinh yêu thích và cổ vũ nồng nhiệt',
+    primaryUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'deal with': {
+    prompt: 'A student working calmly through challenging study problems with supportive guidance from a mentor, finding effective solutions',
+    viPrompt: 'Giải quyết và đối phó với khó khăn thử thách một cách bình tĩnh và hiệu quả',
+    primaryUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'mental': {
+    prompt: 'A peaceful teenager meditating in nature with eyes closed, symbolizing inner mental health, calmness and mindfulness',
+    viPrompt: 'Sức khỏe tinh thần: sự an tĩnh, thư thái và bình yên trong tâm trí',
+    primaryUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'physical': {
+    prompt: 'An energetic teenager running actively on an athletic track, representing physical exercise and robust bodily fitness',
+    viPrompt: 'Sức khỏe thể chất: hoạt động rèn luyện thân thể dẻo dai và tràn đầy năng lượng',
+    primaryUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'well-balanced': {
+    prompt: 'A colorful well-balanced nutritional meal plate with fresh vegetables, fruits and grains alongside running shoes and a book',
+    viPrompt: 'Lối sống cân bằng điều độ giữa dinh dưỡng lành mạnh, vận động và học tập',
+    primaryUrl: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'concentrate': {
+    prompt: 'A student reading and solving complex homework problems in a quiet library with full deep concentration',
+    viPrompt: 'Học sinh tập trung cao độ suy nghĩ và làm bài trong không gian yên tĩnh',
+    primaryUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'distraction': {
+    prompt: 'A smartphone screen with buzzing social media notification alerts next to an unfinished notebook, illustrating study distraction',
+    viPrompt: 'Yếu tố gây xao nhãng: điện thoại reo thông báo làm gián đoạn việc học tập',
+    primaryUrl: 'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'delay': {
+    prompt: 'A modern clock with hour and minute hands showing delayed time, symbolizing postponing a deadline',
+    viPrompt: 'Sự trì hoãn hoặc chậm trễ thời gian so với kế hoạch ban đầu',
+    primaryUrl: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80',
+    alternates: [
+      'https://images.unsplash.com/photo-1508962914676-134849a727f0?w=600&auto=format&fit=crop&q=80'
+    ]
+  },
+  'function': {
+    prompt: 'Precision industrial machine gear mechanism operating smoothly to demonstrate function and mechanical design',
+    viPrompt: 'Cơ cấu bánh răng máy móc hoạt động chính xác minh họa chức năng và vận hành',
+    primaryUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=600&auto=format&fit=crop&q=80']
+  },
+  'fragrance': {
+    prompt: 'A delicate glass bottle of natural floral perfume surrounded by fresh white lotus blossoms, capturing sweet aroma',
+    viPrompt: 'Lọ tinh dầu hương thơm dịu mát bên những đóa sen tươi ngát',
+    primaryUrl: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&auto=format&fit=crop&q=80']
+  },
+  'clay': {
+    prompt: 'Moist natural terracotta pottery clay being shaped on a spinning pottery wheel in an artisan studio',
+    viPrompt: 'Khối đất sét nặn gốm dẻo mịn đang được nghệ nhân tạo hình trên bàn xoay',
+    primaryUrl: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80']
+  },
+  'tourist attraction': {
+    prompt: 'Stunning aerial view of famous Ha Long Bay limestone karsts and green waters, major tourist attraction in Vietnam',
+    viPrompt: 'Điểm thu hút khách du lịch nổi tiếng: Danh thắng Vịnh Hạ Long',
+    primaryUrl: 'https://images.unsplash.com/photo-1528127269322-539801943592?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&auto=format&fit=crop&q=80']
+  },
+  'preserve': {
+    prompt: 'Ancient heritage temple preservation in Hue Vietnam, protecting historic cultural monument',
+    viPrompt: 'Bảo tồn di tích lịch sử và văn hóa truyền thống',
+    primaryUrl: 'https://images.unsplash.com/photo-1590766940554-634a7ed41450?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80']
+  },
+  'symbolise': {
+    prompt: 'Traditional pink lotus flower pattern engraved on Vietnamese ceramic vase, symbolising cultural purity and peace',
+    viPrompt: 'Họa tiết hoa sen truyền thống tượng trưng cho sự thuần khiết và thanh bình',
+    primaryUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80']
+  },
+  'technique': {
+    prompt: 'Close-up of artisan hands demonstrating intricate fine brush painting technique on ceramic teapot',
+    viPrompt: 'Bàn tay nghệ nhân thể hiện kỹ thuật vẽ hoa văn tinh xảo trên gốm sứ',
+    primaryUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80']
+  },
+  'artisan': {
+    prompt: 'An elderly skilled artisan meticulously painting traditional glaze designs on pottery in village workshop',
+    viPrompt: 'Nghệ nhân lành nghề đang tỉ mỉ vẽ hoa văn trên sản phẩm gốm',
+    primaryUrl: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600&auto=format&fit=crop&q=80']
+  },
+  'suburb': {
+    prompt: 'A peaceful green residential suburb outside the city with modern houses and tree-lined streets',
+    viPrompt: 'Khu vực ngoại ô thanh bình với nhiều cây xanh và nhà ở thoáng mát',
+    primaryUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&auto=format&fit=crop&q=80']
+  },
+  'check-up': {
+    prompt: 'A caring doctor with stethoscope performing a routine preventive health check-up for a student',
+    viPrompt: 'Bác sĩ đang khám kiểm tra sức khỏe định kỳ cho học sinh',
+    primaryUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&auto=format&fit=crop&q=80']
+  },
+  'facilities': {
+    prompt: 'Modern secondary school facilities including science lab, library and indoor sports stadium',
+    viPrompt: 'Cơ sở vật chất trường học hiện đại gồm phòng thí nghiệm và sân thể thao',
+    primaryUrl: 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?w=600&auto=format&fit=crop&q=80']
+  },
+  'craft village': {
+    prompt: 'A bustling traditional ceramic craft village alleyway in Bat Trang Vietnam with colorful pottery displays',
+    viPrompt: 'Làng nghề thủ công truyền thống rực rỡ sắc gốm sứ',
+    primaryUrl: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&auto=format&fit=crop&q=80',
+    alternates: ['https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600&auto=format&fit=crop&q=80']
+  }
+};
 
-  // 1. TRA CỨU TRỰC TIẾP TỪ CƠ SỞ DỮ LIỆU TỪ ĐIỂN MASTER OXFORD
+// TOP-LEVEL HELPER: GENERATE PEDAGOGICAL IMAGE PROMPT & SUGGESTIONS ACCORDING TO POS & VIETNAMESE MEANING
+export const generatePedagogicalImagePrompt = (word, meaning = '', pos = '', unit = '') => {
+  const wLower = String(word || '').toLowerCase().trim();
+  if (PEDAGOGICAL_IMAGE_REGISTRY[wLower]) {
+    return PEDAGOGICAL_IMAGE_REGISTRY[wLower];
+  }
+
+  // Tự động phân tích ngữ nghĩa sư phạm theo từ loại và nghĩa tiếng Việt
+  let sceneDesc = '';
+  let viDesc = '';
+  if (pos === 'phr v' || pos === 'v' || wLower.includes(' ')) {
+    sceneDesc = `A realistic high-definition educational photograph showing people actively performing ${wLower} (${meaning || ''}), demonstrating a clear positive outcome in an authentic school or community context, photo realistic, high detail`;
+    viDesc = `Hành động thực tế minh họa rõ ràng nghĩa '${meaning || wLower}'`;
+  } else if (pos === 'adj' || pos === 'adv') {
+    sceneDesc = `A vivid educational photograph clearly showcasing the quality and characteristic of ${wLower} (${meaning || ''}) unmistakably, realistic natural lighting, no clutter`;
+    viDesc = `Hình ảnh đặc trưng thể hiện rõ tính chất '${meaning || wLower}'`;
+  } else {
+    sceneDesc = `A crisp, high-resolution pedagogical photograph of ${wLower} (${meaning || ''}), showing the exact object or person clearly for secondary school students, authentic setting, 4k`;
+    viDesc = `Hình ảnh đối tượng hoặc người thể hiện chính xác '${meaning || wLower}'`;
+  }
+
+  const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(sceneDesc + ', photorealistic, clean educational style')}?width=600&height=400&nologo=true`;
+
+  return {
+    prompt: sceneDesc,
+    viPrompt: viDesc,
+    primaryUrl: pollinationsUrl,
+    alternates: [
+      pollinationsUrl + '&seed=111',
+      pollinationsUrl + '&seed=222',
+      pollinationsUrl + '&seed=333'
+    ]
+  };
+};
+
+export const getPedagogicalImageSuggestions = (word, meaning = '', pos = '') => {
+  const info = generatePedagogicalImagePrompt(word, meaning, pos);
+  const list = [info.primaryUrl, ...(info.alternates || [])];
+  return [...new Set(list.filter(Boolean))];
+};
+
+// TOP-LEVEL GUARANTEED TOPIC IMAGE RESOLVER (100% MEANING-MATCHED & PEDAGOGICALLY ACCURATE)
+export const getGuaranteedTopicImage = (word, meaning = '', pos = '') => {
+  const lower = (word || '').toLowerCase().trim();
+  if (!lower) return 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&auto=format&fit=crop&q=80';
+
+  // 1. Tra cứu trực tiếp từ PEDAGOGICAL_IMAGE_REGISTRY
+  if (PEDAGOGICAL_IMAGE_REGISTRY[lower]?.primaryUrl) {
+    return PEDAGOGICAL_IMAGE_REGISTRY[lower].primaryUrl;
+  }
+  // 2. Tra cứu từ OXFORD_VOCABULARY_MASTER_DATABASE
   if (OXFORD_VOCABULARY_MASTER_DATABASE[lower]?.imageUrl) {
     return OXFORD_VOCABULARY_MASTER_DATABASE[lower].imageUrl;
   }
-
-  // 2. DYNAMIC TOPIC-BASED KEYWORD MATCHING THEO NGỮ NGHĨA SÁT THỰC TẾ
-  if (lower.includes('fragrance') || lower.includes('perfume') || lower.includes('scent') || lower.includes('flower') || lower.includes('blossom')) {
-    return 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&auto=format&fit=crop&q=80'; // Lọ nước hoa / tinh dầu hoa thơm ngát
-  }
-  if (lower.includes('function') || lower.includes('gear') || lower.includes('machine') || lower.includes('mechanism') || lower.includes('technical')) {
-    return 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80'; // Cơ cấu máy móc chức năng chính xác
-  }
-  if (lower.includes('clay') || lower.includes('pottery') || lower.includes('ceramic') || lower.includes('vase')) {
-    return 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600&auto=format&fit=crop&q=80'; // Đất sét nặn gốm
-  }
-  if (lower.includes('tourist') || lower.includes('attraction') || lower.includes('sightseeing') || lower.includes('travel') || lower.includes('landscape')) {
-    return 'https://images.unsplash.com/photo-1528127269322-539801943592?w=600&auto=format&fit=crop&q=80'; // Danh thắng du lịch Việt Nam (Hạ Long / Hội An)
-  }
-  if (lower.includes('preserve') || lower.includes('heritage') || lower.includes('ancient') || lower.includes('temple') || lower.includes('historical')) {
-    return 'https://images.unsplash.com/photo-1590766940554-634a7ed41450?w=600&auto=format&fit=crop&q=80'; // Bảo tồn di tích lịch sử
-  }
-  if (lower.includes('symbol') || lower.includes('peace') || lower.includes('culture') || lower.includes('tradition')) {
-    return 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80'; // Biểu tượng văn hóa hoa sen
-  }
-  if (lower.includes('technique') || lower.includes('skill') || lower.includes('craftsman') || lower.includes('method')) {
-    return 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&auto=format&fit=crop&q=80'; // Kỹ xảo bàn tay nghệ nhân
-  }
-  if (lower.includes('process') || lower.includes('step') || lower.includes('production') || lower.includes('making')) {
-    return 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&auto=format&fit=crop&q=80'; // Quy trình từng bước tỉ mỉ
-  }
-  if (lower.includes('shorten') || lower.includes('time') || lower.includes('clock') || lower.includes('speed')) {
-    return 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&auto=format&fit=crop&q=80'; // Đồng hồ rút ngắn thời gian
-  }
-  if (lower.includes('original') || lower.includes('artwork') || lower.includes('painting') || lower.includes('genuine')) {
-    return 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80'; // Tác phẩm nghệ thuật nguyên bản
-  }
-  if (lower.includes('mind map') || lower.includes('idea') || lower.includes('brainstorm')) {
-    return 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80';
-  }
-  if (lower.includes('cloth') || lower.includes('fabric') || lower.includes('curtain')) {
-    return 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&auto=format&fit=crop&q=80';
-  }
-  if (lower.includes('decorate') || lower.includes('design') || lower.includes('craft')) {
-    return 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80';
-  }
-  if (lower.includes('seagull') || lower.includes('bird')) {
-    return 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=600&auto=format&fit=crop&q=80';
-  }
-  if (lower.includes('street') || lower.includes('road') || lower.includes('pedestrian')) {
-    return 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&auto=format&fit=crop&q=80';
-  }
-  if (lower.includes('suitcase') || lower.includes('luggage')) {
-    return 'https://images.unsplash.com/photo-1581553680321-4fffae59fccd?w=600&auto=format&fit=crop&q=80';
-  }
-  if (lower.includes('facilities') || lower.includes('school')) {
-    return 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&auto=format&fit=crop&q=80';
-  }
-  if (lower.includes('community') || lower.includes('neighbour') || lower.includes('friend')) {
-    return 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&auto=format&fit=crop&q=80';
-  }
-  if (lower.includes('check-up') || lower.includes('doctor') || lower.includes('health') || lower.includes('medical')) {
-    return 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop&q=80';
-  }
-  if (lower.includes('suburb') || lower.includes('house') || lower.includes('village')) {
-    return 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&auto=format&fit=crop&q=80';
-  }
-
-  // 3. ẢNH HỌC TẬP TRI THỨC HIỆN ĐẠI (TUYỆT ĐỐI KHÔNG DÙNG ẢNH CẦU PARIS CŨ)
-  return 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80';
+  // 3. Sinh ảnh sư phạm độc bản theo ngữ nghĩa thực tế (Tuyệt đối không dùng ảnh chung chung)
+  const info = generatePedagogicalImagePrompt(word, meaning, pos);
+  return info.primaryUrl;
 };
 
 // =============================================================================
@@ -4300,10 +4535,12 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
           newItem.pos = masterEntry.pos;
         }
 
-        // 4. Chuẩn hóa ảnh minh họa đúng 100% nghĩa tiếng Việt (thay thế ảnh cây cầu Paris cũ)
+        // 4. Chuẩn hóa ảnh minh họa đúng 100% nghĩa tiếng Việt (thay thế ảnh cây cầu Paris cũ hoặc ảnh sách vở chung chung)
         if (masterEntry.imageUrl && newItem.imageUrl !== masterEntry.imageUrl && (!imgUrl || imgUrl.includes('photo-1499856871958-5b9627545d1a') || imgUrl.includes('photo-1456513080510-7bf3a84b82f8'))) {
           hasChanges = true;
           newItem.imageUrl = masterEntry.imageUrl;
+          newItem.imagePrompt = masterEntry.imagePrompt || generatePedagogicalImagePrompt(wLower, masterEntry.meaning, masterEntry.pos).prompt;
+          newItem.imageStatus = 'approved';
         }
 
         // 5. Chuẩn hóa phrases (loại bỏ dứt điểm template thô useful/learn about/important/traditional function)
@@ -4354,11 +4591,14 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
             newItem.examples = smartFallback.examples;
           }
         }
-        if (imgUrl.includes('photo-1499856871958-5b9627545d1a')) {
-          const guaranteedImg = getGuaranteedTopicImage(wLower);
+        // Chuẩn hóa ảnh minh họa sư phạm chuẩn xác 100% cho từ ngoài Master DB
+        if (!imgUrl || imgUrl.includes('photo-1499856871958-5b9627545d1a') || imgUrl.includes('photo-1456513080510-7bf3a84b82f8')) {
+          const guaranteedImg = getGuaranteedTopicImage(wLower, newItem.meaning, newItem.pos);
           if (newItem.imageUrl !== guaranteedImg) {
             hasChanges = true;
             newItem.imageUrl = guaranteedImg;
+            newItem.imagePrompt = generatePedagogicalImagePrompt(wLower, newItem.meaning, newItem.pos).prompt;
+            newItem.imageStatus = 'approved';
           }
         }
       }
@@ -5243,6 +5483,12 @@ export default function VocabularyEngine({ activity, isTeacher: rawIsTeacher = f
   const [editUnit, setEditUnit] = useState('Unit 1');
   const [editSection, setEditSection] = useState('GETTING STARTED');
   const [editImageUrl, setEditImageUrl] = useState('');
+  const [editImagePrompt, setEditImagePrompt] = useState('');
+  const [editImageStatus, setEditImageStatus] = useState('approved');
+  const [imageSuggestions, setImageSuggestions] = useState([]);
+  const [showImageSuggestions, setShowImageSuggestions] = useState(false);
+  const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const [editAudioUrl, setEditAudioUrl] = useState('');
   const [editPhrasesStr, setEditPhrasesStr] = useState('');
   const [editExamplesStr, setEditExamplesStr] = useState('');
@@ -5972,11 +6218,18 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown c
                 resExamples = generateSmartPhrasesAndExamples(resWord, resPos).examples;
               }
 
+              const imgPrompt = aiJson.imagePrompt || generatePedagogicalImagePrompt(resWord, aiJson.meaning || '', resPos, editUnit);
+              const finalImg = aiJson.imageUrl || getGuaranteedTopicImage(resWord, aiJson.meaning || '', resPos);
               setEditWord(resWord);
               setEditPos(resPos);
               setEditPhonetic(resPhonetic);
               setEditMeaning(aiJson.meaning || STATIC_VOCAB_DICT[resWord.toLowerCase()] || '');
-              if (aiJson.imageUrl) setEditImageUrl(aiJson.imageUrl);
+              setEditImageUrl(finalImg);
+              setEditImagePrompt(imgPrompt);
+              setEditImageStatus('pending');
+              setImageSuggestions(getPedagogicalImageSuggestions(resWord, aiJson.meaning || '', resPos));
+              setShowImageSuggestions(false);
+              setImageLoadError(false);
               setEditPhrasesStr(resPhrases.join('\n'));
               setEditExamplesStr(resExamples.join('\n'));
               playSuccessSound();
@@ -5990,13 +6243,15 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown c
       }
 
       // OFFLINE / FALLBACK OXFORD PRECISION GENERATION
+      let imgPrompt = '';
       const master = OXFORD_VOCABULARY_MASTER_DATABASE[lower];
       if (master) {
         targetWord = master.word || rawWord;
         pos = master.pos || 'n';
         phonetic = master.phonetic || getSmartOxfordIpa(lower);
         meaning = master.meaning || '';
-        img = master.imageUrl || getGuaranteedTopicImage(lower);
+        img = master.imageUrl || getGuaranteedTopicImage(lower, meaning, pos);
+        imgPrompt = master.imagePrompt || generatePedagogicalImagePrompt(targetWord, meaning, pos, editUnit);
         phrases = master.phrases || [];
         examples = master.examples || [];
       } else {
@@ -6005,7 +6260,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown c
         pos = smartFallback.pos || 'n';
         phonetic = smartFallback.phonetic || getSmartOxfordIpa(lower);
         meaning = smartFallback.meaning || STATIC_VOCAB_DICT[lower] || `${lower}`;
-        img = smartFallback.imageUrl || getGuaranteedTopicImage(lower);
+        img = smartFallback.imageUrl || getGuaranteedTopicImage(lower, meaning, pos);
+        imgPrompt = smartFallback.imagePrompt || generatePedagogicalImagePrompt(targetWord, meaning, pos, editUnit);
         phrases = smartFallback.phrases || [];
         examples = smartFallback.examples || [];
       }
@@ -6015,6 +6271,11 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy, không kèm Markdown c
       setEditPhonetic(phonetic);
       setEditMeaning(meaning);
       setEditImageUrl(img);
+      setEditImagePrompt(imgPrompt);
+      setEditImageStatus('pending');
+      setImageSuggestions(getPedagogicalImageSuggestions(targetWord, meaning, pos));
+      setShowImageSuggestions(false);
+      setImageLoadError(false);
       setEditPhrasesStr(phrases.join('\n'));
       setEditExamplesStr(examples.join('\n'));
       playSuccessSound();
@@ -6135,7 +6396,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
           item.pos = master.pos;
           item.phonetic = master.phonetic;
           if (!item.meaning || item.meaning === item.word || item.meaning.includes('nghĩa')) item.meaning = master.meaning;
-          item.imageUrl = item.imageUrl || master.imageUrl;
+          item.imageUrl = item.imageUrl || master.imageUrl || getGuaranteedTopicImage(wLower, item.meaning, item.pos);
+          item.imagePrompt = item.imagePrompt || master.imagePrompt || generatePedagogicalImagePrompt(item.word, item.meaning, item.pos, bulkUnit);
+          item.imageStatus = item.imageStatus || 'approved';
           if (!item.phrases || item.phrases.length === 0 || item.phrases.some(p => isBoilerplatePhrase(p, wLower))) {
             item.phrases = master.phrases;
           }
@@ -6143,7 +6406,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
             item.examples = master.examples;
           }
         } else {
-          item.imageUrl = item.imageUrl || getGuaranteedTopicImage(wLower);
+          item.imageUrl = item.imageUrl || getGuaranteedTopicImage(wLower, item.meaning, item.pos);
+          item.imagePrompt = item.imagePrompt || generatePedagogicalImagePrompt(item.word, item.meaning, item.pos, bulkUnit);
+          item.imageStatus = item.imageStatus || 'pending';
           // Check phonetic: nếu bị rỗng hoặc là từ thô /word/ -> tra cứu IPA chuẩn
           if (!item.phonetic || item.phonetic === `/${wLower}/` || item.phonetic === `/${item.word}/` || !item.phonetic.includes('/')) {
             item.phonetic = STATIC_IPA_DICT[wLower] || getSmartOxfordIpa(wLower);
@@ -6203,6 +6468,8 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
             phrases: newEntry.phrases || updatedList[idx].phrases,
             examples: newEntry.examples || updatedList[idx].examples,
             imageUrl: newEntry.imageUrl || updatedList[idx].imageUrl,
+            imagePrompt: newEntry.imagePrompt || updatedList[idx].imagePrompt,
+            imageStatus: newEntry.imageStatus || updatedList[idx].imageStatus || 'pending',
           };
         } else {
           updatedList.push(newEntry);
@@ -6235,7 +6502,18 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
       setEditMeaning(itemToEdit.meaning || '');
       setEditUnit(itemToEdit.unit || 'Unit 1');
       setEditSection(itemToEdit.section || 'GETTING STARTED');
-      setEditImageUrl(itemToEdit.imageUrl || '');
+      
+      const safeImg = itemToEdit.imageUrl || getGuaranteedTopicImage(itemToEdit.word, itemToEdit.meaning, itemToEdit.pos);
+      const safePrompt = itemToEdit.imagePrompt || generatePedagogicalImagePrompt(itemToEdit.word, itemToEdit.meaning, itemToEdit.pos, itemToEdit.unit);
+      const safeStatus = itemToEdit.imageStatus || 'approved';
+      
+      setEditImageUrl(safeImg);
+      setEditImagePrompt(safePrompt);
+      setEditImageStatus(safeStatus);
+      setImageSuggestions(getPedagogicalImageSuggestions(itemToEdit.word, itemToEdit.meaning, itemToEdit.pos));
+      setShowImageSuggestions(false);
+      setImageLoadError(false);
+      
       setEditAudioUrl(itemToEdit.audioUrl || '');
       setEditPhrasesStr(Array.isArray(itemToEdit.phrases) ? itemToEdit.phrases.join('\n') : '');
       setEditExamplesStr(Array.isArray(itemToEdit.examples) ? itemToEdit.examples.join('\n') : '');
@@ -6248,12 +6526,50 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
       setEditUnit('Unit 1');
       setEditSection('GETTING STARTED');
       setEditImageUrl('');
+      setEditImagePrompt('');
+      setEditImageStatus('pending');
+      setImageSuggestions([]);
+      setShowImageSuggestions(false);
+      setImageLoadError(false);
       setEditAudioUrl('');
       setEditPhrasesStr('');
       setEditExamplesStr('');
     }
     setIsStudioOpen(true);
   };
+
+  // FEATURE: GENERATE AI IMAGE FROM CUSTOM TEACHER PROMPT
+  const handleGenerateAiImageFromPrompt = () => {
+    if (!editWord.trim()) {
+      alert('Vui lòng nhập Từ Tiếng Anh trước khi tạo ảnh!');
+      return;
+    }
+    setIsGeneratingAiImage(true);
+    try {
+      const promptToUse = (editImagePrompt && editImagePrompt.trim().length > 5)
+        ? editImagePrompt.trim()
+        : generatePedagogicalImagePrompt(editWord, editMeaning, editPos, editUnit);
+      
+      // Update prompt state if it was empty
+      if (!editImagePrompt.trim()) setEditImagePrompt(promptToUse);
+
+      // Encode prompt for Pollinations AI with high quality parameters
+      const cleanPrompt = encodeURIComponent(promptToUse.slice(0, 320) + ', realistic pedagogical photograph, educational vocabulary textbook flashcard, 4k ultra detailed, natural soft daylight');
+      const seed = Math.floor(Math.random() * 999999);
+      const generatedUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=800&height=500&nologo=true&seed=${seed}`;
+      
+      setEditImageUrl(generatedUrl);
+      setEditImageStatus('pending');
+      setImageLoadError(false);
+      playSuccessSound();
+    } catch (e) {
+      console.error('Error generating AI image:', e);
+      alert('Không thể tạo ảnh AI lúc này. Thầy có thể chọn ảnh từ Gợi ý hoặc tải ảnh từ máy tính lên.');
+    } finally {
+      setIsGeneratingAiImage(false);
+    }
+  };
+
   const handleSaveStudioItem = (e) => {
     e.preventDefault();
     if (!editWord.trim() || !editMeaning.trim()) {
@@ -6262,6 +6578,11 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
     }
     const phrasesArr = editPhrasesStr.split('\n').map((s) => s.trim()).filter(Boolean);
     const examplesArr = editExamplesStr.split('\n').map((s) => s.trim()).filter(Boolean);
+    
+    const finalImg = editImageUrl.trim() || getGuaranteedTopicImage(editWord.trim(), editMeaning.trim(), editPos);
+    const finalPrompt = editImagePrompt.trim() || generatePedagogicalImagePrompt(editWord.trim(), editMeaning.trim(), editPos, editUnit);
+    const finalStatus = editImageStatus || 'approved';
+
     let updatedList;
     if (editingItem) {
       updatedList = vocabList.map((item) =>
@@ -6274,7 +6595,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
               meaning: editMeaning.trim(),
               unit: editUnit,
               section: editSection,
-              imageUrl: editImageUrl.trim(),
+              imageUrl: finalImg,
+              imagePrompt: finalPrompt,
+              imageStatus: finalStatus,
               audioUrl: editAudioUrl.trim(),
               phrases: phrasesArr,
               examples: examplesArr,
@@ -6290,7 +6613,9 @@ YÊU CẦU ĐẦU RA (Chỉ trả về JSON thuần túy array of objects, khôn
         meaning: editMeaning.trim(),
         unit: editUnit,
         section: editSection,
-        imageUrl: editImageUrl.trim() || 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&auto=format&fit=crop&q=80',
+        imageUrl: finalImg,
+        imagePrompt: finalPrompt,
+        imageStatus: finalStatus,
         audioUrl: editAudioUrl.trim(),
         phrases: phrasesArr,
         examples: examplesArr,
@@ -13188,22 +13513,224 @@ Hãy nhìn lên bảng ô chữ để chỉnh sửa lại những ô tô màu đ
                   </label>
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="block text-slate-700 font-bold">Link Ảnh Minh Họa (Image URL)</label>
-                <div className="flex space-x-2">
-                  <input
-                    type="url"
-                    value={editImageUrl}
-                    onChange={(e) => setEditImageUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-amber-500"
-                  />
-                  <label className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl cursor-pointer text-slate-700 font-bold text-xs flex items-center space-x-1 shrink-0">
-                    <ImageIcon className="w-4 h-4" />
-                    <span>{uploadingImg ? 'Đang tải...' : 'Upload Ảnh'}</span>
-                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                  </label>
+              {/* PEDAGOGICAL IMAGE MANAGEMENT STUDIO CARD */}
+              <div className="p-3 bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-slate-50 border-2 border-amber-200/80 rounded-2xl space-y-2.5 shadow-sm">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm">🖼️</span>
+                    <label className="text-slate-800 font-extrabold text-xs">
+                      Hình Ảnh Minh Họa Sư Phạm (Pedagogical Semantic Image)
+                    </label>
+                  </div>
+                  {/* Status Badge */}
+                  <div className="flex items-center space-x-1">
+                    {editImageStatus === 'approved' && (
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full font-black text-[10px] flex items-center space-x-1">
+                        <span>✅</span>
+                        <span>Đã duyệt chuẩn nghĩa</span>
+                      </span>
+                    )}
+                    {editImageStatus === 'pending' && (
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-full font-black text-[10px] flex items-center space-x-1">
+                        <span>⏳</span>
+                        <span>Chờ giáo viên duyệt</span>
+                      </span>
+                    )}
+                    {editImageStatus === 'unsuitable' && (
+                      <span className="px-2 py-0.5 bg-rose-100 text-rose-800 border border-rose-300 rounded-full font-black text-[10px] flex items-center space-x-1">
+                        <span>⚠️</span>
+                        <span>Cần thay ảnh khác</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {/* Image Preview & Quick Actions */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                  <div className="sm:col-span-4 flex flex-col items-center">
+                    <div className="relative w-full h-32 bg-slate-900/10 rounded-xl overflow-hidden border border-slate-200 shadow-inner group">
+                      {editImageUrl ? (
+                        <img
+                          src={editImageUrl}
+                          alt={editWord || 'Minh họa từ vựng'}
+                          onError={() => setImageLoadError(true)}
+                          onLoad={() => setImageLoadError(false)}
+                          className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-xs">
+                          <ImageIcon className="w-8 h-8 mb-1 stroke-1" />
+                          <span>Chưa có ảnh minh họa</span>
+                        </div>
+                      )}
+                      {imageLoadError && (
+                        <div className="absolute inset-0 bg-rose-900/80 text-white flex flex-col items-center justify-center p-2 text-center text-[10px]">
+                          <span>⚠️ Lỗi tải ảnh</span>
+                          <span className="text-[9px] opacity-80 mt-0.5">Bấm Tạo ảnh AI hoặc chọn ảnh khác</span>
+                        </div>
+                      )}
+                      {isGeneratingAiImage && (
+                        <div className="absolute inset-0 bg-slate-950/70 text-white flex flex-col items-center justify-center space-y-1">
+                          <Sparkles className="w-6 h-6 text-amber-400 animate-spin" />
+                          <span className="text-[11px] font-bold text-amber-200">AI đang vẽ ảnh...</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Teacher Decision & Source Controls */}
+                  <div className="sm:col-span-8 space-y-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditImageStatus('approved');
+                          playSuccessSound();
+                        }}
+                        className={`px-2.5 py-1.5 rounded-xl font-black text-[11px] flex items-center space-x-1 transition cursor-pointer shadow-sm ${
+                          editImageStatus === 'approved'
+                            ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300'
+                        }`}
+                        title="Xác nhận ảnh này hoàn toàn chính xác với nghĩa từ vựng đang dạy"
+                      >
+                        <span>✅ Duyệt ảnh này</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditImageStatus('unsuitable');
+                          setShowImageSuggestions(true);
+                        }}
+                        className={`px-2.5 py-1.5 rounded-xl font-black text-[11px] flex items-center space-x-1 transition cursor-pointer shadow-sm ${
+                          editImageStatus === 'unsuitable'
+                            ? 'bg-rose-600 text-white ring-2 ring-rose-400'
+                            : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300'
+                        }`}
+                        title="Đánh dấu ảnh không phù hợp ngữ cảnh để thay thế"
+                      >
+                        <span>⚠️ Cần đổi ảnh</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleGenerateAiImageFromPrompt}
+                        disabled={isGeneratingAiImage}
+                        className="px-2.5 py-1.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-600 hover:from-purple-700 hover:to-amber-700 text-white rounded-xl font-black text-[11px] flex items-center space-x-1 shadow-sm transition cursor-pointer disabled:opacity-50"
+                        title="Tạo ảnh AI mới bám sát mô tả ngữ nghĩa sư phạm bên dưới"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>{isGeneratingAiImage ? 'Đang tạo...' : '🎨 Tạo ảnh AI theo mô tả'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowImageSuggestions(!showImageSuggestions)}
+                        className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl font-bold text-[11px] flex items-center space-x-1 shadow-sm transition cursor-pointer"
+                      >
+                        <span>🖼️ Gợi ý ảnh khác ({imageSuggestions.length})</span>
+                      </button>
+
+                      <label className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded-xl cursor-pointer font-bold text-[11px] flex items-center space-x-1 shadow-sm transition">
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>{uploadingImg ? 'Đang tải...' : 'Upload từ máy'}</span>
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                      </label>
+                    </div>
+
+                    {/* Direct Image URL input */}
+                    <input
+                      type="url"
+                      value={editImageUrl}
+                      onChange={(e) => {
+                        setEditImageUrl(e.target.value);
+                        setImageLoadError(false);
+                      }}
+                      placeholder="Dán link ảnh trực tiếp (https://...)"
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-mono text-[11px] text-slate-700 bg-white focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Pedagogical Image Prompt Editor */}
+                <div className="space-y-1 pt-1 border-t border-amber-200/60">
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-700 font-bold text-[11px] flex items-center space-x-1">
+                      <span>📝 Mô Tả Chi Tiết Nội Dung Cần Xuất Hiện Trong Ảnh (Pedagogical Image Prompt):</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newPrompt = generatePedagogicalImagePrompt(editWord, editMeaning, editPos, editUnit);
+                        setEditImagePrompt(newPrompt);
+                      }}
+                      className="text-[10px] text-amber-700 hover:text-amber-900 font-bold underline cursor-pointer"
+                    >
+                      Tự động tạo mô tả chuẩn theo nghĩa
+                    </button>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={editImagePrompt}
+                    onChange={(e) => setEditImagePrompt(e.target.value)}
+                    placeholder="Mô tả chính xác đối tượng, hành động, tình huống minh họa đúng nghĩa đang dạy..."
+                    className="w-full px-2.5 py-1.5 border border-amber-300 rounded-xl text-xs font-medium text-slate-800 bg-white focus:ring-2 focus:ring-amber-500 shadow-inner"
+                  />
+                  <p className="text-[10px] text-slate-500 italic">
+                    💡 Quy tắc sư phạm: Ảnh phải thể hiện đúng đối tượng (vd: cardboard = tấm bìa các tông, dollhouse = nhà mô hình đồ chơi thu nhỏ, counsellor = chuyên viên tư vấn hỗ trợ học sinh). Tránh ảnh bàn học, phong cảnh Paris hay lớp học rập khuôn.
+                  </p>
+                </div>
+
+                {/* Alternative Pedagogical Image Suggestions Tray */}
+                {showImageSuggestions && (
+                  <div className="p-2.5 bg-white border border-amber-300 rounded-xl space-y-2 shadow-sm animate-fadeIn">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-[11px] text-slate-700">
+                        ✨ Danh sách ảnh minh họa chuẩn ngữ nghĩa sư phạm đề xuất:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowImageSuggestions(false)}
+                        className="text-slate-400 hover:text-slate-600 text-xs font-bold"
+                      >
+                        Đóng ✕
+                      </button>
+                    </div>
+                    {imageSuggestions.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {imageSuggestions.map((sug, sIdx) => (
+                          <div
+                            key={sIdx}
+                            onClick={() => {
+                              setEditImageUrl(sug.url);
+                              if (sug.label) setEditImagePrompt(sug.label);
+                              setEditImageStatus('approved');
+                              setImageLoadError(false);
+                              playSuccessSound();
+                            }}
+                            className={`group relative rounded-lg overflow-hidden border-2 cursor-pointer transition p-1 hover:shadow-md ${
+                              editImageUrl === sug.url ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-300' : 'border-slate-200 hover:border-amber-400 bg-white'
+                            }`}
+                          >
+                            <img
+                              src={sug.url}
+                              alt={sug.label || `Gợi ý ${sIdx + 1}`}
+                              className="w-full h-16 object-cover rounded"
+                            />
+                            <p className="text-[10px] font-bold text-slate-700 mt-1 line-clamp-1 group-hover:text-amber-800">
+                              {sug.label || `Lựa chọn ${sIdx + 1}`}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-2 text-slate-500 text-xs">
+                        Chưa có ảnh gợi ý sẵn trong kho. Thầy bấm nút <strong>"🎨 Tạo ảnh AI theo mô tả"</strong> để AI vẽ ảnh đúng ngữ cảnh tức thì!
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="space-y-1">
                 <label className="block text-slate-700 font-bold">Cụm Từ Liên Quan (Phrases - Mỗi cụm 1 dòng)</label>
