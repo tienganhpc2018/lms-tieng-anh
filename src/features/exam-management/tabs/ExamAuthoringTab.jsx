@@ -55,7 +55,7 @@ export default function ExamAuthoringTab({
       deadline: '2026-10-30 23:59',
       status: 'draft',
       createdAt: new Date().toISOString(),
-      sections: JSON.parse(JSON.stringify(SEED_EXAMS[0].sections))
+      sections: SEED_EXAMS[0]?.sections ? JSON.parse(JSON.stringify(SEED_EXAMS[0].sections)) : {}
     };
 
     if (onExamCreated) {
@@ -319,7 +319,7 @@ export default function ExamAuthoringTab({
                   <div className="text-slate-500 mb-2">Đường dẫn file Audio MP3 nghe 2 lần:</div>
                   <input
                     type="text"
-                    defaultValue={SEED_EXAMS[0].sections.listening.task1.audioUrl}
+                    defaultValue={SEED_EXAMS[0]?.sections?.listening?.task1?.audioUrl || SEED_EXAMS[0]?.listening?.task1?.audioUrl || ''}
                     className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs"
                   />
                 </div>
@@ -328,7 +328,7 @@ export default function ExamAuthoringTab({
                   <div className="text-slate-500 mb-2">Đường dẫn file Audio MP3 nghe 2 lần:</div>
                   <input
                     type="text"
-                    defaultValue={SEED_EXAMS[0].sections.listening.task2.audioUrl}
+                    defaultValue={SEED_EXAMS[0]?.sections?.listening?.task2?.audioUrl || SEED_EXAMS[0]?.listening?.task2?.audioUrl || ''}
                     className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs"
                   />
                 </div>

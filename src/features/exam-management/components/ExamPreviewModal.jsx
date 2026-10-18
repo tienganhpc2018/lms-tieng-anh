@@ -7,6 +7,12 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
 
   if (!exam) return null;
 
+  const listening = exam.sections?.listening || exam.listening || {};
+  const languageFocus = exam.sections?.languageFocus || exam.language || {};
+  const reading = exam.sections?.reading || exam.reading || {};
+  const communication = exam.sections?.communication || exam.communication || [];
+  const writing = exam.sections?.writing || exam.writing || {};
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
@@ -103,11 +109,11 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
                 <span className="text-[11px] text-slate-500">(Nghe 2 lần)</span>
               </div>
               <AudioPlayerMini
-                src={exam.sections?.listening?.task1?.audioUrl}
+                src={listening?.task1?.audioUrl}
                 label="Audio Task 1 (Teens leisure activities)"
               />
               <div className="mt-3 space-y-2">
-                {exam.sections?.listening?.task1?.questions?.map((q, idx) => (
+                {listening?.task1?.questions?.map((q, idx) => (
                   <div key={q.id || idx} className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-start justify-between">
                     <div>
                       <span className="font-bold text-slate-600 mr-2">Question {q.number || idx + 1}:</span>
@@ -135,11 +141,11 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
                 <span className="text-[11px] text-slate-500">(Nghe 2 lần)</span>
               </div>
               <AudioPlayerMini
-                src={exam.sections?.listening?.task2?.audioUrl}
+                src={listening?.task2?.audioUrl}
                 label="Audio Task 2 (Life in the countryside)"
               />
               <div className="mt-3 space-y-2">
-                {exam.sections?.listening?.task2?.questions?.map((q, idx) => (
+                {listening?.task2?.questions?.map((q, idx) => (
                   <div key={q.id || idx} className="bg-white p-2.5 rounded-lg border border-slate-200">
                     <div>
                       <span className="font-bold text-slate-600 mr-2">Question {q.number || idx + 5}:</span>
@@ -169,7 +175,7 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
             </div>
 
             <div className="space-y-3">
-              {exam.sections?.languageFocus?.questions?.map((q, idx) => (
+              {languageFocus?.questions?.map((q, idx) => (
                 <div key={q.id || idx} className="p-3 rounded-lg border border-slate-200 bg-slate-50/50">
                   <div className="font-semibold text-slate-800 mb-2">
                     <span className="text-emerald-700 font-bold mr-1.5">Question {q.number || idx + 9}:</span>
@@ -223,10 +229,10 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
                 1. Đọc đoạn văn và chọn từ thích hợp điền vào chỗ trống
               </h4>
               <div className="p-3 bg-white rounded-lg border border-slate-200 text-slate-700 leading-relaxed text-xs italic mb-3">
-                {exam.sections?.reading?.passage1?.text}
+                {reading?.passage1?.text}
               </div>
               <div className="space-y-2">
-                {exam.sections?.reading?.passage1?.questions?.map((q, idx) => (
+                {reading?.passage1?.questions?.map((q, idx) => (
                   <div key={q.id || idx} className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs">
                     <span className="font-bold text-cyan-800 mr-2">Question {q.number || idx + 19}:</span>
                     {q.options?.map((opt, oIdx) => {
@@ -254,10 +260,10 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
                 2. Đọc đoạn văn và chọn câu trả lời đúng
               </h4>
               <div className="p-3 bg-white rounded-lg border border-slate-200 text-slate-700 leading-relaxed text-xs mb-3">
-                {exam.sections?.reading?.passage2?.text}
+                {reading?.passage2?.text}
               </div>
               <div className="space-y-2">
-                {exam.sections?.reading?.passage2?.questions?.map((q, idx) => (
+                {reading?.passage2?.questions?.map((q, idx) => (
                   <div key={q.id || idx} className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs">
                     <div className="font-semibold text-slate-800 mb-1.5">
                       <span className="font-bold text-cyan-800 mr-1.5">Question {q.number || idx + 24}:</span>
@@ -296,7 +302,7 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
             </div>
 
             <div className="space-y-2.5">
-              {exam.sections?.communication?.questions?.map((q, idx) => (
+              {communication?.questions?.map((q, idx) => (
                 <div key={q.id || idx} className="p-3 bg-slate-50/70 rounded-lg border border-slate-200 text-xs">
                   <div className="font-semibold text-slate-800 mb-1.5">
                     <span className="font-bold text-indigo-700 mr-1.5">Question {q.number || idx + 29}:</span>
@@ -339,7 +345,7 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
                 Task 1: Sắp xếp / Dùng từ gợi ý viết thành câu hoàn chỉnh
               </h4>
               <div className="space-y-2.5">
-                {exam.sections?.writing?.task1?.questions?.map((q, idx) => (
+                {writing?.task1?.questions?.map((q, idx) => (
                   <div key={q.id || idx} className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs">
                     <div className="font-semibold text-slate-800">
                       <span className="text-rose-700 font-bold mr-1.5">Question {q.number || idx + 33}:</span>
@@ -361,7 +367,7 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
                 Task 2: Viết lại câu sao cho nghĩa không đổi
               </h4>
               <div className="space-y-2.5">
-                {exam.sections?.writing?.task2?.questions?.map((q, idx) => (
+                {writing?.task2?.questions?.map((q, idx) => (
                   <div key={q.id || idx} className="p-2.5 bg-white rounded-lg border border-slate-200 text-xs">
                     <div className="font-semibold text-slate-800">
                       <span className="text-rose-700 font-bold mr-1.5">Question {q.number || idx + 37}:</span>
@@ -378,18 +384,18 @@ export default function ExamPreviewModal({ exam, onClose, onAssign }) {
             </div>
 
             {/* Task 3: Paragraph Writing (Optional / In-depth) */}
-            {exam.sections?.writing?.paragraph && (
+            {writing?.paragraph && (
               <div className="bg-rose-50/30 p-3.5 rounded-xl border border-rose-100">
                 <h4 className="font-bold text-slate-700 text-xs mb-2 uppercase">
                   Task 3: Viết đoạn văn (80 - 100 từ)
                 </h4>
                 <div className="p-3 bg-white rounded-lg border border-slate-200 text-slate-700 text-xs">
-                  <div className="font-bold text-slate-800 mb-1">{exam.sections?.writing?.paragraph?.prompt}</div>
-                  <div className="text-slate-500 mb-2"><b>Gợi ý:</b> {exam.sections?.writing?.paragraph?.guidance}</div>
+                  <div className="font-bold text-slate-800 mb-1">{writing?.paragraph?.prompt}</div>
+                  <div className="text-slate-500 mb-2"><b>Gợi ý:</b> {writing?.paragraph?.guidance}</div>
                   {showAnswers && (
                     <div className="p-2 bg-emerald-50 rounded border border-emerald-200 text-emerald-900 leading-relaxed">
                       <b>Bài viết mẫu tham khảo:</b>
-                      <p className="mt-1">{exam.sections?.writing?.paragraph?.sampleParagraph}</p>
+                      <p className="mt-1">{writing?.paragraph?.sampleParagraph}</p>
                     </div>
                   )}
                 </div>

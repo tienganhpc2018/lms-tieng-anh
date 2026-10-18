@@ -287,9 +287,130 @@ export const SEED_EXAMS = [
         points: 1.0,
         sampleEssay: 'My favourite leisure activity is cycling around my neighbourhood with my best friends every Saturday afternoon. Our neighbourhood is quiet, green, and full of shade from tall trees. Cycling not only allows me to enjoy the fresh breeze, but it also keeps me healthy and energetic after long hours of studying. Moreover, chatting and laughing with friends helps me reduce school stress and feel refreshed for the new week.'
       }
+    },
+
+    // Cấu trúc sections tương thích chuẩn
+    sections: {
+      listening: {
+        task1: {
+          instruction: 'Part 1: Listen to the recording and fill in each blank with NO MORE THAN TWO WORDS.',
+          audioUrl: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=english-listening-test-sample.mp3',
+          questions: [
+            { id: 'l1_1', number: 1, prompt: '1. Most teenagers in the countryside enjoy spending their leisure time doing ________ activities.', correctAnswer: 'outdoor', explanation: 'Bài nghe: doing outdoor activities' },
+            { id: 'l1_2', number: 2, prompt: '2. Nam and his friends usually go ________ along the river bank after school.', correctAnswer: 'kite flying', explanation: 'Bài nghe: go kite flying' },
+            { id: 'l1_3', number: 3, prompt: '3. Life in a rural village is often described as peaceful and ________.', correctAnswer: 'simple', explanation: 'Bài nghe: peaceful and simple' },
+            { id: 'l1_4', number: 4, prompt: '4. During the harvest season, local farmers work from early morning until ________.', correctAnswer: 'sunset', explanation: 'Bài nghe: work until sunset' }
+          ]
+        },
+        task2: {
+          instruction: 'Part 2: Listen to the conversation and choose the best answer (A, B, C or D).',
+          audioUrl: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=short-uk-dialogue.mp3',
+          questions: [
+            { id: 'l2_1', number: 5, prompt: '5. What is the speaker’s favourite leisure activity?', options: ['Playing online games', 'Making origami models', 'Surfing social media', 'Watching television'], correctAnswer: 'B', explanation: 'Making origami models' },
+            { id: 'l2_2', number: 6, prompt: '6. Who introduced him to this exciting hobby?', options: ['His art teacher', 'His grandmother', 'His elder sister', 'A school counsellor'], correctAnswer: 'C', explanation: 'His elder sister' },
+            { id: 'l2_3', number: 7, prompt: '7. How often does he practice his craft project?', options: ['Every single day', 'Twice a week', 'Only on Sundays', 'Once a month'], correctAnswer: 'B', explanation: 'Twice a week' },
+            { id: 'l2_4', number: 8, prompt: '8. What is the main benefit of this hobby mentioned by the boy?', options: ['Making a lot of money', 'Becoming famous online', 'Reducing study stress and relaxing', 'Winning school prizes'], correctAnswer: 'C', explanation: 'Reducing study stress and relaxing' }
+          ]
+        }
+      },
+      languageFocus: {
+        questions: [
+          { id: 'lf_9', number: 9, prompt: 'Choose the word whose underlined part is pronounced differently: leisure / ensure / measure / pleasure', options: ['leisure', 'ensure', 'measure', 'pleasure'], correctAnswer: 'B', explanation: '"ensure" phát âm là /ʃ/, các từ còn lại là /ʒ/.' },
+          { id: 'lf_10', number: 10, prompt: 'Choose the word with different stress pattern: balance / cattle / prefer / pasture', options: ['balance', 'cattle', 'prefer', 'pasture'], correctAnswer: 'C', explanation: '"prefer" có trọng âm 2, các từ còn lại trọng âm 1.' },
+          { id: 'lf_11', number: 11, prompt: 'First, maintain a well-balanced diet (11) ________ your immune system.', options: ['boost', 'to boost', 'boosted', 'boosting'], correctAnswer: 'B', explanation: 'Dùng to-V chỉ mục đích.' },
+          { id: 'lf_12', number: 12, prompt: 'Second, take regular exercise instead of spending hours on your smartphone (12) ________ games.', options: ['play', 'played', 'playing', 'to play'], correctAnswer: 'C', explanation: 'spend time doing sth.' },
+          { id: 'lf_13', number: 13, prompt: 'Third, talk to your friends or the school (13) ________ when feeling down.', options: ['counsellor', 'artisan', 'firefighter', 'breadwinner'], correctAnswer: 'A', explanation: 'school counsellor: chuyên viên tư vấn trường học.' },
+          { id: 'lf_14', number: 14, prompt: 'Finally, make sure to get at least 8 hours of sleep so you can concentrate (14) ________ your lessons next morning!', options: ['in', 'with', 'on', 'for'], correctAnswer: 'C', explanation: 'concentrate on: tập trung vào.' },
+          { id: 'lf_15', number: 15, prompt: 'All grade 8 students must assemble at the school gate at 6:30 AM (15) ________.', options: ['sharp', 'sharply', 'sharpen', 'sharpness'], correctAnswer: 'A', explanation: '6:30 AM sharp: đúng 6 giờ 30.' },
+          { id: 'lf_16', number: 16, prompt: 'Please wear school uniform and bring a notebook to record information about traditional architecture and local (16) ________ crafts.', options: ['artisan', 'handmade', 'electrical', 'modern'], correctAnswer: 'B', explanation: 'handmade crafts: đồ thủ công làm bằng tay.' },
+          { id: 'lf_17', number: 17, prompt: 'Nam is very keen ________ playing traditional musical instruments.', options: ['on', 'in', 'at', 'with'], correctAnswer: 'A', explanation: 'keen on: đam mê, thích.' },
+          { id: 'lf_18', number: 18, prompt: 'Life in the countryside moves ________ than in big bustling cities.', options: ['more slowly', 'slowlier', 'slower', 'slowly'], correctAnswer: 'A', explanation: 'So sánh hơn của trạng từ slowly: more slowly.' }
+        ]
+      },
+      reading: {
+        passage1: {
+          text: 'Duong Lam Ancient Village is located in Son Tay Town, about 44 km from Hanoi centre. It is the first ancient village in Vietnam recognised as a national historical and cultural relic. What makes Duong Lam special is its preserved laterite houses that are over 300 years old. Villagers maintain a peaceful and slow-paced lifestyle.',
+          questions: [
+            { id: 'r1_19', number: 19, prompt: 'Duong Lam is located in Son Tay Town.', options: ['True', 'False'], correctAnswer: 'A', explanation: 'Thông tin trong bài đọc: about 44 km from Hanoi centre.' },
+            { id: 'r1_20', number: 20, prompt: 'The ancient houses are built with laterite bricks over 300 years old.', options: ['True', 'False'], correctAnswer: 'A', explanation: 'Chính xác.' },
+            { id: 'r1_21', number: 21, prompt: 'The village lifestyle is fast-paced and noisy.', options: ['True', 'False'], correctAnswer: 'B', explanation: 'Ngược lại: peaceful and slow-paced.' },
+            { id: 'r1_22', number: 22, prompt: 'Children usually ride bicycles or walk to school.', options: ['True', 'False'], correctAnswer: 'A', explanation: 'Đúng theo nội dung bài đọc.' },
+            { id: 'r1_23', number: 23, prompt: 'Visiting Duong Lam offers tourists an authentic glimpse into northern rural culture.', options: ['True', 'False'], correctAnswer: 'A', explanation: 'Đúng.' }
+          ]
+        },
+        passage2: {
+          text: 'In recent years, the way teenagers spend their spare time has changed dramatically. A decade ago, young people engaged more in outdoor games like football or cycling. Today, a large number of teens prefer staying indoors, scrolling through social media feeds, or playing online games. Excessive screen time leads to physical fatigue and poor concentration. Health experts suggest teenagers should balance their leisure time: spend at least 45 minutes daily on physical activities and engage in hands-on hobbies like cooking, drawing, or DIY crafts.',
+          questions: [
+            { id: 'r2_24', number: 24, prompt: 'What is the passage mainly about?', options: ['Building online games', 'Changes in teen leisure activities and tips for a balanced life', 'Sports history', 'Social media popularity'], correctAnswer: 'B', explanation: 'Đoạn văn nói về sự thay đổi sở thích và lời khuyên cân bằng.' },
+            { id: 'r2_25', number: 25, prompt: 'Ten years ago, teenagers used to spend more time ________.', options: ['watching TV until midnight', 'shopping online', 'playing outdoor sports and games', 'texting on phones'], correctAnswer: 'C', explanation: 'engaged more in outdoor games' },
+            { id: 'r2_26', number: 26, prompt: 'According to the text, what can excessive screen time cause?', options: ['Better memory', 'Musical talent', 'Physical fatigue and poor concentration', 'Stronger bones'], correctAnswer: 'C', explanation: 'mệt mỏi thể chất và kém tập trung.' },
+            { id: 'r2_27', number: 27, prompt: 'What do health experts recommend teenagers do every day?', options: ['Play video games 3 hours', 'Spend 45 minutes on physical activity', 'Avoid talking to friends', 'Sleep all afternoon'], correctAnswer: 'B', explanation: '45 minutes daily on physical activities' },
+            { id: 'r2_28', number: 28, prompt: 'The phrase "engage in" is closest in meaning to ________.', options: ['take part in', 'look down on', 'give up', 'turn off'], correctAnswer: 'A', explanation: 'engage in = tham gia = take part in.' }
+          ]
+        }
+      },
+      communication: {
+        questions: [
+          { id: 'c_29', number: 29, prompt: 'Mark: "Would you like to play basketball with our team this Sunday?" — Nam: "________"', options: ['Yes, I’d love to. What time does it start?', 'No, you can’t play now.', 'Never mind, it is not my problem.', 'You are welcome.'], correctAnswer: 'A', explanation: 'Lời đáp lại lời mời lịch sự.' },
+          { id: 'c_30', number: 30, prompt: 'Hoa: "Excuse me, teacher. Could you please remind us of the due date for the English video project?" — Teacher: "________"', options: ['It’s very expensive.', 'The deadline is next Friday, October 31st.', 'I don’t like making videos.', 'You should turn off your laptop.'], correctAnswer: 'B', explanation: 'Cung cấp hạn nộp bài.' },
+          { id: 'c_31', number: 31, prompt: 'Tom: "Congratulations on winning first prize in the English speaking contest!" — Lan: "________"', options: ['Thanks a lot. That’s very kind of you.', 'You must be joking!', 'No problem at all.', 'It’s too bad.'], correctAnswer: 'A', explanation: 'Đáp lại lời chúc mừng.' },
+          { id: 'c_32', number: 32, prompt: 'Mai: "How about going cycling around West Lake this afternoon?" — Phong: "________"', options: ['That sounds great!', 'I don’t care.', 'It’s too good.', 'You are right.'], correctAnswer: 'A', explanation: 'Đồng ý với lời rủ đi xe đạp.' }
+        ]
+      },
+      writing: {
+        task1: {
+          questions: [
+            { id: 'w1_33', number: 33, prompt: 'Life / in / countryside / be / more / peaceful / than / life / in / city / .', suggestedAnswer: 'Life in the countryside is more peaceful than life in the city.' },
+            { id: 'w1_34', number: 34, prompt: 'Teenagers / should / divide / their / time / wisely / between / study / and / rest / .', suggestedAnswer: 'Teenagers should divide their time wisely between study and rest.' },
+            { id: 'w1_35', number: 35, prompt: 'He / spend / two / hours / do / volunteer / work / every / weekend / .', suggestedAnswer: 'He spends two hours doing volunteer work every weekend.' },
+            { id: 'w1_36', number: 36, prompt: 'People / in / rural / areas / live / close / to / nature / than / city / dwellers / .', suggestedAnswer: 'People in rural areas live closer to nature than city dwellers.' }
+          ]
+        },
+        task2: {
+          questions: [
+            { id: 'w2_37', number: 37, prompt: 'Mai is interested in making DIY crafts in her spare time. ➔ Mai enjoys...', suggestedAnswer: 'Mai enjoys making DIY crafts in her spare time.' },
+            { id: 'w2_38', number: 38, prompt: 'He started learning to play the guitar two years ago. ➔ He has...', suggestedAnswer: 'He has learned to play the guitar for two years.' },
+            { id: 'w2_39', number: 39, prompt: 'No one in my class can run faster than David. ➔ David is the...', suggestedAnswer: 'David is the fastest runner in my class.' },
+            { id: 'w2_40', number: 40, prompt: 'Nam loves playing football after school. (fond) ➔ Nam is...', suggestedAnswer: 'Nam is fond of playing football after school.' }
+          ]
+        },
+        paragraph: {
+          prompt: 'Write a paragraph (80 - 100 words) about your favourite leisure activity or life in your neighbourhood.',
+          guidance: 'Mention activity, how often, who with, and benefits.',
+          sampleParagraph: 'My favourite leisure activity is cycling around my neighbourhood with my best friends every Saturday afternoon. Our neighbourhood is quiet, green, and full of shade from tall trees. Cycling not only allows me to enjoy the fresh breeze, but it also keeps me healthy and energetic after long hours of studying. Moreover, chatting and laughing with friends helps me reduce school stress and feel refreshed for the new week.'
+        }
+      }
     }
   }
 ];
+
+// Hàm chuẩn hóa bảo đảm luôn có sections đầy đủ
+export const normalizeExam = (exam) => {
+  if (!exam) return SEED_EXAMS[0];
+  const base = SEED_EXAMS[0];
+  const listening = exam?.sections?.listening || exam?.listening || base?.sections?.listening || {};
+  const languageFocus = exam?.sections?.languageFocus || exam?.language || base?.sections?.languageFocus || {};
+  const reading = exam?.sections?.reading || exam?.reading || base?.sections?.reading || {};
+  const communication = exam?.sections?.communication || exam?.communication || base?.sections?.communication || [];
+  const writing = exam?.sections?.writing || exam?.writing || base?.sections?.writing || {};
+
+  return {
+    ...base,
+    ...exam,
+    listening: exam.listening || base.listening,
+    language: exam.language || base.language,
+    reading: exam.reading || base.reading,
+    communication: exam.communication || base.communication,
+    writing: exam.writing || base.writing,
+    sections: {
+      listening,
+      languageFocus,
+      reading,
+      communication,
+      writing
+    }
+  };
+};
 
 // Các tiện ích load & save LocalStorage
 export const loadAssignedExams = () => {
@@ -297,14 +418,17 @@ export const loadAssignedExams = () => {
     const raw = localStorage.getItem(EXAM_STORAGE_KEYS.ASSIGNED_HOMEWORK);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(normalizeExam);
+      }
     }
   } catch (e) {
     console.warn('Lỗi đọc assigned exams:', e);
   }
   // Mặc định lưu SEED_EXAMS vào để lần sau dùng luôn
-  saveAssignedExams(SEED_EXAMS);
-  return SEED_EXAMS;
+  const normalizedSeeds = SEED_EXAMS.map(normalizeExam);
+  saveAssignedExams(normalizedSeeds);
+  return normalizedSeeds;
 };
 
 export const saveAssignedExams = (exams) => {
