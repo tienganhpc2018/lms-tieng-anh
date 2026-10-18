@@ -129,6 +129,18 @@ export default function Navbar() {
                 <span>📊</span>
                 <span>Sổ Điểm TT22</span>
               </Link>
+
+              <Link
+                to="/exam-management"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-2xs border ${
+                  location.pathname === '/exam-management' || location.pathname === '/teacher/exams'
+                    ? 'bg-emerald-700 text-white border-emerald-800 shadow-xs'
+                    : 'bg-white/90 hover:bg-emerald-100 text-emerald-950 border-emerald-300/80'
+                }`}
+              >
+                <span>📝</span>
+                <span>Soạn Đề & Quản Lý</span>
+              </Link>
             </div>
           )}
 
@@ -169,6 +181,14 @@ export default function Navbar() {
                       title="Sổ Điểm TT22"
                     >
                       📊
+                    </Link>
+
+                    <Link
+                      to="/exam-management"
+                      className="md:hidden p-2 rounded-xl bg-white/90 border border-emerald-300 text-emerald-900 text-xs font-bold shadow-2xs"
+                      title="Soạn Đề & Quản Lý"
+                    >
+                      📝
                     </Link>
                   </>
                 )}

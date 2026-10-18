@@ -17,6 +17,7 @@ import BehaviorPage from './features/behavior/BehaviorPage';
 import GiftShopView from './features/gift-shop/GiftShopView';
 import FilmReelView from './features/film-reel/FilmReelView';
 import AssessmentPage from './features/assessment/AssessmentPage';
+import ExamManagementPage from './features/exam-management/ExamManagementPage';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import NotFound from './pages/NotFound';
 
@@ -255,6 +256,28 @@ export default function App() {
                       <AssessmentPage />
                     </ErrorBoundary>
                   </TeacherRoute>
+                }
+              />
+
+              <Route
+                path="/exam-management"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <ExamManagementPage />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/teacher/exams"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <ExamManagementPage />
+                    </ErrorBoundary>
+                  </ProtectedRoute>
                 }
               />
 
