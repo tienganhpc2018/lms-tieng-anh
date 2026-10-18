@@ -14,11 +14,19 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playCorrect } from '../../../utils/soundEffects';
+import { loadClassesList } from '../examStorage';
 
 export default function GradingTab({ submissions = [], onUpdateSubmission }) {
   const [filterClass, setFilterClass] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL'); // 'ALL' | 'pending' | 'graded'
   const [selectedSubmission, setSelectedSubmission] = useState(submissions[0] || null);
+
+  const classOptions = Array.from(
+    new Set([
+      ...loadClassesList().map((c) => c.name),
+      ...submissions.map((s) => s.className).filter(Boolean)
+    ])
+  );
 
   // Grading form state
   const [writingScore, setWritingScore] = useState(selectedSubmission?.writingScore || 1.8);
@@ -26,7 +34,11 @@ export default function GradingTab({ submissions = [], onUpdateSubmission }) {
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
 
   const filteredList = submissions.filter((s) => {
-    if (filterClass !== 'ALL' && s.className !== filterClass) return false;
+    if (filterClass !== 'ALL') {
+      const target = (s.className || '').toLowerCase();
+      const selected = filterClass.toLowerCase();
+      if (!target.includes(selected) && !selected.includes(target)) return false;
+    }
     if (filterStatus === 'pending' && s.status !== 'pending_grading') return false;
     if (filterStatus === 'graded' && s.status !== 'graded') return false;
     return true;
@@ -102,10 +114,11 @@ export default function GradingTab({ submissions = [], onUpdateSubmission }) {
             className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
           >
             <option value="ALL">Tất cả các lớp</option>
-            <option value="8A1">Lớp 8A1</option>
-            <option value="8A2">Lớp 8A2</option>
-            <option value="8A3">Lớp 8A3</option>
-            <option value="8A4">Lớp 8A4</option>
+            {classOptions.map((cName) => (
+              <option key={cName} value={cName}>
+                {cName}
+              </option>
+            ))}
           </select>
 
           <select

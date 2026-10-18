@@ -7,7 +7,18 @@ import AudioPlayerMini from './AudioPlayerMini';
 import { saveExamSubmissions, loadExamSubmissions } from '../examStorage';
 import { playCorrect, playClick } from '../../../utils/soundEffects';
 
-export default function StudentExamModal({ exam, isOpen, onClose, studentName = 'Trần Minh Hằng', studentClass = '8A1' }) {
+export default function StudentExamModal({
+  exam,
+  isOpen = true,
+  onClose,
+  student,
+  studentName = 'Trần Minh Hằng',
+  studentClass = '8A1',
+  onSubmitSuccess
+}) {
+  const actualName = student?.name || studentName;
+  const actualClass = student?.className || studentClass;
+
   if (!isOpen || !exam) return null;
 
   // State lưu đáp án làm bài của học sinh
@@ -153,8 +164,8 @@ export default function StudentExamModal({ exam, isOpen, onClose, studentName = 
         id: 'sub_' + Date.now(),
         examId: exam.id,
         examTitle: exam.title,
-        studentName,
-        studentClass,
+        studentName: actualName,
+        studentClass: actualClass,
         submittedAt: new Date().toISOString(),
         answers,
         essayText,
@@ -167,6 +178,10 @@ export default function StudentExamModal({ exam, isOpen, onClose, studentName = 
 
       const existingSubs = loadExamSubmissions();
       saveExamSubmissions([newSubmission, ...existingSubs]);
+
+      if (onSubmitSuccess) {
+        onSubmitSuccess(newSubmission);
+      }
 
       setIsSubmitted(true);
       playCorrect();
@@ -193,7 +208,7 @@ export default function StudentExamModal({ exam, isOpen, onClose, studentName = 
                 {exam.title}
               </h2>
               <div className="flex items-center space-x-3 text-xs text-teal-100 font-medium">
-                <span>Học sinh: <strong className="text-white">{studentName}</strong> ({studentClass})</span>
+                <span>Học sinh: <strong className="text-white">{actualName}</strong> ({actualClass})</span>
                 <span>• Thời lượng: <strong>{exam.durationMinutes} phút</strong></span>
                 <span>• Thang điểm: <strong>10.0đ</strong></span>
               </div>

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Users, BookOpen, FileCheck, Clock, Send, Bell, TrendingUp, Award, CheckCircle2 } from 'lucide-react';
-import { DEFAULT_CLASSES } from '../examStorage';
+import { loadClassesList } from '../examStorage';
 
 export default function OverviewTab({ exams = [], submissions = [], onOpenAuthoring, onOpenGrading }) {
+  const currentClasses = loadClassesList();
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementContent, setAnnouncementContent] = useState('');
   const [announcementTarget, setAnnouncementTarget] = useState('ALL');
@@ -11,8 +12,8 @@ export default function OverviewTab({ exams = [], submissions = [], onOpenAuthor
       {
         id: 'ann-1',
         title: 'Nhắc nhở ôn tập Kiểm tra Giữa kì I',
-        content: 'Các em học sinh lớp 8A1, 8A2, 8A3, 8A4 chuẩn bị làm bài kiểm tra 45 phút trên hệ thống. Chú ý phần nghe cần đeo tai nghe để đạt kết quả tốt nhất.',
-        target: 'Tất cả các lớp (8A1 - 8A4)',
+        content: 'Các em học sinh chuẩn bị làm bài kiểm tra 45 phút trên hệ thống. Chú ý phần nghe cần đeo tai nghe để đạt kết quả tốt nhất.',
+        target: 'Tất cả các lớp',
         author: 'Thầy Nguyễn Văn Hải',
         date: 'Hôm nay, 08:30'
       },
@@ -20,7 +21,7 @@ export default function OverviewTab({ exams = [], submissions = [], onOpenAuthor
         id: 'ann-2',
         title: 'Hoàn thành bài tập từ vựng Unit 1 & Unit 2',
         content: 'Hạn chót nộp bài tập tự luận là 22:00 tối mai. Những bạn chưa nộp sẽ bị trừ điểm chuyên cần.',
-        target: 'Lớp 8A1, 8A2',
+        target: 'Tất cả các lớp',
         author: 'Thầy Nguyễn Văn Hải',
         date: 'Hôm qua, 15:45'
       }
@@ -28,7 +29,7 @@ export default function OverviewTab({ exams = [], submissions = [], onOpenAuthor
   });
   const [showAnnSuccess, setShowAnnSuccess] = useState(false);
 
-  const totalStudents = DEFAULT_CLASSES.reduce((acc, c) => acc + c.studentCount, 0);
+  const totalStudents = currentClasses.reduce((acc, c) => acc + (c.studentCount || c.count || 0), 0);
   const totalAssignedExams = exams.filter((e) => e.status === 'published').length;
   const pendingGradingCount = submissions.filter((s) => s.status === 'pending_grading').length;
 
@@ -40,7 +41,7 @@ export default function OverviewTab({ exams = [], submissions = [], onOpenAuthor
       id: `ann-${Date.now()}`,
       title: announcementTitle.trim(),
       content: announcementContent.trim(),
-      target: announcementTarget === 'ALL' ? 'Tất cả các lớp (8A1 - 8A4)' : `Lớp ${announcementTarget}`,
+      target: announcementTarget === 'ALL' ? 'Tất cả các lớp' : `Lớp ${announcementTarget}`,
       author: 'Thầy Nguyễn Văn Hải',
       date: 'Vừa xong'
     };
@@ -62,9 +63,11 @@ export default function OverviewTab({ exams = [], submissions = [], onOpenAuthor
             🏫
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-800">{DEFAULT_CLASSES.length}</div>
+            <div className="text-2xl font-black text-slate-800">{currentClasses.length}</div>
             <div className="text-xs font-semibold text-slate-500">Lớp học quản lý</div>
-            <div className="text-[11px] text-emerald-600 font-bold mt-0.5">8A1, 8A2, 8A3, 8A4</div>
+            <div className="text-[11px] text-emerald-600 font-bold mt-0.5 line-clamp-1">
+              {currentClasses.map((c) => c.name).join(', ') || 'Chưa có lớp'}
+            </div>
           </div>
         </div>
 
@@ -133,11 +136,12 @@ export default function OverviewTab({ exams = [], submissions = [], onOpenAuthor
                 onChange={(e) => setAnnouncementTarget(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
               >
-                <option value="ALL">Tất cả các lớp (8A1, 8A2, 8A3, 8A4)</option>
-                <option value="8A1">Chỉ Lớp 8A1</option>
-                <option value="8A2">Chỉ Lớp 8A2</option>
-                <option value="8A3">Chỉ Lớp 8A3</option>
-                <option value="8A4">Chỉ Lớp 8A4</option>
+                <option value="ALL">Tất cả các lớp</option>
+                {currentClasses.map((cls) => (
+                  <option key={cls.id} value={cls.name}>
+                    Chỉ {cls.name}
+                  </option>
+                ))}
               </select>
             </div>
 

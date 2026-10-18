@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { BarChart3, TrendingUp, AlertTriangle, Users, Award, Download, ArrowUpRight } from 'lucide-react';
-import { DEFAULT_CLASSES } from '../examStorage';
+import { loadClassesList } from '../examStorage';
 
 export default function AnalyticsTab({ submissions = [] }) {
+  const currentClasses = loadClassesList();
   const [selectedClass, setSelectedClass] = useState('ALL');
 
   // Phổ điểm mẫu dựa trên học sinh khối 8
@@ -125,30 +126,37 @@ export default function AnalyticsTab({ submissions = [] }) {
         <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
           <h3 className="font-black text-slate-800 text-sm flex items-center space-x-2 pb-2 border-b border-slate-100">
             <Award className="w-4 h-4 text-amber-500" />
-            <span>Bảng xếp hạng thi đua 4 lớp</span>
+            <span>Bảng xếp hạng thi đua các lớp</span>
           </h3>
 
           <div className="space-y-2.5 text-xs">
-            {DEFAULT_CLASSES.map((cls, idx) => {
-              const gpaList = [7.85, 7.42, 7.15, 6.95];
-              return (
-                <div key={cls.id} className="p-3 rounded-xl border border-slate-200 flex items-center justify-between bg-slate-50/50">
-                  <div className="flex items-center space-x-3">
-                    <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-black flex items-center justify-center text-xs">
-                      #{idx + 1}
-                    </span>
-                    <div>
-                      <div className="font-extrabold text-slate-900">{cls.name}</div>
-                      <div className="text-[11px] text-slate-500">{cls.studentCount} Học sinh</div>
+            {currentClasses.length === 0 ? (
+              <div className="py-6 text-center text-slate-400">
+                Chưa có lớp học nào trong hệ thống.
+              </div>
+            ) : (
+              currentClasses.map((cls, idx) => {
+                const gpaList = [7.85, 7.42, 7.15, 6.95, 7.6, 7.3];
+                const gpa = gpaList[idx % gpaList.length];
+                return (
+                  <div key={cls.id} className="p-3 rounded-xl border border-slate-200 flex items-center justify-between bg-slate-50/50">
+                    <div className="flex items-center space-x-3">
+                      <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-black flex items-center justify-center text-xs">
+                        #{idx + 1}
+                      </span>
+                      <div>
+                        <div className="font-extrabold text-slate-900">{cls.name}</div>
+                        <div className="text-[11px] text-slate-500">{cls.studentCount || cls.count || 0} Học sinh</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-black text-emerald-700 text-sm">{gpa}đ</div>
+                      <div className="text-[10px] text-slate-400">ĐTB lớp</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-black text-emerald-700 text-sm">{gpaList[idx]}đ</div>
-                    <div className="text-[10px] text-slate-400">ĐTB lớp</div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 

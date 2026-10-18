@@ -1,9 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, Check, Users, Sparkles, Send, ShieldAlert, CheckCircle2 } from 'lucide-react';
-import { DEFAULT_CLASSES, assignExamToClass } from '../examStorage';
+import { loadClassesList, assignExamToClass } from '../examStorage';
 
 export default function AssignExamModal({ exam, onClose, onAssignedSuccess }) {
-  const [selectedClasses, setSelectedClasses] = useState(['8A1']);
+  const [classesList, setClassesList] = useState(() => loadClassesList());
+  const [selectedClasses, setSelectedClasses] = useState(() => {
+    const list = loadClassesList();
+    return list.length > 0 ? [list[0].id] : [];
+  });
+
+  useEffect(() => {
+    const handleClassesUpdated = (e) => {
+      const updated = e.detail?.classes || loadClassesList();
+      setClassesList(updated);
+      if (updated.length > 0 && selectedClasses.length === 0) {
+        setSelectedClasses([updated[0].id]);
+      }
+    };
+    window.addEventListener('tienganh8ClassesUpdated', handleClassesUpdated);
+    return () => window.removeEventListener('tienganh8ClassesUpdated', handleClassesUpdated);
+  }, [selectedClasses]);
   const [deadlineDate, setDeadlineDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 5);
@@ -75,37 +91,46 @@ export default function AssignExamModal({ exam, onClose, onAssignedSuccess }) {
               <Users className="w-4 h-4 text-emerald-600" />
               <span>1. Chọn Lớp Nhận Đề (Click chọn nhiều lớp)</span>
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              {DEFAULT_CLASSES.map((cls) => {
-                const isSelected = selectedClasses.includes(cls.id);
-                return (
-                  <button
-                    key={cls.id}
-                    type="button"
-                    onClick={() => toggleClass(cls.id)}
-                    className={`p-3 rounded-xl border-2 text-left transition flex items-center justify-between ${
-                      isSelected
-                        ? 'border-emerald-500 bg-emerald-50/70 text-emerald-950 font-bold shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
-                    }`}
-                  >
-                    <div>
-                      <div className="font-extrabold text-sm">{cls.name}</div>
-                      <div className="text-[11px] text-slate-500">{cls.studentCount} Học sinh • Phòng {cls.room}</div>
-                    </div>
-                    <div
-                      className={`w-5 h-5 rounded-md flex items-center justify-center border ${
+            {classesList.length === 0 ? (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
+                <span className="font-bold">⚠️ Chưa có lớp học nào trong hệ thống!</span>
+                <p className="mt-1 text-slate-600">
+                  Thầy vui lòng sang mục <b>"2. Lớp học"</b> bấm <b>"+ Thêm Lớp Mới"</b> (ví dụ: Lớp 9) trước khi thực hiện giao đề nhé.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {classesList.map((cls) => {
+                  const isSelected = selectedClasses.includes(cls.id);
+                  return (
+                    <button
+                      key={cls.id}
+                      type="button"
+                      onClick={() => toggleClass(cls.id)}
+                      className={`p-3 rounded-xl border-2 text-left transition flex items-center justify-between ${
                         isSelected
-                          ? 'bg-emerald-600 border-emerald-600 text-white'
-                          : 'border-slate-300 bg-white'
+                          ? 'border-emerald-500 bg-emerald-50/70 text-emerald-950 font-bold shadow-xs'
+                          : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
                       }`}
                     >
-                      {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                      <div>
+                        <div className="font-extrabold text-sm">{cls.name}</div>
+                        <div className="text-[11px] text-slate-500">{cls.studentCount || 0} Học sinh • {cls.grade || 'Khối 8'}</div>
+                      </div>
+                      <div
+                        className={`w-5 h-5 rounded-md flex items-center justify-center border ${
+                          isSelected
+                            ? 'bg-emerald-600 border-emerald-600 text-white'
+                            : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Cấu hình thời gian & hạn nộp */}

@@ -141,7 +141,7 @@ export default function ExamManagementPage() {
               }`}
             >
               <span>👩‍🎓</span>
-              <span>Học sinh (Minh Hằng - 8A1)</span>
+              <span>Học sinh (Vào phòng thi)</span>
             </button>
           </div>
         </div>

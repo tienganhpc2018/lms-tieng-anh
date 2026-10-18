@@ -17,33 +17,20 @@ import {
   Upload,
   FileText
 } from 'lucide-react';
-import { DEFAULT_CLASSES, DEFAULT_STUDENTS_8A1 } from '../examStorage';
+import { DEFAULT_CLASSES, DEFAULT_STUDENTS_8A1, loadClassesList, saveClassesList, EXAM_STORAGE_KEYS } from '../examStorage';
 
-const CLASSES_STORAGE_KEY = 'tienganh8_classes_v2';
-const STUDENTS_STORAGE_KEY = 'tienganh8_students_v2';
+const CLASSES_STORAGE_KEY = EXAM_STORAGE_KEYS.CLASSES;
+const STUDENTS_STORAGE_KEY = EXAM_STORAGE_KEYS.STUDENTS;
 
 export default function ClassesTab() {
   // 1. Quản lý danh sách lớp học bền vững
   const [classes, setClasses] = useState(() => {
-    try {
-      const saved = localStorage.getItem(CLASSES_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return DEFAULT_CLASSES.map((c) => ({
-      id: c.id.toLowerCase(),
-      name: c.name || `Lớp ${c.id.toUpperCase()}`,
-      grade: c.grade || 'Khối 8',
-      studentCount: c.count || c.studentCount || 35,
-      year: c.year || '2025-2026',
-      room: c.room || 'P. Ngoại Ngữ 1'
-    }));
+    return loadClassesList();
   });
 
   const [selectedClassId, setSelectedClassId] = useState(() => {
-    return classes[0]?.id || '8a1';
+    const list = loadClassesList();
+    return list[0]?.id || '';
   });
 
   // 2. Quản lý danh sách học sinh theo lớp
@@ -52,14 +39,10 @@ export default function ClassesTab() {
       const saved = localStorage.getItem(STUDENTS_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {}
-    return DEFAULT_STUDENTS_8A1.map((s) => ({
-      ...s,
-      classId: (s.classId || '8a1').toLowerCase(),
-      gpa: s.avg || s.gpa || 8.5
-    }));
+    return [];
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,9 +51,9 @@ export default function ClassesTab() {
   // Modal State: Tạo lớp
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
   const [newClassName, setNewClassName] = useState('');
-  const [newClassGrade, setNewClassGrade] = useState('Khối 8');
+  const [newClassGrade, setNewClassGrade] = useState('Khối 9');
   const [newClassYear, setNewClassYear] = useState('2025-2026');
-  const [newClassRoom, setNewClassRoom] = useState('P. Ngoại Ngữ 2');
+  const [newClassRoom, setNewClassRoom] = useState('P. Ngoại Ngữ 1');
   const [newClassCount, setNewClassCount] = useState(35);
 
   // Modal State: Thêm học sinh đơn lẻ
@@ -87,11 +70,9 @@ export default function ClassesTab() {
   const [pasteText, setPasteText] = useState('');
   const fileInputRef = useRef(null);
 
-  // Lưu classes vào localStorage khi thay đổi
+  // Lưu classes vào localStorage khi thay đổi & phát event đồng bộ
   useEffect(() => {
-    try {
-      localStorage.setItem(CLASSES_STORAGE_KEY, JSON.stringify(classes));
-    } catch (e) {}
+    saveClassesList(classes);
   }, [classes]);
 
   // Lưu students vào localStorage khi thay đổi
@@ -102,11 +83,11 @@ export default function ClassesTab() {
   }, [students]);
 
   const currentClass =
-    classes.find((c) => c.id.toLowerCase() === selectedClassId.toLowerCase()) || classes[0] || {};
+    classes.find((c) => c.id.toLowerCase() === selectedClassId.toLowerCase()) || classes[0] || null;
 
   // Lọc học sinh theo lớp đang chọn và từ khóa tìm kiếm
   const classStudents = students.filter(
-    (s) => (s.classId || '').toLowerCase() === selectedClassId.toLowerCase()
+    (s) => (s.classId || '').toLowerCase() === (selectedClassId || '').toLowerCase()
   );
 
   const filteredStudents = classStudents.filter(
@@ -143,23 +124,58 @@ export default function ClassesTab() {
 
     const nextClasses = [...classes, createdClass];
     setClasses(nextClasses);
+    saveClassesList(nextClasses);
     setSelectedClassId(createdClass.id);
     setIsAddClassModalOpen(false);
     setNewClassName('');
     showNotify(`Đã tạo thành công ${createdClass.name} (${createdClass.year})!`);
   };
 
-  // Xử lý xóa lớp học
+  // Xử lý xóa 1 lớp học (không hạn chế kể cả khi chỉ còn 1 lớp)
   const handleDeleteClass = (classId, className) => {
-    if (classes.length <= 1) {
-      alert('Cần giữ lại ít nhất 1 lớp học trong hệ thống!');
-      return;
-    }
     if (window.confirm(`Thầy có chắc chắn muốn xóa ${className} khỏi hệ thống không?`)) {
       const nextClasses = classes.filter((c) => c.id !== classId);
       setClasses(nextClasses);
-      setSelectedClassId(nextClasses[0].id);
+      saveClassesList(nextClasses);
+      setSelectedClassId(nextClasses[0]?.id || '');
+      // Đồng thời xóa học sinh thuộc lớp này
+      const nextStudents = students.filter((s) => (s.classId || '').toLowerCase() !== classId.toLowerCase());
+      setStudents(nextStudents);
+      try {
+        localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(nextStudents));
+      } catch (e) {}
       showNotify(`Đã xóa ${className}!`);
+    }
+  };
+
+  // Xóa sạch các lớp mẫu (8A1 - 8A4)
+  const handleClearSampleClasses = () => {
+    if (window.confirm('Thầy có chắc chắn muốn xóa sạch các lớp mẫu (8A1, 8A2, 8A3, 8A4) không?')) {
+      const sampleIds = ['8a1', '8a2', '8a3', '8a4'];
+      const nextClasses = classes.filter((c) => !sampleIds.includes(c.id.toLowerCase()));
+      setClasses(nextClasses);
+      saveClassesList(nextClasses);
+      setSelectedClassId(nextClasses[0]?.id || '');
+      const nextStudents = students.filter((s) => !sampleIds.includes((s.classId || '').toLowerCase()));
+      setStudents(nextStudents);
+      try {
+        localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(nextStudents));
+      } catch (e) {}
+      showNotify('Đã xóa sạch các lớp mẫu!');
+    }
+  };
+
+  // Xóa toàn bộ danh sách lớp
+  const handleClearAllClasses = () => {
+    if (window.confirm('Thầy có chắc chắn muốn xóa TOÀN BỘ danh sách lớp để tạo lại từ đầu không?')) {
+      setClasses([]);
+      saveClassesList([]);
+      setSelectedClassId('');
+      setStudents([]);
+      try {
+        localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify([]));
+      } catch (e) {}
+      showNotify('Đã dọn sạch toàn bộ lớp học!');
     }
   };
 
@@ -317,9 +333,25 @@ export default function ClassesTab() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Nút Xóa Lớp Mẫu nếu đang có 8a1 - 8a4 */}
+          {classes.some((c) => ['8a1', '8a2', '8a3', '8a4'].includes(c.id.toLowerCase())) && (
+            <button
+              onClick={handleClearSampleClasses}
+              className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs"
+              title="Xóa nhanh 4 lớp mẫu (8A1 - 8A4) khỏi hệ thống"
+            >
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>Xóa các lớp mẫu</span>
+            </button>
+          )}
+
           {/* Nút Nhập Hàng Loạt (CSV / Dán tên HS) */}
           <button
             onClick={() => {
+              if (!currentClass) {
+                alert('Vui lòng tạo lớp học trước khi nhập học sinh!');
+                return;
+              }
               setPasteText('');
               setIsBulkModalOpen(true);
             }}
@@ -331,7 +363,13 @@ export default function ClassesTab() {
           </button>
 
           <button
-            onClick={handleOpenAddStudent}
+            onClick={() => {
+              if (!currentClass) {
+                alert('Vui lòng tạo lớp học trước khi thêm học sinh!');
+                return;
+              }
+              handleOpenAddStudent();
+            }}
             className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
             title="Thêm học sinh mới vào lớp đang chọn"
           >
@@ -358,62 +396,80 @@ export default function ClassesTab() {
       )}
 
       {/* Grid: Danh sách các lớp (Thẻ bấm chuyển lớp trực quan) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-        {classes.map((cls) => {
-          const isSelected = cls.id.toLowerCase() === selectedClassId.toLowerCase();
-          const studentCountNumber = cls.studentCount || cls.count || 0;
-          return (
-            <div
-              key={cls.id}
-              onClick={() => setSelectedClassId(cls.id)}
-              className={`p-4 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between relative group ${
-                isSelected
-                  ? 'border-emerald-600 bg-emerald-50/80 shadow-xs'
-                  : 'border-slate-200 hover:border-slate-300 bg-white'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700">
-                  {cls.year || '2025-2026'}
-                </span>
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              </div>
-              <div>
-                <h3 className="text-base font-black text-slate-900">{cls.name}</h3>
-                <div className="text-xs text-slate-600 mt-1 font-semibold">
-                  <span className="font-extrabold text-emerald-800">{studentCountNumber}</span> học sinh • {cls.room || 'P. Ngoại Ngữ 1'}
+      {classes.length === 0 ? (
+        <div className="p-8 text-center bg-white rounded-2xl border-2 border-dashed border-slate-300">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl font-bold mb-3">
+            🏫
+          </div>
+          <h3 className="text-base font-black text-slate-800">Chưa có lớp học nào trong hệ thống</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-4 leading-relaxed">
+            Toàn bộ lớp mẫu đã được xóa sạch. Thầy hãy bấm nút bên dưới để tạo lớp học thực tế (ví dụ: Lớp 9, Lớp 9A1...) và bắt đầu thêm danh sách học sinh nhé!
+          </p>
+          <button
+            onClick={() => setIsAddClassModalOpen(true)}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition inline-flex items-center space-x-2 shadow-md"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Tạo Lớp Mới Ngay (vd: Lớp 9)</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          {classes.map((cls) => {
+            const isSelected = cls.id.toLowerCase() === selectedClassId.toLowerCase();
+            const studentCountNumber = cls.studentCount || cls.count || 0;
+            return (
+              <div
+                key={cls.id}
+                onClick={() => setSelectedClassId(cls.id)}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between relative group ${
+                  isSelected
+                    ? 'border-emerald-600 bg-emerald-50/80 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700">
+                    {cls.year || '2025-2026'}
+                  </span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                 </div>
-              </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">{cls.name}</h3>
+                  <div className="text-xs text-slate-600 mt-1 font-semibold">
+                    <span className="font-extrabold text-emerald-800">{studentCountNumber}</span> học sinh • {cls.room || 'P. Ngoại Ngữ 1'}
+                  </div>
+                </div>
 
-              {classes.length > 1 && (
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDeleteClass(cls.id, cls.name);
                   }}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                  title="Xóa lớp học này"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                  title={`Xóa ${cls.name}`}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Danh sách học sinh của lớp đang chọn */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-sm">
-              👨‍🎓
-            </div>
-            <div>
-              <h3 className="font-black text-slate-800 text-sm sm:text-base">
-                Danh sách học sinh — {currentClass.name}
-              </h3>
+      {currentClass ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-sm">
+                👨‍🎓
+              </div>
+              <div>
+                <h3 className="font-black text-slate-800 text-sm sm:text-base">
+                  Danh sách học sinh — {currentClass.name}
+                </h3>
               <span className="text-xs text-slate-500 font-medium">
                 Sĩ số: <b className="text-emerald-700 font-bold">{classStudents.length} học sinh</b> • Giáo viên phụ trách: Thầy Nguyễn Văn Hải
               </span>
@@ -529,11 +585,12 @@ export default function ClassesTab() {
           </table>
         </div>
       </div>
+      ) : null}
 
       {/* ========================================================
           MODAL 1: NHẬP HÀNG LOẠT (DÁN DANH SÁCH HOẶC TẢI CSV)
       ======================================================== */}
-      {isBulkModalOpen && (
+      {isBulkModalOpen && currentClass && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">

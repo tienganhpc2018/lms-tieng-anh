@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BookOpen,
   FileText,
@@ -12,9 +12,12 @@ import {
   Star,
   Trophy,
   ArrowRight,
-  Gift
+  Gift,
+  User,
+  Users
 } from 'lucide-react';
 import StudentExamModal from './StudentExamModal';
+import { loadClassesList, EXAM_STORAGE_KEYS } from '../examStorage';
 
 export default function StudentPortalView({
   exams = [],
@@ -25,37 +28,156 @@ export default function StudentPortalView({
   const [studentTab, setStudentTab] = useState('assignments'); // 'home' | 'lessons' | 'assignments' | 'tests' | 'gamification'
   const [activeExamToTake, setActiveExamToTake] = useState(null);
 
-  // Lọc các đề thi đã mở cho lớp 8A1
-  const assignedExamsFor8A1 = exams.filter(
-    (e) => e.status === 'published' && (!e.assignedClass || e.assignedClass.includes('8A1') || e.assignedClass === 'Tất cả')
+  // Danh sách lớp thực tế
+  const [classesList] = useState(() => loadClassesList());
+  const [currentClassId, setCurrentClassId] = useState(() => {
+    const list = loadClassesList();
+    return list[0]?.id || 'lop9';
+  });
+
+  // Đọc danh sách học sinh theo lớp từ localStorage
+  const [allStudents] = useState(() => {
+    try {
+      const saved = localStorage.getItem(EXAM_STORAGE_KEYS.STUDENTS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  const studentsOfCurrentClass = allStudents.filter(
+    (s) => (s.classId || '').toLowerCase() === (currentClassId || '').toLowerCase()
   );
+
+  const [selectedStudentName, setSelectedStudentName] = useState(() => {
+    return studentsOfCurrentClass[0]?.name || 'Nguyễn Văn Minh';
+  });
+  const [selectedStudentCode, setSelectedStudentCode] = useState(() => {
+    return studentsOfCurrentClass[0]?.code || 'HS-001';
+  });
+
+  // Khi đổi lớp, tự động chọn học sinh đầu tiên của lớp đó (hoặc tạo mẫu)
+  useEffect(() => {
+    const classSts = allStudents.filter(
+      (s) => (s.classId || '').toLowerCase() === (currentClassId || '').toLowerCase()
+    );
+    if (classSts.length > 0) {
+      setSelectedStudentName(classSts[0].name);
+      setSelectedStudentCode(classSts[0].code || `HS-${classSts[0].id.slice(-3)}`);
+    } else {
+      setSelectedStudentName('Học sinh ' + (currentClassId.toUpperCase()));
+      setSelectedStudentCode(`HS-${currentClassId.toUpperCase()}-01`);
+    }
+  }, [currentClassId, allStudents]);
+
+  const currentClassObj = classesList.find(
+    (c) => c.id.toLowerCase() === (currentClassId || '').toLowerCase()
+  ) || {
+    id: currentClassId,
+    name: currentClassId ? (currentClassId.toLowerCase().startsWith('lớp') ? currentClassId : `Lớp ${currentClassId.toUpperCase()}`) : 'Lớp 9'
+  };
+
+  // Lọc các đề thi đã mở cho lớp đang chọn
+  const assignedExamsForCurrentClass = exams.filter((e) => {
+    if (e.status !== 'published') return false;
+    if (!e.assignedClass || e.assignedClass === 'Tất cả' || e.assignedClass.includes('Tất cả')) return true;
+    const target = e.assignedClass.toLowerCase();
+    const cId = (currentClassId || '').toLowerCase();
+    const cName = (currentClassObj.name || '').toLowerCase();
+    return target.includes(cId) || target.includes(cName);
+  });
 
   return (
     <div className="space-y-6">
-      {/* Role Switcher Indicator Banner */}
-      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white p-4 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl font-bold">
-            👩‍🎓
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-white/20">
-                Giao diện học sinh thử nghiệm
-              </span>
-              <span className="text-xs font-bold">Lớp 8A1 • THCS Global Success</span>
+      {/* Role Switcher Indicator & Interactive Student Identity Banner */}
+      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white p-4 sm:p-5 rounded-2xl shadow-md space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl font-bold shadow-inner">
+              👩‍🎓
             </div>
-            <h2 className="text-base font-black">Minh Hằng (HS8-001)</h2>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-white/20 tracking-wider">
+                  Cổng Làm Bài & Khảo Thí Dành Cho Học Sinh
+                </span>
+              </div>
+              <h2 className="text-lg font-black mt-0.5 flex items-center space-x-2">
+                <span>{selectedStudentName}</span>
+                <span className="text-xs px-2 py-0.5 rounded-md bg-white/20 font-mono font-bold">
+                  {selectedStudentCode}
+                </span>
+                <span className="text-xs text-amber-100">• {currentClassObj.name}</span>
+              </h2>
+            </div>
           </div>
+
+          <button
+            onClick={onSwitchToTeacher}
+            className="px-4 py-2.5 rounded-xl bg-white text-slate-900 font-black text-xs shadow-md hover:bg-amber-50 transition flex items-center space-x-2 self-start md:self-auto shrink-0"
+          >
+            <span>👨‍🏫</span>
+            <span>Chuyển về Giáo viên (Thầy Nguyễn Văn Hải)</span>
+          </button>
         </div>
 
-        <button
-          onClick={onSwitchToTeacher}
-          className="px-4 py-2 rounded-xl bg-white text-slate-900 font-extrabold text-xs shadow-md hover:bg-amber-50 transition flex items-center space-x-1.5 self-start sm:self-auto"
-        >
-          <span>👨‍🏫</span>
-          <span>Chuyển về Giáo viên (Thầy Nguyễn Văn Hải)</span>
-        </button>
+        {/* Thanh chọn Lớp & Học Sinh nhanh (giúp Thầy hoặc Học sinh chuyển lớp làm bài tức thì) */}
+        <div className="pt-2 border-t border-white/20 flex flex-wrap items-center gap-3 text-xs">
+          <div className="flex items-center space-x-1.5 bg-black/15 px-3 py-1.5 rounded-xl">
+            <Users className="w-3.5 h-3.5 text-amber-200" />
+            <span className="font-bold text-amber-100">Chọn Lớp:</span>
+            <select
+              value={currentClassId}
+              onChange={(e) => setCurrentClassId(e.target.value)}
+              className="bg-transparent text-white font-extrabold focus:outline-hidden cursor-pointer"
+            >
+              {classesList.length > 0 ? (
+                classesList.map((c) => (
+                  <option key={c.id} value={c.id} className="text-slate-900">
+                    {c.name}
+                  </option>
+                ))
+              ) : (
+                <option value="lop9" className="text-slate-900">
+                  Lớp 9
+                </option>
+              )}
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-1.5 bg-black/15 px-3 py-1.5 rounded-xl">
+            <User className="w-3.5 h-3.5 text-amber-200" />
+            <span className="font-bold text-amber-100">Học sinh:</span>
+            {studentsOfCurrentClass.length > 0 ? (
+              <select
+                value={selectedStudentName}
+                onChange={(e) => {
+                  const found = studentsOfCurrentClass.find((s) => s.name === e.target.value);
+                  setSelectedStudentName(e.target.value);
+                  if (found) setSelectedStudentCode(found.code || `HS-${found.id.slice(-3)}`);
+                }}
+                className="bg-transparent text-white font-extrabold focus:outline-hidden cursor-pointer"
+              >
+                {studentsOfCurrentClass.map((st) => (
+                  <option key={st.id} value={st.name} className="text-slate-900">
+                    {st.name} ({st.code})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={selectedStudentName}
+                onChange={(e) => setSelectedStudentName(e.target.value)}
+                placeholder="Nhập tên học sinh..."
+                className="bg-transparent text-white font-extrabold focus:outline-hidden border-b border-white/40 px-1 w-32"
+              />
+            )}
+          </div>
+
+          <span className="text-[11px] text-amber-100 ml-auto hidden sm:inline-block">
+            💡 Đang hiển thị các bài tập & đề thi được giao cho: <b>{currentClassObj.name}</b>
+          </span>
+        </div>
       </div>
 
       {/* 5 Thanh Điều Hướng Dành Cho Học Sinh */}
@@ -172,17 +294,27 @@ export default function StudentPortalView({
         <div className="space-y-4">
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
             <div>
-              <h3 className="text-base font-black text-slate-800">Danh Sách Bài Tập Do Thầy Giao Cho Lớp 8A1</h3>
+              <h3 className="text-base font-black text-slate-800">
+                Danh Sách Bài Tập & Đề Thi Cho {currentClassObj.name}
+              </h3>
               <p className="text-xs text-slate-500">Các bài tập tự luyện và các Đề kiểm tra trực tuyến cần hoàn thành</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
-              {assignedExamsFor8A1.length} Đề kiểm tra đang mở
+              {assignedExamsForCurrentClass.length} Đề kiểm tra đang mở
             </span>
           </div>
 
           <div className="space-y-3">
-            {/* Đề Kiểm Tra có gắn nhãn [ĐỀ KIỂM TRA] rõ ràng */}
-            {assignedExamsFor8A1.map((exam) => (
+            {assignedExamsForCurrentClass.length === 0 ? (
+              <div className="p-8 text-center bg-white rounded-2xl border-2 border-dashed border-slate-200">
+                <div className="text-3xl mb-2">📋</div>
+                <h4 className="font-extrabold text-slate-800 text-sm">Chưa có đề kiểm tra nào cho {currentClassObj.name}</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                  Thầy chưa giao đề cho lớp này. Thầy có thể bấm nút "Chuyển về Giáo viên" ở trên để giao đề cho {currentClassObj.name}!
+                </p>
+              </div>
+            ) : (
+              assignedExamsForCurrentClass.map((exam) => (
               <div
                 key={exam.id}
                 className="bg-white rounded-2xl border-2 border-emerald-500/80 shadow-md p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in"
@@ -224,7 +356,7 @@ export default function StudentPortalView({
                   <span>Bắt đầu làm bài thi ngay</span>
                 </button>
               </div>
-            ))}
+            )))}
 
             {/* Bài tập tự luyện thường */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -262,7 +394,7 @@ export default function StudentPortalView({
               <div className="font-extrabold text-slate-900 text-sm">Kiểm tra Giữa kì I (45 phút)</div>
               <div className="text-slate-600">Bao gồm 5 phần chuẩn: Listening, Language Focus, Reading, Communication, Writing.</div>
               <button
-                onClick={() => setActiveExamToTake(assignedExamsFor8A1[0] || exams[0])}
+                onClick={() => setActiveExamToTake(assignedExamsForCurrentClass[0] || exams[0])}
                 className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition"
               >
                 Vào phòng thi 45 phút
@@ -299,7 +431,7 @@ export default function StudentPortalView({
               <div className="font-black text-slate-900 text-sm">Vòng Quay May Mắn</div>
               <div className="text-xs text-slate-600">50 sao / lượt quay</div>
               <button
-                onClick={() => alert('Chúc mừng Minh Hằng đã trúng +20 Sao thưởng!')}
+                onClick={() => alert(`Chúc mừng ${selectedStudentName} đã trúng +20 Sao thưởng!`)}
                 className="w-full py-2 rounded-xl bg-amber-500 text-white font-bold text-xs hover:bg-amber-600 transition"
               >
                 Quay ngay
@@ -337,7 +469,7 @@ export default function StudentPortalView({
       {activeExamToTake && (
         <StudentExamModal
           exam={activeExamToTake}
-          student={{ id: 'HS8-001', name: 'Minh Hằng', className: '8A1' }}
+          student={{ id: selectedStudentCode, name: selectedStudentName, className: currentClassObj.name }}
           onClose={() => setActiveExamToTake(null)}
           onSubmitSuccess={(sub) => {
             if (onExamSubmitted) {

@@ -6,29 +6,36 @@ export const EXAM_STORAGE_KEYS = {
   EXAM_DRAFTS: 'tienganh8_exam_drafts_v1',
   ANNOUNCEMENTS: 'tienganh8_teacher_announcements_v1',
   ACTIVE_ROLE: 'tienganh8_active_role_v1', // 'teacher' | 'student'
+  CLASSES: 'tienganh8_classes_v2',
+  STUDENTS: 'tienganh8_students_v2',
 };
 
-// 4 Lớp học mặc định theo đúng yêu cầu đề bài
-export const DEFAULT_CLASSES = [
-  { id: '8a1', name: 'Lớp 8A1', grade: 'Khối 8', count: 38, year: '2025-2026' },
-  { id: '8a2', name: 'Lớp 8A2', grade: 'Khối 8', count: 36, year: '2025-2026' },
-  { id: '8a3', name: 'Lớp 8A3', grade: 'Khối 8', count: 35, year: '2025-2026' },
-  { id: '8a4', name: 'Lớp 8A4', grade: 'Khối 8', count: 37, year: '2025-2026' },
-];
+// Không nạp sẵn lớp mẫu để Thầy tự do quản lý và tạo lớp theo nhu cầu thực tế
+export const DEFAULT_CLASSES = [];
 
-// Danh sách học sinh mẫu Lớp 8A1 (có Minh Hằng là học sinh đại diện)
-export const DEFAULT_STUDENTS_8A1 = [
-  { id: 'hs_8a1_01', name: 'Trần Minh Hằng', gender: 'Nữ', code: 'HS80101', avg: 9.2, attendance: '100%', progress: 95, classId: '8a1' },
-  { id: 'hs_8a1_02', name: 'Nguyễn Tuấn Anh', gender: 'Nam', code: 'HS80102', avg: 8.5, attendance: '98%', progress: 88, classId: '8a1' },
-  { id: 'hs_8a1_03', name: 'Lê Hoàng Bách', gender: 'Nam', code: 'HS80103', avg: 7.8, attendance: '95%', progress: 80, classId: '8a1' },
-  { id: 'hs_8a1_04', name: 'Phạm Quỳnh Chi', gender: 'Nữ', code: 'HS80104', avg: 9.0, attendance: '100%', progress: 92, classId: '8a1' },
-  { id: 'hs_8a1_05', name: 'Vũ Quốc Đạt', gender: 'Nam', code: 'HS80105', avg: 8.0, attendance: '96%', progress: 85, classId: '8a1' },
-  { id: 'hs_8a1_06', name: 'Đỗ Thùy Dương', gender: 'Nữ', code: 'HS80106', avg: 8.8, attendance: '99%', progress: 90, classId: '8a1' },
-  { id: 'hs_8a1_07', name: 'Hoàng Minh Đức', gender: 'Nam', code: 'HS80107', avg: 7.5, attendance: '94%', progress: 75, classId: '8a1' },
-  { id: 'hs_8a1_08', name: 'Bùi Khánh Linh', gender: 'Nữ', code: 'HS80108', avg: 9.4, attendance: '100%', progress: 98, classId: '8a1' },
-  { id: 'hs_8a1_09', name: 'Đặng Bảo Nam', gender: 'Nam', code: 'HS80109', avg: 8.2, attendance: '97%', progress: 84, classId: '8a1' },
-  { id: 'hs_8a1_10', name: 'Ngô Thảo Nguyên', gender: 'Nữ', code: 'HS80110', avg: 8.7, attendance: '98%', progress: 89, classId: '8a1' },
-];
+// Danh sách học sinh mẫu trống (để Thầy tự tạo lớp và thêm học sinh thực tế)
+export const DEFAULT_STUDENTS_8A1 = [];
+
+// Helper lấy danh sách lớp học thực tế đang có
+export const loadClassesList = () => {
+  try {
+    const raw = localStorage.getItem(EXAM_STORAGE_KEYS.CLASSES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {}
+  return [];
+};
+
+export const saveClassesList = (classList) => {
+  try {
+    localStorage.setItem(EXAM_STORAGE_KEYS.CLASSES, JSON.stringify(classList));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tienganh8ClassesUpdated', { detail: { classes: classList } }));
+    }
+  } catch (e) {}
+};
 
 // Bộ đề kiểm tra 5 phần mẫu chuẩn GDPT 2018 (Tiếng Anh 8 Global Success - Unit 1, 2, 3)
 export const SEED_EXAMS = [
