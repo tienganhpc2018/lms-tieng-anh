@@ -144,6 +144,23 @@ export default function Navbar() {
             </div>
           )}
 
+          {/* NÚT TRUY CẬP PHÒNG THI & BÀI TẬP DÀNH RIÊNG CHO HỌC SINH ĐÃ ĐĂNG NHẬP */}
+          {user && !isTeacher && location.pathname !== '/auth' && (
+            <div className="hidden md:flex items-center space-x-2">
+              <Link
+                to="/exam-management"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 shadow-2xs border ${
+                  location.pathname === '/exam-management'
+                    ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                    : 'bg-white/90 hover:bg-amber-50 text-amber-950 border-amber-300/80'
+                }`}
+              >
+                <span>⏱️</span>
+                <span>Phòng Thi & Bài Tập</span>
+              </Link>
+            </div>
+          )}
+
           {/* USER INFO DROPDOWN CHUẨN MOODLE GNOMIO (GÓC PHẢI NAV BAR) - ẨN HOÀN TOÀN KHI Ở TRANG AUTH */}
           <div className="flex items-center space-x-3" ref={dropdownRef}>
             {user && location.pathname !== '/auth' ? (
@@ -191,6 +208,17 @@ export default function Navbar() {
                       📝
                     </Link>
                   </>
+                )}
+
+                {/* Nút Phòng Thi Mobile Dành Cho Học Sinh */}
+                {!isTeacher && (
+                  <Link
+                    to="/exam-management"
+                    className="md:hidden p-2 rounded-xl bg-white/90 border border-amber-300 text-amber-900 text-xs font-bold shadow-2xs"
+                    title="Phòng Thi & Bài Tập"
+                  >
+                    ⏱️
+                  </Link>
                 )}
 
                 {/* 🔔 QUẢ CHUÔNG THÔNG BÁO THẬT NHẢY CHẤM ĐỎ DÀNH CHO HỌC SINH */}

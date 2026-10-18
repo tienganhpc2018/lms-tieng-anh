@@ -15,14 +15,23 @@ import {
   Award,
   ClipboardList,
   Upload,
-  FileText
+  FileText,
+  Key,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Printer
 } from 'lucide-react';
+import UserManagementModal from '../../../components/lms/UserManagementModal';
 import { DEFAULT_CLASSES, DEFAULT_STUDENTS_8A1, loadClassesList, saveClassesList, EXAM_STORAGE_KEYS } from '../examStorage';
 
 const CLASSES_STORAGE_KEY = EXAM_STORAGE_KEYS.CLASSES;
 const STUDENTS_STORAGE_KEY = EXAM_STORAGE_KEYS.STUDENTS;
 
 export default function ClassesTab() {
+  const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
+  const [showPasswordId, setShowPasswordId] = useState(null);
+
   // 1. Quản lý danh sách lớp học bền vững
   const [classes, setClasses] = useState(() => {
     return loadClassesList();
@@ -176,6 +185,72 @@ export default function ClassesTab() {
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify([]));
       } catch (e) {}
       showNotify('Đã dọn sạch toàn bộ lớp học!');
+    }
+  };
+
+  // Đồng bộ học sinh và lớp từ Site Administration (lms_csv_uploaded_students_v2)
+  const syncStudentsFromLms = () => {
+    try {
+      const csvUsers = JSON.parse(localStorage.getItem('lms_csv_uploaded_students_v2') || '[]');
+      const defaultUsers = [
+        { id: 'st_hoangnm', username: 'hoangnm', full_name: 'Nguyễn Minh Hoàng', role: 'student', raw_password_hint: '123456', class_name: 'Lớp 9' }
+      ];
+      const combined = [...defaultUsers, ...csvUsers].filter((u) => u.role !== 'teacher');
+      if (combined.length === 0) {
+        showNotify('Chưa có danh sách học sinh trong Site Administration.');
+        return;
+      }
+
+      const uniqueClasses = {};
+      classes.forEach((c) => { uniqueClasses[c.id.toLowerCase()] = c; });
+
+      const newStudentItems = [];
+      combined.forEach((u) => {
+        if (!u.username && !u.id) return;
+        const cName = u.class_name || u.class || 'Lớp 9';
+        const cId = cName.toLowerCase().replace(/\s+/g, '');
+        if (!uniqueClasses[cId]) {
+          uniqueClasses[cId] = {
+            id: cId,
+            name: cName.startsWith('Lớp') ? cName : `Lớp ${cName.toUpperCase()}`,
+            grade: 'Khối ' + (cName.match(/\d+/) ? cName.match(/\d+/)[0] : '9'),
+            studentCount: 0,
+            room: 'P. Ngoại Ngữ 1',
+            year: '2025-2026'
+          };
+        }
+        newStudentItems.push({
+          id: u.id || `hs_${u.username}`,
+          name: u.full_name || u.username,
+          code: u.username || u.code || 'HS' + u.id,
+          raw_password_hint: u.raw_password_hint || '123456',
+          gender: u.gender || 'Nam',
+          gpa: 8.5,
+          avg: 8.5,
+          attendance: '100%',
+          progress: 90,
+          classId: cId,
+          status: 'active'
+        });
+      });
+
+      const classListUpdated = Object.values(uniqueClasses).map((cls) => {
+        const count = newStudentItems.filter((s) => s.classId === cls.id).length;
+        return { ...cls, studentCount: count || cls.studentCount || 35 };
+      });
+
+      setClasses(classListUpdated);
+      saveClassesList(classListUpdated);
+      setStudents(newStudentItems);
+      try {
+        localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(newStudentItems));
+      } catch (e) {}
+      if (!selectedClassId && classListUpdated.length > 0) {
+        setSelectedClassId(classListUpdated[0].id);
+      }
+      showNotify(`Đã đồng bộ thành công ${newStudentItems.length} tài khoản từ Site Administration!`);
+    } catch (e) {
+      console.warn('Sync notice:', e);
     }
   };
 
@@ -333,6 +408,25 @@ export default function ClassesTab() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Nút Quản Lý Tài Khoản Học Sinh & In Thẻ Cả Lớp (Site Administration) */}
+          <button
+            onClick={() => setIsUserMgmtOpen(true)}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black transition flex items-center space-x-1.5 shadow-md hover:shadow-lg"
+            title="Quản lý tài khoản học sinh, cấp tài khoản và in thẻ học sinh cả lớp (Site Administration)"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>👥 Quản Lý User & In Thẻ (Site Admin)</span>
+          </button>
+
+          <button
+            onClick={syncStudentsFromLms}
+            className="px-3.5 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs"
+            title="Đồng bộ danh sách học sinh từ Site Administration vào các lớp"
+          >
+            <Sparkles className="w-4 h-4 text-teal-600" />
+            <span>🔄 Đồng bộ từ Site Admin</span>
+          </button>
+
           {/* Nút Xóa Lớp Mẫu nếu đang có 8a1 - 8a4 */}
           {classes.some((c) => ['8a1', '8a2', '8a3', '8a4'].includes(c.id.toLowerCase())) && (
             <button
@@ -516,7 +610,7 @@ export default function ClassesTab() {
             <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="py-3 px-4">STT</th>
-                <th className="py-3 px-4">Mã HS</th>
+                <th className="py-3 px-4">Mã HS / Tên Đăng Nhập</th>
                 <th className="py-3 px-4">Họ và Tên</th>
                 <th className="py-3 px-4">Giới tính</th>
                 <th className="py-3 px-4">Tiến độ bài học</th>
@@ -531,7 +625,23 @@ export default function ClassesTab() {
                 filteredStudents.map((st, idx) => (
                   <tr key={st.id || idx} className="hover:bg-slate-50/70 transition">
                     <td className="py-3 px-4 text-slate-400 font-bold">{idx + 1}</td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-500">{st.code || st.id}</td>
+                    <td className="py-3 px-4 font-mono">
+                      <div className="font-bold text-slate-800">@{st.code || st.username || st.id}</div>
+                      <div className="flex items-center space-x-1.5 text-[11px] text-slate-500 mt-0.5">
+                        <span>Pass:</span>
+                        <span className="font-mono text-emerald-800 font-bold bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+                          {showPasswordId === (st.id || idx) ? (st.raw_password_hint || '123456') : '••••••'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswordId(showPasswordId === (st.id || idx) ? null : (st.id || idx))}
+                          className="p-0.5 text-slate-400 hover:text-slate-700 transition"
+                          title="Ẩn / hiện mật khẩu học sinh"
+                        >
+                          {showPasswordId === (st.id || idx) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-slate-500" />}
+                        </button>
+                      </div>
+                    </td>
                     <td className="py-3 px-4">
                       <span className="font-extrabold text-slate-900 text-sm block">{st.name}</span>
                       {st.name.includes('Minh Hằng') && (
@@ -944,6 +1054,16 @@ export default function ClassesTab() {
           </div>
         </div>
       )}
+
+      {/* Modal Quản lý User & In Thẻ Học Sinh (Site Admin cũ tích hợp) */}
+      <UserManagementModal
+        isOpen={isUserMgmtOpen}
+        onClose={() => {
+          setIsUserMgmtOpen(false);
+          syncStudentsFromLms();
+        }}
+      />
     </div>
   );
 }
+

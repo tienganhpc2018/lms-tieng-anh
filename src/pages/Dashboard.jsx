@@ -623,6 +623,14 @@ export default function Dashboard() {
                   </p>
 
                   <div className="flex flex-wrap items-center gap-3 pt-1 select-none">
+                    <Link
+                      to="/exam-management"
+                      className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-lg transition flex items-center space-x-2 border border-teal-300/40 cursor-pointer"
+                    >
+                      <Clock className="w-4 h-4 text-slate-950" />
+                      <span>⏱️ Phòng Thi & Khảo Thí</span>
+                    </Link>
+
                     <button
                       onClick={() => setIsJoinModalOpen(true)}
                       className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-lg transition flex items-center space-x-2 border border-amber-300/40 cursor-pointer"

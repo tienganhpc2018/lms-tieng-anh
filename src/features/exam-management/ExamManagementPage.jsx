@@ -35,14 +35,22 @@ import AnalyticsTab from './tabs/AnalyticsTab';
 import ExtractorTab from './tabs/ExtractorTab';
 import TestSuiteTab from './tabs/TestSuiteTab';
 
-// Modals & Components
 import ExamPreviewModal from './components/ExamPreviewModal';
 import AssignExamModal from './components/AssignExamModal';
 import StudentPortalView from './components/StudentPortalView';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ExamManagementPage() {
-  const [currentRole, setCurrentRole] = useState(() => getActiveRole());
+  const { user, profile, isTeacher } = useAuth();
+  const isRealStudent = !!user && !isTeacher;
+
+  const [currentRole, setCurrentRole] = useState(() => {
+    if (isRealStudent) return 'student';
+    return getActiveRole();
+  });
   const [activeTab, setActiveTab] = useState('authoring'); // Default to 'authoring' or 'overview'
+  
+  const effectiveRole = isRealStudent ? 'student' : currentRole;
   
   // Data state
   const [exams, setExams] = useState(() => loadAssignedExams());
@@ -118,36 +126,43 @@ export default function ExamManagementPage() {
             </div>
           </div>
 
-          {/* Role Switcher: Thầy Nguyễn Văn Hải vs Minh Hằng (8A1) */}
-          <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 self-start md:self-auto">
-            <button
-              onClick={() => handleSwitchRole('teacher')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 ${
-                currentRole === 'teacher'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span>👨‍🏫</span>
-              <span>Giáo viên (Thầy Nguyễn Văn Hải)</span>
-            </button>
+          {/* Role Switcher or Student Identity Banner */}
+          {isRealStudent ? (
+            <div className="flex items-center space-x-2 bg-emerald-50 px-3.5 py-1.5 rounded-2xl border border-emerald-300 text-emerald-950 font-bold text-xs shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>👩‍🎓 Học sinh: <b>{profile?.full_name || profile?.username || user?.email}</b> ({profile?.class_name || 'Lớp 9'})</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 self-start md:self-auto">
+              <button
+                onClick={() => handleSwitchRole('teacher')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 ${
+                  effectiveRole === 'teacher'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>👨‍🏫</span>
+                <span>Giáo viên (Thầy Nguyễn Văn Hải)</span>
+              </button>
 
-            <button
-              onClick={() => handleSwitchRole('student')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 ${
-                currentRole === 'student'
-                  ? 'bg-amber-500 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span>👩‍🎓</span>
-              <span>Học sinh (Vào phòng thi)</span>
-            </button>
-          </div>
+              <button
+                onClick={() => handleSwitchRole('student')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center space-x-1.5 ${
+                  effectiveRole === 'student'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>👩‍🎓</span>
+                <span>Học sinh (Xem trước)</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 9 Teacher Sub-Tabs Navigation (Scrollable horizontally on mobile) */}
-        {currentRole === 'teacher' && (
+        {effectiveRole === 'teacher' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-100 flex overflow-x-auto no-scrollbar py-1.5 gap-1.5">
             {teacherTabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -172,7 +187,7 @@ export default function ExamManagementPage() {
 
       {/* Main Workspace Body */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {currentRole === 'teacher' ? (
+        {effectiveRole === 'teacher' ? (
           <div>
             {/* 1. Tổng quan */}
             {activeTab === 'overview' && (
@@ -228,6 +243,9 @@ export default function ExamManagementPage() {
           <StudentPortalView
             exams={exams}
             submissions={submissions}
+            currentUser={user}
+            currentProfile={profile}
+            isRealStudent={isRealStudent}
             onSwitchToTeacher={() => handleSwitchRole('teacher')}
             onExamSubmitted={handleExamSubmitted}
           />

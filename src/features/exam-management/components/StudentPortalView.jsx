@@ -22,6 +22,9 @@ import { loadClassesList, EXAM_STORAGE_KEYS } from '../examStorage';
 export default function StudentPortalView({
   exams = [],
   submissions = [],
+  currentUser = null,
+  currentProfile = null,
+  isRealStudent = false,
   onSwitchToTeacher,
   onExamSubmitted
 }) {
@@ -31,6 +34,9 @@ export default function StudentPortalView({
   // Danh sách lớp thực tế
   const [classesList] = useState(() => loadClassesList());
   const [currentClassId, setCurrentClassId] = useState(() => {
+    if (isRealStudent && currentProfile?.class_name) {
+      return currentProfile.class_name.toLowerCase().replace(/\s+/g, '');
+    }
     const list = loadClassesList();
     return list[0]?.id || 'lop9';
   });
@@ -49,14 +55,30 @@ export default function StudentPortalView({
   );
 
   const [selectedStudentName, setSelectedStudentName] = useState(() => {
+    if (isRealStudent) {
+      return currentProfile?.full_name || currentProfile?.username || currentUser?.email || 'Học sinh';
+    }
     return studentsOfCurrentClass[0]?.name || 'Nguyễn Văn Minh';
   });
+
   const [selectedStudentCode, setSelectedStudentCode] = useState(() => {
+    if (isRealStudent) {
+      return currentProfile?.username || 'HS-' + (currentUser?.id?.slice(-4) || '001');
+    }
     return studentsOfCurrentClass[0]?.code || 'HS-001';
   });
 
-  // Khi đổi lớp, tự động chọn học sinh đầu tiên của lớp đó (hoặc tạo mẫu)
+  // Khi đổi lớp hoặc khi profile thay đổi
   useEffect(() => {
+    if (isRealStudent) {
+      setSelectedStudentName(currentProfile?.full_name || currentProfile?.username || currentUser?.email || 'Học sinh');
+      setSelectedStudentCode(currentProfile?.username || 'HS-' + (currentUser?.id?.slice(-4) || '001'));
+      if (currentProfile?.class_name) {
+        setCurrentClassId(currentProfile.class_name.toLowerCase().replace(/\s+/g, ''));
+      }
+      return;
+    }
+
     const classSts = allStudents.filter(
       (s) => (s.classId || '').toLowerCase() === (currentClassId || '').toLowerCase()
     );
@@ -67,13 +89,13 @@ export default function StudentPortalView({
       setSelectedStudentName('Học sinh ' + (currentClassId.toUpperCase()));
       setSelectedStudentCode(`HS-${currentClassId.toUpperCase()}-01`);
     }
-  }, [currentClassId, allStudents]);
+  }, [currentClassId, allStudents, isRealStudent, currentProfile, currentUser]);
 
   const currentClassObj = classesList.find(
     (c) => c.id.toLowerCase() === (currentClassId || '').toLowerCase()
   ) || {
     id: currentClassId,
-    name: currentClassId ? (currentClassId.toLowerCase().startsWith('lớp') ? currentClassId : `Lớp ${currentClassId.toUpperCase()}`) : 'Lớp 9'
+    name: currentProfile?.class_name || (currentClassId ? (currentClassId.toLowerCase().startsWith('lớp') ? currentClassId : `Lớp ${currentClassId.toUpperCase()}`) : 'Lớp 9')
   };
 
   // Lọc các đề thi đã mở cho lớp đang chọn
@@ -98,7 +120,7 @@ export default function StudentPortalView({
             <div>
               <div className="flex items-center space-x-2">
                 <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-white/20 tracking-wider">
-                  Cổng Làm Bài & Khảo Thí Dành Cho Học Sinh
+                  {isRealStudent ? '🟢 TÀI KHOẢN HỌC SINH ĐÃ ĐĂNG NHẬP CHÍNH THỨC' : 'Chế độ xem trước của Giáo viên (Thầy Hải)'}
                 </span>
               </div>
               <h2 className="text-lg font-black mt-0.5 flex items-center space-x-2">
@@ -111,74 +133,114 @@ export default function StudentPortalView({
             </div>
           </div>
 
-          <button
-            onClick={onSwitchToTeacher}
-            className="px-4 py-2.5 rounded-xl bg-white text-slate-900 font-black text-xs shadow-md hover:bg-amber-50 transition flex items-center space-x-2 self-start md:self-auto shrink-0"
-          >
-            <span>👨‍🏫</span>
-            <span>Chuyển về Giáo viên (Thầy Nguyễn Văn Hải)</span>
-          </button>
+          {isRealStudent ? (
+            <a
+              href="/dashboard"
+              className="px-4 py-2.5 rounded-xl bg-white text-slate-900 font-black text-xs shadow-md hover:bg-amber-50 transition flex items-center space-x-2 self-start md:self-auto shrink-0"
+            >
+              <span>🏠</span>
+              <span>Về Trang Chủ Khóa Học (Dashboard)</span>
+            </a>
+          ) : (
+            <button
+              onClick={onSwitchToTeacher}
+              className="px-4 py-2.5 rounded-xl bg-white text-slate-900 font-black text-xs shadow-md hover:bg-amber-50 transition flex items-center space-x-2 self-start md:self-auto shrink-0"
+            >
+              <span>👨‍🏫</span>
+              <span>Chuyển về Giáo viên (Thầy Nguyễn Văn Hải)</span>
+            </button>
+          )}
         </div>
 
-        {/* Thanh chọn Lớp & Học Sinh nhanh (giúp Thầy hoặc Học sinh chuyển lớp làm bài tức thì) */}
-        <div className="pt-2 border-t border-white/20 flex flex-wrap items-center gap-3 text-xs">
-          <div className="flex items-center space-x-1.5 bg-black/15 px-3 py-1.5 rounded-xl">
-            <Users className="w-3.5 h-3.5 text-amber-200" />
-            <span className="font-bold text-amber-100">Chọn Lớp:</span>
-            <select
-              value={currentClassId}
-              onChange={(e) => setCurrentClassId(e.target.value)}
-              className="bg-transparent text-white font-extrabold focus:outline-hidden cursor-pointer"
-            >
-              {classesList.length > 0 ? (
-                classesList.map((c) => (
-                  <option key={c.id} value={c.id} className="text-slate-900">
-                    {c.name}
-                  </option>
-                ))
-              ) : (
-                <option value="lop9" className="text-slate-900">
-                  Lớp 9
-                </option>
-              )}
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-1.5 bg-black/15 px-3 py-1.5 rounded-xl">
-            <User className="w-3.5 h-3.5 text-amber-200" />
-            <span className="font-bold text-amber-100">Học sinh:</span>
-            {studentsOfCurrentClass.length > 0 ? (
+        {/* Thanh chọn Lớp & Học Sinh nhanh (chỉ hiển thị khi Thầy đang xem thử nghiệm) */}
+        {!isRealStudent && (
+          <div className="pt-2 border-t border-white/20 flex flex-wrap items-center gap-3 text-xs">
+            <div className="flex items-center space-x-1.5 bg-black/15 px-3 py-1.5 rounded-xl">
+              <Users className="w-3.5 h-3.5 text-amber-200" />
+              <span className="font-bold text-amber-100">Chọn Lớp Test:</span>
               <select
-                value={selectedStudentName}
-                onChange={(e) => {
-                  const found = studentsOfCurrentClass.find((s) => s.name === e.target.value);
-                  setSelectedStudentName(e.target.value);
-                  if (found) setSelectedStudentCode(found.code || `HS-${found.id.slice(-3)}`);
-                }}
+                value={currentClassId}
+                onChange={(e) => setCurrentClassId(e.target.value)}
                 className="bg-transparent text-white font-extrabold focus:outline-hidden cursor-pointer"
               >
-                {studentsOfCurrentClass.map((st) => (
-                  <option key={st.id} value={st.name} className="text-slate-900">
-                    {st.name} ({st.code})
+                {classesList.length > 0 ? (
+                  classesList.map((c) => (
+                    <option key={c.id} value={c.id} className="text-slate-900">
+                      {c.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="lop9" className="text-slate-900">
+                    Lớp 9
                   </option>
-                ))}
+                )}
               </select>
-            ) : (
-              <input
-                type="text"
-                value={selectedStudentName}
-                onChange={(e) => setSelectedStudentName(e.target.value)}
-                placeholder="Nhập tên học sinh..."
-                className="bg-transparent text-white font-extrabold focus:outline-hidden border-b border-white/40 px-1 w-32"
-              />
-            )}
-          </div>
+            </div>
 
-          <span className="text-[11px] text-amber-100 ml-auto hidden sm:inline-block">
-            💡 Đang hiển thị các bài tập & đề thi được giao cho: <b>{currentClassObj.name}</b>
-          </span>
-        </div>
+            <div className="flex items-center space-x-1.5 bg-black/15 px-3 py-1.5 rounded-xl">
+              <User className="w-3.5 h-3.5 text-amber-200" />
+              <span className="font-bold text-amber-100">Học sinh test:</span>
+              {studentsOfCurrentClass.length > 0 ? (
+                <select
+                  value={selectedStudentName}
+                  onChange={(e) => {
+                    const found = studentsOfCurrentClass.find((s) => s.name === e.target.value);
+                    setSelectedStudentName(e.target.value);
+                    if (found) setSelectedStudentCode(found.code || `HS-${found.id.slice(-3)}`);
+                  }}
+                  className="bg-transparent text-white font-extrabold focus:outline-hidden cursor-pointer"
+                >
+                  {studentsOfCurrentClass.map((st) => (
+                    <option key={st.id} value={st.name} className="text-slate-900">
+                      {st.name} ({st.code})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={selectedStudentName}
+                  onChange={(e) => setSelectedStudentName(e.target.value)}
+                  placeholder="Nhập tên học sinh..."
+                  className="bg-transparent text-white font-extrabold focus:outline-hidden border-b border-white/40 px-1 w-32"
+                />
+              )}
+            </div>
+
+            <span className="text-[11px] text-amber-100 ml-auto hidden sm:inline-block">
+              💡 Thầy đang xem thử nghiệm đề thi được giao cho: <b>{currentClassObj.name}</b>
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* Hộp Giải Thích & Hướng Dẫn Cách Học Sinh Đăng Nhập Làm Bài */}
+      {!isRealStudent && (
+        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-emerald-50 border border-blue-200 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-xs">
+              🔑
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <span className="font-black text-slate-900 text-sm">Học sinh đăng nhập vào làm bài thi bằng cách nào?</span>
+                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-black text-[10px] uppercase">Hướng dẫn Thầy & Trò</span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                • <b>Bước 1</b>: Thầy vào mục <b>"2. Lớp học"</b> $\rightarrow$ bấm <b>"👥 Quản Lý Tài Khoản (Site Admin)"</b> để cấp tài khoản hoặc bấm <b>"In Thẻ Tài Khoản Cả Lớp (PDF A4)"</b> cắt phát cho học sinh.<br />
+                • <b>Bước 2</b>: Học sinh dùng máy tính hoặc điện thoại truy cập vào web $\rightarrow$ bấm <b>"Đăng nhập"</b> (hoặc vào <a href="/auth" className="text-blue-700 underline font-bold">/auth</a>) nhập <b>Tên đăng nhập (Mã HS)</b> và <b>Mật khẩu</b> để vào làm bài thi chính thức!
+              </p>
+            </div>
+          </div>
+          <a
+            href="/auth"
+            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md transition flex items-center justify-center space-x-1.5 shrink-0 self-start md:self-auto"
+          >
+            <span>🔑</span>
+            <span>Đến Trang Đăng Nhập (/auth)</span>
+          </a>
+        </div>
+      )}
 
       {/* 5 Thanh Điều Hướng Dành Cho Học Sinh */}
       <div className="bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap gap-1.5 sm:gap-2">
