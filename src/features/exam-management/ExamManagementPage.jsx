@@ -34,6 +34,7 @@ import GradingTab from './tabs/GradingTab';
 import AnalyticsTab from './tabs/AnalyticsTab';
 import ExtractorTab from './tabs/ExtractorTab';
 import TestSuiteTab from './tabs/TestSuiteTab';
+import HoaMaiEduTab from '../hoa-mai-edu/HoaMaiEduTab';
 
 import ExamPreviewModal from './components/ExamPreviewModal';
 import AssignExamModal from './components/AssignExamModal';
@@ -100,7 +101,8 @@ export default function ExamManagementPage() {
     { id: 'grading', label: '6. Chấm bài', icon: '✍️', desc: 'Tự động MCQ & chấm tự luận' },
     { id: 'analytics', label: '7. Thống kê', icon: '📈', desc: 'Phổ điểm & phân tích câu khó' },
     { id: 'extractor', label: '8. Trích xuất đề', icon: '✨', desc: 'AI Material Extractor' },
-    { id: 'testsuite', label: '9. Kiểm thử', icon: '🧪', desc: 'Interactive Test Suite' }
+    { id: 'testsuite', label: '9. Kiểm thử', icon: '🧪', desc: 'Interactive Test Suite' },
+    { id: 'hoamai', label: '10. Hoa Mai Edu', icon: '🌸', desc: 'Dạy thêm, Điểm danh ma trận & Học phí VietQR' }
   ];
 
   return (
@@ -237,6 +239,14 @@ export default function ExamManagementPage() {
 
             {/* 9. Kiểm thử */}
             {activeTab === 'testsuite' && <TestSuiteTab />}
+
+            {/* 10. Hoa Mai Edu */}
+            {activeTab === 'hoamai' && (
+              <HoaMaiEduTab
+                allExams={exams}
+                allSubmissions={submissions}
+              />
+            )}
           </div>
         ) : (
           /* Student Portal View */
